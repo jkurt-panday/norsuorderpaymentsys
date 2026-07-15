@@ -20,14 +20,14 @@ return new class extends Migration
             $table->text('address');
             $table->decimal('amount', 10, 2);
             $table->enum('request_type', ['New Request', 'Re-issue Request']);
-            
+
             // One-to-One Relationships
             $table->foreignId('membership_id')->constrained('membership')->onDelete('restrict');
             $table->foreignId('payment_details_id')->constrained('payment_details_options')->onDelete('restrict');
-            
+
             // Supporting documents - will store as JSON array
             $table->json('supporting_documents')->nullable();
-            
+
             $table->timestamps();
         });
     }

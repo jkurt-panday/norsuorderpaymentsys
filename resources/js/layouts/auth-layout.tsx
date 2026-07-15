@@ -1,4 +1,4 @@
-import AuthSplitLayout from '@/layouts/auth/auth-split-layout';
+import AuthCardLayout from '@/layouts/auth/auth-card-layout'; // Point to your new component
 
 export default function AuthLayout({
     title = '',
@@ -10,12 +10,10 @@ export default function AuthLayout({
     children: React.ReactNode;
 }) {
     return (
-        <AuthSplitLayout>
-            <div className="space-y-2">
-                {title && <h1 className="text-2xl font-semibold">{title}</h1>}
-                {description && <p className="text-sm text-muted-foreground">{description}</p>}
+        <AuthCardLayout title={title} description={description}>
+            <div className="space-y-4">
                 {children}
             </div>
-        </AuthSplitLayout>
+        </AuthCardLayout>
     );
 }

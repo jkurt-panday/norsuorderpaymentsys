@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
-import AuthSplitLayout from '@/layouts/auth/auth-split-layout';
+import React, { useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { login } from '@/routes';
+import { request as passwordRequest } from '@/routes/password';
 
 export default function Login({ status, canResetPassword }: { status?: string; canResetPassword?: boolean }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -22,11 +23,11 @@ export default function Login({ status, canResetPassword }: { status?: string; c
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        post(route('login'));
+        post(login.url());
     };
 
     return (
-        <AuthSplitLayout>
+        <>
             <Head title="Portal Authentication" />
 
             {/* If Fortify or Laravel returns a status message (e.g., password reset link sent) */}
@@ -48,19 +49,19 @@ export default function Login({ status, canResetPassword }: { status?: string; c
 
                 <form onSubmit={handleSubmit}>
                     <CardContent className="space-y-4">
-                        
+
                         {/* Email Input Field */}
                         <div className="space-y-2">
                             <Label htmlFor="email">Official Email</Label>
-                            <Input 
-                                id="email" 
-                                type="email" 
+                            <Input
+                                id="email"
+                                type="email"
                                 name="email"
-                                placeholder="username@norsu.edu.ph" 
-                                value={data.email} 
+                                placeholder="username@norsu.edu.ph"
+                                value={data.email}
                                 autoComplete="username"
-                                onChange={e => setData('email', e.target.value)} 
-                                required 
+                                onChange={e => setData('email', e.target.value)}
+                                required
                             />
                             {errors.email && <p className="text-xs font-semibold text-destructive">{errors.email}</p>}
                         </div>
@@ -70,22 +71,22 @@ export default function Login({ status, canResetPassword }: { status?: string; c
                             <div className="flex items-center justify-between">
                                 <Label htmlFor="password">Security Password</Label>
                                 {canResetPassword && (
-                                    <Link 
-                                        href={route('password.request')} 
+                                    <Link
+                                        href={passwordRequest.url()}
                                         className="text-xs font-medium text-primary hover:underline hover:text-primary/90"
                                     >
                                         Forgot?
                                     </Link>
                                 )}
                             </div>
-                            <Input 
-                                id="password" 
-                                type="password" 
+                            <Input
+                                id="password"
+                                type="password"
                                 name="password"
-                                value={data.password} 
+                                value={data.password}
                                 autoComplete="current-password"
-                                onChange={e => setData('password', e.target.value)} 
-                                required 
+                                onChange={e => setData('password', e.target.value)}
+                                required
                             />
                             {errors.password && <p className="text-xs font-semibold text-destructive">{errors.password}</p>}
                         </div>
@@ -108,9 +109,9 @@ export default function Login({ status, canResetPassword }: { status?: string; c
                     </CardContent>
 
                     <CardFooter className="flex flex-col space-y-4">
-                        <Button 
-                            type="submit" 
-                            className="w-full text-white font-medium shadow transition-all duration-150 active:scale-[0.98]" 
+                        <Button
+                            type="submit"
+                            className="w-full text-white font-medium shadow transition-all duration-150 active:scale-[0.98]"
                             disabled={processing}
                         >
                             {processing ? 'Verifying Credentials...' : 'Authenticate Access'}
@@ -118,6 +119,6 @@ export default function Login({ status, canResetPassword }: { status?: string; c
                     </CardFooter>
                 </form>
             </Card>
-        </AuthSplitLayout>
+        </>
     );
 }

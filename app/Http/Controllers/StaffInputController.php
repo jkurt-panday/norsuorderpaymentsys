@@ -29,20 +29,20 @@ class StaffInputController extends Controller
 
         // Check if form exists and doesn't have staff input yet
         $formInput = FormInput::find($request->form_input_id);
-        
-        if (!$formInput) {
+
+        if (! $formInput) {
             return response()->json(['message' => 'Form not found'], 404);
         }
 
         if ($formInput->staffInput) {
             return response()->json([
-                'message' => 'Staff input already exists for this form. Use update endpoint.'
+                'message' => 'Staff input already exists for this form. Use update endpoint.',
             ], 409);
         }
 
         // Get document URLs from the form's supporting documents
         $documents = $formInput->supporting_documents ?? [];
-        
+
         // Create Staff Input
         $staffInput = StaffInput::create([
             'form_input_id' => $request->form_input_id,
@@ -56,7 +56,7 @@ class StaffInputController extends Controller
 
         return response()->json([
             'message' => 'Staff input added successfully',
-            'data' => $staffInput
+            'data' => $staffInput,
         ], 201);
     }
 
@@ -82,7 +82,7 @@ class StaffInputController extends Controller
 
         return response()->json([
             'message' => 'Staff input updated successfully',
-            'data' => $staffInput
+            'data' => $staffInput,
         ]);
     }
 
@@ -94,7 +94,7 @@ class StaffInputController extends Controller
         $staffInput = StaffInput::with(['fundCluster', 'uacs', 'formInput'])
             ->where('form_input_id', $formInputId)
             ->firstOrFail();
-            
+
         return response()->json($staffInput);
     }
 
@@ -104,6 +104,7 @@ class StaffInputController extends Controller
     public function index()
     {
         $staffInputs = StaffInput::with(['fundCluster', 'uacs', 'formInput'])->get();
+
         return response()->json($staffInputs);
     }
 
@@ -115,10 +116,10 @@ class StaffInputController extends Controller
         $pendingForms = FormInput::doesntHave('staffInput')
             ->with(['membership', 'paymentDetails'])
             ->get();
-            
+
         return response()->json([
             'pending_count' => $pendingForms->count(),
-            'data' => $pendingForms
+            'data' => $pendingForms,
         ]);
     }
 
@@ -130,10 +131,10 @@ class StaffInputController extends Controller
         $processedForms = FormInput::has('staffInput')
             ->with(['membership', 'paymentDetails', 'staffInput'])
             ->get();
-            
+
         return response()->json([
             'processed_count' => $processedForms->count(),
-            'data' => $processedForms
+            'data' => $processedForms,
         ]);
     }
 
@@ -146,7 +147,7 @@ class StaffInputController extends Controller
         $staffInput->delete();
 
         return response()->json([
-            'message' => 'Staff input deleted successfully'
+            'message' => 'Staff input deleted successfully',
         ]);
     }
 }

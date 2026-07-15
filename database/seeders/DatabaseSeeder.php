@@ -33,7 +33,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'accountant@norsu.edu.ph'],
             [
                 'name' => 'Lead Accountant',
-                'password' => Hash::make($accountantPassword),
+                'password' => $accountantPassword,
                 'role' => 'accountant',
             ]
         );

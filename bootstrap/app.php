@@ -1,8 +1,8 @@
 <?php
 
+use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\HandleAppearance;
-use App\Http\Middleware\HandleInertiaRequests;
-use App\Http\Middleware\EnsureUserIsAdmin; // 🌟 1. Make sure to import your admin middleware
+use App\Http\Middleware\HandleInertiaRequests; // 🌟 1. Make sure to import your admin middleware
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;

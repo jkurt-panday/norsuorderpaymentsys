@@ -33,27 +33,26 @@ class HandleInertiaRequests extends Middleware
      *
      * @return array<string, mixed>
      */
+    public function share(Request $request): array
+    {
+        return [
+            ...parent::share($request),
 
-public function share(Request $request): array
-{
-    return [
-        ...parent::share($request),
-        
-        // 🌟 1. SHARE AUTHENTICATED USER DATA GLOBALLY
-        'auth' => [
-            'user' => $request->user() ? [
-                'id' => $request->user()->id,
-                'name' => $request->user()->name,
-                'email' => $request->user()->email,
-                'role' => $request->user()->role, // Crucial for conditional UI rendering
-            ] : null,
-        ],
+            // 🌟 1. SHARE AUTHENTICATED USER DATA GLOBALLY
+            'auth' => [
+                'user' => $request->user() ? [
+                    'id' => $request->user()->id,
+                    'name' => $request->user()->name,
+                    'email' => $request->user()->email,
+                    'role' => $request->user()->role, // Crucial for conditional UI rendering
+                ] : null,
+            ],
 
-        // 🌟 2. SHARE SYSTEM FLASH MESSAGES FOR NOTIFICATIONS
-        'flash' => [
-            'success' => $request->session()->get('success'),
-            'error' => $request->session()->get('error'),
-        ],
-    ];
-}
+            // 🌟 2. SHARE SYSTEM FLASH MESSAGES FOR NOTIFICATIONS
+            'flash' => [
+                'success' => $request->session()->get('success'),
+                'error' => $request->session()->get('error'),
+            ],
+        ];
+    }
 }

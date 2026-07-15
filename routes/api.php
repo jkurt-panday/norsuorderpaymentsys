@@ -9,7 +9,7 @@ Route::prefix('client')->group(function () {
     // Public form submission
     Route::post('/form-input', [FormInputController::class, 'store']);
     Route::get('/form-input/{id}', [FormInputController::class, 'show']);
-    
+
     // Optional: For checking form status
     Route::get('/form-input/{id}/status', [FormInputController::class, 'checkStatus']);
 });
@@ -22,7 +22,7 @@ Route::prefix('staff')->middleware(['auth:sanctum'])->group(function () {
     Route::get('/staff-input/{formInputId}', [StaffInputController::class, 'show']);
     Route::get('/staff-input', [StaffInputController::class, 'index']);
     Route::delete('/staff-input/{id}', [StaffInputController::class, 'destroy']);
-    
+
     // Dashboard endpoints
     Route::get('/pending-forms', [StaffInputController::class, 'pendingForms']);
     Route::get('/processed-forms', [StaffInputController::class, 'processedForms']);

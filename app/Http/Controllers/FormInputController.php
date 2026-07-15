@@ -40,7 +40,7 @@ class FormInputController extends Controller
         $documentUrls = [];
         if ($request->hasFile('supporting_documents')) {
             foreach ($request->file('supporting_documents') as $file) {
-                $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
                 $path = $file->storeAs('supporting_documents', $filename, 'public');
                 $documentUrls[] = Storage::url($path);
             }
@@ -60,13 +60,13 @@ class FormInputController extends Controller
             'request_type' => $request->request_type,
             'membership_id' => $request->membership_id,
             'payment_details_id' => $request->payment_details_id,
-            'supporting_documents' => $documentUrls
+            'supporting_documents' => $documentUrls,
         ]);
 
         return response()->json([
             'message' => 'Form submitted successfully',
             'data' => $formInput,
-            'reference_id' => $formInput->id // For staff to reference later
+            'reference_id' => $formInput->id, // For staff to reference later
         ], 201);
     }
 
@@ -76,6 +76,7 @@ class FormInputController extends Controller
     public function show($id)
     {
         $formInput = FormInput::with(['membership', 'paymentDetails', 'staffInput'])->findOrFail($id);
+
         return response()->json($formInput);
     }
 
@@ -85,6 +86,7 @@ class FormInputController extends Controller
     public function index()
     {
         $formInputs = FormInput::with(['membership', 'paymentDetails', 'staffInput'])->get();
+
         return response()->json($formInputs);
     }
 
@@ -94,11 +96,11 @@ class FormInputController extends Controller
     public function update(Request $request, $id)
     {
         $formInput = FormInput::findOrFail($id);
-        
+
         // Check if staff already processed this
         if ($formInput->staffInput) {
             return response()->json([
-                'message' => 'Cannot update form. Staff has already processed this request.'
+                'message' => 'Cannot update form. Staff has already processed this request.',
             ], 403);
         }
 
@@ -131,10 +133,10 @@ class FormInputController extends Controller
                     }
                 }
             }
-            
+
             $documentUrls = [];
             foreach ($request->file('supporting_documents') as $file) {
-                $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
                 $path = $file->storeAs('supporting_documents', $filename, 'public');
                 $documentUrls[] = Storage::url($path);
             }
@@ -142,10 +144,10 @@ class FormInputController extends Controller
         }
 
         $formInput->update($request->all());
-        
+
         return response()->json([
             'message' => 'Form updated successfully',
-            'data' => $formInput
+            'data' => $formInput,
         ]);
     }
 
@@ -155,7 +157,7 @@ class FormInputController extends Controller
     // public function destroy($id)
     // {
     //     $formInput = FormInput::findOrFail($id);
-        
+
     //     // Check if staff already processed this
     //     if ($formInput->staffInput) {
     //         return response()->json([
@@ -172,9 +174,9 @@ class FormInputController extends Controller
     //             }
     //         }
     //     }
-        
+
     //     $formInput->delete();
-        
+
     //     return response()->json(['message' => 'Form deleted successfully']);
     // }
 }

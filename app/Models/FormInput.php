@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class FormInput extends Model
 {
     protected $table = 'form_input';
-    
+
     protected $fillable = [
         'email',
         'contact_num',
@@ -21,24 +21,24 @@ class FormInput extends Model
         'request_type',
         'membership_id',
         'payment_details_id',
-        'supporting_documents'
+        'supporting_documents',
     ];
-    
+
     protected $casts = [
         'supporting_documents' => 'array',
-        'amount' => 'decimal:2'
+        'amount' => 'decimal:2',
     ];
-    
+
     public function membership()
     {
         return $this->belongsTo(Membership::class);
     }
-    
+
     public function paymentDetails()
     {
         return $this->belongsTo(PaymentDetailsOption::class, 'payment_details_id');
     }
-    
+
     public function staffInput()
     {
         return $this->hasOne(StaffInput::class);

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
 import { Head, useForm, usePage } from '@inertiajs/react';
-import AuthSplitLayout from '@/layouts/auth/auth-split-layout';
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import AuthSplitLayout from '@/layouts/auth/auth-split-layout';
+import { store as storeAdminUser } from '@/routes/admin/users';
 
 export default function UserManagement() {
     // Local state for Phase 5 Step 20: Double-entry email confirmation
@@ -26,10 +27,11 @@ export default function UserManagement() {
         // 🌟 Phase 5 Step 20 Requirement: Double-entry email match validation
         if (data.email !== confirmEmail) {
             setLocalValidationError('The confirmation email does not match the primary email address.');
+
             return;
         }
 
-        post(route('admin.users.store'), {
+        post(storeAdminUser.url(), {
             onSuccess: () => {
                 reset('name', 'email', 'password');
                 setConfirmEmail('');

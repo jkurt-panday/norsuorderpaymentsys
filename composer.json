@@ -14,6 +14,7 @@
         "laravel/chisel": "^0.1.0",
         "laravel/fortify": "*",
         "laravel/framework": "^13.17",
+        "laravel/sanctum": "*",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14"
     },
