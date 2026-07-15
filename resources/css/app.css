@@ -5,6 +5,10 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
@@ -292,4 +296,35 @@
         calc(var(--radius) * 2.2);
     --radius-4xl:
         calc(var(--radius) * 2.6);
+}
+@layer base {
+  :root {
+    --background: #F4F6FC;
+    --foreground: #0F1E36;
+
+    /* 🌟 NORSU Core Azure Definition */
+    --primary: #007BFF;
+    --primary-foreground: #FFFFFF;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: #D5E0F2;
+    --input: #D5E0F2;
+    --ring: #007BFF;
+
+    --radius: 0.5rem;
+  }
 }

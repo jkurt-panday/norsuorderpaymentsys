@@ -1,125 +1,123 @@
-import { Form, Head } from '@inertiajs/react';
-import InputError from '@/components/input-error';
-import PasswordInput from '@/components/password-input';
-import TextLink from '@/components/text-link';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import React, { useEffect } from 'react';
+import { Head, Link, useForm } from '@inertiajs/react';
+import AuthSplitLayout from '@/layouts/auth/auth-split-layout';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
-/* @chisel-registration */
-import { register } from '@/routes';
-/* @end-chisel-registration */
-import { store } from '@/routes/login';
-import { request } from '@/routes/password';
-/* @chisel-passkeys */
-import PasskeyVerify from '@/components/passkey-verify';
-/* @end-chisel-passkeys */
 
-type Props = {
-    status?: string;
-    canResetPassword: boolean;
-};
+export default function Login({ status, canResetPassword }: { status?: string; canResetPassword?: boolean }) {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        email: '',
+        password: '',
+        remember: false,
+    });
 
-export default function Login({ status, canResetPassword }: Props) {
+    // Automatically wipe password inputs clean if there is an auth error
+    useEffect(() => {
+        return () => {
+            reset('password');
+        };
+    }, []);
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        post(route('login'));
+    };
+
     return (
-        <>
-            <Head title="Log in" />
+        <AuthSplitLayout>
+            <Head title="Portal Authentication" />
 
-            {/* @chisel-passkeys */}
-            <PasskeyVerify />
-            {/* @end-chisel-passkeys */}
-
-            <Form
-                {...store.form()}
-                resetOnSuccess={['password']}
-                className="flex flex-col gap-6"
-            >
-                {({ processing, errors }) => (
-                    <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    required
-                                    autoFocus
-                                    tabIndex={1}
-                                    autoComplete="email"
-                                    placeholder="email@example.com"
-                                />
-                                <InputError message={errors.email} />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <div className="flex items-center">
-                                    <Label htmlFor="password">Password</Label>
-                                    {canResetPassword && (
-                                        <TextLink
-                                            href={request()}
-                                            className="ml-auto text-sm"
-                                            tabIndex={5}
-                                        >
-                                            Forgot your password?
-                                        </TextLink>
-                                    )}
-                                </div>
-                                <PasswordInput
-                                    id="password"
-                                    name="password"
-                                    required
-                                    tabIndex={2}
-                                    autoComplete="current-password"
-                                    placeholder="Password"
-                                />
-                                <InputError message={errors.password} />
-                            </div>
-
-                            <div className="flex items-center space-x-3">
-                                <Checkbox
-                                    id="remember"
-                                    name="remember"
-                                    tabIndex={3}
-                                />
-                                <Label htmlFor="remember">Remember me</Label>
-                            </div>
-
-                            <Button
-                                type="submit"
-                                className="mt-4 w-full"
-                                tabIndex={4}
-                                disabled={processing}
-                                data-test="login-button"
-                            >
-                                {processing && <Spinner />}
-                                Log in
-                            </Button>
-                        </div>
-
-                        {/* @chisel-registration */}
-                        <div className="text-center text-sm text-muted-foreground">
-                            Don't have an account?{' '}
-                            <TextLink href={register()} tabIndex={5}>
-                                Sign up
-                            </TextLink>
-                        </div>
-                        {/* @end-chisel-registration */}
-                    </>
-                )}
-            </Form>
-
+            {/* If Fortify or Laravel returns a status message (e.g., password reset link sent) */}
             {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
+                <div className="mb-4 text-sm font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 p-3 rounded-md">
                     {status}
                 </div>
             )}
-        </>
+
+            <Card className="border-border shadow-md">
+                <CardHeader className="space-y-1">
+                    <CardTitle className="text-2xl font-bold tracking-tight text-foreground animate-fade-in">
+                        Sign In
+                    </CardTitle>
+                    <CardDescription>
+                        Access the NORSU Order & Payment administrative control network.
+                    </CardDescription>
+                </CardHeader>
+
+                <form onSubmit={handleSubmit}>
+                    <CardContent className="space-y-4">
+                        
+                        {/* Email Input Field */}
+                        <div className="space-y-2">
+                            <Label htmlFor="email">Official Email</Label>
+                            <Input 
+                                id="email" 
+                                type="email" 
+                                name="email"
+                                placeholder="username@norsu.edu.ph" 
+                                value={data.email} 
+                                autoComplete="username"
+                                onChange={e => setData('email', e.target.value)} 
+                                required 
+                            />
+                            {errors.email && <p className="text-xs font-semibold text-destructive">{errors.email}</p>}
+                        </div>
+
+                        {/* Password Input Field */}
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="password">Security Password</Label>
+                                {canResetPassword && (
+                                    <Link 
+                                        href={route('password.request')} 
+                                        className="text-xs font-medium text-primary hover:underline hover:text-primary/90"
+                                    >
+                                        Forgot?
+                                    </Link>
+                                )}
+                            </div>
+                            <Input 
+                                id="password" 
+                                type="password" 
+                                name="password"
+                                value={data.password} 
+                                autoComplete="current-password"
+                                onChange={e => setData('password', e.target.value)} 
+                                required 
+                            />
+                            {errors.password && <p className="text-xs font-semibold text-destructive">{errors.password}</p>}
+                        </div>
+
+                        {/* Keep Me Signed In (Session Security) */}
+                        <div className="flex items-center space-x-2">
+                            <input
+                                id="remember"
+                                type="checkbox"
+                                name="remember"
+                                checked={data.remember}
+                                onChange={e => setData('remember', e.target.checked)}
+                                className="h-4 w-4 rounded border-input text-primary focus:ring-ring focus:ring-2 bg-background"
+                            />
+                            <Label htmlFor="remember" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
+                                Keep me signed in
+                            </Label>
+                        </div>
+
+                    </CardContent>
+
+                    <CardFooter className="flex flex-col space-y-4">
+                        <Button 
+                            type="submit" 
+                            className="w-full text-white font-medium shadow transition-all duration-150 active:scale-[0.98]" 
+                            disabled={processing}
+                        >
+                            {processing ? 'Verifying Credentials...' : 'Authenticate Access'}
+                        </Button>
+                    </CardFooter>
+                </form>
+            </Card>
+        </AuthSplitLayout>
     );
 }
-
-Login.layout = {
-    title: 'Log in to your account',
-    description: 'Enter your email and password below to log in',
-};

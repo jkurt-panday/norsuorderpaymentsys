@@ -1,4 +1,4 @@
-import AuthLayoutTemplate from '@/layouts/auth/auth-simple-layout';
+import AuthSplitLayout from '@/layouts/auth/auth-split-layout';
 
 export default function AuthLayout({
     title = '',
@@ -10,8 +10,12 @@ export default function AuthLayout({
     children: React.ReactNode;
 }) {
     return (
-        <AuthLayoutTemplate title={title} description={description}>
-            {children}
-        </AuthLayoutTemplate>
+        <AuthSplitLayout>
+            <div className="space-y-2">
+                {title && <h1 className="text-2xl font-semibold">{title}</h1>}
+                {description && <p className="text-sm text-muted-foreground">{description}</p>}
+                {children}
+            </div>
+        </AuthSplitLayout>
     );
 }
