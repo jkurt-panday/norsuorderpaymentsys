@@ -14,4 +14,4 @@ require __DIR__.'/settings.php';
 
 
 // FormInputController
-Route::resource('')
+// Route::resource('')

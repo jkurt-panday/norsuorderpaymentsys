@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('form_input', function (Blueprint $table) {
             $table->id();
+            $table->string('reference_number', 50)->unique()->nullable();
             $table->string('email');
             $table->string('contact_num', 20);
             $table->string('firstname_or_office');
