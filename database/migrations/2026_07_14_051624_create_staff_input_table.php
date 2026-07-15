@@ -1,4 +1,5 @@
 <?php
+// database/migrations/xxxx_xx_xx_create_staff_inputs_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -8,23 +9,34 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('staff_input', function (Blueprint $table) {
+        Schema::create('staff_inputs', function (Blueprint $table) {
             $table->id();
             
-            // One-to-One with bankaccount_info
-            $table->foreignId('fundcluster_id')->constrained('bankaccount_info')->onDelete('restrict');
+            // One-to-One relationship with form_inputs
+            $table->foreignId('form_input_id')
+                  ->constrained('form_input')
+                  ->unique() // Ensures one-to-one
+                  ->onDelete('cascade');
             
-            // Reference documents (URLs)
-            $table->string('ref_doc_1')->nullable();
+            // Foreign Keys
+            $table->foreignId('fundcluster_id')
+                  ->constrained('bankaccount_info')
+                  ->onDelete('restrict');
+            
+            // Supporting document references (URLs)
+            $table->string('ref_doc_1', 500)->nullable();
             $table->date('ref_date_1')->nullable();
-            $table->string('ref_doc_2')->nullable();
+            $table->string('ref_doc_2', 500)->nullable();
             $table->date('ref_date_2')->nullable();
             
-            // One-to-One with UACS
-            $table->foreignId('uacs_id')->constrained('uacs')->onDelete('restrict');
+            // UACS
+            $table->foreignId('uacs_id')
+                  ->constrained('uacs')
+                  ->onDelete('restrict');
             
-            // Foreign key to form_input if needed
-            $table->foreignId('form_input_id')->constrained('form_input')->onDelete('cascade');
+            // Status
+            $table->enum('status', ['approved', 'pending', 'cancelled'])
+                  ->default('pending');
             
             $table->timestamps();
         });
@@ -32,6 +44,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('staff_input');
+        Schema::dropIfExists('staff_inputs');
     }
 };
