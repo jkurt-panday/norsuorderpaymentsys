@@ -42,15 +42,47 @@ export default function Dashboard() {
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 
                 {/* Logout Link acting as a button */}
-                <div className="flex justify-end">
-                    <Link 
-                        href="/logout" 
-                        method="post" 
-                        as="button"
-                        className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
-                    >
-                        Logout
-                    </Link>
+                <div className="flex justify-between items-center bg-card border rounded-lg p-4 shadow-sm">
+                    <div>
+                        <h2 className="text-lg font-semibold text-foreground">Welcome, {auth.user?.name}!</h2>
+                        <p className="text-sm text-muted-foreground">
+                            Logged in as: <span className="font-medium text-foreground">{auth.user?.email}</span> | Role: <span className="inline-flex items-center rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary capitalize">{auth.user?.role}</span>
+                        </p>
+                    </div>
+                    <div className="flex gap-2">
+                        <Link
+                            href="/admin/users"
+                            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/95 h-9 px-4 py-2"
+                        >
+                            Test Admin Middleware Route
+                        </Link>
+                        <Link 
+                            href="/logout" 
+                            method="post" 
+                            as="button"
+                            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
+                        >
+                            Logout
+                        </Link>
+                    </div>
+                </div>
+
+                <div className="bg-muted/50 border border-dashed rounded-lg p-4">
+                    <h3 className="text-sm font-semibold text-foreground">Role-Based Middleware Verification Info:</h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                        Clicking the <strong>"Test Admin Middleware Route"</strong> button above routes to <code>/admin/users</code> (guarded by the <code>admin</code> middleware).
+                    </p>
+                    <ul className="list-disc pl-5 mt-2 text-xs space-y-1">
+                        {auth.user?.role === 'admin' ? (
+                            <li className="text-green-600 dark:text-green-400 font-medium">
+                                ✔ Your role is <span className="capitalize">{auth.user?.role}</span>: Accessing that route will succeed and display the User Management screen.
+                            </li>
+                        ) : (
+                            <li className="text-amber-600 dark:text-amber-400 font-medium">
+                                ℹ Your role is <span className="capitalize">{auth.user?.role}</span>: Accessing that route will be blocked by the <code>EnsureUserIsAdmin</code> middleware, returning a <code>403 Forbidden</code> response.
+                            </li>
+                        )}
+                    </ul>
                 </div>
 
                 <div className="grid auto-rows-min gap-4 md:grid-cols-3">

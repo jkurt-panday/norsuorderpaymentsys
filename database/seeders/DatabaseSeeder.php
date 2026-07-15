@@ -22,7 +22,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'admin@norsu.edu.ph'],
             [
                 'name' => 'System Admin',
-                'password' => Hash::make($adminPassword),
+                'password' => $adminPassword,
                 'role' => 'admin',
             ]
         );
