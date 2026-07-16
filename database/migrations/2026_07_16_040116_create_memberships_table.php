@@ -8,17 +8,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('bankaccount_info', function (Blueprint $table) {
+        Schema::create('memberships', function (Blueprint $table) {
             $table->id();
-            $table->string('account_name');
-            $table->string('bank_name');
-            $table->string('account_num', 50);
+            $table->string('member_code', 50)->unique();
+            $table->string('member_desc', 255);
             $table->timestamps();
+            
+            $table->index('member_code');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('bankaccount_info');
+        Schema::dropIfExists('memberships');
     }
 };
