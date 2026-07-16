@@ -1,125 +1,136 @@
-import { Form, Head } from '@inertiajs/react';
-import InputError from '@/components/input-error';
-import PasswordInput from '@/components/password-input';
-import TextLink from '@/components/text-link';
+import { Head, Link, useForm } from '@inertiajs/react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
-/* @chisel-registration */
-import { register } from '@/routes';
-/* @end-chisel-registration */
-import { store } from '@/routes/login';
-import { request } from '@/routes/password';
-/* @chisel-passkeys */
-import PasskeyVerify from '@/components/passkey-verify';
-/* @end-chisel-passkeys */
+import { Checkbox } from '@/components/ui/checkbox';
+import AuthLayout from '@/layouts/auth-layout';
+import { login } from '@/routes';
+import { request as passwordRequest } from '@/routes/password';
 
-type Props = {
-    status?: string;
-    canResetPassword: boolean;
-};
+export default function Login({ status, canResetPassword }: { status?: string; canResetPassword?: boolean }) {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        email: '',
+        password: '',
+        remember: false,
+    });
 
-export default function Login({ status, canResetPassword }: Props) {
+    const [showPassword, setShowPassword] = useState(false);
+
+    // Automatically wipe password inputs clean if there is an auth error
+    useEffect(() => {
+        return () => {
+            reset('password');
+        };
+    }, []);
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        post(login.url());
+    };
+
     return (
-        <>
-            <Head title="Log in" />
-
-            {/* @chisel-passkeys */}
-            <PasskeyVerify />
-            {/* @end-chisel-passkeys */}
-
-            <Form
-                {...store.form()}
-                resetOnSuccess={['password']}
-                className="flex flex-col gap-6"
-            >
-                {({ processing, errors }) => (
-                    <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    required
-                                    autoFocus
-                                    tabIndex={1}
-                                    autoComplete="email"
-                                    placeholder="email@example.com"
-                                />
-                                <InputError message={errors.email} />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <div className="flex items-center">
-                                    <Label htmlFor="password">Password</Label>
-                                    {canResetPassword && (
-                                        <TextLink
-                                            href={request()}
-                                            className="ml-auto text-sm"
-                                            tabIndex={5}
-                                        >
-                                            Forgot your password?
-                                        </TextLink>
-                                    )}
-                                </div>
-                                <PasswordInput
-                                    id="password"
-                                    name="password"
-                                    required
-                                    tabIndex={2}
-                                    autoComplete="current-password"
-                                    placeholder="Password"
-                                />
-                                <InputError message={errors.password} />
-                            </div>
-
-                            <div className="flex items-center space-x-3">
-                                <Checkbox
-                                    id="remember"
-                                    name="remember"
-                                    tabIndex={3}
-                                />
-                                <Label htmlFor="remember">Remember me</Label>
-                            </div>
-
-                            <Button
-                                type="submit"
-                                className="mt-4 w-full"
-                                tabIndex={4}
-                                disabled={processing}
-                                data-test="login-button"
-                            >
-                                {processing && <Spinner />}
-                                Log in
-                            </Button>
-                        </div>
-
-                        {/* @chisel-registration */}
-                        <div className="text-center text-sm text-muted-foreground">
-                            Don't have an account?{' '}
-                            <TextLink href={register()} tabIndex={5}>
-                                Sign up
-                            </TextLink>
-                        </div>
-                        {/* @end-chisel-registration */}
-                    </>
-                )}
-            </Form>
+        <AuthLayout
+            title="Payment of Order System"
+            description="Enter your institutional credentials to continue."
+        >
+            <Head title="Payment of Order System - Login" />
 
             {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
+                <div className="mb-4 text-sm font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 p-3 rounded-md">
                     {status}
                 </div>
             )}
-        </>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Email Address */}
+                <div className="space-y-2">
+                    <Label className="block text-xs font-semibold text-[#091d2e] uppercase tracking-wider" htmlFor="email">
+                        Email Address
+                    </Label>
+                    <div className="relative">
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#717786] text-xl">
+                            mail
+                        </span>
+                        <Input
+                            className="w-full pl-10 pr-4 py-3 bg-white border border-[#c1c6d7] rounded-lg focus:ring-2 focus:ring-[#005ab7] focus:border-[#005ab7] outline-none transition-all text-sm text-[#091d2e] placeholder:text-muted-foreground"
+                            id="email"
+                            type="email"
+                            name="email"
+                            placeholder="e.g. name@university.edu"
+                            value={data.email}
+                            onChange={(e) => setData('email', e.target.value)}
+                            required
+                        />
+                    </div>
+                    {errors.email && <p className="text-xs font-semibold text-[#ba1a1a]">{errors.email}</p>}
+                </div>
+
+                {/* Password */}
+                <div className="space-y-2">
+                    <Label className="block text-xs font-semibold text-[#091d2e] uppercase tracking-wider" htmlFor="password">
+                        Password
+                    </Label>
+                    <div className="relative">
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#717786] text-xl">
+                            lock
+                        </span>
+                        <Input
+                            className="w-full pl-10 pr-12 py-3 bg-white border border-[#c1c6d7] rounded-lg focus:ring-2 focus:ring-[#005ab7] focus:border-[#005ab7] outline-none transition-all text-sm text-[#091d2e] placeholder:text-muted-foreground"
+                            id="password"
+                            type={showPassword ? 'text' : 'password'}
+                            name="password"
+                            placeholder="••••••••"
+                            value={data.password}
+                            onChange={(e) => setData('password', e.target.value)}
+                            required
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#717786] hover:text-[#005ab7] transition-colors"
+                        >
+                            <span className="material-symbols-outlined text-xl">
+                                {showPassword ? 'visibility_off' : 'visibility'}
+                            </span>
+                        </button>
+                    </div>
+                    {errors.password && <p className="text-xs font-semibold text-[#ba1a1a]">{errors.password}</p>}
+                </div>
+
+                {/* Remember & Forgot */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                        <Checkbox
+                            id="remember"
+                            checked={data.remember}
+                            onCheckedChange={(checked) => setData('remember', checked === true)}
+                            className="border-[#c1c6d7] data-[state=checked]:bg-[#005ab7] data-[state=checked]:border-[#005ab7] data-[state=checked]:text-white focus-visible:ring-[#005ab7] focus-visible:ring-2 cursor-pointer"
+                        />
+                        <label htmlFor="remember" className="text-xs text-[#414754] font-medium cursor-pointer select-none">
+                            Remember Me
+                        </label>
+                    </div>
+                    {canResetPassword && (
+                        <Link
+                            href={passwordRequest.url()}
+                            className="text-xs text-[#005ab7] hover:underline font-semibold transition-all"
+                        >
+                            Forgot Password?
+                        </Link>
+                    )}
+                </div>
+
+                {/* Login Button */}
+                <Button
+                    className="w-full bg-[#0072e5] hover:bg-[#005ab7] text-white py-6 rounded-full text-xs font-semibold uppercase tracking-widest hover:shadow-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border-0"
+                    type="submit"
+                    disabled={processing}
+                >
+                    <span>{processing ? 'LOGGING IN...' : 'LOG IN'}</span>
+                    <span className="material-symbols-outlined text-sm">login</span>
+                </Button>
+            </form>
+        </AuthLayout>
     );
 }
-
-Login.layout = {
-    title: 'Log in to your account',
-    description: 'Enter your email and password below to log in',
-};

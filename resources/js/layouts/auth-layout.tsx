@@ -1,4 +1,4 @@
-import AuthLayoutTemplate from '@/layouts/auth/auth-simple-layout';
+import AuthCardLayout from '@/layouts/auth/auth-card-layout'; // Point to your new component
 
 export default function AuthLayout({
     title = '',
@@ -10,8 +10,10 @@ export default function AuthLayout({
     children: React.ReactNode;
 }) {
     return (
-        <AuthLayoutTemplate title={title} description={description}>
-            {children}
-        </AuthLayoutTemplate>
+        <AuthCardLayout title={title} description={description}>
+            <div className="space-y-4">
+                {children}
+            </div>
+        </AuthCardLayout>
     );
 }
