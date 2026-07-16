@@ -8,16 +8,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('membership', function (Blueprint $table) {
+        Schema::create('payment_detail_options', function (Blueprint $table) {
             $table->id();
-            $table->string('member_code', 50)->unique();
-            $table->string('member_desc');
+            $table->string('payment_desc', 255)->unique();
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('membership');
+        Schema::dropIfExists('payment_detail_options');
     }
 };
