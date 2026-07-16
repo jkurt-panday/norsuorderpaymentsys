@@ -8,16 +8,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('uacs', function (Blueprint $table) {
+        Schema::create('payment_detail_options', function (Blueprint $table) {
             $table->id();
-            $table->string('account_title');
-            $table->string('object_code', 50)->unique();
+            $table->string('payment_desc', 255)->unique();
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('uacs');
+        Schema::dropIfExists('payment_detail_options');
     }
 };
