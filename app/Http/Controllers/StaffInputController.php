@@ -21,23 +21,27 @@ class StaffInputController extends Controller
         $query = FormInput::with(['membership', 'staffInput'])
             ->orderBy('created_at', 'desc');
 
-        // Filter by status if provided
+        // Filter by status (handling 'unprocessed' gracefully)
         if ($request->has('status') && $request->status !== '') {
-            $query->whereHas('staffInput', function ($q) use ($request) {
-                $q->where('status', $request->status);
-            });
+            if ($request->status === 'unprocessed') {
+                $query->whereDoesntHave('staffInput');
+            } else {
+                $query->whereHas('staffInput', function ($q) use ($request) {
+                    $q->where('status', $request->status);
+                });
+            }
         }
 
-        // Filter by date range if provided
-        if ($request->has('date_from') && $request->date_from) {
-            $query->whereDate('created_at', '>=', $request->date_from);
+        // Fast Date Range Queries (Index Friendly)
+        if ($request->filled('date_from')) {
+            $query->where('created_at', '>=', $request->date_from . ' 00:00:00');
         }
-        if ($request->has('date_to') && $request->date_to) {
-            $query->whereDate('created_at', '<=', $request->date_to);
+        if ($request->filled('date_to')) {
+            $query->where('created_at', '<=', $request->date_to . ' 23:59:59');
         }
 
-        // Search by reference number or name
-        if ($request->has('search') && $request->search) {
+        // Search (grouped to avoid breaking status/date filters)
+        if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('reference_number', 'LIKE', "%{$search}%")
@@ -57,9 +61,8 @@ class StaffInputController extends Controller
      */
     public function create(FormInput $formInput)
     {
-        // Check if already processed
         if ($formInput->staffInput()->exists()) {
-            return redirect()->route('staff.requests.show', $formInput)
+            return redirect()->route('staff.requests.show', $formInput->staffInput)
                 ->with('warning', 'This request has already been processed.');
         }
 
@@ -85,20 +88,15 @@ class StaffInputController extends Controller
 
             $formInput = FormInput::findOrFail($request->form_input_id);
 
-            // Check if already processed
             if ($formInput->staffInput()->exists()) {
                 throw new \Exception('This request has already been processed.');
             }
 
-            // Create staff input
-            StaffInput::create([
-                'form_input_id' => $request->form_input_id,
-                'fundcluster_id' => $request->fundcluster_id,
-                'ref_document_id' => $request->ref_document_id,
-                'ref_date' => $request->ref_date,
-                'uacs_id' => $request->uacs_id,
-                'status' => $request->status,
-            ]);
+            // Fixed: Added bank_account_id using validated array data
+            StaffInput::create(array_merge(
+                $request->validated(),
+                ['form_input_id' => $formInput->id]
+            ));
 
             DB::commit();
 
@@ -141,17 +139,12 @@ class StaffInputController extends Controller
         try {
             DB::beginTransaction();
 
-            $staffInput->update([
-                'fundcluster_id' => $request->fundcluster_id,
-                'ref_document_id' => $request->ref_document_id,
-                'ref_date' => $request->ref_date,
-                'uacs_id' => $request->uacs_id,
-                'status' => $request->status,
-            ]);
+            // Fixed: Safely update using validated request data
+            $staffInput->update($request->validated());
 
             DB::commit();
 
-            return redirect()->route('staff.requests.show', $staffInput->form_input_id)
+            return redirect()->route('staff.requests.show', $staffInput->id)
                 ->with('success', 'Request updated successfully.');
 
         } catch (\Exception $e) {
