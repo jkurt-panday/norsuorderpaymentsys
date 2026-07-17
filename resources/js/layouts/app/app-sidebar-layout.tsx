@@ -48,7 +48,7 @@ const mainNavItems: SidebarItem[] = [
         title: 'Graduate Ledger',
         icon: BookOpen,
         items: [
-            { title: 'Ledger Overview', href: '#graduate-overview' },
+            { title: 'Ledger Overview', href: '/graduate-ledger' },
             { title: 'Transactions List', href: '#graduate-transactions' },
         ],
     },
