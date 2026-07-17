@@ -9,11 +9,11 @@ use App\Http\Controllers\SupportingDocumentController;
 use App\Http\Controllers\UacsController;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'welcome')->name('home');
+// Route::inertia('/', 'welcome')->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
-});
+// Route::middleware(['auth', 'verified'])->group(function () {
+//     Route::inertia('dashboard', 'dashboard')->name('dashboard');
+// });
 
 require __DIR__.'/settings.php';
 
@@ -25,8 +25,12 @@ Route::name('public.')->prefix('public')->group(function () {
     Route::get('/success/{referenceNumber?}', [FormInputController::class, 'success'])->name('success');
 });
 
-// Staff Routes
-Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(function () {
+
+// BEFORE:
+// Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(function () {
+
+// AFTER (Temporarily disabled for development):
+Route::name('staff.')->prefix('staff')->middleware([])->group(function () {
     
     // Dashboard
     Route::get('/dashboard', [StaffInputController::class, 'dashboard'])->name('dashboard');
