@@ -1,9 +1,9 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import AuthLayout from '@/layouts/auth-layout';
 import { login } from '@/routes';
 import { request as passwordRequest } from '@/routes/password';
@@ -22,7 +22,7 @@ export default function Login({ status, canResetPassword }: { status?: string; c
         return () => {
             reset('password');
         };
-    }, []);
+    }, [reset]);
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();

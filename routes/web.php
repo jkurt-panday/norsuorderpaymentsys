@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\AdminUserController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\GradLedgerController;
 
+Route::get('/graduate-ledger', [GradLedgerController::class, 'index'])->name('graduate-ledger.index');
 Route::inertia('/', 'welcome')->name('home');
 
 Route::middleware('auth')->get('/dashboard', fn () => inertia('dashboard'))->name('dashboard');

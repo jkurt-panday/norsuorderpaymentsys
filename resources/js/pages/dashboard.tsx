@@ -23,6 +23,7 @@ export default function Dashboard() {
 
         if (data.email !== confirmEmail) {
             setConfirmationError('The email addresses do not match.');
+
             return;
         }
 
