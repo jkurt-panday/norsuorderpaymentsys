@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
 import { login } from '@/routes';
-import { request as passwordRequest } from '@/routes/password';
 
 export default function Login({ status, canResetPassword }: { status?: string; canResetPassword?: boolean }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -98,7 +97,7 @@ export default function Login({ status, canResetPassword }: { status?: string; c
                     {errors.password && <p className="text-xs font-semibold text-[#ba1a1a]">{errors.password}</p>}
                 </div>
 
-                {/* Remember & Forgot */}
+                {/* Remember */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                         <Checkbox
@@ -111,14 +110,6 @@ export default function Login({ status, canResetPassword }: { status?: string; c
                             Remember Me
                         </label>
                     </div>
-                    {canResetPassword && (
-                        <Link
-                            href={passwordRequest.url()}
-                            className="text-xs text-[#005ab7] hover:underline font-semibold transition-all"
-                        >
-                            Forgot Password?
-                        </Link>
-                    )}
                 </div>
 
                 {/* Login Button */}
