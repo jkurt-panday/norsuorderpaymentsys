@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('reference_number', 50)->unique();
             $table->string('email', 255);
-            $table->string('contact_num', 20);
+            $table->string('contact_num', 11);
             $table->string('firstname_or_office', 100);
             $table->string('middlename_or_project', 100)->nullable();
             $table->string('lastname_or_agency', 100);

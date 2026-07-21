@@ -59,7 +59,7 @@
                 <div class="col-md-6 mb-3">
                     <label class="form-label required-field">Contact Number</label>
                     <input type="tel" name="contact_num" class="form-control @error('contact_num') is-invalid @enderror" 
-                           value="{{ old('contact_num') }}" placeholder="09XX-XXX-XXXX" required>
+                           value="{{ old('contact_num') }}" placeholder="9XX-XXX-XXXX" required>
                     @error('contact_num')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror

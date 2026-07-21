@@ -17,7 +17,7 @@ class PublicFormSubmissionRequest extends FormRequest
         return [
             // Personal/Office Information
             'email' => ['required', 'email', 'max:255'],
-            'contact_num' => ['required', 'string', 'max:20', 'regex:/^[0-9+\-\s()]+$/'],
+            'contact_num' => ['required', 'string', 'max:11', 'regex:/^[0-9+\-\s()]+$/'],
             'firstname_or_office' => ['required', 'string', 'max:100'],
             'middlename_or_project' => ['nullable', 'string', 'max:100'],
             'lastname_or_agency' => ['required', 'string', 'max:100'],
