@@ -57,10 +57,10 @@ class MembershipController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Membership $membership)
-    {
-        return view('staff.memberships.show', compact('membership'));
-    }
+    // public function show(Membership $membership)
+    // {
+    //     return view('staff.memberships.show', compact('membership'));
+    // }
 
     /**
      * Show the form for editing the specified resource.
