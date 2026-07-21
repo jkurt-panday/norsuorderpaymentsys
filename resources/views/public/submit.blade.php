@@ -9,6 +9,10 @@
         <p>Please fill out all required fields to submit your request</p>
     </div>
 
+    @if (session('error'))
+        <div class="alert alert-danger">{{ session('error') }}</div>
+    @endif
+
     <form action="{{ route('public.submit.store') }}" method="POST" enctype="multipart/form-data" id="submissionForm">
         @csrf
         
@@ -67,7 +71,7 @@
                 <div class="col-12 mb-3">
                     <label class="form-label required-field">Email Address</label>
                     <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" 
-                           value="{{ old('email') }}" required placeholder='username@gmail.com'>
+                           value="{{ old('email') }}" required placeholder="username@gmail.com">
                     @error('email')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -149,8 +153,11 @@
                         <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
                         <p class="text-muted">Click or drag files here to upload</p>
                         <p class="text-muted small">Accepted formats: PDF, JPG, JPEG, PNG (Max 10MB each)</p>
+                        
+                        <!-- Input name uses array notation: documents[] -->
                         <input type="file" name="documents[]" id="fileInput" 
                                class="d-none" multiple accept=".pdf,.jpg,.jpeg,.png">
+                               
                         <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('fileInput').click()">
                             <i class="fas fa-folder-open me-2"></i>Choose Files
                         </button>
@@ -164,7 +171,7 @@
             </div>
         </div>
 
-        <div class="d-grid">
+        <div class="d-grid mt-4">
             <button type="submit" class="btn btn-primary btn-submit">
                 <i class="fas fa-paper-plane me-2"></i>Submit Request
             </button>
@@ -177,16 +184,25 @@
 <script>
     $(document).ready(function() {
         let selectedFiles = [];
+        const fileInput = document.getElementById('fileInput');
+
+        // Syncs JS selectedFiles array back into the HTML file input element
+        function syncFileInput() {
+            const dataTransfer = new DataTransfer();
+            selectedFiles.forEach(file => dataTransfer.items.add(file));
+            fileInput.files = dataTransfer.files;
+            updateFileList();
+            updateFileCount();
+        }
         
-        // File input change
+        // File input change via button click
         $('#fileInput').on('change', function(e) {
             const files = Array.from(e.target.files);
             selectedFiles = selectedFiles.concat(files);
-            updateFileList();
-            updateFileCount();
+            syncFileInput();
         });
         
-        // Drag and drop
+        // Drag and drop events
         const dropArea = document.getElementById('fileUploadArea');
         
         dropArea.addEventListener('dragover', function(e) {
@@ -205,7 +221,7 @@
             
             const files = Array.from(e.dataTransfer.files);
             const validFiles = files.filter(file => {
-                const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+                const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
                 return validTypes.includes(file.type) && file.size <= 10485760;
             });
             
@@ -214,39 +230,29 @@
             }
             
             selectedFiles = selectedFiles.concat(validFiles);
-            updateFileList();
-            updateFileCount();
-            
-            // Update input
-            const dataTransfer = new DataTransfer();
-            selectedFiles.forEach(file => dataTransfer.items.add(file));
-            $('#fileInput')[0].files = dataTransfer.files;
+            syncFileInput();
         });
         
         // Remove file
         $(document).on('click', '.remove-file', function() {
             const index = $(this).data('index');
             selectedFiles.splice(index, 1);
-            updateFileList();
-            updateFileCount();
-            
-            // Update input
-            const dataTransfer = new DataTransfer();
-            selectedFiles.forEach(file => dataTransfer.items.add(file));
-            $('#fileInput')[0].files = dataTransfer.files;
+            syncFileInput();
         });
         
         function updateFileList() {
             let html = '';
             selectedFiles.forEach((file, index) => {
                 const icon = file.type.includes('pdf') ? 'fa-file-pdf text-danger' :
-                            file.type.includes('image') ? 'fa-file-image text-primary' : 'fa-file';
+                             file.type.includes('image') ? 'fa-file-image text-primary' : 'fa-file';
                 const size = (file.size / 1024 / 1024).toFixed(2);
                 html += `
-                    <div class="file-item">
-                        <i class="fas ${icon}"></i>
-                        ${file.name} (${size} MB)
-                        <i class="fas fa-times remove-file" data-index="${index}"></i>
+                    <div class="file-item mt-2 p-2 border rounded d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas ${icon} me-2"></i>
+                            ${file.name} (${size} MB)
+                        </div>
+                        <i class="fas fa-times text-danger remove-file" style="cursor:pointer;" data-index="${index}"></i>
                     </div>
                 `;
             });
