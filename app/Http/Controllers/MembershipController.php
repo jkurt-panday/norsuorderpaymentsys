@@ -15,7 +15,7 @@ class MembershipController extends Controller
      */
     public function index()
     {
-        $memberships = Membership::orderBy('member_code')->paginate(10);
+        $memberships = Membership::orderBy('id', 'asc')->paginate(10);
         return view('staff.memberships.index', compact('memberships'));
     }
 
