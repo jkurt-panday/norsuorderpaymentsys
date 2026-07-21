@@ -72,11 +72,19 @@ Route::name('staff.')->prefix('staff')->middleware([])->group(function () {
     // Document routes
     Route::name('documents.')->prefix('documents')->group(function () {
         Route::get('/', [SupportingDocumentController::class, 'index'])->name('index');
-        
-        // Matches the camelCase parameter exactly to bind directly with SupportingDocumentController
+        Route::post('/', [SupportingDocumentController::class, 'store'])->name('store'); // Added Store Route
         Route::get('/{supportingDocument}/download', [SupportingDocumentController::class, 'download'])->name('download');
         Route::delete('/{supportingDocument}', [SupportingDocumentController::class, 'destroy'])->name('destroy');
     });
+    
+    // // Document routes
+    // Route::name('documents.')->prefix('documents')->group(function () {
+    //     Route::get('/', [SupportingDocumentController::class, 'index'])->name('index');
+        
+    //     // Matches the camelCase parameter exactly to bind directly with SupportingDocumentController
+    //     Route::get('/{supportingDocument}/download', [SupportingDocumentController::class, 'download'])->name('download');
+    //     Route::delete('/{supportingDocument}', [SupportingDocumentController::class, 'destroy'])->name('destroy');
+    // });
 });
 
 // Root redirect
