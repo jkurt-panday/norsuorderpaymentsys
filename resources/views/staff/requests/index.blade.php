@@ -84,7 +84,7 @@
                                     <span class="status-badge status-pending">Unprocessed</span>
                                 @endif
                             </td>
-                            <td>{{ $formInput->created_at->format('M d, Y H:i') }}</td>
+                            <td>{{ $formInput->created_at->timezone('Asia/Manila')->format('F d, Y h:i:s A') }}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <a href="{{ route('staff.requests.show', $formInput) }}" 

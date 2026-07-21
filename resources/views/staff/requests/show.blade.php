@@ -94,7 +94,7 @@
                     </tr>
                     <tr>
                         <th>Date Submitted</th>
-                        <td>{{ $formInput->created_at->format('F d, Y H:i:s') }}</td>
+                        <td>{{ $formInput->created_at->timezone('Asia/Manila')->format('F d, Y h:i:s A') }}</td>
                     </tr>
                 </table>
             </div>
