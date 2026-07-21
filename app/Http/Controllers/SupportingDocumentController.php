@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class SupportingDocumentController extends Controller
 {
@@ -24,6 +25,53 @@ class SupportingDocumentController extends Controller
             ->paginate(20);
 
         return view('staff.documents.index', compact('documents'));
+    }
+
+    /**
+     * Store a newly created document in storage and database.
+     */
+    public function store(Request $request)
+    {
+        // 1. Validate incoming file and related foreign key
+        $request->validate([
+            'form_input_id' => 'required|exists:form_inputs,id',
+            'document'      => 'required|file|mimes:pdf,jpg,png,docx,zip|max:10240', // Max 10MB
+        ]);
+
+        if ($request->hasFile('document')) {
+            $file = $request->file('document');
+
+            // 2. Gather metadata
+            $originalName = $file->getClientOriginalName();
+            $extension    = $file->getClientOriginalExtension();
+            $mimeType     = $file->getClientMimeType();
+            $fileSize     = $file->getSize();
+
+            // 3. Generate a unique stored filename to prevent overwriting existing files
+            $storedFilename = Str::uuid() . '.' . $extension;
+
+            // 4. Save file to storage/app/public/supporting-documents/
+            $file->storeAs($this->folder, $storedFilename, $this->disk);
+
+            // 5. Generate relative storage URL (e.g., /storage/supporting-documents/...)
+            $fileUrl = Storage::disk($this->disk)->url($this->folder . '/' . $storedFilename);
+
+            // 6. Save metadata record into database
+            SupportingDocument::create([
+                'form_input_id'     => $request->form_input_id,
+                'original_filename' => $originalName,
+                'stored_filename'   => $storedFilename,
+                'file_url'          => $fileUrl,
+                'mime_type'         => $mimeType,
+                'file_extension'    => $extension,
+                'file_size'         => $fileSize,
+                'uploaded_at'       => now(),
+            ]);
+
+            return back()->with('success', 'Document uploaded successfully!');
+        }
+
+        return back()->with('error', 'No file was provided.');
     }
 
     /**

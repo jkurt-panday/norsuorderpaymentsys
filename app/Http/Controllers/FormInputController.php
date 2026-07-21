@@ -10,6 +10,8 @@ use App\Services\ReferenceNumberService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class FormInputController extends Controller
 {
@@ -35,66 +37,100 @@ class FormInputController extends Controller
         return view('public.submit', compact('memberships', 'paymentOptions'));
     }
 
-    /**
-     * Store a new form submission
-     */
-    public function store(PublicFormSubmissionRequest $request)
+    public function store(Request $request)
     {
+        // 1. Validate Form & Files
+        $request->validate([
+            'firstname_or_office'      => 'required|string|max:255',
+            'middlename_or_project'    => 'nullable|string|max:255',
+            'lastname_or_agency'       => 'required|string|max:255',
+            'office_or_college'        => 'required|string|max:255',
+            'position_or_designation'  => 'required|string|max:255',
+            'contact_num'              => 'required|string|max:50',
+            'email'                    => 'required|email|max:255',
+            'address'                  => 'required|string',
+            'request_type'             => 'required|string',
+            'amount'                   => 'required|numeric|min:0',
+            'membership_id'            => 'required|exists:memberships,id',
+            'payment_detail_option_id' => 'required|exists:payment_detail_options,id',
+            
+            'documents'                => 'nullable|array',
+            'documents.*'              => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
+        ]);
+
         try {
             DB::beginTransaction();
 
-            // Generate reference number
+            // 2. Generate Reference Number
             $referenceNumber = $this->referenceNumberService->generate();
 
-            // Create form input
+            // 3. Create FormInput Record using your explicit mapping
             $formInput = FormInput::create([
-                'reference_number' => $referenceNumber,
-                'email' => $request->email,
-                'contact_num' => $request->contact_num,
-                'firstname_or_office' => $request->firstname_or_office,
-                'middlename_or_project' => $request->middlename_or_project,
-                'lastname_or_agency' => $request->lastname_or_agency,
-                'office_or_college' => $request->office_or_college,
+                'reference_number'        => $referenceNumber,
+                'email'                   => $request->email,
+                'contact_num'             => $request->contact_num,
+                'firstname_or_office'     => $request->firstname_or_office,
+                'middlename_or_project'    => $request->middlename_or_project,
+                'lastname_or_agency'      => $request->lastname_or_agency,
+                'office_or_college'       => $request->office_or_college,
                 'position_or_designation' => $request->position_or_designation,
-                'address' => $request->address,
-                'amount' => $request->amount,
-                'request_type' => $request->request_type,
-                'membership_id' => $request->membership_id,
+                'address'                 => $request->address,
+                'amount'                  => $request->amount,
+                'request_type'            => $request->request_type,
+                'membership_id'           => $request->membership_id,
                 'payment_detail_option_id' => $request->payment_detail_option_id,
             ]);
 
-            // Upload and store documents
-            $uploadedDocuments = [];
+            // 4. Handle Uploaded Documents
             if ($request->hasFile('documents')) {
                 foreach ($request->file('documents') as $file) {
-                    $uploadedDocument = $this->fileUploadService->upload(
-                        $file,
-                        $formInput->id,
-                        'supporting-documents'
-                    );
-                    $uploadedDocuments[] = $uploadedDocument;
+                    $originalName   = $file->getClientOriginalName();
+                    $extension      = $file->getClientOriginalExtension();
+                    $mimeType       = $file->getClientMimeType();
+                    $fileSize       = $file->getSize();
+
+                    $storedFilename = Str::uuid() . '.' . $extension;
+
+                    $file->storeAs('supporting-documents', $storedFilename, 'public');
+
+                    $fileUrl = Storage::disk('public')->url('supporting-documents/' . $storedFilename);
+
+                    SupportingDocument::create([
+                        'form_input_id'     => $formInput->id,
+                        'original_filename' => $originalName,
+                        'stored_filename'   => $storedFilename,
+                        'file_url'          => $fileUrl,
+                        'mime_type'         => $mimeType,
+                        'file_extension'    => $extension,
+                        'file_size'         => $fileSize,
+                        'uploaded_at'       => now(),
+                    ]);
                 }
             }
 
             DB::commit();
 
-            // Return success view with reference number
-            return view('public.success', [
-                'formInput' => $formInput,
-                'documents' => $uploadedDocuments,
-            ]);
+            return redirect()->route('public.success', ['referenceNumber' => $formInput->reference_number])
+                             ->with('success', 'Order of payment submitted successfully!');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Form submission failed: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
-                'request_data' => $request->all(),
-            ]);
-
-            return back()
-                ->withInput()
-                ->with('error', 'Failed to submit request. Please try again or contact support.');
+            return back()->withInput()->with('error', 'Failed to submit request: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Display the success page after order submission.
+     */
+    public function success($referenceNumber = null)
+    {
+        // Optionally fetch the record if you want to display submission details
+        $formInput = null;
+        if ($referenceNumber) {
+            $formInput = FormInput::where('reference_number', $referenceNumber)->first();
+        }
+
+        return view('public.success', compact('referenceNumber', 'formInput'));
     }
 
     /**

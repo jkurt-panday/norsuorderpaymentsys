@@ -131,29 +131,32 @@ class StaffInputController extends Controller
         ));
     }
 
-    /**
-     * Update staff processing data
-     */
+    // App/Http/Controllers/StaffInputController.php
+
     public function update(StaffProcessingRequest $request, StaffInput $staffInput)
     {
+        // Validates request including status
+        $validated = $request->validated();
+
         try {
             DB::beginTransaction();
 
-            // Fixed: Safely update using validated request data
-            $staffInput->update($request->validated());
+            $staffInput->update([
+                'fundcluster_id'  => $validated['fundcluster_id'],
+                'ref_document_id' => $validated['ref_document_id'] ?? null,
+                'ref_date'        => $validated['ref_date'],
+                'uacs_id'         => $validated['uacs_id'],
+                'status'          => $validated['status'], // <--- Status gets updated here
+            ]);
 
             DB::commit();
 
-            return redirect()->route('staff.requests.show', $staffInput->id)
-                ->with('success', 'Request updated successfully.');
+            return redirect()->route('staff.requests.index')
+                ->with('success', 'Processing updated successfully! New status: ' . ucfirst($staffInput->status));
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Staff processing update failed: ' . $e->getMessage());
-
-            return back()
-                ->withInput()
-                ->with('error', 'Failed to update request: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Failed to update processing: ' . $e->getMessage());
         }
     }
 
