@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
-@section('title', 'Manage Payment Options')
+@section('title', 'Manage Payment Details')
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>Payment Detail Options</h2>
     <a href="{{ route('staff.payment-options.create') }}" class="btn btn-primary">
-        <i class="fas fa-plus me-1"></i>Add Payment Option
+        <i class="fas fa-plus me-1"></i>Add Payment Details
     </a>
 </div>
 
@@ -44,7 +44,7 @@
                         <tr>
                             <td colspan="4" class="text-center py-4">
                                 <i class="fas fa-credit-card fa-2x text-muted d-block mb-2"></i>
-                                <p class="text-muted">No payment options found</p>
+                                <p class="text-muted">No payment details options found</p>
                             </td>
                         </tr>
                     @endforelse

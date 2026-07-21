@@ -15,7 +15,7 @@
         <i class="fas fa-edit me-2"></i>Update Payment Detail Option
     </div>
     <div class="card-body">
-        <form action="{{ route('staff.payment-options.update', $paymentDetailOption) }}" method="POST">
+        <form action="{{ route('staff.payment-options.update', $paymentOption) }}" method="POST">
             @csrf
             @method('PUT')
             
@@ -23,7 +23,7 @@
                 <div class="col-md-12 mb-3">
                     <label class="form-label required-field">Payment Description</label>
                     <input type="text" name="payment_desc" class="form-control @error('payment_desc') is-invalid @enderror" 
-                           value="{{ old('payment_desc', $paymentDetailOption->payment_desc) }}" placeholder="Enter payment description" required>
+                           value="{{ old('payment_desc', $paymentOption->payment_desc) }}" placeholder="Enter payment description" required>
                     @error('payment_desc')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -51,22 +51,22 @@
         <div class="row">
             <div class="col-md-4">
                 <p class="mb-0"><strong>Created:</strong></p>
-                <p>{{ $paymentDetailOption->created_at->format('F d, Y H:i:s') }}</p>
+                <p>{{ $paymentOption->created_at->format('F d, Y H:i:s') }}</p>
             </div>
             <div class="col-md-4">
                 <p class="mb-0"><strong>Last Updated:</strong></p>
-                <p>{{ $paymentDetailOption->updated_at->format('F d, Y H:i:s') }}</p>
+                <p>{{ $paymentOption->updated_at->format('F d, Y H:i:s') }}</p>
             </div>
             <div class="col-md-4">
                 <p class="mb-0"><strong>Usage Count:</strong></p>
-                <p>{{ $paymentDetailOption->formInputs()->count() }} form input(s)</p>
+                <p>{{ $paymentOption->formInputs()->count() }} form input(s)</p>
             </div>
         </div>
         
-        @if($paymentDetailOption->formInputs()->count() > 0)
+        @if($paymentOption->formInputs()->count() > 0)
             <div class="alert alert-info mt-3">
                 <i class="fas fa-info-circle me-2"></i>
-                This payment option is currently being used in <strong>{{ $paymentDetailOption->formInputs()->count() }}</strong> form inputs. 
+                This payment option is currently being used in <strong>{{ $paymentOption->formInputs()->count() }}</strong> form inputs. 
                 Updating it will affect existing records.
             </div>
         @endif
