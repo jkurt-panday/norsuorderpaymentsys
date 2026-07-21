@@ -23,6 +23,9 @@
                 <form action="{{ route('staff.requests.update', $staffInput) }}" method="POST">
                     @csrf
                     @method('PUT')
+
+                    {{-- ADD THIS HIDDEN FIELD --}}
+                    <input type="hidden" name="form_input_id" value="{{ $staffInput->form_input_id }}">
                     
                     <div class="mb-3">
                         <label class="form-label required-field">Bank Account</label>

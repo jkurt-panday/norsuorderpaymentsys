@@ -34,7 +34,7 @@
                     <div class="col-md-6">
                         <p class="mb-1"><strong>Amount:</strong> ₱{{ number_format($formInput->amount, 2) }}</p>
                         <p class="mb-1"><strong>Request Type:</strong> {{ $formInput->request_type }}</p>
-                        <p class="mb-1"><strong>Documents:</strong> {{ count($documents) }} file(s)</p>
+                        <p class="mb-1"><strong>Documents:</strong> {{ count($documents ?? []) }} file(s)</p>
                     </div>
                 </div>
             </div>
