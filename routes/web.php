@@ -32,8 +32,11 @@ Route::name('public.')->prefix('public')->group(function () {
 // AFTER (Temporarily disabled for development):
 Route::name('staff.')->prefix('staff')->middleware([])->group(function () {
     
+    // Redirect /staff -> /staff/dashboard
+    // Route::redirect('/staff', '/staff/dashboard');
+
     // Dashboard
-    Route::get('/dashboard', [StaffInputController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboard', [StaffInputController::class, 'index'])->name('dashboard');
     
     // Requests Management
     Route::name('requests.')->prefix('requests')->group(function () {
