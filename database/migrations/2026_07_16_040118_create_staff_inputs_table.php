@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('uacs_id')->constrained()->restrictOnDelete();
             $table->enum('status', ['pending', 'approved', 'cancelled'])->default('pending');
             $table->timestamps();
-            
+
             $table->index('status');
             $table->index('ref_date');
             $table->index(['form_input_id', 'status']);

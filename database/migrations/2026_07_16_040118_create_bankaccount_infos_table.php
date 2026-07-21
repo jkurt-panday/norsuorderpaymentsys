@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('bank_name', 100);
             $table->string('account_num', 50)->unique();
             $table->timestamps();
-            
+
             $table->index('bank_name');
             $table->index('account_num');
         });

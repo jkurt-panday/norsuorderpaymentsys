@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans text-neutral-800 bg-neutral-50 min-h-screen;
+  }
+}
+
+@layer components {
+  /* Custom scrollbar for ledger table */
+  .table-scrollbar::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+  .table-scrollbar::-webkit-scrollbar-track {
+    @apply bg-neutral-100 rounded-full;
+  }
+  .table-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-neutral-300 rounded-full hover:bg-neutral-400;
+  }
+}
