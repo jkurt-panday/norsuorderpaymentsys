@@ -18,19 +18,18 @@ export interface LedgerRecord {
   id: string | number;
   name: string;
   course: string;
-  schoolYear: string;          // e.g. "2025-2026"
-  term: string;                // "1st Sem" | "2nd Sem" | "Summer"
+  schoolYear: string;
+  term: string;
   units: number;
-  transactionDate: string;     // ISO date
-  referenceNo: string;         // JEV / OR number
-  particulars: string;         // e.g. "Tuition Fee", "Miscellaneous", "Payment - Cash"
-  ratePerUnit: number;         // TUITION per UNIT / Reg. & Misc per semester
-  amount: number;              // the transaction's peso amount
-  arPayment: 'AR' | 'Payment'; // whether this row is a charge (AR) or a payment
+  transactionDate: string;
+  referenceNo: string;
+  particulars: string;
+  ratePerUnit: number;
+  amount: number;
+  arPayment: 'AR' | 'Payment' | 'Adjustment';
   remark: string;
   inputBy: string;
 }
-
 // Replace with data passed from your Inertia controller, e.g. `usePage().props.records`
 const SAMPLE_RECORDS: LedgerRecord[] = [];
 

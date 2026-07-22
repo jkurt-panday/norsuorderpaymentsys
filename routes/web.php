@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminUserController;
-use App\Http\Controllers\GradLedgerController;
+use App\Http\Controllers\GraduateLedgerController;
 use Illuminate\Support\Facades\Route;
 
 // Home / Welcome Page
@@ -13,11 +13,9 @@ Route::middleware('auth')->group(function () {
     // Main Dashboard
     Route::get('/dashboard', fn () => inertia('dashboard'))->name('dashboard');
 
-    // GRADUATE LEDGER: Keep only ONE definition. 
-    // This points to your 'Index' component inside 'resources/js/Pages/graduate-ledger/'
-    Route::get('/graduate-ledger', function () {
-        return inertia('graduate-ledger/Index'); // Note the capital "I" to match Index.tsx!
-    })->name('graduate-ledger.index');
+    // Graduate Ledger: Single definition pointing to your controller
+    Route::get('/graduate-ledger', [GraduateLedgerController::class, 'index'])
+        ->name('graduate-ledger.index');
 
 });
 
