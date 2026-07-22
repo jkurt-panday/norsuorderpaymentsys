@@ -1,4 +1,4 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
 import {
     GraduationCap,
     HandCoins,
@@ -49,7 +49,7 @@ const mainNavItems: SidebarItem[] = [
         icon: BookOpen,
         items: [
             { title: 'Ledger Overview', href: '/graduate-ledger' },
-            { title: 'Transactions List', href: '#graduate-transactions' },
+            { title: 'Print Statement', href: '/graduate-ledger/print-select' },
         ],
     },
     {
@@ -105,8 +105,12 @@ export default function AppSidebarLayout({
                                                     {item.items?.map((subItem) => (
                                                         <SidebarMenuSubItem key={subItem.title}>
                                                             <SidebarMenuSubButton
-                                                                isActive={url.startsWith(subItem.href)}
-                                                                render={<Link href={subItem.href} prefetch />}
+                                                                isActive={url === subItem.href}
+                                                                href={subItem.href}
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    router.visit(subItem.href);
+                                                                }}
                                                             >
                                                                 <span>{subItem.title}</span>
                                                             </SidebarMenuSubButton>

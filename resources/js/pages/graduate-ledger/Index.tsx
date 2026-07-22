@@ -13,7 +13,7 @@ import {
   PlusCircle,
 } from 'lucide-react';
 
-// ---- Shape of one ledger row, matching your actual columns ----
+// ---- Shape of one ledger row, matching what the controller now sends ----
 export interface LedgerRecord {
   id: string | number;
   name: string;
@@ -30,46 +30,78 @@ export interface LedgerRecord {
   remark: string;
   inputBy: string;
 }
-// Replace with data passed from your Inertia controller, e.g. `usePage().props.records`
-const SAMPLE_RECORDS: LedgerRecord[] = [];
 
-function currency(n: number) {
-  return `₱${n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+// Laravel's paginate() -> Inertia shape: { data, links, meta } (or the
+// legacy flat shape with current_page/last_page/etc. directly on the
+// object). We only rely on `data` here.
+export interface LedgerPaginator {
+  data: LedgerRecord[];
+  links?: { url: string | null; label: string; active: boolean }[];
+  meta?: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+  // legacy/flat paginator fields, present depending on Inertia/Laravel setup
+  current_page?: number;
+  last_page?: number;
+  per_page?: number;
+  total?: number;
 }
 
-export default function Index({ records = SAMPLE_RECORDS }: { records?: LedgerRecord[] }) {
-  const [searchQuery, setSearchQuery] = useState('');
+function currency(n: number) {
+  return `₱${(n ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+interface IndexProps {
+  records?: LedgerPaginator;
+  filters?: { search?: string };
+  stats?: { totalStudents?: number };
+}
+
+export default function Index({ records, filters, stats }: IndexProps) {
+  // Unwrap the paginator safely. If `records` is missing or malformed,
+  // fall back to an empty array instead of crashing.
+  const rows: LedgerRecord[] = records?.data ?? [];
+
+  const [searchQuery, setSearchQuery] = useState(filters?.search ?? '');
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      router.get(`/graduate-ledger?search=${encodeURIComponent(searchQuery)}`);
-    }
+    router.get('/graduate-ledger', searchQuery.trim() ? { search: searchQuery } : {}, {
+      preserveState: true,
+      replace: true,
+    });
   };
 
+  // Client-side filtering is now redundant with server-side search, but
+  // kept here for instant feedback while typing before submit.
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return records;
-    return records.filter(
+    if (!q) return rows;
+    return rows.filter(
       (r) =>
-        r.name.toLowerCase().includes(q) ||
-        r.course.toLowerCase().includes(q) ||
-        r.referenceNo.toLowerCase().includes(q)
+        (r.name ?? '').toLowerCase().includes(q) ||
+        (r.course ?? '').toLowerCase().includes(q) ||
+        (r.referenceNo ?? '').toLowerCase().includes(q)
     );
-  }, [records, searchQuery]);
+  }, [rows, searchQuery]);
 
   // ---- Metrics derived from real fields ----
-  const totalStudents = useMemo(() => new Set(records.map((r) => r.name)).size, [records]);
-  const totalUnits = useMemo(() => records.reduce((sum, r) => sum + (r.units || 0), 0), [records]);
+  const totalStudents = useMemo(() => stats?.totalStudents ?? new Set(rows.map((r) => r.name)).size, [rows, stats?.totalStudents]);
+  const totalUnits = useMemo(() => rows.reduce((sum, r) => sum + (r.units || 0), 0), [rows]);
   const totalCharges = useMemo(
-    () => records.filter((r) => r.arPayment === 'AR').reduce((sum, r) => sum + r.amount, 0),
-    [records]
+    () => rows.filter((r) => r.arPayment === 'AR').reduce((sum, r) => sum + (r.amount || 0), 0),
+    [rows]
   );
   const totalPayments = useMemo(
-    () => records.filter((r) => r.arPayment === 'Payment').reduce((sum, r) => sum + r.amount, 0),
-    [records]
+    () => rows.filter((r) => r.arPayment === 'Payment').reduce((sum, r) => sum + (r.amount || 0), 0),
+    [rows]
   );
   const outstandingBalance = totalCharges - totalPayments;
+
+  const totalRecordCount = records?.meta?.total ?? records?.total ?? rows.length;
 
   return (
     <div className="min-h-screen bg-[#FAFAF5] p-4 md:p-8">
@@ -108,7 +140,7 @@ export default function Index({ records = SAMPLE_RECORDS }: { records?: LedgerRe
           </div>
         </div>
 
-        {/* Metrics Row — computed from actual ledger rows */}
+        {/* Metrics Row — computed from actual ledger rows on this page */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="shadow-xs border border-[#CFE3FF] bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -117,7 +149,7 @@ export default function Index({ records = SAMPLE_RECORDS }: { records?: LedgerRe
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{totalStudents}</div>
-              <p className="text-[10px] text-[#8AA8CC] mt-1">Unique names across all records</p>
+              <p className="text-[10px] text-[#8AA8CC] mt-1">Unique names matching the current search</p>
             </CardContent>
           </Card>
 
@@ -128,7 +160,7 @@ export default function Index({ records = SAMPLE_RECORDS }: { records?: LedgerRe
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{totalUnits}</div>
-              <p className="text-[10px] text-[#8AA8CC] mt-1">Sum of units across transactions</p>
+              <p className="text-[10px] text-[#8AA8CC] mt-1">Sum of units on this page</p>
             </CardContent>
           </Card>
 
@@ -139,7 +171,7 @@ export default function Index({ records = SAMPLE_RECORDS }: { records?: LedgerRe
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{currency(totalCharges)}</div>
-              <p className="text-[10px] text-[#8AA8CC] mt-1">Tuition + misc fees billed</p>
+              <p className="text-[10px] text-[#8AA8CC] mt-1">Tuition + misc fees billed (this page)</p>
             </CardContent>
           </Card>
 
@@ -150,7 +182,7 @@ export default function Index({ records = SAMPLE_RECORDS }: { records?: LedgerRe
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{currency(outstandingBalance)}</div>
-              <p className="text-[10px] text-[#8AA8CC] mt-1">Charges minus payments received</p>
+              <p className="text-[10px] text-[#8AA8CC] mt-1">Charges minus payments (this page)</p>
             </CardContent>
           </Card>
         </div>
@@ -160,7 +192,7 @@ export default function Index({ records = SAMPLE_RECORDS }: { records?: LedgerRe
           <CardHeader className="pb-2">
             <CardTitle className="text-md text-[#0B3D91]">Transaction Ledger</CardTitle>
             <CardDescription className="text-[#7FA6D6]">
-              {filtered.length} of {records.length} record{records.length === 1 ? '' : 's'}
+              {filtered.length} of {totalRecordCount} record{totalRecordCount === 1 ? '' : 's'}
             </CardDescription>
           </CardHeader>
           <CardContent className="overflow-x-auto">

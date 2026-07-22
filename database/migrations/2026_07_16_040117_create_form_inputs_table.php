@@ -24,7 +24,7 @@ return new class extends Migration
             $table->foreignId('membership_id')->constrained()->restrictOnDelete();
             $table->foreignId('payment_detail_option_id')->constrained('payment_detail_options')->restrictOnDelete();
             $table->timestamps();
-            
+
             $table->index('reference_number');
             $table->index('email');
             $table->index('contact_num');

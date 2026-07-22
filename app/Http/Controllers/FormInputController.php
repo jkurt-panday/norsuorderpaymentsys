@@ -111,7 +111,7 @@ class FormInputController extends Controller
             'middlename_or_project' => 'nullable|string',
             'lastname_or_agency' => 'sometimes|string',
             'office_or_college' => 'sometimes|string',
-             'position_or_designation' => 'sometimes|string',
+            'position_or_designation' => 'sometimes|string',
             'address' => 'sometimes|string',
             'amount' => 'sometimes|numeric|min:0',
             'request_type' => 'sometimes|in:New Request,Re-issue Request',
