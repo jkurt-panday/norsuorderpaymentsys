@@ -21,6 +21,7 @@ import {
     ComboboxItem,
     ComboboxList,
 } from '@/components/ui/combobox';
+import { FileUploadDropZone } from '@/components/application/file-upload/file-upload-base';
 
 const reqType = ['New Request', 'Re-issue Request', 'Other'] as const;
 
@@ -95,11 +96,8 @@ export default function SubmitForm() {
                             </div>
                         </div>
                     </div>
-
                     <Separator />
-
                     <CardTitle className="text-2xl">Identity Details</CardTitle>
-
                     {/* Section 2: Additional Info */}
                     <div className="space-y-4">
                         {/* name sections */}
@@ -170,11 +168,8 @@ export default function SubmitForm() {
                             <Input id="input-field-address" type="text" />
                         </Field>
                     </div>
-
                     <Separator />
-
                     <CardTitle className="text-2xl">Request Details</CardTitle>
-
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
                         {/* amount */}
                         <Field>
@@ -279,12 +274,12 @@ export default function SubmitForm() {
                             </Combobox>
                         </Field>
                     </div>
-
                     <Separator />
-
                     <CardTitle className="text-2xl">
                         Supporting Documents
                     </CardTitle>
+                    {/* file uploads */}
+                    <FileUploadDropZone />
                 </CardContent>
 
                 <CardFooter className="flex justify-end gap-2 pt-25">
