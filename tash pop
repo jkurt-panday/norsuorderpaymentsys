@@ -1,0 +1,18 @@
+[33mcommit 8c3725f24068650173150d1dd8803a69c4f36e55[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mcontroller[m[33m)[m
+Author: Troy_Grefalde <grefaldetroy133@gmail.com>
+Date:   Wed Jul 22 17:52:37 2026 +0800
+
+    WIP: order payment system updates
+
+ .env.example                                 |   2 [32m+[m[31m-[m
+ app/Http/Controllers/FormInputController.php |  26 [32m+[m[31m-[m
+ norsuorderpayments                           |   1 [32m+[m
+ package-lock.json                            | 169 [32m++[m[31m---[m
+ package.json                                 |   1 [32m+[m
+ resources/js/app.tsx                         |   2 [32m+[m[31m-[m
+ resources/js/components/ui/sidebar.tsx       |  47 [32m+[m[31m-[m
+ resources/js/lib/supabase.ts                 |   6 [32m+[m
+ resources/js/pages/SubmitForm.tsx            | 880 [32m+++++++++++++++++++++++++++[m
+ routes/web.php                               |  13 [32m+[m[31m-[m
+ tsconfig.json                                |   3 [32m+[m[31m-[m
+ 11 files changed, 1049 insertions(+), 101 deletions(-)
