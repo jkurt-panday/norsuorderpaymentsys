@@ -1,16 +1,26 @@
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes, DetailedHTMLProps, FC, ReactNode } from "react";
-import { isValidElement } from "react";
-import type { Placement } from "react-aria";
-import type { ButtonProps as AriaButtonProps, LinkProps as AriaLinkProps } from "react-aria-components";
-import { Button as AriaButton, Link as AriaLink } from "react-aria-components";
-import { Tooltip } from "@/components/base/tooltip/tooltip";
-import { cx } from "@/lib/utils/cx";
-import { isReactComponent } from "@/lib/utils/is-react-component";
+import type {
+    AnchorHTMLAttributes,
+    ButtonHTMLAttributes,
+    DetailedHTMLProps,
+    FC,
+    ReactNode,
+} from 'react';
+import { isValidElement } from 'react';
+import type { Placement } from 'react-aria';
+import type {
+    ButtonProps as AriaButtonProps,
+    LinkProps as AriaLinkProps,
+} from 'react-aria-components';
+import { Button as AriaButton, Link as AriaLink } from 'react-aria-components';
+import { Tooltip } from '@/components/base/tooltip/tooltip';
+import { cx } from '@/lib/utils/cx';
+import { isReactComponent } from '@/lib/utils/is-react-component';
 
 export const styles = {
     secondary:
-        "bg-primary text-fg-quaternary shadow-xs-skeuomorphic ring-1 ring-primary ring-inset hover:bg-primary_hover hover:text-fg-quaternary_hover disabled:shadow-xs",
-    tertiary: "text-fg-quaternary hover:bg-primary_hover hover:text-fg-quaternary_hover",
+        'bg-primary text-fg-quaternary shadow-xs-skeuomorphic ring-1 ring-primary ring-inset hover:bg-primary_hover hover:text-fg-quaternary_hover disabled:shadow-xs',
+    tertiary:
+        'text-fg-quaternary hover:bg-primary_hover hover:text-fg-quaternary_hover',
 };
 
 /**
@@ -20,9 +30,9 @@ export interface CommonProps {
     /** Disables the button and shows a disabled state */
     isDisabled?: boolean;
     /** The size variant of the button */
-    size?: "xs" | "sm";
+    size?: 'xs' | 'sm';
     /** The color variant of the button */
-    color?: "secondary" | "tertiary";
+    color?: 'secondary' | 'tertiary';
     /** The icon to display in the button */
     icon?: FC<{ className?: string }> | ReactNode;
     /** The tooltip to display when hovering over the button */
@@ -34,17 +44,29 @@ export interface CommonProps {
 /**
  * Props for the button variant (non-link)
  */
-export interface ButtonProps extends CommonProps, DetailedHTMLProps<Omit<ButtonHTMLAttributes<HTMLButtonElement>, "color" | "slot">, HTMLButtonElement> {
+export interface ButtonProps
+    extends
+        CommonProps,
+        DetailedHTMLProps<
+            Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'color' | 'slot'>,
+            HTMLButtonElement
+        > {
     /** Slot name for react-aria component */
-    slot?: AriaButtonProps["slot"];
+    slot?: AriaButtonProps['slot'];
 }
 
 /**
  * Props for the link variant (anchor tag)
  */
-interface LinkProps extends CommonProps, DetailedHTMLProps<Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "color">, HTMLAnchorElement> {
+interface LinkProps
+    extends
+        CommonProps,
+        DetailedHTMLProps<
+            Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'color'>,
+            HTMLAnchorElement
+        > {
     /** Options for the configured client side router. */
-    routerOptions?: AriaLinkProps["routerOptions"];
+    routerOptions?: AriaLinkProps['routerOptions'];
 }
 
 /** Union type of button and link props */
@@ -55,12 +77,12 @@ export const ButtonUtility = ({
     className,
     isDisabled,
     icon: Icon,
-    size = "sm",
-    color = "secondary",
-    tooltipPlacement = "top",
+    size = 'sm',
+    color = 'secondary',
+    tooltipPlacement = 'top',
     ...otherProps
 }: Props) => {
-    const href = "href" in otherProps ? otherProps.href : undefined;
+    const href = 'href' in otherProps ? otherProps.href : undefined;
     const Component = href ? AriaLink : AriaButton;
 
     let props = {};
@@ -74,13 +96,13 @@ export const ButtonUtility = ({
             // Since anchor elements do not support the `disabled` attribute and state,
             // we need to specify `data-rac` and `data-disabled` in order to be able
             // to use the `disabled:` selector in classes.
-            ...(isDisabled ? { "data-rac": true, "data-disabled": true } : {}),
+            ...(isDisabled ? { 'data-rac': true, 'data-disabled': true } : {}),
         };
     } else {
         props = {
             ...otherProps,
 
-            type: otherProps.type || "button",
+            type: otherProps.type || 'button',
             isDisabled,
         };
     }
@@ -90,12 +112,12 @@ export const ButtonUtility = ({
             aria-label={tooltip}
             {...props}
             className={cx(
-                "group relative inline-flex h-max cursor-pointer items-center justify-center rounded-md p-1.5 outline-focus-ring transition duration-100 ease-linear focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                'group outline-focus-ring relative inline-flex h-max cursor-pointer items-center justify-center rounded-md p-1.5 transition duration-100 ease-linear focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
                 styles[color],
 
                 // Icon styles
-                "*:data-icon:pointer-events-none *:data-icon:shrink-0 *:data-icon:text-current *:data-icon:transition-inherit-all",
-                size === "xs" ? "*:data-icon:size-4" : "*:data-icon:size-5",
+                '*:data-icon:transition-inherit-all *:data-icon:pointer-events-none *:data-icon:shrink-0 *:data-icon:text-current',
+                size === 'xs' ? '*:data-icon:size-4' : '*:data-icon:size-5',
 
                 className,
             )}
@@ -107,7 +129,12 @@ export const ButtonUtility = ({
 
     if (tooltip) {
         return (
-            <Tooltip title={tooltip} placement={tooltipPlacement} isDisabled={isDisabled} offset={size === "xs" ? 4 : 6}>
+            <Tooltip
+                title={tooltip}
+                placement={tooltipPlacement}
+                isDisabled={isDisabled}
+                offset={size === 'xs' ? 4 : 6}
+            >
                 {content}
             </Tooltip>
         );

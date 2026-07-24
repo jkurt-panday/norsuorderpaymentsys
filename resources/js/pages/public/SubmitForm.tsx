@@ -1,4 +1,6 @@
-import PublicLayout from '@/pages/layouts/PublicLayout';
+import { useState } from 'react';
+import { FileUploadDropZone } from '@/components/application/file-upload/file-upload-base';
+import { Button } from '@/components/ui/button';
 import {
     Card,
     CardHeader,
@@ -7,12 +9,6 @@ import {
     CardContent,
     CardFooter,
 } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
-import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
-import { useState } from 'react';
 import {
     Combobox,
     ComboboxContent,
@@ -21,7 +17,11 @@ import {
     ComboboxItem,
     ComboboxList,
 } from '@/components/ui/combobox';
-import { FileUploadDropZone } from '@/components/application/file-upload/file-upload-base';
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+// import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import PublicLayout from '@/pages/layouts/PublicLayout';
 
 const reqType = ['New Request', 'Re-issue Request', 'Other'] as const;
 

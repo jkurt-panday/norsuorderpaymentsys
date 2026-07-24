@@ -8,7 +8,7 @@ Route::middleware(
     [
         // 'auth', 'verified'
     ]
-    )->group(function () {
+)->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 });
 
