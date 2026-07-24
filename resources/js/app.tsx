@@ -12,7 +12,7 @@ createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
     layout: (name) => {
         switch (true) {
-            case name === 'welcome' || name === 'auth/login':
+            case name === 'welcome' || name === 'auth/login' || name === 'auth/forgot-password' || name === 'auth/reset-password':
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
@@ -25,7 +25,7 @@ createInertiaApp({
     strictMode: true,
     withApp(app) {
         return (
-            <TooltipProvider delayDuration={0}>
+            <TooltipProvider>
                 {app}
                 <Toaster />
             </TooltipProvider>

@@ -23,6 +23,15 @@ Route::middleware('auth')->group(function () {
 
 });
 
+
+Route::get('/debug-temp', function () {
+    return response()->json([
+        'temp_dir' => sys_get_temp_dir(),
+        'writable' => is_writable(sys_get_temp_dir()),
+        'tmpfile' => tmpfile() !== false,
+    ]);
+});
+
 // Admin-Only Routes
 Route::middleware(['auth', 'admin'])->group(function () {
 

@@ -1,20 +1,22 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, Link } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
-import InputError from '@/components/input-error';
-import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import AuthLayout from '@/layouts/auth-layout';
 import { login } from '@/routes';
 import { email } from '@/routes/password';
 
 export default function ForgotPassword({ status }: { status?: string }) {
     return (
-        <>
+        <AuthLayout
+            title="Forgot Password"
+            description="Enter your email address and we will send you a password reset link."
+        >
             <Head title="Payment of Order System - Forgot Password" />
 
             {status && (
-                <div className="mb-4 text-sm font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 p-3 rounded-md text-center">
+                <div className="mb-4 text-sm font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 p-3 rounded-md">
                     {status}
                 </div>
             )}
@@ -35,15 +37,16 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                     id="email"
                                     type="email"
                                     name="email"
-                                    autoComplete="off"
+                                    autoComplete="email"
                                     autoFocus
                                     placeholder="e.g. name@university.edu"
                                 />
                             </div>
-                            <InputError message={errors.email} />
+                            {errors.email && <p className="text-xs font-semibold text-[#ba1a1a]">{errors.email}</p>}
                         </div>
 
                         <Button
+                            type="submit"
                             className="w-full bg-[#0072e5] hover:bg-[#005ab7] text-white py-6 rounded-full text-xs font-semibold uppercase tracking-widest hover:shadow-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border-0"
                             disabled={processing}
                             data-test="email-password-reset-link-button"
@@ -66,10 +69,10 @@ export default function ForgotPassword({ status }: { status?: string }) {
 
             <div className="mt-6 text-center text-sm text-[#414754]">
                 <span>Or, return to </span>
-                <TextLink href={login()} className="text-[#005ab7] hover:underline font-semibold">
+                <Link href={login.url()} className="text-xs text-[#005ab7] hover:underline font-semibold">
                     log in
-                </TextLink>
+                </Link>
             </div>
-        </>
+        </AuthLayout>
     );
 }

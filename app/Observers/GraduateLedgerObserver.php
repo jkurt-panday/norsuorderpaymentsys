@@ -42,7 +42,7 @@ class GraduateLedgerObserver
                 ->append([$row]);
 
         } catch (\Exception $e) {
-            Log::error('Google Sheet Sync Error on Create: ' . $e->getMessage());
+            Log::error('Google Sheet Sync Error on Create: '.$e->getMessage());
         }
     }
 }

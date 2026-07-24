@@ -42,11 +42,10 @@ interface SidebarItem {
 }
 
 const mainNavItems: SidebarItem[] = [
-
     { title: 'Profile Settings', href: '#profile-settings', icon: Settings },
     {
         title: 'Graduate Ledger',
-        icon: BookOpen,
+        icon: HandCoins,  // was BookOpen
         items: [
             { title: 'Ledger Overview', href: '/graduate-ledger' },
             { title: 'Print Statement', href: '/graduate-ledger/print-select' },
