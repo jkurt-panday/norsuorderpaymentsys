@@ -37,6 +37,9 @@ const paymentDet = [
     'IGP Sale of Bid Docs',
 ] as const;
 
+const enlarge =
+    "h-12 px-4 text-base";
+
 export default function SubmitForm() {
     // functions
     const [value, setValue] = useState('');
@@ -72,7 +75,7 @@ export default function SubmitForm() {
                                     <FieldLabel htmlFor="input-field-email">
                                         Email Address
                                     </FieldLabel>
-                                    <Input
+                                    <Input className={enlarge}
                                         id="input-field-email"
                                         type="email"
                                         placeholder="jondoe@mail.com"
@@ -85,7 +88,7 @@ export default function SubmitForm() {
                                     <FieldLabel htmlFor="input-field-contact">
                                         Contact Num
                                     </FieldLabel>
-                                    <Input
+                                    <Input className={enlarge}
                                         id="input-field-contact"
                                         type="tel"
                                         placeholder="0912 333 4444"
@@ -108,7 +111,7 @@ export default function SubmitForm() {
                                     <FieldLabel htmlFor="input-field-fname">
                                         First Name / Office
                                     </FieldLabel>
-                                    <Input id="input-field-fname" type="text" />
+                                    <Input className={enlarge} id="input-field-fname" type="text" />
                                 </Field>
                             </div>
                             <div className="space-y-2">
@@ -117,7 +120,7 @@ export default function SubmitForm() {
                                     <FieldLabel htmlFor="input-field-mname">
                                         Middle Name / Project
                                     </FieldLabel>
-                                    <Input id="input-field-mname" type="text" />
+                                    <Input className={enlarge} id="input-field-mname" type="text" />
                                 </Field>
                             </div>
                             <div className="space-y-2">
@@ -126,7 +129,7 @@ export default function SubmitForm() {
                                     <FieldLabel htmlFor="input-field-lname">
                                         Last Name / Agency
                                     </FieldLabel>
-                                    <Input id="input-field-lname" type="text" />
+                                    <Input className={enlarge} id="input-field-lname" type="text" />
                                 </Field>
                             </div>
                         </div>
@@ -139,7 +142,7 @@ export default function SubmitForm() {
                                     <FieldLabel htmlFor="input-field-off-coll">
                                         Office / College
                                     </FieldLabel>
-                                    <Input
+                                    <Input className={enlarge}
                                         id="input-field-off-coll"
                                         type="text"
                                     />
@@ -151,7 +154,7 @@ export default function SubmitForm() {
                                     <FieldLabel htmlFor="input-field-pos-des">
                                         Position / Designation
                                     </FieldLabel>
-                                    <Input
+                                    <Input className={enlarge}
                                         id="input-field-pos-des"
                                         type="text"
                                     />
@@ -165,7 +168,7 @@ export default function SubmitForm() {
                             <FieldLabel htmlFor="input-field-address">
                                 Address
                             </FieldLabel>
-                            <Input id="input-field-address" type="text" />
+                            <Input className={enlarge} id="input-field-address" type="text" />
                         </Field>
                     </div>
                     <Separator />
@@ -177,17 +180,17 @@ export default function SubmitForm() {
                                 Amount
                             </FieldLabel>
                             <div className="flex">
-                                <div className="rounded-l-md border border-r-0 bg-muted px-3 py-1.5 text-sm text-muted-foreground">
+                                <div className="flex h-12 items-center justify-center rounded-l-md border border-r-0 bg-muted px-4 text-base text-muted-foreground">
                                     &#x20B1;
                                 </div>
-                                <Input
+                                <Input className={`${enlarge} rounded-l-none`}
                                     id="input-field-amount"
                                     type="text"
                                     inputMode="decimal"
                                     placeholder="00.00"
                                     value={value}
                                     onChange={handleChange}
-                                    className="rounded-l-none"
+                                    // className="rounded-l-none"
                                 />
                             </div>
                         </Field>
