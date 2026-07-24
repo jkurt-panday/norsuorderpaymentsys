@@ -1,7 +1,7 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { dashboard, login } from '@/routes';
+import { dashboard, login } from '@/routes/index';
 /* @chisel-registration */
-import { register } from '@/routes';
+import { register } from '@/routes/index';
 /* @end-chisel-registration */
 
 export default function Welcome() {
