@@ -16,6 +16,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/graduate-ledger/pdf', [GraduateLedgerController::class, 'generatePdf'])->name('graduate-ledger.pdf');
     Route::get('/graduate-ledger/add', [GraduateLedgerController::class, 'create'])->name('graduate-ledger.create');
     Route::post('/graduate-ledger', [GraduateLedgerController::class, 'store'])->name('graduate-ledger.store');
+    Route::post('/graduate-ledger/import', [GraduateLedgerController::class, 'import'])->name('graduate-ledger.import');
     // Graduate Ledger: Single definition pointing to your controller
     Route::get('/graduate-ledger', [GraduateLedgerController::class, 'index'])
         ->name('graduate-ledger.index');

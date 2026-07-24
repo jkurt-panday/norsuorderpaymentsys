@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Printer, ArrowLeft } from 'lucide-react';
+import React, { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 interface Props {
   students: string[];
@@ -21,9 +21,33 @@ function currency(n: number) {
 }
 
 function absAmount(val: any): number {
-  if (!val) return 0;
+  if (!val) {
+return 0;
+}
+
   const num = parseFloat(String(val).replace(/[^\d.]/g, ''));
+
   return isNaN(num) ? 0 : num;
+}
+
+function formatTransactionDate(value?: string | null) {
+  if (!value) return '-';
+
+  const normalized = String(value).trim();
+  if (!normalized) return '-';
+
+  const datePart = normalized.includes('T') ? normalized.split('T')[0] : normalized.split(' ')[0];
+  const parsedDate = new Date(`${datePart}T00:00:00`);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return datePart;
+  }
+
+  return parsedDate.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+  });
 }
 
 export default function PrintSelect({ students, selectedStudent, records = [], summary }: Props) {
@@ -36,7 +60,10 @@ export default function PrintSelect({ students, selectedStudent, records = [], s
   };
 
   const handleOpenPdf = () => {
-    if (!selected) return;
+    if (!selected) {
+return;
+}
+
     window.open(`/graduate-ledger/pdf?student=${encodeURIComponent(selected)}`, '_blank');
   };
 
@@ -174,7 +201,7 @@ export default function PrintSelect({ students, selectedStudent, records = [], s
                     ) : (
                       records.map((r) => (
                         <tr key={r.id} className="border-b border-[#EAF2FF] hover:bg-[#F3F8FF]">
-                          <td className="py-2 px-3 text-[#334E68]">{r.transaction_date || '-'}</td>
+                          <td className="py-2 px-3 text-[#334E68]">{formatTransactionDate(r.transaction_date)}</td>
                           <td className="py-2 px-3 text-[#334E68]">
                             {r.school_year} ({r.semester_short || r.semester})
                           </td>

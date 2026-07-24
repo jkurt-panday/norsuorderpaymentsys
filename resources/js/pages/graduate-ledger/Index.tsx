@@ -1,9 +1,4 @@
-import { Head, router } from '@inertiajs/react';
-import React, { useMemo, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { Head, router, useForm } from '@inertiajs/react';
 import {
   Search,
   DollarSign,
@@ -12,8 +7,28 @@ import {
   Wallet,
   PlusCircle,
 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 
-// ---- Shape of one ledger row, matching what the controller now sends ----
 export interface LedgerRecord {
   id: string | number;
   name: string;
@@ -31,9 +46,6 @@ export interface LedgerRecord {
   inputBy: string;
 }
 
-// Laravel's paginate() -> Inertia shape: { data, links, meta } (or the
-// legacy flat shape with current_page/last_page/etc. directly on the
-// object). We only rely on `data` here.
 export interface LedgerPaginator {
   data: LedgerRecord[];
   links?: { url: string | null; label: string; active: boolean }[];
@@ -43,7 +55,6 @@ export interface LedgerPaginator {
     per_page: number;
     total: number;
   };
-  // legacy/flat paginator fields, present depending on Inertia/Laravel setup
   current_page?: number;
   last_page?: number;
   per_page?: number;
@@ -54,54 +65,88 @@ function currency(n: number) {
   return `₱${(n ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function formatTransactionDate(value?: string | null) {
+  if (!value) return '-';
+
+  const normalized = String(value).trim();
+  if (!normalized) return '-';
+
+  // Extract YYYY-MM-DD date part to prevent browser timezone shifting
+  const datePart = normalized.includes('T') ? normalized.split('T')[0] : normalized.split(' ')[0];
+  const parsedDate = new Date(`${datePart}T00:00:00`);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return datePart;
+  }
+
+  return parsedDate.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+  });
+}
+
 interface IndexProps {
   records?: LedgerPaginator;
-  filters?: { search?: string };
-  stats?: { totalStudents?: number };
+  filters?: { search?: string; year?: string; month?: string };
+  stats?: {
+    totalStudents?: number;
+    totalUnits?: number;
+    totalCharges?: number;
+    totalPayments?: number;
+    outstandingBalance?: number;
+  };
 }
 
 export default function Index({ records, filters, stats }: IndexProps) {
-  // Unwrap the paginator safely. If `records` is missing or malformed,
-  // fall back to an empty array instead of crashing.
   const rows: LedgerRecord[] = records?.data ?? [];
-
   const [searchQuery, setSearchQuery] = useState(filters?.search ?? '');
+  const [selectedYear, setSelectedYear] = useState(filters?.year ?? '');
+  const [selectedMonth, setSelectedMonth] = useState(filters?.month ?? '');
+  const importForm = useForm<{ file: File | null }>({ file: null });
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    router.get('/graduate-ledger', searchQuery.trim() ? { search: searchQuery } : {}, {
+  const applyFilters = (nextSearch = searchQuery, nextYear = selectedYear, nextMonth = selectedMonth) => {
+    const params: Record<string, string> = {};
+
+    if (nextSearch.trim()) params.search = nextSearch.trim();
+    if (nextYear) params.year = nextYear;
+    if (nextMonth) params.month = nextMonth;
+
+    router.get('/graduate-ledger', params, {
       preserveState: true,
       replace: true,
     });
   };
 
-  // Client-side filtering is now redundant with server-side search, but
-  // kept here for instant feedback while typing before submit.
-  const filtered = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter(
-      (r) =>
-        (r.name ?? '').toLowerCase().includes(q) ||
-        (r.course ?? '').toLowerCase().includes(q) ||
-        (r.referenceNo ?? '').toLowerCase().includes(q)
-    );
-  }, [rows, searchQuery]);
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    applyFilters();
+  };
 
-  // ---- Metrics derived from real fields ----
-  const totalStudents = useMemo(() => stats?.totalStudents ?? new Set(rows.map((r) => r.name)).size, [rows, stats?.totalStudents]);
-  const totalUnits = useMemo(() => rows.reduce((sum, r) => sum + (r.units || 0), 0), [rows]);
-  const totalCharges = useMemo(
-    () => rows.filter((r) => r.arPayment === 'AR').reduce((sum, r) => sum + (r.amount || 0), 0),
-    [rows]
-  );
-  const totalPayments = useMemo(
-    () => rows.filter((r) => r.arPayment === 'Payment').reduce((sum, r) => sum + (r.amount || 0), 0),
-    [rows]
-  );
-  const outstandingBalance = totalCharges - totalPayments;
+  const handleFilterChange = () => {
+    const params: Record<string, string> = {};
 
+    if (searchQuery.trim()) params.search = searchQuery.trim();
+    if (selectedYear) params.year = selectedYear;
+    if (selectedMonth) params.month = selectedMonth;
+
+    router.get('/graduate-ledger', params, {
+      preserveState: true,
+      replace: true,
+    });
+  };
+
+  // ---- Server-backed Metric Summary ----
+  const totalStudents = stats?.totalStudents ?? 0;
+  const totalUnits = stats?.totalUnits ?? 0;
+  const totalCharges = stats?.totalCharges ?? 0;
+  const outstandingBalance = stats?.outstandingBalance ?? 0;
+
+  const currentPage = records?.meta?.current_page ?? records?.current_page ?? 1;
+  const lastPage = records?.meta?.last_page ?? records?.last_page ?? 1;
   const totalRecordCount = records?.meta?.total ?? records?.total ?? rows.length;
+
+  const paginationLinks = records?.links ?? [];
 
   return (
     <div className="min-h-screen bg-[#FAFAF5] p-4 md:p-8">
@@ -121,26 +166,97 @@ export default function Index({ records, filters, stats }: IndexProps) {
             <p className="text-sm text-[#5C7A9E] mt-0.5">Tuition, fees, and payment transactions by student.</p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <form onSubmit={handleSearchSubmit} className="relative w-full sm:w-64">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#7FA6D6]" />
-              <Input
-                type="search"
-                placeholder="Search name, course, or OR/JEV #..."
-                className="pl-8 h-9 bg-white border-[#CFE3FF] focus-visible:ring-[#0F6FFF]"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 w-full md:w-auto">
+            <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#7FA6D6]" />
+                <Input
+                  type="search"
+                  placeholder="Search name, course, or OR/JEV #..."
+                  className="pl-8 h-9 bg-white border-[#CFE3FF] focus-visible:ring-[#0F6FFF]"
+                  value={searchQuery}
+                  onChange={(e) => {
+                  const nextValue = e.target.value;
+                  setSearchQuery(nextValue);
+                  applyFilters(nextValue, selectedYear, selectedMonth);
+                }}
+                />
+              </div>
+
+              <select
+                value={selectedYear}
+                onChange={(e) => {
+                  const nextYear = e.target.value;
+                  setSelectedYear(nextYear);
+                  applyFilters(searchQuery, nextYear, selectedMonth);
+                }}
+                className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+              >
+                <option value="">All Years</option>
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+                <option value="2026">2026</option>
+              </select>
+
+              <select
+                value={selectedMonth}
+                onChange={(e) => {
+                  const nextMonth = e.target.value;
+                  setSelectedMonth(nextMonth);
+                  applyFilters(searchQuery, selectedYear, nextMonth);
+                }}
+                className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+              >
+                <option value="">All Months</option>
+                <option value="1">Jan</option>
+                <option value="2">Feb</option>
+                <option value="3">Mar</option>
+                <option value="4">Apr</option>
+                <option value="5">May</option>
+                <option value="6">Jun</option>
+                <option value="7">Jul</option>
+                <option value="8">Aug</option>
+                <option value="9">Sep</option>
+                <option value="10">Oct</option>
+                <option value="11">Nov</option>
+                <option value="12">Dec</option>
+              </select>
+
             </form>
 
-            <Button className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white" onClick={() => router.get('/graduate-ledger/add')}>
-              <PlusCircle className="h-4 w-4 mr-1.5" />
-              New Transaction
-            </Button>
+            <div className="flex flex-wrap items-center justify-end gap-2 ml-auto">
+              <label className="inline-flex cursor-pointer items-center rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm font-medium text-[#0B3D91] hover:bg-[#F3F8FF] transition-colors">
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    importForm.setData('file', file);
+                    if (file) {
+                      importForm.post('/graduate-ledger/import', {
+                        forceFormData: true,
+                        preserveScroll: true,
+                        onSuccess: () => {
+                          importForm.reset('file');
+                          e.currentTarget.value = '';
+                        },
+                      });
+                    }
+                  }}
+                />
+                Import Excel/CSV
+              </label>
+
+              <Button className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white" onClick={() => router.get('/graduate-ledger/add')}>
+                <PlusCircle className="h-4 w-4 mr-1.5" />
+                New Transaction
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Metrics Row — computed from actual ledger rows on this page */}
+        {/* Metrics Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="shadow-xs border border-[#CFE3FF] bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -149,7 +265,7 @@ export default function Index({ records, filters, stats }: IndexProps) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{totalStudents}</div>
-              <p className="text-[10px] text-[#8AA8CC] mt-1">Unique names matching the current search</p>
+              <p className="text-[10px] text-[#8AA8CC] mt-1">Unique active students</p>
             </CardContent>
           </Card>
 
@@ -160,7 +276,7 @@ export default function Index({ records, filters, stats }: IndexProps) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{totalUnits}</div>
-              <p className="text-[10px] text-[#8AA8CC] mt-1">Sum of units on this page</p>
+              <p className="text-[10px] text-[#8AA8CC] mt-1">Total units enrolled</p>
             </CardContent>
           </Card>
 
@@ -171,7 +287,7 @@ export default function Index({ records, filters, stats }: IndexProps) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{currency(totalCharges)}</div>
-              <p className="text-[10px] text-[#8AA8CC] mt-1">Tuition + misc fees billed (this page)</p>
+              <p className="text-[10px] text-[#8AA8CC] mt-1">Total tuition + fees billed</p>
             </CardContent>
           </Card>
 
@@ -182,17 +298,17 @@ export default function Index({ records, filters, stats }: IndexProps) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{currency(outstandingBalance)}</div>
-              <p className="text-[10px] text-[#8AA8CC] mt-1">Charges minus payments (this page)</p>
+              <p className="text-[10px] text-[#8AA8CC] mt-1">Net pending balance</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Ledger Table — the actual data, not a summary card */}
+        {/* Ledger Table with shadcn Pagination */}
         <Card className="border border-[#CFE3FF] bg-white">
           <CardHeader className="pb-2">
             <CardTitle className="text-md text-[#0B3D91]">Transaction Ledger</CardTitle>
             <CardDescription className="text-[#7FA6D6]">
-              {filtered.length} of {totalRecordCount} record{totalRecordCount === 1 ? '' : 's'}
+              Showing {rows.length} of {totalRecordCount} record{totalRecordCount === 1 ? '' : 's'}
             </CardDescription>
           </CardHeader>
           <CardContent className="overflow-x-auto">
@@ -215,21 +331,21 @@ export default function Index({ records, filters, stats }: IndexProps) {
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
+                {rows.length === 0 ? (
                   <tr>
                     <td colSpan={13} className="text-center text-sm text-[#8AA8CC] py-8">
-                      No transactions yet. Upload a batch file or add one manually.
+                      No transactions found. Upload a CSV/Excel file or add one manually.
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((r) => (
+                  rows.map((r) => (
                     <tr key={r.id} className="border-b border-[#EAF2FF] hover:bg-[#F3F8FF]">
                       <td className="py-2 pr-4 pl-2 font-medium whitespace-nowrap text-[#0B3D91]">{r.name}</td>
                       <td className="py-2 pr-4 text-[#334E68]">{r.course}</td>
                       <td className="py-2 pr-4 text-[#334E68]">{r.schoolYear}</td>
                       <td className="py-2 pr-4 text-[#334E68]">{r.term}</td>
                       <td className="py-2 pr-4 text-right text-[#334E68]">{r.units}</td>
-                      <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{r.transactionDate}</td>
+                      <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{formatTransactionDate(r.transactionDate)}</td>
                       <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{r.referenceNo}</td>
                       <td className="py-2 pr-4 text-[#334E68]">{r.particulars}</td>
                       <td className="py-2 pr-4 text-right text-[#334E68]">{currency(r.ratePerUnit)}</td>
@@ -247,6 +363,82 @@ export default function Index({ records, filters, stats }: IndexProps) {
               </tbody>
             </table>
           </CardContent>
+
+          {/* ---- shadcn Pagination Footer ---- */}
+          {paginationLinks.length > 3 && (
+            <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-[#CFE3FF] pt-4 pb-4 gap-4">
+              <div className="text-xs text-[#5C7A9E]">
+                Page <span className="font-semibold text-[#0B3D91]">{currentPage}</span> of{' '}
+                <span className="font-semibold text-[#0B3D91]">{lastPage}</span>
+              </div>
+
+              <Pagination className="justify-end w-auto mx-0">
+                <PaginationContent className="gap-1">
+                  {paginationLinks.map((link, index) => {
+                    const isPrev = index === 0;
+                    const isNext = index === paginationLinks.length - 1;
+                    const isEllipsis = link.label === '...';
+
+                    if (isPrev) {
+                      return (
+                        <PaginationItem key={index}>
+                          <PaginationPrevious
+                            href={link.url ?? '#'}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (link.url) router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+                            }}
+                            className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+                      );
+                    }
+
+                    if (isNext) {
+                      return (
+                        <PaginationItem key={index}>
+                          <PaginationNext
+                            href={link.url ?? '#'}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (link.url) router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+                            }}
+                            className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+                      );
+                    }
+
+                    if (isEllipsis) {
+                      return (
+                        <PaginationItem key={index}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      );
+                    }
+
+                    return (
+                      <PaginationItem key={index}>
+                        <PaginationLink
+                          href={link.url ?? '#'}
+                          isActive={link.active}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (link.url) router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+                          }}
+                          className={`cursor-pointer ${
+                            link.active ? 'bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]' : 'text-[#0B3D91]'
+                          }`}
+                        >
+                          {link.label}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
+                </PaginationContent>
+              </Pagination>
+            </CardFooter>
+          )}
         </Card>
 
       </div>

@@ -6,8 +6,13 @@ use App\Models\GraduateLedger;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Imports\HeadingRowFormatter;
 
 class GraduateLedgerController extends Controller
 {
@@ -16,34 +21,62 @@ class GraduateLedgerController extends Controller
      */
     public function index(Request $request): Response
     {
+        $year = $request->input('year');
+        $month = $request->input('month');
+
         $query = GraduateLedger::query()
             ->when($request->input('search'), function ($query, $search) {
                 $query->where('student_name', 'like', "%{$search}%")
-                    ->orWhere('id_number', 'like', "%{$search}%");
+                    ->orWhere('id_number', 'like', "%{$search}%")
+                    ->orWhere('course', 'like', "%{$search}%")
+                    ->orWhere('reference_or_jev_number', 'like', "%{$search}%");
+            })
+            ->when($year, function ($query, $year) {
+                $query->whereYear('transaction_date', $year);
+            })
+            ->when($month, function ($query, $month) {
+                $query->whereMonth('transaction_date', $month);
             });
 
+        // 1. Calculate overall metrics using a cloned query BEFORE pagination
+        $totalStudents = (clone $query)
+            ->whereNotNull('student_name')
+            ->where('student_name', '!=', '')
+            ->distinct('student_name')
+            ->count('student_name');
+
+        $totalUnits = (float) (clone $query)->sum('units');
+
+        // Aggregates for AR (Charges) and Payments
+        $totalCharges = (float) (clone $query)
+            ->whereRaw("UPPER(TRIM(ar_payment)) = 'AR'")
+            ->sum('amount');
+
+        $totalPayments = (float) (clone $query)
+            ->where(function ($q) {
+                $q->whereIn(DB::raw("UPPER(TRIM(ar_payment))"), ['PAYMENT', 'P', 'PAYMENR', 'ADJUSTMENT', 'ADJ', 'SETTLED'])
+                  ->orWhere('amount', 'like', '%(%');
+            })
+            ->sum('amount');
+
+        // 2. Fetch paginated records
         $records = $query
             ->latest('id')
             ->paginate(15)
             ->withQueryString();
 
-        // Transform each row into the shape Index.tsx expects (camelCase,
-        // normalized amount/type) without breaking the paginator's
-        // links/meta metadata.
+        // Transform each row into the shape Index.tsx expects
         $records->through(fn ($r) => $this->transformRecord($r));
-
-        $totalStudents = (clone $query)
-            ->whereNotNull('student_name')
-            ->where('student_name', '!=', '')
-            ->select('student_name')
-            ->distinct('student_name')
-            ->count();
 
         return Inertia::render('graduate-ledger/Index', [
             'records' => $records,
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'year', 'month']),
             'stats' => [
                 'totalStudents' => $totalStudents,
+                'totalUnits' => $totalUnits,
+                'totalCharges' => $totalCharges,
+                'totalPayments' => $totalPayments,
+                'outstandingBalance' => $totalCharges - $totalPayments,
             ],
         ]);
     }
@@ -84,11 +117,45 @@ class GraduateLedgerController extends Controller
     }
 
     /**
+     * Imports a spreadsheet into the graduate ledger.
+     */
+    public function import(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,csv,xls'],
+        ]);
+
+        HeadingRowFormatter::default('slug');
+
+        $uploadedFile = $request->file('file');
+        $rows = Excel::toCollection(null, $uploadedFile)->first() ?? collect();
+
+        if ($rows->isEmpty()) {
+            return redirect()->route('graduate-ledger.index')->with('success', 'No rows found in the uploaded file.');
+        }
+
+        $headers = collect($rows->first())->map(fn ($header) => Str::slug((string) $header, '_'))->all();
+
+        $rows->slice(1)->each(function ($row) use ($headers) {
+            $rowData = collect($row)->mapWithKeys(function ($value, $index) use ($headers) {
+                return [$headers[$index] ?? 'column_'.$index => $value];
+            })->all();
+
+            $data = $this->mapImportRow($rowData);
+
+            if ($data !== null) {
+                GraduateLedger::create($data);
+            }
+        });
+
+        return redirect()->route('graduate-ledger.index')->with('success', 'Import completed successfully.');
+    }
+
+    /**
      * Renders the React UI for choosing a student and previewing their balance.
      */
     public function printSelect(Request $request): Response
     {
-        // Fetch distinct student names for the select dropdown
         $students = GraduateLedger::query()
             ->whereNotNull('student_name')
             ->where('student_name', '!=', '')
@@ -143,7 +210,7 @@ class GraduateLedgerController extends Controller
             'studentName' => $studentName,
             'records' => $records,
             'summary' => $summary,
-            'generatedAt' => now()->format('F d, Y'),
+            'generatedAt' => now()->format('Y-m-d'),
         ])->setPaper('a4', 'portrait')
             ->setOption('defaultFont', 'DejaVu Sans');
 
@@ -151,9 +218,83 @@ class GraduateLedgerController extends Controller
     }
 
     /**
-     * Normalizes the ar_payment column into the 3 canonical labels the
-     * frontend expects: 'AR' | 'Payment' | 'Adjustment'.
+     * Maps Excel/CSV rows flexibly to DB columns, tailored for Graduate School Ledger Excel format.
      */
+    private function mapImportRow(array $row): ?array
+    {
+        $normalized = [];
+
+        foreach ($row as $key => $value) {
+            $normalized[Str::slug((string) $key, '_')] = $value;
+        }
+
+        // Handles "NAME\n(Last Name, First Name, M.I.)" and standard variations
+        $studentName = Arr::get($normalized, 'name_last_name_first_name_m_i')
+            ?? Arr::get($normalized, 'name_last_name_first_name_mi')
+            ?? Arr::get($normalized, 'student_name')
+            ?? Arr::get($normalized, 'student')
+            ?? Arr::get($normalized, 'name');
+
+        $studentName = is_string($studentName) ? trim($studentName) : null;
+
+        if (blank($studentName)) {
+            return null;
+        }
+
+        return [
+            'student_name' => $studentName,
+            'course' => Arr::get($normalized, 'course'),
+            'school_year' => Arr::get($normalized, 'school_year') ?? Arr::get($normalized, 'sy'),
+            'semester_short' => Arr::get($normalized, 'semester_summer') 
+                ?? Arr::get($normalized, 'semester_short') 
+                ?? Arr::get($normalized, 'term'),
+            'semester' => Arr::get($normalized, 'semester'),
+            'units' => (int) round((float) (Arr::get($normalized, 'units', 0) ?? 0)),
+            'transaction_date' => $this->normalizeDate(
+                Arr::get($normalized, 'transaction_date') ?? Arr::get($normalized, 'date')
+            ),
+            'reference_or_jev_number' => Arr::get($normalized, 'reference_jev_o_r_number')
+                ?? Arr::get($normalized, 'reference_jev_or_number')
+                ?? Arr::get($normalized, 'reference_or_jev_number')
+                ?? Arr::get($normalized, 'jev_no')
+                ?? Arr::get($normalized, 'or_no')
+                ?? Arr::get($normalized, 'ref_no'),
+            'particulars' => Arr::get($normalized, 'particulars'),
+            'tuition_per_unit_or_misc' => (float) (
+                Arr::get($normalized, 'tuition_per_unit_reg_and_miscellaneous_per_semester')
+                ?? Arr::get($normalized, 'tuition_per_unit_or_misc', 0) 
+                ?? 0
+            ),
+            'ar_payment' => Arr::get($normalized, 'ar_payment') 
+                ?? Arr::get($normalized, 'arpayment') 
+                ?? Arr::get($normalized, 'type'),
+            'amount' => (float) (Arr::get($normalized, 'amount', 0) ?? 0),
+            'remarks' => Arr::get($normalized, 'remarks') ?? Arr::get($normalized, 'remark'),
+            'input_by' => Arr::get($normalized, 'input_by'),
+        ];
+    }
+
+    private function normalizeDate($value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        if (is_numeric($value)) {
+            return \Carbon\Carbon::createFromFormat('Ymd', (string) $value)->format('Y-m-d');
+        }
+
+        try {
+            return \Carbon\Carbon::parse((string) $value)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
     private function normalizeArPaymentType(?string $rawType, bool $isParenthesesNegative): string
     {
         $type = strtoupper(trim($rawType ?? ''));
@@ -166,21 +307,13 @@ class GraduateLedgerController extends Controller
             return 'Adjustment';
         }
 
-        // PAYMENT, P, PAYMENR (typo in source data), or parentheses-negative
-        // amounts all count as payments.
-        if (in_array($type, ['PAYMENT', 'P', 'PAYMENR']) || $isParenthesesNegative) {
+        if (in_array($type, ['PAYMENT', 'P', 'PAYMENR', 'SETTLED']) || $isParenthesesNegative) {
             return 'Payment';
         }
 
-        // Fallback: default unknown types to Payment so they still bucket
-        // into a valid value for the frontend's union type.
         return 'Payment';
     }
 
-    /**
-     * Cleans a raw amount string like "(1,175.00)" or "1,800.00" into a
-     * clean unsigned float.
-     */
     private function cleanAmount($rawAmount): float
     {
         $rawAmount = (string) $rawAmount;
@@ -188,13 +321,6 @@ class GraduateLedgerController extends Controller
         return abs((float) preg_replace('/[^\d.]/', '', $rawAmount));
     }
 
-    /**
-     * Transforms a single GraduateLedger model into the exact shape
-     * Index.tsx's LedgerRecord interface expects.
-     *
-     * ASSUMPTION: adjust the left-hand $r-> column names below if your
-     * actual DB/migration uses different column names.
-     */
     private function transformRecord(GraduateLedger $r): array
     {
         $rawAmount = (string) $r->amount;
@@ -205,40 +331,32 @@ class GraduateLedgerController extends Controller
             'name' => $r->student_name,
             'course' => $r->course,
             'schoolYear' => $r->school_year,
-            'term' => $r->term,
+            'term' => $r->semester_short ?: $r->semester ?: '',
             'units' => (float) $r->units,
             'transactionDate' => $r->transaction_date,
-            'referenceNo' => $r->reference_no,
+            'referenceNo' => $r->reference_or_jev_number,
             'particulars' => $r->particulars,
-            'ratePerUnit' => (float) $r->rate_per_unit,
+            'ratePerUnit' => (float) ($r->tuition_per_unit_or_misc ?? 0),
             'amount' => $this->cleanAmount($r->amount),
             'arPayment' => $this->normalizeArPaymentType($r->ar_payment, $isParenthesesNegative),
-            'remark' => $r->remark,
+            'remark' => $r->remarks,
             'inputBy' => $r->input_by,
         ];
     }
 
-    /**
-     * Helper to compute total charges, payments, and running balance.
-     */
-    private function calculateStudentBalance($records)
+    private function calculateStudentBalance($records): array
     {
         $totalCharges = 0;
         $totalPayments = 0;
 
         foreach ($records as $record) {
             $rawType = strtoupper(trim($record->ar_payment ?? ''));
-
-            // Convert string formats like "(1,175.00)" or "1,800.00" to clean numeric values
             $rawAmount = (string) $record->amount;
-            $isParenthesesNegative = str_contains($rawAmount, '(') && str_contains($rawAmount, ')');
             $cleanAmount = abs((float) preg_replace('/[^\d.]/', '', $rawAmount));
 
             if ($rawType === 'AR') {
                 $totalCharges += $cleanAmount;
-            } elseif (in_array($rawType, ['PAYMENT', 'P', 'PAYMENR']) || $isParenthesesNegative) {
-                $totalPayments += $cleanAmount;
-            } elseif ($rawType === 'ADJUSTMENT' || $rawType === 'ADJ') {
+            } else {
                 $totalPayments += $cleanAmount;
             }
         }

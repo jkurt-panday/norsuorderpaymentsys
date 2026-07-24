@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\GraduateLedger;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -39,5 +40,46 @@ class GraduateLedgerTest extends TestCase
             'reference_or_jev_number' => 'OR-001',
             'amount' => '1350.00',
         ]);
+    }
+
+    public function test_index_can_filter_records_by_year_and_month(): void
+    {
+        $user = User::factory()->create();
+
+        GraduateLedger::create([
+            'student_name' => 'Filtered Student',
+            'course' => 'MS-MATH',
+            'school_year' => '2024-2025',
+            'semester_short' => '1st Sem.',
+            'transaction_date' => '2024-07-10',
+            'reference_or_jev_number' => 'OR-100',
+            'particulars' => 'Tuition',
+            'tuition_per_unit_or_misc' => '100.00',
+            'ar_payment' => 'AR',
+            'amount' => '100.00',
+            'remarks' => 'Filtered',
+            'input_by' => 'Admin',
+        ]);
+
+        GraduateLedger::create([
+            'student_name' => 'Other Student',
+            'course' => 'MS-ENG',
+            'school_year' => '2025-2026',
+            'semester_short' => '2nd Sem.',
+            'transaction_date' => '2025-08-12',
+            'reference_or_jev_number' => 'OR-200',
+            'particulars' => 'Tuition',
+            'tuition_per_unit_or_misc' => '100.00',
+            'ar_payment' => 'AR',
+            'amount' => '100.00',
+            'remarks' => 'Other',
+            'input_by' => 'Admin',
+        ]);
+
+        $response = $this->actingAs($user)->get('/graduate-ledger?year=2024&month=7');
+
+        $response->assertOk();
+        $response->assertSee('Filtered Student');
+        $response->assertDontSee('Other Student');
     }
 }
