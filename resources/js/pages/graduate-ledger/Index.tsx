@@ -66,10 +66,15 @@ function currency(n: number) {
 }
 
 function formatTransactionDate(value?: string | null) {
-  if (!value) return '-';
+  if (!value) {
+return '-';
+}
 
   const normalized = String(value).trim();
-  if (!normalized) return '-';
+
+  if (!normalized) {
+return '-';
+}
 
   // Extract YYYY-MM-DD date part to prevent browser timezone shifting
   const datePart = normalized.includes('T') ? normalized.split('T')[0] : normalized.split(' ')[0];
@@ -108,9 +113,17 @@ export default function Index({ records, filters, stats }: IndexProps) {
   const applyFilters = (nextSearch = searchQuery, nextYear = selectedYear, nextMonth = selectedMonth) => {
     const params: Record<string, string> = {};
 
-    if (nextSearch.trim()) params.search = nextSearch.trim();
-    if (nextYear) params.year = nextYear;
-    if (nextMonth) params.month = nextMonth;
+    if (nextSearch.trim()) {
+params.search = nextSearch.trim();
+}
+
+    if (nextYear) {
+params.year = nextYear;
+}
+
+    if (nextMonth) {
+params.month = nextMonth;
+}
 
     router.get('/graduate-ledger', params, {
       preserveState: true,
@@ -126,9 +139,17 @@ export default function Index({ records, filters, stats }: IndexProps) {
   const handleFilterChange = () => {
     const params: Record<string, string> = {};
 
-    if (searchQuery.trim()) params.search = searchQuery.trim();
-    if (selectedYear) params.year = selectedYear;
-    if (selectedMonth) params.month = selectedMonth;
+    if (searchQuery.trim()) {
+params.search = searchQuery.trim();
+}
+
+    if (selectedYear) {
+params.year = selectedYear;
+}
+
+    if (selectedMonth) {
+params.month = selectedMonth;
+}
 
     router.get('/graduate-ledger', params, {
       preserveState: true,
@@ -233,6 +254,7 @@ export default function Index({ records, filters, stats }: IndexProps) {
                   onChange={(e) => {
                     const file = e.target.files?.[0] ?? null;
                     importForm.setData('file', file);
+
                     if (file) {
                       importForm.post('/graduate-ledger/import', {
                         forceFormData: true,
@@ -386,7 +408,10 @@ export default function Index({ records, filters, stats }: IndexProps) {
                             href={link.url ?? '#'}
                             onClick={(e) => {
                               e.preventDefault();
-                              if (link.url) router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+
+                              if (link.url) {
+router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+}
                             }}
                             className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                           />
@@ -401,7 +426,10 @@ export default function Index({ records, filters, stats }: IndexProps) {
                             href={link.url ?? '#'}
                             onClick={(e) => {
                               e.preventDefault();
-                              if (link.url) router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+
+                              if (link.url) {
+router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+}
                             }}
                             className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                           />
@@ -424,7 +452,10 @@ export default function Index({ records, filters, stats }: IndexProps) {
                           isActive={link.active}
                           onClick={(e) => {
                             e.preventDefault();
-                            if (link.url) router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+
+                            if (link.url) {
+router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+}
                           }}
                           className={`cursor-pointer ${
                             link.active ? 'bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]' : 'text-[#0B3D91]'

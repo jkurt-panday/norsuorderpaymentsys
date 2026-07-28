@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\LawSchoolLedger;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -89,7 +90,7 @@ class LawSchoolLedgerController extends Controller
         return Inertia::render('law-ledger/Index', [
             'records' => $records,
             'filters' => $request->only([
-                'search', 'academic_year', 'semester', 'program', 'year_level', 'status', 'date_from', 'date_to'
+                'search', 'academic_year', 'semester', 'program', 'year_level', 'status', 'date_from', 'date_to',
             ]),
             'stats' => [
                 'totalStudents' => $totalStudents,
@@ -138,7 +139,7 @@ class LawSchoolLedgerController extends Controller
         ]);
 
         // Auto-calculate remaining_balance if not provided
-        if (!isset($data['remaining_balance'])) {
+        if (! isset($data['remaining_balance'])) {
             $data['remaining_balance'] = $data['amount'] ?? 0;
         }
 
@@ -295,11 +296,11 @@ class LawSchoolLedgerController extends Controller
             'particulars' => Arr::get($normalized, 'particulars'),
             'tuition_per_unit_or_misc' => (float) (
                 Arr::get($normalized, 'tuition_per_unit_reg_and_miscellaneous_per_semester')
-                ?? Arr::get($normalized, 'tuition_per_unit_or_misc', 0) 
+                ?? Arr::get($normalized, 'tuition_per_unit_or_misc', 0)
                 ?? 0
             ),
-            'transaction_type' => Arr::get($normalized, 'transaction_type') 
-                ?? Arr::get($normalized, 'type') 
+            'transaction_type' => Arr::get($normalized, 'transaction_type')
+                ?? Arr::get($normalized, 'type')
                 ?? 'Assessment',
             'amount' => $amount,
             'remaining_balance' => $amount, // For new imports, remaining balance equals amount initially
@@ -320,11 +321,11 @@ class LawSchoolLedgerController extends Controller
         }
 
         if (is_numeric($value)) {
-            return \Carbon\Carbon::createFromFormat('Ymd', (string) $value)->format('Y-m-d');
+            return Carbon::createFromFormat('Ymd', (string) $value)->format('Y-m-d');
         }
 
         try {
-            return \Carbon\Carbon::parse((string) $value)->format('Y-m-d');
+            return Carbon::parse((string) $value)->format('Y-m-d');
         } catch (\Exception $e) {
             return null;
         }

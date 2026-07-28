@@ -1,4 +1,5 @@
 import { Head, router } from '@inertiajs/react';
+import { ArrowLeft, FileText, Printer } from 'lucide-react';
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,8 @@ import {
   CardTitle,
   CardFooter,
 } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -17,8 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -27,7 +28,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ArrowLeft, FileText, Printer } from 'lucide-react';
 
 interface LawLedgerRecord {
   id: number;
@@ -67,10 +67,15 @@ function currency(n: number) {
 }
 
 function formatDate(value?: string | null) {
-  if (!value) return '-';
+  if (!value) {
+return '-';
+}
   
   const normalized = String(value).trim();
-  if (!normalized) return '-';
+
+  if (!normalized) {
+return '-';
+}
 
   const datePart = normalized.includes('T') ? normalized.split('T')[0] : normalized.split(' ')[0];
   const parsedDate = new Date(`${datePart}T00:00:00`);
@@ -92,12 +97,15 @@ function getStatusBadgeVariant(status: string) {
   if (statusUpper === 'PAID' || statusUpper === 'SETTLED') {
     return 'default';
   }
+
   if (statusUpper === 'PENDING') {
     return 'secondary';
   }
+
   if (statusUpper === 'OVERDUE') {
     return 'destructive';
   }
+
   if (statusUpper === 'PARTIAL PAYMENT') {
     return 'outline';
   }
@@ -111,12 +119,15 @@ function getStatusBadgeClass(status: string) {
   if (statusUpper === 'PAID' || statusUpper === 'SETTLED') {
     return 'bg-green-100 text-green-700 border-green-200 hover:bg-green-100';
   }
+
   if (statusUpper === 'PENDING') {
     return 'bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-100';
   }
+
   if (statusUpper === 'OVERDUE') {
     return 'bg-red-100 text-red-700 border-red-200 hover:bg-red-100';
   }
+
   if (statusUpper === 'PARTIAL PAYMENT') {
     return 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100';
   }
@@ -130,9 +141,11 @@ function getTransactionTypeBadgeClass(type: string) {
   if (typeUpper === 'ASSESSMENT' || typeUpper === 'AR') {
     return 'bg-purple-100 text-purple-700 border-purple-200';
   }
+
   if (typeUpper === 'PAYMENT') {
     return 'bg-green-100 text-green-700 border-green-200';
   }
+
   if (typeUpper === 'ADJUSTMENT') {
     return 'bg-orange-100 text-orange-700 border-orange-200';
   }
@@ -145,6 +158,7 @@ export default function PrintSelect({ students, selectedStudent, records, summar
 
   const handleStudentChange = (value: string | null) => {
     setSelectedStudentState(value ?? '');
+
     if (value) {
       router.get(`/law-ledger/print-select?student=${encodeURIComponent(value)}`);
     }
