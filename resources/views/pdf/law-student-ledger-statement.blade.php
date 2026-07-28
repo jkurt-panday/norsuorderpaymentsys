@@ -31,7 +31,7 @@
 <body>
 
     @php
-        $normalizeText = static fn ($value) => str_replace(['âˆ’', 'â€“', 'â€”'], '-', (string) $value);
+        $normalizeText = static fn ($value) => str_replace(['−', '–', '—'], '-', (string) $value);
     @endphp
 
     <div class="header">
@@ -45,12 +45,12 @@
             <td class="text-right"><strong>Date Issued:</strong> {{ $generatedAt }}</td>
         </tr>
         <tr>
-            <td><strong>Student ID:</strong> {{ $normalizeText($records->first()->student_id ?? 'N/A') }}</td>
+            <td><strong>Student ID:</strong> {{ $normalizeText($records[0]->student_id ?? 'N/A') }}</td>
             <td class="text-right"><strong>Status:</strong> {{ $summary['outstandingBalance'] <= 0 ? 'Settled' : 'Outstanding' }}</td>
         </tr>
         <tr>
-            <td><strong>Program:</strong> {{ $normalizeText($records->first()->program ?? 'N/A') }}</td>
-            <td class="text-right"><strong>Year Level:</strong> {{ $normalizeText($records->first()->year_level ?? 'N/A') }}</td>
+            <td><strong>Program:</strong> {{ $normalizeText($records[0]->program ?? 'N/A') }}</td>
+            <td class="text-right"><strong>Year Level:</strong> {{ $normalizeText($records[0]->year_level ?? 'N/A') }}</td>
         </tr>
     </table>
 
