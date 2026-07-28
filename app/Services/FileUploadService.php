@@ -13,7 +13,7 @@ class FileUploadService
 {
     protected string $disk = 'public';
     protected string $directory = 'supporting-documents';
-    protected array $allowedTypes = ['pdf', 'jpg', 'jpeg', 'png'];
+    protected array $allowedTypes = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'svg'];
     protected int $maxFileSize = 10240; // 10MB in KB
 
     /**
@@ -158,5 +158,81 @@ class FileUploadService
     {
         $path = $this->directory . '/' . $document->stored_filename;
         return Storage::disk($this->disk)->exists($path);
+    }
+
+    /**
+     * Download a file
+     */
+    public function download(SupportingDocument $document, ?string $customFileName = null): StreamedResponse
+    {
+        try {
+            $path = $this->directory . '/' . $document->stored_filename;
+            
+            // Check if file exists
+            if (!Storage::disk($this->disk)->exists($path)) {
+                throw new \Exception('File not found on storage.');
+            }
+
+            // Use custom filename if provided, otherwise use original filename
+            $downloadFileName = $customFileName ?? $document->original_filename;
+
+            // Return the download response
+            return Storage::disk($this->disk)->download(
+                $path,
+                $downloadFileName,
+                [
+                    'Content-Type' => $document->mime_type,
+                    'Content-Disposition' => 'attachment; filename="' . $downloadFileName . '"',
+                ]
+            );
+
+        } catch (\Exception $e) {
+            Log::error('Failed to download document: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Stream a file for viewing (inline display) instead of downloading
+     */
+    public function stream(SupportingDocument $document): StreamedResponse
+    {
+        try {
+            $path = $this->directory . '/' . $document->stored_filename;
+            
+            if (!Storage::disk($this->disk)->exists($path)) {
+                throw new \Exception('File not found on storage.');
+            }
+
+            // Return the file for inline viewing
+            return Storage::disk($this->disk)->response(
+                $path,
+                $document->original_filename,
+                [
+                    'Content-Type' => $document->mime_type,
+                    'Content-Disposition' => 'inline; filename="' . $document->original_filename . '"',
+                ]
+            );
+
+        } catch (\Exception $e) {
+            Log::error('Failed to stream document: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Get the full storage path of a document
+     */
+    public function getStoragePath(SupportingDocument $document): string
+    {
+        return Storage::disk($this->disk)->path($this->directory . '/' . $document->stored_filename);
+    }
+
+    /**
+     * Get the public URL of a document
+     */
+    public function getPublicUrl(SupportingDocument $document): string
+    {
+        return Storage::disk($this->disk)->url($this->directory . '/' . $document->stored_filename);
     }
 }
