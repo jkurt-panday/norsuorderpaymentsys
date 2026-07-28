@@ -190,6 +190,21 @@ params.month = selectedMonth;
         </div>
       )}
 
+      {importForm.processing && (
+        <div className="max-w-7xl mx-auto mb-4 p-4 bg-white border border-[#CFE3FF] rounded-lg shadow-xs space-y-2">
+          <div className="flex items-center justify-between text-sm font-medium text-[#0B3D91]">
+            <span>Uploading and processing ledger data...</span>
+            <span>{importForm.progress ? `${importForm.progress.percentage}%` : 'Processing...'}</span>
+          </div>
+          <div className="w-full h-2 bg-[#EAF2FF] rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[#0F6FFF] transition-all duration-150"
+              style={{ width: `${importForm.progress ? importForm.progress.percentage : 100}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Top Header / Action Bar */}

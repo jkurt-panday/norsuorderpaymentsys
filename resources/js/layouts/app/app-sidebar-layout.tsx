@@ -1,16 +1,23 @@
 import { Link, usePage, router } from '@inertiajs/react';
 import {
-    GraduationCap,
     HandCoins,
-    Receipt,
-    Award,
     Settings,
-    BookOpen,
     Scale,
     ChevronRight,
-    FolderGit2
+    LogOut,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -45,7 +52,7 @@ const mainNavItems: SidebarItem[] = [
     { title: 'Profile Settings', href: '#profile-settings', icon: Settings },
     {
         title: 'Graduate Ledger',
-        icon: HandCoins,  // was BookOpen
+        icon: HandCoins,
         items: [
             { title: 'Ledger Overview', href: '/graduate-ledger' },
             { title: 'Print Statement', href: '/graduate-ledger/print-select' },
@@ -59,11 +66,6 @@ const mainNavItems: SidebarItem[] = [
             { title: 'Law Transactions', href: '#law-transactions' },
         ],
     },
-];
-
-const footerNavItems = [
-    { title: 'Repository', href: 'https://github.com/laravel/react-starter-kit', icon: FolderGit2 },
-    { title: 'Documentation', href: 'https://laravel.com/docs/starter-kits#react', icon: BookOpen },
 ];
 
 export default function AppSidebarLayout({
@@ -105,11 +107,7 @@ export default function AppSidebarLayout({
                                                         <SidebarMenuSubItem key={subItem.title}>
                                                             <SidebarMenuSubButton
                                                                 isActive={url === subItem.href}
-                                                                href={subItem.href}
-                                                                onClick={(e) => {
-                                                                    e.preventDefault();
-                                                                    router.visit(subItem.href);
-                                                                }}
+                                                                render={<Link href={subItem.href} />}
                                                             >
                                                                 <span>{subItem.title}</span>
                                                             </SidebarMenuSubButton>
@@ -135,60 +133,46 @@ export default function AppSidebarLayout({
                                 </SidebarMenuItem>
                             );
                         })}
-
-                        {/* 
-                          * ==========================================
-                          * COMMENT: ADD MORE NAVIGATION ITEMS HERE 
-                          * ==========================================
-                          * You can add a standard item:
-                          * 
-                          * <SidebarMenuItem>
-                          *     <SidebarMenuButton tooltip="New Item" render={<Link href="#new-link" />}>
-                          *         <IconComponent className="size-4" />
-                          *         <span>New Item</span>
-                          *     </SidebarMenuButton>
-                          * </SidebarMenuItem>
-                          * 
-                          * Or a dropdown/collapsible item:
-                          * 
-                          * <Collapsible asChild className="group/collapsible">
-                          *     <SidebarMenuItem>
-                          *         <CollapsibleTrigger render={<SidebarMenuButton tooltip="New Dropdown" />}>
-                          *             <IconComponent className="size-4" />
-                          *             <span>New Dropdown</span>
-                          *             <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                          *         </CollapsibleTrigger>
-                          *         <CollapsibleContent>
-                          *             <SidebarMenuSub>
-                          *                 <SidebarMenuSubItem>
-                          *                     <SidebarMenuSubButton render={<Link href="#sub-item-link" />}>
-                          *                         <span>Sub Item Label</span>
-                          *                     </SidebarMenuSubButton>
-                          *                 </SidebarMenuSubItem>
-                          *             </SidebarMenuSub>
-                          *         </CollapsibleContent>
-                          *     </SidebarMenuItem>
-                          * </Collapsible>
-                          * ==========================================
-                          */}
                     </SidebarMenu>
                 </SidebarContent>
 
                 <SidebarFooter>
                     <SidebarMenu>
-                        {footerNavItems.map((item) => (
-                            <SidebarMenuItem key={item.title}>
-                                <SidebarMenuButton
-                                    tooltip={item.title}
-                                    render={<a href={item.href} target="_blank" rel="noopener noreferrer" />}
-                                >
-                                    {item.icon && <item.icon />}
-                                    <span>{item.title}</span>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        ))}
+                        <SidebarMenuItem>
+                            <AlertDialog>
+                                <AlertDialogTrigger
+                                    render={
+                                        <SidebarMenuButton
+                                            tooltip="Logout"
+                                            className="group/logout flex w-full items-center gap-2 px-3 py-2 transition-all duration-200 hover:bg-red-600 focus-visible:bg-red-600"
+                                        >
+                                            <LogOut className="size-4 shrink-0 transition-all duration-200 group-hover/logout:scale-125 group-hover/logout:text-white" />
+                                            <span className="text-sm font-medium transition-all duration-200 group-hover/logout:scale-105 group-hover/logout:text-white group-data-[collapsible=icon]:hidden">
+                                                Logout
+                                            </span>
+                                        </SidebarMenuButton>
+                                    }
+                                />
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            You will need to sign back in to access your dashboard and manage ledgers.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                            onClick={() => router.post('/logout')}
+                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-all duration-200 hover:scale-105"
+                                        >
+                                            Log Out
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </SidebarMenuItem>
                     </SidebarMenu>
-                    {/* NavUser dropdown goes here if you still want it */}
                 </SidebarFooter>
             </Sidebar>
 

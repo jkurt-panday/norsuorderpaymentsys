@@ -12,9 +12,28 @@
         .meta-table { width: 100%; margin-bottom: 15px; border-collapse: collapse; }
         .meta-table td { padding: 4px 0; vertical-align: top; }
 
-        .ledger-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .ledger-table th { background-color: #F3F8FF; color: #0B3D91; font-size: 8pt; text-transform: uppercase; border: 1px solid #CFE3FF; padding: 6px; }
-        .ledger-table td { border: 1px solid #EAF2FF; padding: 5px; font-size: 9pt; }
+        .semester-block { margin-bottom: 14px; }
+        .semester-header {
+            background-color: #F3F8FF;
+            color: #0B3D91;
+            font-size: 9pt;
+            font-weight: bold;
+            padding: 6px 8px;
+            border: 1px solid #CFE3FF;
+            border-bottom: none;
+        }
+        .section-table { width: 100%; border-collapse: collapse; }
+        .section-table td { border: 1px solid #EAF2FF; padding: 5px 8px; font-size: 9pt; }
+        .section-label {
+            background-color: #FAFAFA;
+            color: #666;
+            font-size: 7.5pt;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .subtotal-row td { font-weight: bold; background-color: #FBFDFF; }
+        .no-transactions td { text-align: center; color: #888; }
+
         .text-right { text-align: right; }
         .text-center { text-align: center; }
 
@@ -32,6 +51,12 @@
 
     @php
         $normalizeText = static fn ($value) => str_replace(['−', '–', '—'], '-', (string) $value);
+        $parseAmount = static fn ($value) => abs((float) preg_replace('/[^\d.]/', '', (string) $value));
+
+        // Group records by school year + semester, preserving original order
+        $semesterGroups = $records->groupBy(function ($r) use ($normalizeText) {
+            return $normalizeText($r->school_year) . '||' . $normalizeText($r->semester_short);
+        });
     @endphp
 
     <div class="header">
@@ -50,34 +75,79 @@
         </tr>
     </table>
 
-    <table class="ledger-table">
-        <thead>
-            <tr>
-                <th width="12%">Date</th>
-                <th width="15%">S.Y. / Term</th>
-                <th width="18%">Ref / OR #</th>
-                <th>Particulars</th>
-                <th width="12%" class="text-center">Type</th>
-                <th width="15%" class="text-right">Amount</th>
+    @forelse($semesterGroups as $groupKey => $groupRecords)
+        @php
+            [$schoolYear, $semesterShort] = array_pad(explode('||', $groupKey), 2, '');
+            $semesterLabel = trim($schoolYear . ($semesterShort ? " ({$semesterShort})" : ''));
+
+            $charges  = $groupRecords->filter(fn ($r) => strtoupper($r->ar_payment ?? 'AR') === 'AR');
+            $payments = $groupRecords->filter(fn ($r) => strtoupper($r->ar_payment ?? 'AR') === 'PAYMENT');
+
+            $chargesSubtotal  = $charges->sum(fn ($r) => $parseAmount($r->amount));
+            $paymentsSubtotal = $payments->sum(fn ($r) => $parseAmount($r->amount));
+
+            // Group payments by reference/OR number so the same receipt isn't repeated per line
+            $paymentBatches = $payments->groupBy(fn ($r) => $normalizeText($r->reference_or_jev_number ?? '-'));
+        @endphp
+
+        <div class="semester-block">
+            <div class="semester-header">S.Y. {{ $normalizeText($semesterLabel) }}</div>
+
+            @if($charges->isEmpty() && $payments->isEmpty())
+                <table class="section-table">
+                    <tr class="no-transactions">
+                        <td>No transactions on record</td>
+                        <td class="text-right" style="width:15%;">₱0.00</td>
+                    </tr>
+                </table>
+            @else
+                @if($charges->isNotEmpty())
+                    <table class="section-table">
+                        <tr>
+                            <td class="section-label" colspan="2">Charges</td>
+                        </tr>
+                        @foreach($charges as $r)
+                            <tr>
+                                <td>{{ $normalizeText($r->particulars ?? '-') }}</td>
+                                <td class="text-right" style="width:15%;">₱{{ number_format($parseAmount($r->amount), 2) }}</td>
+                            </tr>
+                        @endforeach
+                        <tr class="subtotal-row">
+                            <td>Subtotal charges</td>
+                            <td class="text-right">₱{{ number_format($chargesSubtotal, 2) }}</td>
+                        </tr>
+                    </table>
+                @endif
+
+                @if($payments->isNotEmpty())
+                    @foreach($paymentBatches as $refNumber => $batch)
+                        @php $batchSubtotal = $batch->sum(fn ($r) => $parseAmount($r->amount)); @endphp
+                        <table class="section-table" style="margin-top:6px;">
+                            <tr>
+                                <td class="section-label" colspan="2">Payments &middot; OR # {{ $refNumber }}</td>
+                            </tr>
+                            @foreach($batch as $r)
+                                <tr>
+                                    <td>{{ $normalizeText($r->particulars ?? '-') }}</td>
+                                    <td class="text-right" style="width:15%;">(₱{{ number_format($parseAmount($r->amount), 2) }})</td>
+                                </tr>
+                            @endforeach
+                            <tr class="subtotal-row">
+                                <td>Subtotal payments</td>
+                                <td class="text-right">(₱{{ number_format($batchSubtotal, 2) }})</td>
+                            </tr>
+                        </table>
+                    @endforeach
+                @endif
+            @endif
+        </div>
+    @empty
+        <table class="section-table">
+            <tr class="no-transactions">
+                <td colspan="2">No transactions on record for this student.</td>
             </tr>
-        </thead>
-        <tbody>
-            @forelse($records as $r)
-                <tr>
-                    <td>{{ $normalizeText($r->transaction_date ? \Carbon\Carbon::parse($r->transaction_date)->format('Y-m-d') : '-') }}</td>
-                    <td>{{ $normalizeText($r->school_year) }} {{ $normalizeText($r->semester_short ? "({$r->semester_short})" : '') }}</td>
-                    <td>{{ $normalizeText($r->reference_or_jev_number ?? '-') }}</td>
-                    <td>{{ $normalizeText($r->particulars ?? '-') }}</td>
-                    <td class="text-center">{{ $normalizeText(strtoupper($r->ar_payment ?? 'AR')) }}</td>
-                    <td class="text-right">₱{{ number_format(abs((float) preg_replace('/[^\d.]/', '', (string) $r->amount)), 2) }}</td>
-                </tr>
-            @empty
-                <tr>
-                    <td colSpan="6" class="text-center">No transactions on record for this student.</td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
+        </table>
+    @endforelse
 
     <div class="summary-container">
         <div class="summary-box">

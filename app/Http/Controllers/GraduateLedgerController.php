@@ -137,48 +137,92 @@ class GraduateLedgerController extends Controller
             ],
         ]);
 
-        // 1. Extend execution time for large imports
+        // 1. Extend execution limits for large uploads
         set_time_limit(300);
-
-        // Disable automatic heading slug formatting — we handle mapping manually
-        HeadingRowFormatter::default('none');
+        ini_set('memory_limit', '512M');
 
         $uploadedFile = $request->file('file');
-        $rows = Excel::toCollection(null, $uploadedFile)->first() ?? collect();
-
-        if ($rows->isEmpty()) {
-            return redirect()->route('graduate-ledger.index')
-                ->with('success', 'No rows found in the uploaded file.');
-        }
+        $extension = strtolower($uploadedFile->getClientOriginalExtension());
 
         $imported = 0;
         $skipped  = 0;
         $insertData = [];
         $now = now();
 
-        // 2. Map data rows (skip header row)
-        $rows->slice(1)->each(function ($row) use (&$insertData, &$skipped, $now) {
-            $r = $row->values()->all();
-            $data = $this->mapImportRow($r);
-
-            if ($data === null) {
-                $skipped++;
-                return;
+        if ($extension === 'csv') {
+            // Streaming reader: reads line-by-line to avoid loading the whole file in memory
+            $path = $uploadedFile->getRealPath();
+            $handle = fopen($path, 'r');
+            if (!$handle) {
+                return redirect()->route('graduate-ledger.index')
+                    ->with('error', 'Could not open the uploaded CSV file.');
             }
 
-            $data['created_at'] = $now;
-            $data['updated_at'] = $now;
-            $insertData[] = $data;
-        });
+            // Skip header row
+            fgetcsv($handle);
 
-        // 3. Bulk insert inside a transaction for maximum speed
-        if (!empty($insertData)) {
-            DB::transaction(function () use ($insertData, &$imported) {
-                foreach (array_chunk($insertData, 1000) as $chunk) {
-                    GraduateLedger::insert($chunk);
-                    $imported += count($chunk);
+            while (($row = fgetcsv($handle)) !== false) {
+                $data = $this->mapImportRow($row);
+
+                if ($data === null) {
+                    $skipped++;
+                    continue;
                 }
+
+                $data['created_at'] = $now;
+                $data['updated_at'] = $now;
+                $insertData[] = $data;
+
+                // Insert in batches of 1000 to keep memory footprint close to zero
+                if (count($insertData) >= 1000) {
+                    DB::transaction(function () use ($insertData) {
+                        GraduateLedger::insert($insertData);
+                    });
+                    $imported += count($insertData);
+                    $insertData = []; // Clear array to free memory immediately
+                }
+            }
+
+            if (!empty($insertData)) {
+                DB::transaction(function () use ($insertData) {
+                    GraduateLedger::insert($insertData);
+                });
+                $imported += count($insertData);
+            }
+
+            fclose($handle);
+        } else {
+            // Fallback for smaller Excel (.xlsx/.xls) files using PHPSpreadsheet
+            HeadingRowFormatter::default('none');
+            $rows = Excel::toCollection(null, $uploadedFile)->first() ?? collect();
+
+            if ($rows->isEmpty()) {
+                return redirect()->route('graduate-ledger.index')
+                    ->with('success', 'No rows found in the uploaded file.');
+            }
+
+            $rows->slice(1)->each(function ($row) use (&$insertData, &$skipped, $now) {
+                $r = $row->values()->all();
+                $data = $this->mapImportRow($r);
+
+                if ($data === null) {
+                    $skipped++;
+                    return;
+                }
+
+                $data['created_at'] = $now;
+                $data['updated_at'] = $now;
+                $insertData[] = $data;
             });
+
+            if (!empty($insertData)) {
+                DB::transaction(function () use ($insertData, &$imported) {
+                    foreach (array_chunk($insertData, 1000) as $chunk) {
+                        GraduateLedger::insert($chunk);
+                        $imported += count($chunk);
+                    }
+                });
+            }
         }
 
         return redirect()->route('graduate-ledger.index')

@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import { Printer, ArrowLeft } from 'lucide-react';
-import React, { useState } from 'react';
+import { Printer, ArrowLeft, Search, X } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -57,6 +57,15 @@ return '-';
 
 export default function PrintSelect({ students, selectedStudent, records = [], summary }: Props) {
   const [selected, setSelected] = useState(selectedStudent || '');
+  const [search, setSearch] = useState('');
+
+  const filteredStudents = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) {
+return students;
+}
+    return students.filter((name) => name.toLowerCase().includes(term));
+  }, [students, search]);
 
   const handleStudentSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
@@ -107,28 +116,65 @@ return;
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4 items-center">
-              <select
-                className="w-full sm:w-2/3 p-2.5 border border-[#CFE3FF] rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#0F6FFF]"
-                value={selected}
-                onChange={handleStudentSelect}
-              >
-                <option value="">-- Select Student Name --</option>
-                {students.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-3">
+              {/* Search box */}
+              <div className="relative w-full sm:w-2/3">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#7FA6D6]" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Type a name to filter the list below..."
+                  className="w-full pl-8 pr-8 py-2 border border-[#CFE3FF] rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#0F6FFF]"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#7FA6D6] hover:text-[#0B3D91]"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
 
-              <Button
-                disabled={!selected}
-                onClick={handleOpenPdf}
-                className="w-full sm:w-auto bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white"
-              >
-                <Printer className="h-4 w-4 mr-2" />
-                Print PDF Statement
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-4 items-center">
+                <select
+                  className="w-full sm:w-2/3 p-2.5 border border-[#CFE3FF] rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#0F6FFF]"
+                  value={selected}
+                  onChange={handleStudentSelect}
+                  size={search ? Math.min(Math.max(filteredStudents.length, 1) + 1, 8) : 1}
+                >
+                  <option value="">-- Select Student Name --</option>
+                  {filteredStudents.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                  {search && filteredStudents.length === 0 && (
+                    <option value="" disabled>
+                      No students match "{search}"
+                    </option>
+                  )}
+                </select>
+
+                <Button
+                  disabled={!selected}
+                  onClick={handleOpenPdf}
+                  className="w-full sm:w-auto bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white"
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print PDF Statement
+                </Button>
+              </div>
+
+              {search && (
+                <p className="text-xs text-[#7FA6D6]">
+                  {filteredStudents.length} of {students.length} student{students.length === 1 ? '' : 's'} match
+                  "{search}"
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
