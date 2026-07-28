@@ -203,10 +203,11 @@ class LawSchoolLedgerController extends Controller
         ];
 
         if ($selectedStudent) {
-            $studentRecords = LawSchoolLedger::query()
-                ->where('student_name', $selectedStudent)
-                ->orderBy('id', 'asc')
-                ->get();
+$studentRecords = LawSchoolLedger::query()
+            ->where('student_name', $selectedStudent)
+            ->orderBy('id', 'asc')
+            ->get()
+            ->map(fn($r) => $this->transformRecord($r));
 
             $balanceSummary = $this->calculateStudentBalance($studentRecords);
         }
@@ -228,7 +229,7 @@ class LawSchoolLedgerController extends Controller
             'student' => 'required|string',
         ]);
 
-        $studentName = str_replace(['âˆ’', 'â€“', 'â€”'], '-', (string) $request->input('student'));
+        $studentName = str_replace(['−', '–', '—'], '-', (string) $request->input('student'));
 
         $records = LawSchoolLedger::query()
             ->where('student_name', $studentName)
@@ -242,8 +243,11 @@ class LawSchoolLedgerController extends Controller
             'records' => $records,
             'summary' => $summary,
             'generatedAt' => now()->format('Y-m-d'),
-        ])->setPaper('a4', 'portrait')
-            ->setOption('defaultFont', 'DejaVu Sans');
+        ])
+            ->setPaper('a4', 'portrait')
+            ->setOption('defaultFont', 'DejaVu Sans')
+            ->setOption('isHtml5ParserEnabled', true)
+            ->setOption('isRemoteEnabled', true);
 
         return $pdf->stream("Statement_of_Account_{$studentName}.pdf");
     }
@@ -370,8 +374,9 @@ class LawSchoolLedgerController extends Controller
         $totalPayments = 0;
 
         foreach ($records as $record) {
-            $rawType = strtoupper(trim($record->transaction_type ?? ''));
-            $cleanAmount = (float) $record->amount;
+            // Support both Eloquent models and transformed arrays
+            $rawType = strtoupper(trim($record->transaction_type ?? $record['transaction_type'] ?? ''));
+            $cleanAmount = (float) ($record->amount ?? $record['amount'] ?? 0);
 
             if ($rawType === 'ASSESSMENT') {
                 $totalAssessments += $cleanAmount;
