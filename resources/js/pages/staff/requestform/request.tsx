@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import { Inbox } from 'lucide-react';
 import staff from '@/routes/staff';
@@ -96,16 +96,6 @@ const ManageRequests: React.FC = () => {
     );
   }, [search, status, dateFrom, dateTo]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (search !== filters.search) {
-        applyFilters();
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [search, filters.search, applyFilters]);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     applyFilters();
@@ -169,14 +159,15 @@ const ManageRequests: React.FC = () => {
   ];
 
   // ---- Custom actions: View + (Process or Edit), no delete ----
+  // Square (rounded-md), compact buttons — fused into one block, not circular pills.
   const renderActions = (row: FormInput) => (
-    <div className="inline-flex overflow-hidden rounded-full shadow-sm">
+    <div className="inline-flex overflow-hidden rounded-md shadow-sm">
       <Link
         href={staff.requests.show.url(row.id)}
         title="View"
-        className="flex h-8 w-10 items-center justify-center bg-cyan-400 text-white transition-colors hover:bg-cyan-500"
+        className="flex h-8 w-8 items-center justify-center bg-cyan-400 text-white transition-colors hover:bg-cyan-500"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
           <circle cx="12" cy="12" r="3" />
         </svg>
@@ -185,9 +176,9 @@ const ManageRequests: React.FC = () => {
         <Link
           href={staff.requests.process.url(row.id)}
           title="Process"
-          className="flex h-8 w-10 items-center justify-center bg-blue-600 text-white transition-colors hover:bg-blue-700"
+          className="flex h-8 w-8 items-center justify-center border-l border-white/20 bg-blue-600 text-white transition-colors hover:bg-blue-700"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
             <path d="M20 6 9 17l-5-5" />
           </svg>
         </Link>
@@ -195,9 +186,9 @@ const ManageRequests: React.FC = () => {
         <Link
           href={staff.requests.edit.url(row.staffInput.id)}
           title="Edit"
-          className="flex h-8 w-10 items-center justify-center bg-amber-500 text-white transition-colors hover:bg-amber-600"
+          className="flex h-8 w-8 items-center justify-center border-l border-white/20 bg-amber-500 text-white transition-colors hover:bg-amber-600"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
             <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
           </svg>
         </Link>

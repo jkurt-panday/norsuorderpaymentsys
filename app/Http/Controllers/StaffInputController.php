@@ -107,13 +107,16 @@ class StaffInputController extends Controller
         }
 
         // Search (grouped to avoid breaking status/date filters)
+        // Wrapped in LOWER() on both sides so matching is case-insensitive
+        // regardless of the database's default collation (e.g. Postgres'
+        // LIKE is case-sensitive by default, unlike MySQL's usual collation).
         if ($request->filled('search')) {
-            $search = $request->search;
+            $search = strtolower($request->search);
             $query->where(function ($q) use ($search) {
-                $q->where('reference_number', 'LIKE', "%{$search}%")
-                  ->orWhere('firstname_or_office', 'LIKE', "%{$search}%")
-                  ->orWhere('lastname_or_agency', 'LIKE', "%{$search}%")
-                  ->orWhere('email', 'LIKE', "%{$search}%");
+                $q->whereRaw('LOWER(reference_number) LIKE ?', ["%{$search}%"])
+                  ->orWhereRaw('LOWER(firstname_or_office) LIKE ?', ["%{$search}%"])
+                  ->orWhereRaw('LOWER(lastname_or_agency) LIKE ?', ["%{$search}%"])
+                  ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"]);
             });
         }
 

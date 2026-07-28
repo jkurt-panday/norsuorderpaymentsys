@@ -16,17 +16,17 @@ class RequestController extends Controller
 
         // Search filter
         if ($request->search) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('reference_number', 'like', "%{$search}%")
-                  ->orWhere('full_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+            $search = strtolower($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->whereRaw('LOWER(reference_number) LIKE ?', ["%{$search}%"])
+                  ->orWhereRaw('LOWER(full_name) LIKE ?', ["%{$search}%"])
+                  ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"]);
             });
         }
 
         // Status filter
         if ($request->status) {
-            $query->whereHas('staffInput', function($q) use ($request) {
+            $query->whereHas('staffInput', function ($q) use ($request) {
                 $q->where('status', $request->status);
             });
         }
