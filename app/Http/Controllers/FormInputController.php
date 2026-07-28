@@ -3,63 +3,142 @@
 namespace App\Http\Controllers;
 
 use App\Models\FormInput;
+use App\Models\Membership;
+use App\Models\PaymentDetailOption;
+use App\Services\FileUploadService;
+use App\Services\ReferenceNumberService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Inertia\Inertia;
 
 class FormInputController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
+    protected FileUploadService $fileUploadService;
+    protected ReferenceNumberService $referenceNumberService;
+
+    public function __construct(
+        FileUploadService $fileUploadService,
+        ReferenceNumberService $referenceNumberService
+    ) {
+        $this->fileUploadService = $fileUploadService;
+        $this->referenceNumberService = $referenceNumberService;
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Display the public submission form
      */
     public function create()
     {
-        //
+        return Inertia::render('public/SubmitForm', [
+            'memberships' => Membership::orderBy('member_code')->get(), 
+            'paymentOptions' => PaymentDetailOption::orderBy('payment_desc')->get(),
+        ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
+        // 1. Validate Form & Files
+        $request->validate([
+            'firstname_or_office'      => 'required|string|max:255',
+            'middlename_or_project'    => 'nullable|string|max:255',
+            'lastname_or_agency'       => 'required|string|max:255',
+            'office_or_college'        => 'required|string|max:255',
+            'position_or_designation'  => 'required|string|max:255',
+            'contact_num'              => 'required|string|max:50',
+            'email'                    => 'required|email|max:255',
+            'address'                  => 'required|string',
+            'request_type'             => 'required|string',
+            'amount'                   => 'required|numeric|min:0',
+            'membership_id'            => 'required|exists:memberships,id',
+            'payment_detail_option_id' => 'required|exists:payment_detail_options,id',
+            
+            'documents'                => 'nullable|array',
+            'documents.*'              => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // 2. Generate Reference Number
+            $referenceNumber = $this->referenceNumberService->generate();
+
+            // 3. Create FormInput Record
+            $formInput = FormInput::create([
+                'reference_number'        => $referenceNumber,
+                'email'                   => $request->email,
+                'contact_num'             => $request->contact_num,
+                'firstname_or_office'     => $request->firstname_or_office,
+                'middlename_or_project'   => $request->middlename_or_project,
+                'lastname_or_agency'      => $request->lastname_or_agency,
+                'office_or_college'       => $request->office_or_college,
+                'position_or_designation' => $request->position_or_designation,
+                'address'                 => $request->address,
+                'amount'                  => $request->amount,
+                'request_type'            => $request->request_type,
+                'membership_id'           => $request->membership_id,
+                'payment_detail_option_id' => $request->payment_detail_option_id,
+            ]);
+
+            // 4. Handle Uploaded Documents using FileUploadService
+            if ($request->hasFile('documents')) {
+                $this->fileUploadService->uploadDocuments(
+                    $request->file('documents'),
+                    $formInput
+                );
+            }
+
+            DB::commit();
+
+            // Redirect to success page
+            return redirect()->route('public.success', [
+                'referenceNumber' => $formInput->reference_number
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Form submission failed: ' . $e->getMessage());
+            
+            return back()->withInput()->with('error', 'Failed to submit request: ' . $e->getMessage());
+        }
     }
 
     /**
-     * Display the specified resource.
+     * Display the success page after order submission.
+     */
+    public function success($referenceNumber)
+    {
+        $formInput = FormInput::where('reference_number', $referenceNumber)
+            ->with(['membership', 'paymentDetailOption', 'supportingDocuments'])
+            ->first();
+
+        if (!$formInput) {
+            return redirect()->route('public.success')
+                            ->with('error', 'Submission not found.');
+        }
+
+        return Inertia::render('public/Success', [
+            'referenceNumber' => $referenceNumber,
+            'formInput' => $formInput,
+        ]);
+    }
+
+    /**
+     * Display a specific form input (for staff viewing)
      */
     public function show(FormInput $formInput)
     {
-        //
-    }
+        $formInput->load([
+            'membership',
+            'paymentDetailOption',
+            'supportingDocuments',
+            'staffInput.bankAccount',
+            'staffInput.uacs',
+            'staffInput.referenceDocument'
+        ]);
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(FormInput $formInput)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, FormInput $formInput)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(FormInput $formInput)
-    {
-        //
+        return view('staff.requests.show', compact('formInput'));
     }
 }

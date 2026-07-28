@@ -2,75 +2,139 @@
 
 namespace App\Services;
 
+use App\Models\FormInput;
+use App\Models\SupportingDocument;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class FileUploadService
 {
+    protected string $disk = 'public';
+    protected string $directory = 'supporting-documents';
+    protected array $allowedTypes = ['pdf', 'jpg', 'jpeg', 'png'];
+    protected int $maxFileSize = 10240; // 10MB in KB
+
     /**
-     * Upload a file and return the metadata
+     * Upload a file and create SupportingDocument record
      */
-    public function upload(UploadedFile $file, int $formInputId, string $directory = 'supporting-documents'): array
+    public function uploadDocument(UploadedFile $file, FormInput $formInput): SupportingDocument
     {
-        // Generate new filename: YYYYMMDD_HHMMSS_originalfilename.ext
-        $timestamp = now()->format('Ymd_His');
-        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $extension = $file->getClientOriginalExtension();
-        
-        // Sanitize original filename (remove special characters)
-        $safeOriginalName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $originalName);
-        $storedFilename = $timestamp . '_' . $safeOriginalName . '.' . $extension;
-        
-        // Ensure unique filename
-        $counter = 1;
-        while (Storage::exists('public/' . $directory . '/' . $storedFilename)) {
-            $storedFilename = $timestamp . '_' . $safeOriginalName . '_' . $counter . '.' . $extension;
-            $counter++;
-        }
+        // Validate file
+        $this->validateFile($file);
+
+        // Generate filename
+        $storedFilename = $this->generateUniqueFilename($file);
 
         // Store the file
         $path = $file->storeAs(
-            'public/' . $directory,
-            $storedFilename
+            $this->directory,
+            $storedFilename,
+            $this->disk
         );
 
         if (!$path) {
             throw new \Exception('Failed to upload file: ' . $file->getClientOriginalName());
         }
 
-        // Return metadata
-        return [
-            'form_input_id' => $formInputId,
+        // Generate URL
+        $fileUrl = Storage::disk($this->disk)->url($this->directory . '/' . $storedFilename);
+
+        // Create database record
+        return SupportingDocument::create([
+            'form_input_id' => $formInput->id,
             'original_filename' => $file->getClientOriginalName(),
             'stored_filename' => $storedFilename,
-            'file_url' => '/storage/' . $directory . '/' . $storedFilename,
+            'file_url' => $fileUrl,
             'mime_type' => $file->getMimeType(),
-            'file_extension' => $extension,
+            'file_extension' => strtolower($file->getClientOriginalExtension()),
             'file_size' => $file->getSize(),
             'uploaded_at' => now(),
-        ];
+        ]);
+    }
+
+    /**
+     * Upload multiple documents
+     */
+    public function uploadDocuments(array $files, FormInput $formInput): array
+    {
+        $uploadedDocuments = [];
+
+        foreach ($files as $file) {
+            if ($file instanceof UploadedFile) {
+                try {
+                    $document = $this->uploadDocument($file, $formInput);
+                    $uploadedDocuments[] = $document;
+                } catch (\Exception $e) {
+                    // Log error but continue with other files
+                    \Log::error('Failed to upload document: ' . $e->getMessage());
+                }
+            }
+        }
+
+        return $uploadedDocuments;
+    }
+
+    /**
+     * Generate a unique filename with timestamp
+     */
+    protected function generateUniqueFilename(UploadedFile $file): string
+    {
+        $timestamp = now()->format('Ymd_His');
+        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $extension = $file->getClientOriginalExtension();
+        
+        // Sanitize original filename
+        $safeOriginalName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $originalName);
+        $baseFilename = $timestamp . '_' . $safeOriginalName;
+        
+        // Ensure unique filename
+        $filename = $baseFilename . '.' . $extension;
+        $counter = 1;
+        
+        while (Storage::disk($this->disk)->exists($this->directory . '/' . $filename)) {
+            $filename = $baseFilename . '_' . $counter . '.' . $extension;
+            $counter++;
+        }
+        
+        return $filename;
+    }
+
+    /**
+     * Validate file
+     */
+    protected function validateFile(UploadedFile $file): void
+    {
+        $extension = strtolower($file->getClientOriginalExtension());
+        $sizeInKB = $file->getSize() / 1024;
+
+        if (!in_array($extension, $this->allowedTypes)) {
+            throw new \Exception('File type not allowed. Allowed types: ' . implode(', ', $this->allowedTypes));
+        }
+
+        if ($sizeInKB > $this->maxFileSize) {
+            throw new \Exception('File size exceeds limit. Maximum size: ' . $this->maxFileSize . ' KB');
+        }
     }
 
     /**
      * Delete a file
      */
-    public function delete(string $storedFilename, string $directory = 'supporting-documents'): bool
+    public function deleteFile(SupportingDocument $document): bool
     {
-        $path = 'public/' . $directory . '/' . $storedFilename;
-        if (Storage::exists($path)) {
-            return Storage::delete($path);
+        try {
+            $path = $this->directory . '/' . $document->stored_filename;
+            
+            if (Storage::disk($this->disk)->exists($path)) {
+                return Storage::disk($this->disk)->delete($path);
+            }
+            
+            return false;
+        } catch (\Exception $e) {
+            \Log::error('Failed to delete file: ' . $e->getMessage());
+            return false;
         }
-        return false;
-    }
-
-    /**
-     * Validate file type
-     */
-    public function isValidFileType(UploadedFile $file, array $allowedTypes = ['pdf', 'jpg', 'jpeg', 'png']): bool
-    {
-        $extension = strtolower($file->getClientOriginalExtension());
-        return in_array($extension, $allowedTypes);
     }
 
     /**
@@ -85,5 +149,14 @@ class FileUploadService
             $i++;
         }
         return round($bytes, 2) . ' ' . $units[$i];
+    }
+
+    /**
+     * Check if file exists
+     */
+    public function fileExists(SupportingDocument $document): bool
+    {
+        $path = $this->directory . '/' . $document->stored_filename;
+        return Storage::disk($this->disk)->exists($path);
     }
 }
