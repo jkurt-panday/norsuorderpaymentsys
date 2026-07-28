@@ -389,10 +389,27 @@ class LawSchoolLedgerController extends Controller
 
     private function getFilterOptions(): array
     {
+        $currentYear = (int) date('Y');
+        $defaultAcademicYears = [];
+        for ($i = $currentYear - 5; $i <= $currentYear + 3; $i++) {
+            $defaultAcademicYears[] = $i . '-' . ($i + 1);
+        }
+
+        $academicYears = LawSchoolLedger::distinct()
+            ->orderBy('academic_year', 'desc')
+            ->pluck('academic_year')
+            ->filter()
+            ->values()
+            ->all();
+
+        if (empty($academicYears)) {
+            $academicYears = $defaultAcademicYears;
+        }
+
         return [
             'programs' => LawSchoolLedger::distinct()->orderBy('program')->pluck('program')->filter()->values()->all(),
             'yearLevels' => LawSchoolLedger::distinct()->orderBy('year_level')->pluck('year_level')->filter()->values()->all(),
-            'academicYears' => LawSchoolLedger::distinct()->orderBy('academic_year', 'desc')->pluck('academic_year')->filter()->values()->all(),
+            'academicYears' => $academicYears,
             'semesters' => LawSchoolLedger::distinct()->orderBy('semester')->pluck('semester')->filter()->values()->all(),
             'statuses' => LawSchoolLedger::distinct()->orderBy('status')->pluck('status')->filter()->values()->all(),
         ];
