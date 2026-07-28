@@ -18,8 +18,7 @@
         "laravel/sanctum": "*",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
-        "maatwebsite/excel": "*",
-        "revolution/laravel-google-sheets": "*"
+        "maatwebsite/excel": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.24",

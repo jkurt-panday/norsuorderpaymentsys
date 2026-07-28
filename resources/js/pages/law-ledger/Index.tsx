@@ -20,7 +20,6 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import {
   Pagination,
   PaginationContent,
@@ -30,6 +29,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import { Separator } from '@/components/ui/separator';
 
 export interface LawLedgerRecord {
   id: string | number;
@@ -73,10 +73,15 @@ function currency(n: number) {
 }
 
 function formatTransactionDate(value?: string | null) {
-  if (!value) return '-';
+  if (!value) {
+return '-';
+}
 
   const normalized = String(value).trim();
-  if (!normalized) return '-';
+
+  if (!normalized) {
+return '-';
+}
 
   // Extract YYYY-MM-DD date part to prevent browser timezone shifting
   const datePart = normalized.includes('T') ? normalized.split('T')[0] : normalized.split(' ')[0];
@@ -95,10 +100,23 @@ function formatTransactionDate(value?: string | null) {
 
 function statusBadgeVariant(status: string | null | undefined) {
   const s = (status ?? '').toLowerCase();
-  if (s === 'paid' || s === 'settled') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-  if (s === 'pending') return 'bg-amber-50 text-amber-700 border-amber-200';
-  if (s === 'overdue') return 'bg-red-50 text-red-700 border-red-200';
-  if (s === 'partial payment') return 'bg-blue-50 text-blue-700 border-blue-200';
+
+  if (s === 'paid' || s === 'settled') {
+return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+}
+
+  if (s === 'pending') {
+return 'bg-amber-50 text-amber-700 border-amber-200';
+}
+
+  if (s === 'overdue') {
+return 'bg-red-50 text-red-700 border-red-200';
+}
+
+  if (s === 'partial payment') {
+return 'bg-blue-50 text-blue-700 border-blue-200';
+}
+
   return 'bg-slate-50 text-slate-700 border-slate-200';
 }
 
@@ -153,7 +171,9 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
     };
 
     Object.entries(current).forEach(([key, value]) => {
-      if (value && value.trim()) params[key] = value.trim();
+      if (value && value.trim()) {
+params[key] = value.trim();
+}
     });
 
     router.get('/law-ledger', params, {
@@ -286,6 +306,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                   onChange={(e) => {
                     const file = e.target.files?.[0] ?? null;
                     importForm.setData('file', file);
+
                     if (file) {
                       importForm.post('/law-ledger/import', {
                         forceFormData: true,
@@ -511,7 +532,10 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                             href={link.url ?? '#'}
                             onClick={(e) => {
                               e.preventDefault();
-                              if (link.url) router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+
+                              if (link.url) {
+router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+}
                             }}
                             className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                           />
@@ -526,7 +550,10 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                             href={link.url ?? '#'}
                             onClick={(e) => {
                               e.preventDefault();
-                              if (link.url) router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+
+                              if (link.url) {
+router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+}
                             }}
                             className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                           />
@@ -549,7 +576,10 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                           isActive={link.active}
                           onClick={(e) => {
                             e.preventDefault();
-                            if (link.url) router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+
+                            if (link.url) {
+router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+}
                           }}
                           className={`cursor-pointer ${
                             link.active ? 'bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]' : 'text-[#0B3D91]'

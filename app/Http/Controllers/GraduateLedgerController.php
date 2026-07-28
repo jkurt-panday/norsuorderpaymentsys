@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\GraduateLedger;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -53,8 +54,8 @@ class GraduateLedgerController extends Controller
 
         $totalPayments = (float) (clone $query)
             ->where(function ($q) {
-                $q->whereIn(DB::raw("UPPER(TRIM(ar_payment))"), ['PAYMENT', 'P', 'PAYMENR', 'ADJUSTMENT', 'ADJ', 'SETTLED'])
-                  ->orWhere('amount', 'like', '%(%');
+                $q->whereIn(DB::raw('UPPER(TRIM(ar_payment))'), ['PAYMENT', 'P', 'PAYMENR', 'ADJUSTMENT', 'ADJ', 'SETTLED'])
+                    ->orWhere('amount', 'like', '%(%');
             })
             ->sum('amount');
 
@@ -244,8 +245,8 @@ class GraduateLedgerController extends Controller
             'student_name' => $studentName,
             'course' => Arr::get($normalized, 'course'),
             'school_year' => Arr::get($normalized, 'school_year') ?? Arr::get($normalized, 'sy'),
-            'semester_short' => Arr::get($normalized, 'semester_summer') 
-                ?? Arr::get($normalized, 'semester_short') 
+            'semester_short' => Arr::get($normalized, 'semester_summer')
+                ?? Arr::get($normalized, 'semester_short')
                 ?? Arr::get($normalized, 'term'),
             'semester' => Arr::get($normalized, 'semester'),
             'units' => (int) round((float) (Arr::get($normalized, 'units', 0) ?? 0)),
@@ -261,11 +262,11 @@ class GraduateLedgerController extends Controller
             'particulars' => Arr::get($normalized, 'particulars'),
             'tuition_per_unit_or_misc' => (float) (
                 Arr::get($normalized, 'tuition_per_unit_reg_and_miscellaneous_per_semester')
-                ?? Arr::get($normalized, 'tuition_per_unit_or_misc', 0) 
+                ?? Arr::get($normalized, 'tuition_per_unit_or_misc', 0)
                 ?? 0
             ),
-            'ar_payment' => Arr::get($normalized, 'ar_payment') 
-                ?? Arr::get($normalized, 'arpayment') 
+            'ar_payment' => Arr::get($normalized, 'ar_payment')
+                ?? Arr::get($normalized, 'arpayment')
                 ?? Arr::get($normalized, 'type'),
             'amount' => (float) (Arr::get($normalized, 'amount', 0) ?? 0),
             'remarks' => Arr::get($normalized, 'remarks') ?? Arr::get($normalized, 'remark'),
@@ -284,11 +285,11 @@ class GraduateLedgerController extends Controller
         }
 
         if (is_numeric($value)) {
-            return \Carbon\Carbon::createFromFormat('Ymd', (string) $value)->format('Y-m-d');
+            return Carbon::createFromFormat('Ymd', (string) $value)->format('Y-m-d');
         }
 
         try {
-            return \Carbon\Carbon::parse((string) $value)->format('Y-m-d');
+            return Carbon::parse((string) $value)->format('Y-m-d');
         } catch (\Exception $e) {
             return null;
         }

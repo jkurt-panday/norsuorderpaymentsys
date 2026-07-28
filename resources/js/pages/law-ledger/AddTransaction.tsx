@@ -1,4 +1,5 @@
 import { Head, router, useForm } from '@inertiajs/react';
+import { ArrowLeft } from 'lucide-react';
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft } from 'lucide-react';
 
 interface AddTransactionProps {
   filterOptions?: {
@@ -64,6 +64,7 @@ export default function AddTransaction({ filterOptions }: AddTransactionProps) {
 
   const handleTransactionTypeChange = (value: string | null) => {
     setData('transaction_type', value ?? '');
+
     if (value === 'Assessment') {
       setData('status', 'Pending');
     } else if (value === 'Payment') {
