@@ -110,30 +110,27 @@ class PaymentDetailOptionController extends Controller
  /**
      * Remove the specified resource from storage safely.
      */
-    public function destroy(PaymentDetailOption $paymentOption)
-    {
-        try {
-            DB::beginTransaction();
-
-            // Safety check: Don't allow deletion if referenced by any submissions.
-            $hasRelations = $paymentOption->formInputs()->exists();
-
-            if ($hasRelations) {
-                return back()->with('error', 'Cannot delete payment option that has associated form inputs.');
-            }
-
-            $paymentOption->delete();
-
-            DB::commit();
-
-            return redirect()->route('staff.payment-options.index')
-                ->with('success', 'Payment option deleted successfully.');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error("Failed to delete payment option ID {$paymentOption->id}: " . $e->getMessage());
-
-            return back()->with('error', 'Failed to delete payment option. Please check if it is still in use.');
-        }
+ public function destroy(PaymentDetailOption $paymentOption)
+{
+    if ($paymentOption->formInputs()->exists()) {
+        return back()->with('error', 'Cannot delete payment option that has associated form inputs.');
     }
+
+    try {
+        DB::beginTransaction();
+
+        $paymentOption->delete();
+
+        DB::commit();
+
+        return redirect()->route('staff.payment-options.index')
+            ->with('success', 'Payment option deleted successfully.');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error("Failed to delete payment option ID {$paymentOption->id}: " . $e->getMessage());
+
+        return back()->with('error', 'Failed to delete payment option. Please check if it is still in use.');
+    }
+}
 }

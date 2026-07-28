@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { CreditCard } from 'lucide-react';
+import { toast } from 'sonner';
 import { create, edit, destroy } from '@/actions/App/Http/Controllers/PaymentDetailOptionController';
 import ResourceTable, { type PaginatedData, type ColumnDef } from '@/components/ResourceTable';
 
@@ -10,8 +11,14 @@ interface PaymentOption {
     created_at: string;
 }
 
+interface FlashProps {
+    success?: string;
+    error?: string;
+}
+
 interface PaymentOptionsIndexProps {
     paymentOptions: PaginatedData<PaymentOption>;
+    flash?: FlashProps;
 }
 
 // ============ HELPERS ============
@@ -24,7 +31,15 @@ const formatDate = (dateString: string): string => {
 };
 
 // ============ COMPONENT ============
-export default function PaymentOptionsIndex({ paymentOptions }: PaymentOptionsIndexProps) {
+export default function PaymentOptionsIndex({ paymentOptions, flash }: PaymentOptionsIndexProps) {
+    // Surface flash messages from the backend (e.g. delete blocked because the
+    // payment option is still in use). Without this, a rejected delete silently
+    // redirects back with no visible feedback to the user.
+    useEffect(() => {
+        if (flash?.success) toast.success(flash.success);
+        if (flash?.error) toast.error(flash.error);
+    }, [flash]);
+
     // ============ COLUMNS ============
     // Defined inside the component so it can close over `paymentOptions.from`
     // for correct sequential numbering across pagination pages.

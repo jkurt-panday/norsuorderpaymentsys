@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Users } from 'lucide-react';
+import { toast } from 'sonner';
 import ResourceTable, { type PaginatedData, type ColumnDef } from '@/components/ResourceTable';
 import { create, edit, destroy } from '@/actions/App/Http/Controllers/MembershipController';
 
@@ -11,8 +12,14 @@ interface Membership {
     created_at: string;
 }
 
+interface FlashProps {
+    success?: string;
+    error?: string;
+}
+
 interface MembershipsIndexProps {
     memberships: PaginatedData<Membership>;
+    flash?: FlashProps;
 }
 
 // ============ HELPERS ============
@@ -25,7 +32,15 @@ const formatDate = (dateString: string): string => {
 };
 
 // ============ COMPONENT ============
-export default function MembershipsIndex({ memberships }: MembershipsIndexProps) {
+export default function MembershipsIndex({ memberships, flash }: MembershipsIndexProps) {
+    // Surface flash messages from the backend (e.g. delete blocked because the
+    // membership is still in use). Without this, a rejected delete silently
+    // redirects back with no visible feedback to the user.
+    useEffect(() => {
+        if (flash?.success) toast.success(flash.success);
+        if (flash?.error) toast.error(flash.error);
+    }, [flash]);
+
     // ============ COLUMNS ============
     const columns: ColumnDef<Membership>[] = [
         {

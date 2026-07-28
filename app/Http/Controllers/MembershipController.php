@@ -109,15 +109,13 @@ class MembershipController extends Controller
      */
     public function destroy(Membership $membership)
     {
+        // Safety check first — read-only, no transaction needed.
+        if ($membership->formInputs()->exists()) {
+            return back()->with('error', 'Cannot delete membership that has associated form inputs.');
+        }
+
         try {
             DB::beginTransaction();
-
-            // Safety check: Don't allow deletion if referenced by any submissions.
-            $hasRelations = $membership->formInputs()->exists();
-
-            if ($hasRelations) {
-                return back()->with('error', 'Cannot delete membership that has associated form inputs.');
-            }
 
             $membership->delete();
 

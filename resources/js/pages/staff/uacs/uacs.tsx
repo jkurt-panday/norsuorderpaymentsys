@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Code } from 'lucide-react';
+import { toast } from 'sonner';
 import { create, edit, destroy } from '@/actions/App/Http/Controllers/UacsController';
 import ResourceTable, { type PaginatedData, type ColumnDef } from '@/components/ResourceTable';
 import { Badge } from '@/components/ui/badge';
@@ -11,12 +12,26 @@ interface UacsRecord {
     account_title: string;
 }
 
+interface FlashProps {
+    success?: string;
+    error?: string;
+}
+
 interface UacsIndexProps {
     uacs: PaginatedData<UacsRecord>;
+    flash?: FlashProps;
 }
 
 // ============ COMPONENT ============
-export default function UacsIndex({ uacs }: UacsIndexProps) {
+export default function UacsIndex({ uacs, flash }: UacsIndexProps) {
+    // Surface flash messages from the backend (e.g. delete blocked because the
+    // UACS code is still in use). Without this, a rejected delete silently
+    // redirects back with no visible feedback to the user.
+    useEffect(() => {
+        if (flash?.success) toast.success(flash.success);
+        if (flash?.error) toast.error(flash.error);
+    }, [flash]);
+
     // ============ COLUMNS ============
     const columns: ColumnDef<UacsRecord>[] = [
         {

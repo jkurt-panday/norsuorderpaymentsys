@@ -103,9 +103,13 @@ export default function ResourceTable<T extends { id: number }>({
 
         router.delete(deleteUrl(deleteTargetId), {
             preserveScroll: true,
-            onSuccess: () => {
-                toast.success(deleteSuccessMessage);
-            },
+            // No toast.success here on purpose. A redirect back to this page is
+            // "successful" from Inertia's point of view even when the backend
+            // rejected the delete (e.g. return back()->with('error', '...') for
+            // a record still in use) — it's still just a normal 302 response.
+            // The actual outcome (deleted vs. still-in-use) should come from the
+            // backend's flash message, surfaced by a flash-listening useEffect
+            // on the page that renders this table.
             onError: () => {
                 toast.error('Something went wrong while deleting.');
             },

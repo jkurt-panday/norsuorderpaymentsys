@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Landmark } from 'lucide-react';
+import { toast } from 'sonner';
 import { create, edit, destroy } from '@/actions/App/Http/Controllers/BankAccountInfoController';
 import ResourceTable, { type PaginatedData, type ColumnDef } from '@/components/ResourceTable';
 import { Badge } from '@/components/ui/badge';
@@ -12,12 +13,26 @@ interface BankAccount {
     account_num: string;
 }
 
+interface FlashProps {
+    success?: string;
+    error?: string;
+}
+
 interface BankAccountsIndexProps {
     bankAccounts: PaginatedData<BankAccount>;
+    flash?: FlashProps;
 }
 
 // ============ COMPONENT ============
-export default function BankAccountsIndex({ bankAccounts }: BankAccountsIndexProps) {
+export default function BankAccountsIndex({ bankAccounts, flash }: BankAccountsIndexProps) {
+    // Surface flash messages from the backend (e.g. delete blocked because the
+    // bank account is still in use). Without this, a rejected delete silently
+    // redirects back with no visible feedback to the user.
+    useEffect(() => {
+        if (flash?.success) toast.success(flash.success);
+        if (flash?.error) toast.error(flash.error);
+    }, [flash]);
+
     // ============ COLUMNS ============
     const columns: ColumnDef<BankAccount>[] = [
         {
