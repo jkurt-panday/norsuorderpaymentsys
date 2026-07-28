@@ -15,28 +15,28 @@ interface UacsIndexProps {
     uacs: PaginatedData<UacsRecord>;
 }
 
-// ============ COLUMNS ============
-const columns: ColumnDef<UacsRecord>[] = [
-    {
-        header: 'ID',
-        render: (row) => row.id,
-    },
-    {
-        header: 'Object Code',
-        render: (row) => (
-            <Badge variant="secondary" className="bg-slate-800 text-white hover:bg-slate-800">
-                {row.object_code}
-            </Badge>
-        ),
-    },
-    {
-        header: 'Account Title',
-        render: (row) => row.account_title,
-    },
-];
-
 // ============ COMPONENT ============
 export default function UacsIndex({ uacs }: UacsIndexProps) {
+    // ============ COLUMNS ============
+    const columns: ColumnDef<UacsRecord>[] = [
+        {
+            header: 'ID',
+            render: (row, index) => (uacs.from ?? 1) + index,
+        },
+        {
+            header: 'Object Code',
+            render: (row) => (
+                <Badge variant="secondary" className="bg-slate-800 text-white hover:bg-slate-800">
+                    {row.object_code}
+                </Badge>
+            ),
+        },
+        {
+            header: 'Account Title',
+            render: (row) => row.account_title,
+        },
+    ];
+
     return (
         <ResourceTable<UacsRecord>
             title="UACS Account Information"

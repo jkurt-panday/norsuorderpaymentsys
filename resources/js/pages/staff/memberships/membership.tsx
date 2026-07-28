@@ -2,6 +2,7 @@ import React from 'react';
 import { Users } from 'lucide-react';
 import ResourceTable, { type PaginatedData, type ColumnDef } from '@/components/ResourceTable';
 import { create, edit, destroy } from '@/actions/App/Http/Controllers/MembershipController';
+
 // ============ TYPE DEFINITIONS ============
 interface Membership {
     id: number;
@@ -23,33 +24,33 @@ const formatDate = (dateString: string): string => {
     });
 };
 
-// ============ COLUMNS ============
-const columns: ColumnDef<Membership>[] = [
-    {
-        header: 'ID',
-        render: (row) => row.id,
-    },
-    {
-        header: 'Member Code',
-        render: (row) => (
-            <span className="inline-block rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-900">
-                {row.member_code}
-            </span>
-        ),
-    },
-    {
-        header: 'Description',
-        render: (row) => row.member_desc,
-    },
-    {
-        header: 'Created At',
-        render: (row) => formatDate(row.created_at),
-        className: 'px-4 py-3 text-slate-500',
-    },
-];
-
 // ============ COMPONENT ============
 export default function MembershipsIndex({ memberships }: MembershipsIndexProps) {
+    // ============ COLUMNS ============
+    const columns: ColumnDef<Membership>[] = [
+        {
+            header: 'ID',
+            render: (row, index) => (memberships.from ?? 1) + index,
+        },
+        {
+            header: 'Member Code',
+            render: (row) => (
+                <span className="inline-block rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-900">
+                    {row.member_code}
+                </span>
+            ),
+        },
+        {
+            header: 'Description',
+            render: (row) => row.member_desc,
+        },
+        {
+            header: 'Created At',
+            render: (row) => formatDate(row.created_at),
+            className: 'px-4 py-3 text-slate-500',
+        },
+    ];
+
     return (
         <ResourceTable<Membership>
             title="Memberships"

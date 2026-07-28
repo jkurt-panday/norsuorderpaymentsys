@@ -85,15 +85,16 @@ export default function ProcessRequest() {
               <span className="font-semibold text-blue-600">{formInput.reference_number}</span>
             </p>
           </div>
-          <Link
-            href={staff.requests.show.url(formInput.id)}
+          <button
+            type="button"
+            onClick={() => window.history.back()}
             className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-100"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
               <path d="M19 12H5M12 19l-7-7 7-7" />
             </svg>
             Back
-          </Link>
+          </button>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">

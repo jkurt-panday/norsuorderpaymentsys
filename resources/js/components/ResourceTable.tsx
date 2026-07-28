@@ -29,8 +29,13 @@ export interface PaginatedData<T> {
 export interface ColumnDef<T> {
     /** Column header label */
     header: string;
-    /** Renders the cell content for a given row */
-    render: (row: T) => React.ReactNode;
+    /**
+     * Renders the cell content for a given row.
+     * `index` is the row's position within the CURRENT PAGE (0-based) —
+     * use it with `resource.from` to build a sequential display number,
+     * e.g. render: (row, index) => (resource.from ?? 1) + index
+     */
+    render: (row: T, index: number) => React.ReactNode;
     /** Optional extra classes for the <td> */
     className?: string;
 }
@@ -152,7 +157,7 @@ export default function ResourceTable<T extends { id: number }>({
                                                     j === 0 ? 'pl-6' : ''
                                                 }`}
                                             >
-                                                {col.render(row)}
+                                                {col.render(row, i)}
                                             </TableCell>
                                         ))}
                                         <TableCell className="py-3 pr-6 text-right">

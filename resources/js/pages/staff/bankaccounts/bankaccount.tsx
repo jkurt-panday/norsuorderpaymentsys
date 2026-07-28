@@ -16,32 +16,32 @@ interface BankAccountsIndexProps {
     bankAccounts: PaginatedData<BankAccount>;
 }
 
-// ============ COLUMNS ============
-const columns: ColumnDef<BankAccount>[] = [
-    {
-        header: 'ID',
-        render: (row) => row.id,
-    },
-    {
-        header: 'Account Name',
-        render: (row) => row.account_name,
-    },
-    {
-        header: 'Bank Name',
-        render: (row) => <Badge variant="secondary">{row.bank_name}</Badge>,
-    },
-    {
-        header: 'Account Number',
-        render: (row) => (
-            <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700">
-                {row.account_num}
-            </code>
-        ),
-    },
-];
-
 // ============ COMPONENT ============
 export default function BankAccountsIndex({ bankAccounts }: BankAccountsIndexProps) {
+    // ============ COLUMNS ============
+    const columns: ColumnDef<BankAccount>[] = [
+        {
+            header: 'ID',
+            render: (row, index) => (bankAccounts.from ?? 1) + index,
+        },
+        {
+            header: 'Account Name',
+            render: (row) => row.account_name,
+        },
+        {
+            header: 'Bank Name',
+            render: (row) => <Badge variant="secondary">{row.bank_name}</Badge>,
+        },
+        {
+            header: 'Account Number',
+            render: (row) => (
+                <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700">
+                    {row.account_num}
+                </code>
+            ),
+        },
+    ];
+
     return (
         <ResourceTable<BankAccount>
             title="Bank Account Information"

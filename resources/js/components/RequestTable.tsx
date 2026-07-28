@@ -44,6 +44,13 @@ export interface ColumnDef<T> {
   render: (row: T) => React.ReactNode;
   className?: string;
   align?: "left" | "right" | "center";
+  /**
+   * Hide this column below the `md` breakpoint (< 768px).
+   * Use for lower-priority columns (email, dates, secondary IDs) so the
+   * table stays scannable on phones without needing horizontal scroll
+   * for the columns that actually matter there.
+   */
+  hideOnMobile?: boolean;
 }
 
 /**
@@ -141,13 +148,15 @@ export default function RequestTable<T extends { id: number | string }>({
   const selectedStatus = statusOptions.find((opt) => opt.value === status);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-4 p-4 sm:p-6">
+    <div className="mx-auto min-w-0 w-full max-w-7xl space-y-4 p-3 sm:p-6">
       {/* ---- Title, sits above the search/filter section ---- */}
       {(title || resource.total !== undefined) && (
-        <div className="flex items-center justify-between">
-          {title && <h2 className="text-lg font-semibold text-slate-900">{title}</h2>}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {title && (
+            <h2 className="text-base font-semibold text-slate-900 sm:text-lg">{title}</h2>
+          )}
           {resource.total !== undefined && (
-            <span className="text-sm text-slate-500">
+            <span className="text-xs text-slate-500 sm:text-sm">
               {resource.total.toLocaleString()} total
             </span>
           )}
@@ -155,13 +164,13 @@ export default function RequestTable<T extends { id: number | string }>({
       )}
 
       {/* ---- Filter bar: search + status + date range ---- */}
-      <Card>
-        <CardContent className="p-4">
+      <Card className="min-w-0">
+        <CardContent className="p-3 sm:p-4">
           <form
             onSubmit={onFilterSubmit}
             className="flex flex-nowrap items-end gap-3 overflow-x-auto pb-1"
           >
-            <div className="flex min-w-[240px] flex-1 flex-col gap-1.5">
+            <div className="flex min-w-[200px] flex-1 flex-col gap-1.5 sm:min-w-[240px]">
               <label htmlFor="rt-search" className="text-xs font-medium text-slate-600">
                 Search
               </label>
@@ -183,7 +192,7 @@ export default function RequestTable<T extends { id: number | string }>({
                 value={status || "all"}
                 onValueChange={(v) => onStatusChange(v === "all" ? "" : v)}
               >
-                <SelectTrigger className="w-[160px] shrink-0 rounded-full">
+                <SelectTrigger className="w-[140px] shrink-0 rounded-full sm:w-[160px]">
                   <SelectValue placeholder={statusPlaceholder}>
                     {status && selectedStatus ? (
                       <span className="flex items-center gap-2">
@@ -228,7 +237,7 @@ export default function RequestTable<T extends { id: number | string }>({
                 type="date"
                 value={dateFrom}
                 onChange={(e) => onDateFromChange(e.target.value)}
-                className="w-[160px] shrink-0 rounded-full"
+                className="w-[140px] shrink-0 rounded-full sm:w-[160px]"
               />
             </div>
 
@@ -241,13 +250,13 @@ export default function RequestTable<T extends { id: number | string }>({
                 type="date"
                 value={dateTo}
                 onChange={(e) => onDateToChange(e.target.value)}
-                className="w-[160px] shrink-0 rounded-full"
+                className="w-[140px] shrink-0 rounded-full sm:w-[160px]"
               />
             </div>
 
             <Button type="submit" className="shrink-0 rounded-full bg-blue-900 text-white hover:bg-blue-950">
               <Filter className="h-4 w-4" />
-              Filter
+              <span className="hidden sm:inline">Filter</span>
             </Button>
 
             <Button
@@ -263,8 +272,8 @@ export default function RequestTable<T extends { id: number | string }>({
       </Card>
 
       {/* ---- Table ---- */}
-      <Card className="overflow-hidden py-0">
-        <CardContent className="overflow-x-auto p-0">
+      <Card className="min-w-0 overflow-hidden py-0">
+        <CardContent className="min-w-0 overflow-x-auto p-0">
           <Table>
             <TableHeader>
               <TableRow className="border-b border-slate-200 hover:bg-transparent">
@@ -274,8 +283,9 @@ export default function RequestTable<T extends { id: number | string }>({
                     style={col.width ? { width: col.width } : undefined}
                     className={cn(
                       "h-11 whitespace-nowrap bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500",
-                      i === 0 && "pl-6",
+                      i === 0 && "pl-4 sm:pl-6",
                       col.align && alignClass[col.align],
+                      col.hideOnMobile && "hidden md:table-cell",
                       col.className
                     )}
                   >
@@ -284,7 +294,7 @@ export default function RequestTable<T extends { id: number | string }>({
                 ))}
                 <TableHead
                   style={{ width: actionsWidth }}
-                  className="h-11 bg-slate-50/80 pr-6 text-right text-xs font-semibold uppercase tracking-wide text-slate-500"
+                  className="h-11 bg-slate-50/80 pr-4 text-right text-xs font-semibold uppercase tracking-wide text-slate-500 sm:pr-6"
                 >
                   Actions
                 </TableHead>
@@ -316,15 +326,19 @@ export default function RequestTable<T extends { id: number | string }>({
                         style={col.width ? { width: col.width } : undefined}
                         className={cn(
                           "py-3 text-sm text-slate-700",
-                          j === 0 && "pl-6",
+                          j === 0 && "pl-4 sm:pl-6",
                           col.align && alignClass[col.align],
+                          col.hideOnMobile && "hidden md:table-cell",
                           col.className
                         )}
                       >
                         {col.render(row)}
                       </TableCell>
                     ))}
-                    <TableCell style={{ width: actionsWidth }} className="py-3 pr-6 text-right">
+                    <TableCell
+                      style={{ width: actionsWidth }}
+                      className="py-3 pr-4 text-right sm:pr-6"
+                    >
                       {renderActions(row)}
                     </TableCell>
                   </TableRow>
@@ -335,11 +349,11 @@ export default function RequestTable<T extends { id: number | string }>({
         </CardContent>
 
         {showPagination && (
-          <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3">
-            <p className="text-sm text-slate-500">
+          <div className="flex items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 sm:px-5">
+            <p className="shrink-0 text-xs text-slate-500 sm:text-sm">
               Showing {resource.from ?? 0} to {resource.to ?? 0} of {resource.total} results
             </p>
-            <div className="flex items-center gap-1">
+            <div className="flex flex-nowrap items-center gap-1 overflow-x-auto">
               {resource.links.map((link, i) => {
                 const rawLabel = link.label.replace(/&laquo;|&raquo;/g, "").trim();
                 const isPrev = rawLabel.toLowerCase() === "previous";
@@ -355,7 +369,7 @@ export default function RequestTable<T extends { id: number | string }>({
                     onClick={() => link.url && onPageChange?.(link.url)}
                     aria-label={isPrev ? "Previous page" : isNext ? "Next page" : rawLabel}
                     className={cn(
-                      "h-8 w-8 rounded-md text-sm",
+                      "h-8 w-8 shrink-0 rounded-md text-sm",
                       link.active && "bg-blue-900 text-white hover:bg-blue-950"
                     )}
                   >

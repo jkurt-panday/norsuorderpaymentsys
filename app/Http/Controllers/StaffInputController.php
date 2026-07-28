@@ -132,12 +132,9 @@ class StaffInputController extends Controller
     public function create(FormInput $formInput)
     {
         if ($formInput->staffInput()->exists()) {
-            return  Inertia::render('staff/requestform/processrequest', compact(
-            'formInput',
-            'bankAccounts',
-            'uacsList',
-            'documents'
-        )) ->with('warning', 'This request has already been processed.');
+            return redirect()
+                ->route('staff.requests.show', $formInput)
+                ->with('warning', 'This request has already been processed.');
         }
 
         $bankAccounts = BankAccountInfo::orderBy('bank_name')->get();

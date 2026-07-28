@@ -35,7 +35,6 @@ interface PageProps {
   filters: Filters;
 }
 
-// Status badge colors - MATCH THESE with the dropdown colors below
 const getStatusColor = (status: string): string => {
   switch (status) {
     case 'approved':
@@ -45,7 +44,7 @@ const getStatusColor = (status: string): string => {
     case 'pending':
       return 'bg-amber-500 hover:bg-amber-600 text-white';
     case 'unprocessed':
-      return 'bg-blue-500 hover:bg-blue-600 text-white'; // Blue badge
+      return 'bg-blue-500 hover:bg-blue-600 text-white';
     default:
       return 'bg-slate-500 hover:bg-slate-600 text-white';
   }
@@ -158,8 +157,6 @@ const ManageRequests: React.FC = () => {
     },
   ];
 
-  // ---- Custom actions: View + (Process or Edit), no delete ----
-  // Square (rounded-md), compact buttons — fused into one block, not circular pills.
   const renderActions = (row: FormInput) => (
     <div className="inline-flex overflow-hidden rounded-md shadow-sm">
       <Link
@@ -215,7 +212,7 @@ const ManageRequests: React.FC = () => {
         { value: 'pending', label: 'Pending', color: 'orange' },
         { value: 'approved', label: 'Approved', color: 'green' },
         { value: 'cancelled', label: 'Cancelled', color: 'red' },
-        { value: 'unprocessed', label: 'Unprocessed', color: 'bg-blue-500' }, // Blue dot
+        { value: 'unprocessed', label: 'Unprocessed', color: 'bg-blue-500' },
       ]}
       dateFrom={dateFrom}
       onDateFromChange={setDateFrom}

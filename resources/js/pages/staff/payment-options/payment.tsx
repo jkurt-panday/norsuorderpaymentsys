@@ -2,6 +2,7 @@ import React from 'react';
 import { CreditCard } from 'lucide-react';
 import { create, edit, destroy } from '@/actions/App/Http/Controllers/PaymentDetailOptionController';
 import ResourceTable, { type PaginatedData, type ColumnDef } from '@/components/ResourceTable';
+
 // ============ TYPE DEFINITIONS ============
 interface PaymentOption {
     id: number;
@@ -22,25 +23,27 @@ const formatDate = (dateString: string): string => {
     });
 };
 
-// ============ COLUMNS ============
-const columns: ColumnDef<PaymentOption>[] = [
-    {
-        header: 'ID',
-        render: (row) => row.id,
-    },
-    {
-        header: 'Payment Description',
-        render: (row) => row.payment_desc,
-    },
-    {
-        header: 'Created At',
-        render: (row) => formatDate(row.created_at),
-        className: 'px-4 py-3 text-slate-500',
-    },
-];
-
 // ============ COMPONENT ============
 export default function PaymentOptionsIndex({ paymentOptions }: PaymentOptionsIndexProps) {
+    // ============ COLUMNS ============
+    // Defined inside the component so it can close over `paymentOptions.from`
+    // for correct sequential numbering across pagination pages.
+    const columns: ColumnDef<PaymentOption>[] = [
+        {
+            header: 'ID',
+            render: (row, index) => (paymentOptions.from ?? 1) + index,
+        },
+        {
+            header: 'Payment Description',
+            render: (row) => row.payment_desc,
+        },
+        {
+            header: 'Created At',
+            render: (row) => formatDate(row.created_at),
+            className: 'px-4 py-3 text-slate-500',
+        },
+    ];
+
     return (
         <ResourceTable<PaymentOption>
             title="Payment Detail Options"
