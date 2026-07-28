@@ -44,7 +44,7 @@ export function AppSidebar() {
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" >
+                        <SidebarMenuButton size="lg" className="h-auto py-2">
                             <Link href={dashboard.url()} prefetch>
                                 <AppLogo />
                             </Link>

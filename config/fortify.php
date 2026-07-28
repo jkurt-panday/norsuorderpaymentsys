@@ -161,9 +161,25 @@ return [
     */
 
     'features' => [
-        Features::resetPasswords(),
-        // Public registration, email verification, 2FA, and passkeys are out
-        // of scope for this internal, administrator-provisioned application.
+        //
+        // Features::registration(),
+        //
+        // Features::resetPasswords(),
+        //
+        // Features::emailVerification(),
+        //
+        //
+        // Features::twoFactorAuthentication([
+        //     'confirm' => true,
+        //     'confirmPassword' => true,
+        //     // 'window' => 0
+        // ]),
+        //
+        //
+        // Features::passkeys([
+        //     'confirmPassword' => true,
+        // ]),
+        //
     ],
 
 ];

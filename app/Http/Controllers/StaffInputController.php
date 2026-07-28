@@ -16,11 +16,10 @@ class StaffInputController extends Controller
     {
         // Validate staff inputs only
         $validator = Validator::make($request->all(), [
-            'form_input_id' => 'required|exists:form_input,id',
-            'fundcluster_id' => 'required|exists:bankaccount_info,id',
+            'form_input_id' => 'required|exists:form_inputs,id',
+            'fundcluster_id' => 'required|exists:bankaccount_infos,id',
             'uacs_id' => 'required|exists:uacs,id',
-            'ref_date_1' => 'nullable|date',
-            'ref_date_2' => 'nullable|date',
+            'ref_date' => 'nullable|date',
         ]);
 
         if ($validator->fails()) {
@@ -40,17 +39,11 @@ class StaffInputController extends Controller
             ], 409);
         }
 
-        // Get document URLs from the form's supporting documents
-        $documents = $formInput->supporting_documents ?? [];
-
         // Create Staff Input
         $staffInput = StaffInput::create([
             'form_input_id' => $request->form_input_id,
             'fundcluster_id' => $request->fundcluster_id,
-            'ref_doc_1' => $documents[0] ?? null,
-            'ref_date_1' => $request->ref_date_1,
-            'ref_doc_2' => $documents[1] ?? null,
-            'ref_date_2' => $request->ref_date_2,
+            'ref_date' => $request->ref_date,
             'uacs_id' => $request->uacs_id,
         ]);
 
