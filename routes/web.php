@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\GraduateLedgerController;
+use App\Http\Controllers\LawSchoolLedgerController;
 use Illuminate\Support\Facades\Route;
 
 // Home / Welcome Page
@@ -20,6 +21,15 @@ Route::middleware('auth')->group(function () {
     // Graduate Ledger: Single definition pointing to your controller
     Route::get('/graduate-ledger', [GraduateLedgerController::class, 'index'])
         ->name('graduate-ledger.index');
+
+    // Law School Ledger Routes
+    Route::get('/law-ledger/print-select', [LawSchoolLedgerController::class, 'printSelect'])->name('law-ledger.print-select');
+    Route::get('/law-ledger/pdf', [LawSchoolLedgerController::class, 'generatePdf'])->name('law-ledger.pdf');
+    Route::get('/law-ledger/add', [LawSchoolLedgerController::class, 'create'])->name('law-ledger.create');
+    Route::post('/law-ledger', [LawSchoolLedgerController::class, 'store'])->name('law-ledger.store');
+    Route::post('/law-ledger/import', [LawSchoolLedgerController::class, 'import'])->name('law-ledger.import');
+    Route::get('/law-ledger', [LawSchoolLedgerController::class, 'index'])
+        ->name('law-ledger.index');
 
 });
 

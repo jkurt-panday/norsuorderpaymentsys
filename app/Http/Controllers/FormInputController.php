@@ -27,8 +27,8 @@ class FormInputController extends Controller
             'address' => 'required|string',
             'amount' => 'required|numeric|min:0',
             'request_type' => 'required|in:New Request,Re-issue Request',
-            'membership_id' => 'required|exists:membership,id',
-            'payment_details_id' => 'required|exists:payment_details_options,id',
+            'membership_id' => 'required|exists:memberships,id',
+            'payment_detail_option_id' => 'required|exists:payment_detail_options,id',
             'supporting_documents.*' => 'file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
         ]);
 
@@ -59,7 +59,7 @@ class FormInputController extends Controller
             'amount' => $request->amount,
             'request_type' => $request->request_type,
             'membership_id' => $request->membership_id,
-            'payment_details_id' => $request->payment_details_id,
+            'payment_detail_option_id' => $request->payment_detail_option_id,
             'supporting_documents' => $documentUrls,
         ]);
 
