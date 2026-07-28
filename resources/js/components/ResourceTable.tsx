@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { Plus, Pencil, Trash2, X, ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react';
+import { toast } from 'sonner';
 import {
     Table,
     TableBody,
@@ -61,6 +62,8 @@ export interface ResourceTableProps<T extends { id: number }> {
     emptyMessage: string;
     /** Text shown in the delete confirmation body (defaults to a generic message) */
     deleteConfirmMessage?: string;
+    /** Toast message shown after a successful delete (defaults to a generic message) */
+    deleteSuccessMessage?: string;
 }
 
 // ============ COMPONENT ============
@@ -75,6 +78,7 @@ export default function ResourceTable<T extends { id: number }>({
     emptyIcon: EmptyIcon,
     emptyMessage,
     deleteConfirmMessage = 'Are you sure you want to delete this record?',
+    deleteSuccessMessage = 'Record deleted successfully.',
 }: ResourceTableProps<T>) {
     const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
     const [isDeleting, setIsDeleting] = useState<boolean>(false);
@@ -99,6 +103,12 @@ export default function ResourceTable<T extends { id: number }>({
 
         router.delete(deleteUrl(deleteTargetId), {
             preserveScroll: true,
+            onSuccess: () => {
+                toast.success(deleteSuccessMessage);
+            },
+            onError: () => {
+                toast.error('Something went wrong while deleting.');
+            },
             onFinish: () => {
                 setIsDeleting(false);
                 setDeleteTargetId(null);
@@ -107,7 +117,7 @@ export default function ResourceTable<T extends { id: number }>({
     };
 
     return (
-        <div className="mx-auto w-full max-w-7xl space-y-4 p-4 sm:p-6">
+       <div className="min-h-screen bg-slate-50 mx-auto min-w-0 w-full max-w-7xl space-y-4 p-3 sm:p-6">
             <Head title={title} />
 
             <div className="flex items-center justify-between">

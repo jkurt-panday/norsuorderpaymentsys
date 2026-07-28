@@ -34,16 +34,13 @@ class StaffInputController extends Controller
         $requestsOverTime = collect(range(0, 29))
             ->map(function (int $daysAgo) use ($requestsOverTime) {
                 $date = now()->subDays(29 - $daysAgo)->toDateString();
-
                 return $requestsOverTime->get($date, ['date' => $date, 'count' => 0]);
             })
             ->values();
-
         $recentRequests = FormInput::with('staffInput')
             ->latest()
             ->take(8)
             ->get();
-
         $recentActivity = StaffInput::with('formInput')
             ->latest()
             ->take(8)
@@ -78,7 +75,6 @@ class StaffInputController extends Controller
             'recentActivity' => $recentActivity,
         ]);
     }
-
     /**
      * Display list of requests for staff processing
      */

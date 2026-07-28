@@ -10,6 +10,8 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -18,8 +20,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
 interface PaginationLink {
   url: string | null;
@@ -148,7 +148,7 @@ export default function RequestTable<T extends { id: number | string }>({
   const selectedStatus = statusOptions.find((opt) => opt.value === status);
 
   return (
-    <div className="mx-auto min-w-0 w-full max-w-7xl space-y-4 p-3 sm:p-6">
+    <div className="min-h-screen bg-slate-50 mx-auto min-w-0 w-full max-w-7xl space-y-4 p-3 sm:p-6">
       {/* ---- Title, sits above the search/filter section ---- */}
       {(title || resource.total !== undefined) && (
         <div className="flex flex-wrap items-center justify-between gap-2">
