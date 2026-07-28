@@ -97,16 +97,19 @@ class BankAccountInfoController extends Controller
     /**
      * Delete a bank account safely
      */
+/**
+     * Delete a bank account safely
+     */
+/**
+     * Delete a bank account safely
+     */
     public function destroy(BankAccountInfo $bankAccount)
     {
         try {
             DB::beginTransaction();
 
             // Safety check: Don't allow deletion of accounts with historical references.
-            // Using withTrashed() here is a defensive programming best practice.
-            $hasRelations = $bankAccount->staffInputs()
-                ->withTrashed() // Ensures we check soft-deleted records too
-                ->exists();
+            $hasRelations = $bankAccount->staffInputs()->exists();
 
             if ($hasRelations) {
                 return back()->with('error', 'Cannot delete a bank account that is in use by processing records.');

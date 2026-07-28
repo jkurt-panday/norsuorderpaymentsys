@@ -107,16 +107,16 @@ class PaymentDetailOptionController extends Controller
     /**
      * Remove the specified resource from storage safely.
      */
+ /**
+     * Remove the specified resource from storage safely.
+     */
     public function destroy(PaymentDetailOption $paymentOption)
     {
         try {
             DB::beginTransaction();
 
             // Safety check: Don't allow deletion if referenced by any submissions.
-            // Using withTrashed() makes this check robust against soft-deletes.
-            $hasRelations = $paymentOption->formInputs()
-                ->withTrashed()
-                ->exists();
+            $hasRelations = $paymentOption->formInputs()->exists();
 
             if ($hasRelations) {
                 return back()->with('error', 'Cannot delete payment option that has associated form inputs.');

@@ -104,16 +104,16 @@ class MembershipController extends Controller
     /**
      * Remove the specified resource from storage safely.
      */
+    /**
+     * Remove the specified resource from storage safely.
+     */
     public function destroy(Membership $membership)
     {
         try {
             DB::beginTransaction();
 
             // Safety check: Don't allow deletion if referenced by any submissions.
-            // Using withTrashed() makes this check robust against soft-deletes.
-            $hasRelations = $membership->formInputs()
-                ->withTrashed()
-                ->exists();
+            $hasRelations = $membership->formInputs()->exists();
 
             if ($hasRelations) {
                 return back()->with('error', 'Cannot delete membership that has associated form inputs.');

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class BankAccountInfoRequest extends FormRequest
 {
@@ -13,8 +14,9 @@ class BankAccountInfoRequest extends FormRequest
 
     public function rules(): array
     {
-        $isUpdate = $this->isMethod('PUT') || $this->isMethod('PATCH');
-        $accountId = $this->route('bank_account_info') ? $this->route('bank_account_info')->id : null;
+        // Route parameter is bound as 'bankAccount' (see web.php:
+        // ->parameters(['bank-accounts' => 'bankAccount'])) — not 'bank_account_info'.
+        $accountId = $this->route('bankAccount')?->id;
 
         return [
             'account_name' => ['required', 'string', 'max:255'],
@@ -23,7 +25,7 @@ class BankAccountInfoRequest extends FormRequest
                 'required',
                 'string',
                 'max:50',
-                $isUpdate ? "unique:bankaccount_infos,account_num,{$accountId}" : 'unique:bankaccount_infos,account_num',
+                Rule::unique('bankaccount_infos', 'account_num')->ignore($accountId),
             ],
         ];
     }

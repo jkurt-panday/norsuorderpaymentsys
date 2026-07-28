@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class PaymentDetailOptionRequest extends FormRequest
 {
@@ -13,15 +14,16 @@ class PaymentDetailOptionRequest extends FormRequest
 
     public function rules(): array
     {
-        $isUpdate = $this->isMethod('PUT') || $this->isMethod('PATCH');
-        $optionId = $this->route('payment_detail_option') ? $this->route('payment_detail_option')->id : null;
+        // Route parameter is bound as 'paymentOption' (see web.php:
+        // ->parameters(['payment-options' => 'paymentOption'])) — not 'payment_detail_option'.
+        $optionId = $this->route('paymentOption')?->id;
 
         return [
             'payment_desc' => [
                 'required',
                 'string',
                 'max:255',
-                $isUpdate ? "unique:payment_detail_options,payment_desc,{$optionId}" : 'unique:payment_detail_options,payment_desc',
+                Rule::unique('payment_detail_options', 'payment_desc')->ignore($optionId),
             ],
         ];
     }

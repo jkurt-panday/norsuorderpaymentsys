@@ -94,16 +94,16 @@ class UacsController extends Controller
     /**
      * Remove the specified resource from storage safely.
      */
+/**
+     * Remove the specified resource from storage safely.
+     */
     public function destroy(Uacs $uacs)
     {
         try {
             DB::beginTransaction();
 
             // Safety check: Don't allow deletion if referenced by any staff inputs.
-            // Using withTrashed() makes this check robust against soft-deletes.
-            $hasRelations = $uacs->staffInputs()
-                ->withTrashed()
-                ->exists();
+            $hasRelations = $uacs->staffInputs()->exists();
 
             if ($hasRelations) {
                 return back()->with('error', 'Cannot delete UACS code that is currently in use.');
