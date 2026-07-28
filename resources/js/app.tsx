@@ -1,12 +1,22 @@
-import { createInertiaApp } from '@inertiajs/react';
+import { createInertiaApp, router } from '@inertiajs/react';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
 import AppLayout from '@/layouts/app-layout';
-import AuthLayout from '@/layouts/auth-layout';    
+import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+
+// Radix (used by shadcn's Dialog/Select/Dropdown/etc) sets
+// `pointer-events: none` on <body> while a component is open, and removes
+// it on close. If an Inertia navigation happens before that cleanup runs
+// (e.g. a dialog triggers a redirect), the style can get stuck on <body>,
+// making the next page completely unclickable. Clearing it on every
+// navigation guarantees it never lingers.
+router.on('navigate', () => {
+    document.body.style.pointerEvents = '';
+});
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),

@@ -1,15 +1,49 @@
-import React from 'react';
-import { usePage } from '@inertiajs/react';
-import RequestForm, { type SectionDef } from '@/components/RequestForm';
-import { Badge } from '@/components/ui/badge';
+import React, { useEffect } from 'react';
+import { useForm, usePage } from '@inertiajs/react';
+import { toast } from 'sonner';
 import staff from '@/routes/staff';
 
-// ============ TYPE DEFINITIONS ============
-interface BankAccountInfo {
+interface Membership {
+  member_desc: string;
+}
+
+interface PaymentDetailOption {
+  payment_desc: string;
+}
+
+interface StaffInputFormInput {
+  id: number;
+  reference_number: string;
+  full_name: string;
+  email: string;
+  contact_num: string;
+  amount: number;
+  request_type: string;
+  membership: Membership | null;
+  paymentDetailOption: PaymentDetailOption | null;
+}
+
+interface StaffInputRecord {
+  id: number;
+  fundcluster_id: number;
+  ref_document_id: number | null;
+  ref_date: string;
+  uacs_id: number;
+  status: 'pending' | 'approved' | 'cancelled';
+  formInput: StaffInputFormInput;
+}
+
+interface BankAccount {
   id: number;
   account_name: string;
   bank_name: string;
   account_num: string;
+}
+
+interface DocumentItem {
+  id: number;
+  original_filename: string;
+  file_extension: string;
 }
 
 interface Uacs {
@@ -18,167 +52,270 @@ interface Uacs {
   account_title: string;
 }
 
-interface SupportingDocument {
-  id: number;
-  original_filename: string;
-}
-
-interface StaffInput {
-  id: number;
-  form_input_id: number;
-  fundcluster_id: number | null;
-  ref_document_id: number | null;
-  ref_date: string;
-  uacs_id: number | null;
-  status: 'pending' | 'approved' | 'cancelled';
-  created_at: string;
-  updated_at: string;
-  formInput: {
-    reference_number: string;
-  };
+interface FlashProps {
+  success?: string;
+  error?: string;
+  warning?: string;
 }
 
 interface PageProps {
-  staffInput: StaffInput;
-  bankAccounts: BankAccountInfo[];
+  staffInput: StaffInputRecord;
+  bankAccounts: BankAccount[];
+  documents: DocumentItem[];
   uacsList: Uacs[];
-  documents: SupportingDocument[];
+  flash?: FlashProps;
 }
 
-// ============ HELPERS ============
-const getStatusColor = (status: string): string => {
-  switch (status) {
-    case 'approved':
-      return 'bg-emerald-500 hover:bg-emerald-600 text-white';
-    case 'cancelled':
-      return 'bg-red-500 hover:bg-red-600 text-white';
-    case 'pending':
-      return 'bg-amber-500 hover:bg-amber-600 text-white';
-    default:
-      return 'bg-slate-500 hover:bg-slate-600 text-white';
-  }
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-PH', {
+    style: 'currency',
+    currency: 'PHP',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
 };
 
-const formatDateTime = (value: string) =>
-  new Date(value).toLocaleString('en-US', {
-    timeZone: 'Asia/Manila',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+export default function EditRequest() {
+  const { staffInput, bankAccounts, documents, uacsList, flash } = usePage().props as unknown as PageProps;
+  const formInput = staffInput.formInput;
+
+  useEffect(() => {
+    if (flash?.success) toast.success(flash.success);
+    if (flash?.error) toast.error(flash.error);
+    if (flash?.warning) toast.warning(flash.warning);
+  }, [flash]);
+
+  const { data, setData, put, processing, errors } = useForm({
+    fundcluster_id: String(staffInput.fundcluster_id ?? ''),
+    ref_document_id: staffInput.ref_document_id ? String(staffInput.ref_document_id) : '',
+    ref_date: staffInput.ref_date,
+    uacs_id: String(staffInput.uacs_id ?? ''),
+    status: staffInput.status,
   });
 
-// ============ PAGE ============
-const EditRequest: React.FC = () => {
-  const { staffInput, bankAccounts, uacsList, documents } = usePage().props as unknown as PageProps;
-
-  const sections: SectionDef[] = [
-    {
-      title: 'Update Staff Processing',
-      description: `Reference: ${staffInput.formInput.reference_number}`,
-      fields: [
-        {
-          name: 'fundcluster_id',
-          label: 'Bank Account',
-          required: true,
-          type: 'select',
-          colSpan: 'full',
-          options: bankAccounts.map((account) => ({
-            value: String(account.id),
-            label: `${account.account_name} - ${account.bank_name} (${account.account_num})`,
-          })),
-        },
-        {
-          name: 'ref_document_id',
-          label: 'Reference Document',
-          type: 'select',
-          placeholder: 'Select reference document (optional)',
-          colSpan: 'full',
-          options: documents.map((document) => ({
-            value: String(document.id),
-            label: document.original_filename,
-          })),
-        },
-        {
-          name: 'ref_date',
-          label: 'Reference Date',
-          required: true,
-          type: 'date',
-        },
-        {
-          name: 'uacs_id',
-          label: 'UACS',
-          required: true,
-          type: 'select',
-          options: uacsList.map((uacs) => ({
-            value: String(uacs.id),
-            label: `${uacs.object_code} - ${uacs.account_title}`,
-          })),
-        },
-        {
-          name: 'status',
-          label: 'Status',
-          required: true,
-          type: 'select',
-          colSpan: 'full',
-          options: [
-            { value: 'pending', label: 'Pending' },
-            { value: 'approved', label: 'Approved' },
-            { value: 'cancelled', label: 'Cancelled' },
-          ],
-        },
-      ],
-    },
-  ];
-
-  const initialData: Record<string, string> = {
-    // Hidden field — not rendered as an input, but still submitted with the form
-    form_input_id: String(staffInput.form_input_id),
-    fundcluster_id: staffInput.fundcluster_id ? String(staffInput.fundcluster_id) : '',
-    ref_document_id: staffInput.ref_document_id ? String(staffInput.ref_document_id) : '',
-    ref_date: staffInput.ref_date ? staffInput.ref_date.slice(0, 10) : '',
-    uacs_id: staffInput.uacs_id ? String(staffInput.uacs_id) : '',
-    status: staffInput.status,
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    put(staff.requests.update.url(staffInput.id), {
+      preserveScroll: true,
+      onError: () => {
+        toast.error('Please check the form for errors.');
+      },
+    });
   };
 
-  const sidebar = (
-    <div>
-      <h3 className="text-base font-semibold text-slate-900">Current Status</h3>
-      <div className="mt-4 flex flex-col items-center gap-2 py-2 text-center">
-        <Badge className={`${getStatusColor(staffInput.status)} px-4 py-1.5 text-sm capitalize`}>
-          {staffInput.status}
-        </Badge>
-        <p className="text-xs text-slate-500">
-          Last updated: {formatDateTime(staffInput.updated_at)}
-        </p>
-      </div>
-      <div className="mt-4 space-y-1.5 border-t border-slate-200 pt-4 text-xs text-slate-500">
-        <p>
-          <span className="font-medium text-slate-700">Created:</span>{' '}
-          {formatDateTime(staffInput.created_at)}
-        </p>
-        <p>
-          <span className="font-medium text-slate-700">Form Input ID:</span> #{staffInput.form_input_id}
-        </p>
+  return (
+    <div className="min-h-screen bg-slate-50 px-4 py-8">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900">Edit Processed Request</h2>
+            <p className="text-sm text-slate-500">
+              Reference:{' '}
+              <span className="font-semibold text-blue-600">{formInput.reference_number}</span>
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => window.history.back()}
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-100"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            Back
+          </button>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-200 px-6 py-4">
+                <h3 className="text-base font-semibold text-slate-900">Staff Processing Form</h3>
+              </div>
+              <div className="p-6">
+                <form onSubmit={handleSubmit}>
+                  <div className="mb-4">
+                    <label className="mb-1 block text-sm font-medium text-slate-700">
+                      Bank Account <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                        errors.fundcluster_id ? 'border-rose-400' : 'border-slate-200'
+                      }`}
+                      value={data.fundcluster_id}
+                      onChange={(e) => setData('fundcluster_id', e.target.value)}
+                      required
+                    >
+                      <option value="">Select Bank Account</option>
+                      {bankAccounts.map((account) => (
+                        <option key={account.id} value={account.id}>
+                          {account.account_name} - {account.bank_name} ({account.account_num})
+                        </option>
+                      ))}
+                    </select>
+                    {errors.fundcluster_id && (
+                      <p className="mt-1 text-xs text-rose-500">{errors.fundcluster_id}</p>
+                    )}
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Reference Document</label>
+                    <select
+                      className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                        errors.ref_document_id ? 'border-rose-400' : 'border-slate-200'
+                      }`}
+                      value={data.ref_document_id}
+                      onChange={(e) => setData('ref_document_id', e.target.value)}
+                    >
+                      <option value="">Select Reference Document (Optional)</option>
+                      {documents.map((document) => (
+                        <option key={document.id} value={document.id}>
+                          {document.original_filename}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.ref_document_id && (
+                      <p className="mt-1 text-xs text-rose-500">{errors.ref_document_id}</p>
+                    )}
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="mb-1 block text-sm font-medium text-slate-700">
+                      Reference Date <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                        errors.ref_date ? 'border-rose-400' : 'border-slate-200'
+                      }`}
+                      value={data.ref_date}
+                      onChange={(e) => setData('ref_date', e.target.value)}
+                      required
+                    />
+                    {errors.ref_date && <p className="mt-1 text-xs text-rose-500">{errors.ref_date}</p>}
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="mb-1 block text-sm font-medium text-slate-700">
+                      UACS <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                        errors.uacs_id ? 'border-rose-400' : 'border-slate-200'
+                      }`}
+                      value={data.uacs_id}
+                      onChange={(e) => setData('uacs_id', e.target.value)}
+                      required
+                    >
+                      <option value="">Select UACS</option>
+                      {uacsList.map((uacs) => (
+                        <option key={uacs.id} value={uacs.id}>
+                          {uacs.object_code} - {uacs.account_title}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.uacs_id && <p className="mt-1 text-xs text-rose-500">{errors.uacs_id}</p>}
+                  </div>
+
+                  <div className="mb-6">
+                    <label className="mb-1 block text-sm font-medium text-slate-700">
+                      Status <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                        errors.status ? 'border-rose-400' : 'border-slate-200'
+                      }`}
+                      value={data.status}
+                      onChange={(e) => setData('status', e.target.value as typeof data.status)}
+                      required
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                    {errors.status && <p className="mt-1 text-xs text-rose-500">{errors.status}</p>}
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="submit"
+                      disabled={processing}
+                      className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-6 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 disabled:opacity-60"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                      </svg>
+                      {processing ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </section>
+          </div>
+
+          <div>
+            <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-200 px-6 py-4">
+                <h3 className="text-base font-semibold text-slate-900">Request Information</h3>
+              </div>
+              <div className="space-y-3 p-6 text-sm">
+                <div>
+                  <p className="font-medium text-slate-500">Name:</p>
+                  <p className="text-slate-800">{formInput.full_name}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-slate-500">Email:</p>
+                  <p className="text-slate-800">{formInput.email}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-slate-500">Contact:</p>
+                  <p className="text-slate-800">{formInput.contact_num}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-slate-500">Amount:</p>
+                  <p className="font-bold text-blue-600">{formatCurrency(formInput.amount)}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-slate-500">Request Type:</p>
+                  <p className="text-slate-800">{formInput.request_type}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-slate-500">Membership:</p>
+                  <p className="text-slate-800">{formInput.membership?.member_desc ?? 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-slate-500">Payment Option:</p>
+                  <p className="text-slate-800">{formInput.paymentDetailOption?.payment_desc ?? 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-slate-500">Documents:</p>
+                  <div className="mt-1 space-y-1">
+                    {documents.map((document) => (
+                      <div key={document.id} className="flex items-center gap-1 text-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-400">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <path d="M14 2v6h6" />
+                        </svg>
+                        <a
+                          href={staff.documents.download.url(document.id)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          {document.original_filename}
+                        </a>
+                        <span className="inline-flex rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-800">
+                          {document.file_extension}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
       </div>
     </div>
   );
-
-  return (
-    <RequestForm
-      title={`Edit Processing - ${staffInput.formInput.reference_number}`}
-      backHref={staff.requests.show.url(staffInput.form_input_id)}
-      sections={sections}
-      initialData={initialData}
-      submitUrl={staff.requests.update.url(staffInput.id)}
-      method="put"
-      submitLabel="Update Processing"
-      processingLabel="Updating..."
-      sidebar={sidebar}
-    />
-  );
-};
-
-export default EditRequest;
+}

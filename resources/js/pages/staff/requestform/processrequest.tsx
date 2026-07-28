@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useForm, usePage } from '@inertiajs/react';
+import { toast } from 'sonner';
 import staff from '@/routes/staff';
 
 interface Membership {
@@ -41,11 +42,18 @@ interface Uacs {
   account_title: string;
 }
 
+interface FlashProps {
+  success?: string;
+  error?: string;
+  warning?: string;
+}
+
 interface PageProps {
   formInput: FormInput;
   bankAccounts: BankAccount[];
   documents: DocumentItem[];
   uacsList: Uacs[];
+  flash?: FlashProps;
 }
 
 const formatCurrency = (amount: number) => {
@@ -58,7 +66,15 @@ const formatCurrency = (amount: number) => {
 };
 
 export default function ProcessRequest() {
-  const { formInput, bankAccounts, documents, uacsList } = usePage().props as unknown as PageProps;
+  const { formInput, bankAccounts, documents, uacsList, flash } = usePage().props as unknown as PageProps;
+
+  // Surface flash messages from the backend (redirect ->with('success'/'error'/'warning', ...))
+  // Without this, a successful/failed process silently redirects with no visible feedback.
+  useEffect(() => {
+    if (flash?.success) toast.success(flash.success);
+    if (flash?.error) toast.error(flash.error);
+    if (flash?.warning) toast.warning(flash.warning);
+  }, [flash]);
 
   const { data, setData, post, processing, errors } = useForm({
     form_input_id: formInput.id,
@@ -71,7 +87,12 @@ export default function ProcessRequest() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    post(staff.requests.store.url());
+    post(staff.requests.store.url(), {
+      preserveScroll: true,
+      onError: () => {
+        toast.error('Please check the form for errors.');
+      },
+    });
   };
 
   return (
@@ -219,7 +240,7 @@ export default function ProcessRequest() {
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
                         <path d="M20 6 9 17l-5-5" />
                       </svg>
-                      Process Request
+                      {processing ? 'Processing...' : 'Process Request'}
                     </button>
                   </div>
                 </form>
