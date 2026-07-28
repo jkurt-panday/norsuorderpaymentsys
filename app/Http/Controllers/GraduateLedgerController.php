@@ -28,7 +28,6 @@ class GraduateLedgerController extends Controller
         $query = GraduateLedger::query()
             ->when($request->input('search'), function ($query, $search) {
                 $query->where('student_name', 'like', "%{$search}%")
-                    ->orWhere('id_number', 'like', "%{$search}%")
                     ->orWhere('course', 'like', "%{$search}%")
                     ->orWhere('reference_or_jev_number', 'like', "%{$search}%");
             })
