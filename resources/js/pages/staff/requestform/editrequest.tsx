@@ -86,6 +86,7 @@ export default function EditRequest() {
   }, [flash]);
 
   const { data, setData, put, processing, errors } = useForm({
+    form_input_id: String(formInput.id),
     fundcluster_id: String(staffInput.fundcluster_id ?? ''),
     ref_document_id: staffInput.ref_document_id ? String(staffInput.ref_document_id) : '',
     ref_date: staffInput.ref_date,
@@ -134,6 +135,8 @@ export default function EditRequest() {
               </div>
               <div className="p-6">
                 <form onSubmit={handleSubmit}>
+                  <input type="hidden" name="form_input_id" value={data.form_input_id} />
+
                   <div className="mb-4">
                     <label className="mb-1 block text-sm font-medium text-slate-700">
                       Bank Account <span className="text-rose-500">*</span>

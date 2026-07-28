@@ -1,4 +1,5 @@
 import { createInertiaApp, router } from '@inertiajs/react';
+import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
@@ -20,11 +21,13 @@ router.on('navigate', () => {
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
+    resolve: (name) =>
+        resolvePageComponent(`./pages/${name}.tsx`, import.meta.glob('./pages/**/*.tsx')),
     layout: (name) => {
         switch (true) {
             case name === 'welcome':
                 return null;
-            case name === ('SubmitForm'):
+            case name === 'SubmitForm':
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;

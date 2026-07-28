@@ -206,34 +206,32 @@ class StaffInputController extends Controller
 
     // App/Http/Controllers/StaffInputController.php
 
-    public function update(StaffProcessingRequest $request, StaffInput $staffInput)
-    {
-        // Validates request including status
-        $validated = $request->validated();
+public function update(StaffProcessingRequest $request, StaffInput $staffInput)
+{
+    // Validates request including status
+    $validated = $request->validated();
 
-        try {
-            DB::beginTransaction();
+    try {
+        DB::beginTransaction();
 
-            $staffInput->update([
-                'fundcluster_id'  => $validated['fundcluster_id'],
-                'ref_document_id' => $validated['ref_document_id'] ?? null,
-                'ref_date'        => $validated['ref_date'],
-                'uacs_id'         => $validated['uacs_id'],
-                'status'          => $validated['status'], // <--- Status gets updated here
-            ]);
+        $staffInput->update([
+            'fundcluster_id'  => $validated['fundcluster_id'],
+            'ref_document_id' => $validated['ref_document_id'] ?? null,
+            'ref_date'        => $validated['ref_date'],
+            'uacs_id'         => $validated['uacs_id'],
+            'status'          => $validated['status'],
+        ]);
 
-            DB::commit();
+        DB::commit();
 
-            return Inertia::render('Staff/RequestForm/Request', [
-                'success' => 'Processing updated successfully! New status: ' . ucfirst($staffInput->status)
-            ]);
+        return redirect()->route('staff.requests.index')
+            ->with('success', 'Processing updated successfully! New status: ' . ucfirst($staffInput->status));
 
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->withInput()->with('error', 'Failed to update processing: ' . $e->getMessage());
-        }
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return back()->withInput()->with('error', 'Failed to update processing: ' . $e->getMessage());
     }
-
+}
     /**
      * Display staff processing details
      */
