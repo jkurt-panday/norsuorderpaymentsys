@@ -142,6 +142,7 @@ function getTransactionTypeBadgeClass(type: string) {
 
 export default function PrintSelect({ students, selectedStudent, records, summary }: PrintSelectProps) {
   const [selectedStudentState, setSelectedStudentState] = useState(selectedStudent || '');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const handleStudentChange = (value: string | null) => {
     setSelectedStudentState(value ?? '');
@@ -155,6 +156,12 @@ export default function PrintSelect({ students, selectedStudent, records, summar
       window.open(`/law-ledger/pdf?student=${encodeURIComponent(selectedStudentState)}`, '_blank');
     }
   };
+
+  // Filter students based on search term (search in student name)
+  const filteredStudents = students?.filter((student) => {
+    const term = searchTerm.toLowerCase();
+    return student.toLowerCase().includes(term);
+  }) || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 p-4 md:p-6 lg:p-8">
@@ -197,11 +204,20 @@ export default function PrintSelect({ students, selectedStudent, records, summar
                     <SelectValue placeholder="Select a student" />
                   </SelectTrigger>
                   <SelectContent>
-                    {students.map(student => (
-                      <SelectItem key={student} value={student}>{student}</SelectItem>
-                    ))}
+{filteredStudents.map(student => (
+                        <SelectItem key={student} value={student}>{student}</SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="flex-1 w-full sm:w-auto">
+                <Input
+                  placeholder="Search student"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="h-10"
+                />
               </div>
 
               <Button
@@ -273,30 +289,28 @@ export default function PrintSelect({ students, selectedStudent, records, summar
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {records.map((record) => (
-                        <TableRow key={record.id} className="hover:bg-slate-50 transition-colors">
-                          <TableCell>{formatDate(record.transactionDate)}</TableCell>
-                          <TableCell className="font-mono text-sm">{record.referenceNo || '-'}</TableCell>
-                          <TableCell>{record.particulars || '-'}</TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant="outline" 
-                              className={`${getTransactionTypeBadgeClass(record.transactionType)} border text-xs`}
-                            >
-                              {record.transactionType || '-'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-medium">{currency(record.amount)}</TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant={getStatusBadgeVariant(record.status)}
-                              className={`${getStatusBadgeClass(record.status)} border text-xs`}
-                            >
-                              {record.status || '-'}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+{records.map((record) => (
+                            <TableRow key={record.id} className="hover:bg-slate-50 transition-colors">
+                              <TableCell>{formatDate(record.transactionDate)}</TableCell>
+                              <TableCell className="font-mono text-sm">{record.referenceNo || '-'}</TableCell>
+                              <TableCell>{record.particulars || '-'}</TableCell>
+                              <TableCell>
+                                <Badge 
+                                  variant="outline" 
+                                  className={`${getTransactionTypeBadgeClass(record.transactionType)} border text-xs`}
+                                >
+                                  {record.transactionType || '-'}</Badge>
+                              </TableCell>
+                              <TableCell className="text-right font-medium">{currency(record.amount)}</TableCell>
+                              <TableCell>
+                                <Badge 
+                                  variant={getStatusBadgeVariant(record.status)}
+                                  className={`${getStatusBadgeClass(record.status)} border text-xs`}
+                                >
+                                  {record.status || '-'}</Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
                     </TableBody>
                   </Table>
                 </div>
