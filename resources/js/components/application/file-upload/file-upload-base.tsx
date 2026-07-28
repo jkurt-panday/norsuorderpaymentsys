@@ -236,7 +236,7 @@ export const FileUploadDropZone = ({
             <FeaturedIcon
                 icon={UploadCloud02}
                 color="gray"
-                theme="modern"
+                theme="gradient"
                 size="md"
                 className={cx(isDisabled && 'opacity-50')}
             />
@@ -274,7 +274,7 @@ export const FileUploadDropZone = ({
                         isInvalid && 'text-error-primary',
                     )}
                 >
-                    {hint || 'SVG, PNG, JPG or GIF (max. 800x400px)'}
+                    {hint || 'SVG, PNG, JPG or PDF (max. 10 Mb)'}
                 </p>
             </div>
         </div>

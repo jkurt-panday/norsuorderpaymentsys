@@ -23,6 +23,8 @@ import { Separator } from '@/components/ui/separator';
 import PublicLayout from '@/pages/layouts/PublicLayout';
 import { useForm } from '@inertiajs/react';
 import { route } from 'ziggy-js';
+import { router } from '@inertiajs/react';
+import { UploadCloud02 } from '@untitledui/icons';
 
 const reqType = ['New Request', 'Re-issue Request', 'Other'] as const;
 const enlarge = 'h-12 px-4 text-base';
@@ -69,20 +71,76 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
         request_type: '',
         membership_id: '',
         payment_detail_option_id: '',
+        has_documents: false,
     });
-    // form submit
+    // ? form submit
+    // Submit handler with file upload
     const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
         e.preventDefault();
-        post(route('Submitform.store'), {
-            onSuccess: () => reset(),
-            onError: (errors) => console.error('Validation errors:', errors),
+
+        const formData = new FormData();
+
+        Object.entries(data).forEach(([key, value]) => {
+            if (value !== null && value !== '') {
+                formData.append(key, String(value));
+            }
         });
+
+        supportingDocuments.forEach((file) => {
+            formData.append(`documents[]`, file);
+        });
+
+        // Debug: Check what's being sent
+        console.log('FormData entries:');
+        for (let [key, value] of formData.entries()) {
+            console.log(key, value);
+        }
+
+        // Use post with FormData
+        router.post('/public/form', formData, {
+            onSuccess: (page) => {
+                console.log('Success!', page);
+                reset();
+                setSupportingDocuments([]);
+                setValue('');
+            },
+            onError: (errors) => {
+                console.error('Validation errors:', errors);
+            },
+            forceFormData: true,
+            preserveState: false,
+        });
+    };
+
+    // ? file upload
+    // Add state for supporting documents
+    const [supportingDocuments, setSupportingDocuments] = useState<File[]>([]);
+
+    // handle file drop
+    const handleFileDrop = (files: FileList) => {
+        const newFiles = Array.from(files);
+        setSupportingDocuments((prev) => [...prev, ...newFiles]);
+        setData('has_documents', true);
+    };
+
+    // Handle file deletion
+    const handleFileDelete = (index: number) => {
+        setSupportingDocuments((prev) => prev.filter((_, i) => i !== index));
+        if (supportingDocuments.length <= 1) {
+            setData('has_documents', false);
+        }
+    };
+
+    // Handle file retry (for failed uploads)
+    const handleFileRetry = (index: number) => {
+        // Re-upload logic if needed
+        console.log('Retry upload for file:', supportingDocuments[index]);
     };
 
     // ? component ui
     return (
         <>
-            <form action="" onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit}>
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-2xl">
@@ -124,7 +182,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                     {/* contact num */}
                                     <Field>
                                         <FieldLabel htmlFor="input-field-contact">
-                                            Contact Num
+                                            Contact Number
                                         </FieldLabel>
                                         <Input
                                             className={enlarge}
@@ -501,18 +559,108 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                             Supporting Documents
                         </CardTitle>
                         {/* file uploads */}
-                        <FileUpload.DropZone
-                            className="bg-white text-black"
-                            onDropFiles={(files) => {
-                                // Handle the dropped files
-                                console.log('Files dropped:', files);
-                            }}
-                        />
+                        {/* File Upload Drop Zone */}
+                        <FileUpload.Root>
+                            <FileUpload.DropZone
+                                className="bg-white text-black"
+                                onDropFiles={handleFileDrop}
+                                onDropUnacceptedFiles={(files) => {
+                                    console.log('Unaccepted files:', files);
+                                }}
+                                onSizeLimitExceed={(files) => {
+                                    console.log(
+                                        'Files exceed size limit:',
+                                        files,
+                                    );
+                                }}
+                                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,"
+                                maxSize={10 * 1024 * 1024} // 10MB
+                                allowsMultiple={true}
+                            />
+
+                            {/* Add a custom upload button */}
+                            <div className="flex justify-center">
+                                <Button
+                                    type="button"
+                                    onClick={() => {
+                                        // Find the hidden file input and trigger click
+                                        const fileInput =
+                                            document.querySelector(
+                                                'input[type="file"]',
+                                            ) as HTMLInputElement;
+                                        if (fileInput) {
+                                            fileInput.click();
+                                        }
+                                    }}
+                                >
+                                    <UploadCloud02 className="mr-2 h-4 w-4" />
+                                    Browse Files
+                                </Button>
+                            </div>
+
+                            {/* File List */}
+                            {supportingDocuments.length > 0 && (
+                                <FileUpload.List>
+                                    {supportingDocuments.map((file, index) => {
+                                        const fileType = file.type.split(
+                                            '/',
+                                        )[0] as
+                                            'image' | 'application' | 'text';
+                                        const fileExtension = file.name
+                                            .split('.')
+                                            .pop()
+                                            ?.toLowerCase();
+                                        let iconType:
+                                            'pdf' | 'doc' | 'image' | 'empty' =
+                                            'empty';
+
+                                        if (fileExtension === 'pdf')
+                                            iconType = 'pdf';
+                                        else if (
+                                            ['doc', 'docx'].includes(
+                                                fileExtension || '',
+                                            )
+                                        )
+                                            iconType = 'doc';
+                                        else if (fileType === 'image')
+                                            iconType = 'image';
+
+                                        return (
+                                            <FileUpload.ListItemProgressBar
+                                                key={`${file.name}-${index}`}
+                                                name={file.name}
+                                                size={file.size}
+                                                progress={100}
+                                                type={iconType}
+                                                onDelete={() =>
+                                                    handleFileDelete(index)
+                                                }
+                                                onRetry={() =>
+                                                    handleFileRetry(index)
+                                                }
+                                            />
+                                        );
+                                    })}
+                                </FileUpload.List>
+                            )}
+                        </FileUpload.Root>
                     </CardContent>
 
                     <CardFooter className="flex justify-end gap-2 pt-25">
-                        <Button variant="outline">Cancel</Button>
-                        <Button>Submit Request</Button>
+                        <Button
+                            variant="outline"
+                            type="button"
+                            onClick={() => {
+                                reset();
+                                setSupportingDocuments([]);
+                                setValue('')
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={processing}>
+                            {processing ? 'Submitting...' : 'Submit Request'}
+                        </Button>
                     </CardFooter>
                 </Card>
             </form>
