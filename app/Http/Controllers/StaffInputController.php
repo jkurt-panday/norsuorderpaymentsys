@@ -116,7 +116,7 @@ class StaffInputController extends Controller
             });
         }
 
-        $formInputs = $query->paginate(15);
+        $formInputs = $query->paginate(10);
         $filters = $request->only(['search', 'status', 'date_from', 'date_to']);
 
         return Inertia::render('staff/requestform/request', compact('formInputs', 'filters'));

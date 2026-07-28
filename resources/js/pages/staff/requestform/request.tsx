@@ -1,6 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import { Inbox } from 'lucide-react';
+import { toast } from 'sonner';
 import staff from '@/routes/staff';
 import RequestTable, { type ColumnDef, type PaginatedData } from '@/components/RequestTable';
 import { Badge } from '@/components/ui/badge';
@@ -30,9 +31,16 @@ interface Filters {
   date_to: string;
 }
 
+interface FlashProps {
+  success?: string;
+  error?: string;
+  warning?: string;
+}
+
 interface PageProps {
   formInputs: PaginatedData<FormInput>;
   filters: Filters;
+  flash?: FlashProps;
 }
 
 const getStatusColor = (status: string): string => {
@@ -72,7 +80,13 @@ const formatCurrency = (amount: number) => {
 };
 
 const ManageRequests: React.FC = () => {
-  const { formInputs, filters } = usePage().props as unknown as PageProps;
+  const { formInputs, filters, flash } = usePage().props as unknown as PageProps;
+
+  useEffect(() => {
+    if (flash?.success) toast.success(flash.success);
+    if (flash?.error) toast.error(flash.error);
+    if (flash?.warning) toast.warning(flash.warning);
+  }, [flash]);
 
   const [search, setSearch] = useState(filters.search || '');
   const [status, setStatus] = useState(filters.status || '');

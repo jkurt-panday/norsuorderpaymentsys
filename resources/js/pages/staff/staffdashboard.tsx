@@ -51,6 +51,7 @@ const formatDate = (value?: string | null) => {
         };
 
     const date = new Date(value);
+    
     if (Number.isNaN(date.getTime())) return value;
     return date.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 };
@@ -64,9 +65,15 @@ export default function Dashboard() {
         statusBreakdown = [],
         requestsOverTime = [],
         requestsByMembership = [],
-        recentRequests = [],
+        recentRequests: allRecentRequests = [],
         recentActivity = [],
     } = usePage<DashboardPageProps>().props;
+
+    // Only show requests created today — anything before or after today is excluded.
+    const todayStr = new Date().toDateString();
+    const recentRequests = allRecentRequests.filter(
+        (request) => new Date(request.created_at).toDateString() === todayStr
+    );
 
     return (
         <div className="min-h-screen bg-slate-50 px-4 py-8">

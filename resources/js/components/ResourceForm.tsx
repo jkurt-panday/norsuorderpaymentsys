@@ -1,6 +1,7 @@
 import React from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, Save } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,6 +41,8 @@ export interface ResourceFormProps {
     submitLabel?: string;
     /** Label on the submit button while submitting (defaults based on method) */
     processingLabel?: string;
+    /** Toast message shown after a successful save (defaults based on method) */
+    successMessage?: string;
 }
 
 // ============ COMPONENT ============
@@ -52,19 +55,31 @@ export default function ResourceForm({
     method,
     submitLabel,
     processingLabel,
+    successMessage,
 }: ResourceFormProps) {
     const { data, setData, post, put, processing, errors } = useForm<Record<string, string>>(initialData);
 
     const resolvedSubmitLabel = submitLabel ?? (method === 'post' ? 'Create' : 'Update');
     const resolvedProcessingLabel = processingLabel ?? (method === 'post' ? 'Creating...' : 'Updating...');
+    const resolvedSuccessMessage =
+        successMessage ?? (method === 'post' ? 'Record created successfully.' : 'Record updated successfully.');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
+        const options = {
+            onSuccess: () => {
+                toast.success(resolvedSuccessMessage);
+            },
+            onError: () => {
+                toast.error('Please check the form for errors.');
+            },
+        };
+
         if (method === 'post') {
-            post(submitUrl);
+            post(submitUrl, options);
         } else {
-            put(submitUrl);
+            put(submitUrl, options);
         }
     };
 
@@ -101,7 +116,7 @@ export default function ResourceForm({
                                     </Label>
                                     <Input
                                         id={field.name}
-                                        type={field.type ?? 'text-area'}
+                                        type={field.type ?? 'text'}
                                         name={field.name}
                                         value={data[field.name] ?? ''}
                                         onChange={(e) => setData(field.name, e.target.value)}
@@ -136,4 +151,4 @@ export default function ResourceForm({
             </Card>
         </div>
     );
-}
+}   
