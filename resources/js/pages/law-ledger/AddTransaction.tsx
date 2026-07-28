@@ -1,5 +1,5 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -61,6 +61,24 @@ export default function AddTransaction({ filterOptions }: AddTransactionProps) {
       },
     });
   };
+
+  const semesterOptions = useMemo(() => {
+    const defaults = ['First Semester', 'Second Semester', 'Summer'];
+    const fromDb = filterOptions?.semesters ?? [];
+    return [...new Set([...defaults, ...fromDb])];
+  }, [filterOptions?.semesters]);
+
+  const yearLevelOptions = useMemo(() => {
+    const defaults = ['1L', '2L', '3L', '4L'];
+    const fromDb = filterOptions?.yearLevels ?? [];
+    return [...new Set([...defaults, ...fromDb])];
+  }, [filterOptions?.yearLevels]);
+
+  const programOptions = useMemo(() => {
+    const defaults = ['JD', 'LLM', 'JSD'];
+    const fromDb = filterOptions?.programs ?? [];
+    return [...new Set([...defaults, ...fromDb])];
+  }, [filterOptions?.programs]);
 
   const handleTransactionTypeChange = (value: string | null) => {
     setData('transaction_type', value ?? '');
@@ -148,12 +166,9 @@ export default function AddTransaction({ filterOptions }: AddTransactionProps) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">Select program</SelectItem>
-                      {filterOptions?.programs?.map(program => (
+                      {programOptions.map(program => (
                         <SelectItem key={program} value={program}>{program}</SelectItem>
                       ))}
-                      <SelectItem value="JD">JD</SelectItem>
-                      <SelectItem value="LLM">LLM</SelectItem>
-                      <SelectItem value="JSD">JSD</SelectItem>
                     </SelectContent>
                   </Select>
                   {errors.program && (
@@ -171,13 +186,9 @@ export default function AddTransaction({ filterOptions }: AddTransactionProps) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">Select year level</SelectItem>
-                      {filterOptions?.yearLevels?.map(level => (
+                      {yearLevelOptions.map(level => (
                         <SelectItem key={level} value={level}>{level}</SelectItem>
                       ))}
-                      <SelectItem value="1L">1L</SelectItem>
-                      <SelectItem value="2L">2L</SelectItem>
-                      <SelectItem value="3L">3L</SelectItem>
-                      <SelectItem value="4L">4L</SelectItem>
                     </SelectContent>
                   </Select>
                   {errors.year_level && (
@@ -215,12 +226,9 @@ export default function AddTransaction({ filterOptions }: AddTransactionProps) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">Select semester</SelectItem>
-                      {filterOptions?.semesters?.map(sem => (
+                      {semesterOptions.map(sem => (
                         <SelectItem key={sem} value={sem}>{sem}</SelectItem>
                       ))}
-                      <SelectItem value="First Semester">First Semester</SelectItem>
-                      <SelectItem value="Second Semester">Second Semester</SelectItem>
-                      <SelectItem value="Summer">Summer</SelectItem>
                     </SelectContent>
                   </Select>
                   {errors.semester && (
