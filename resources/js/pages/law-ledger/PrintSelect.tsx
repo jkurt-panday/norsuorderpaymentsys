@@ -152,7 +152,7 @@ export default function PrintSelect({ students, selectedStudent, records, summar
 
   const handleGeneratePdf = () => {
     if (selectedStudentState) {
-      router.get(`/law-ledger/pdf?student=${encodeURIComponent(selectedStudentState)}`);
+      window.open(`/law-ledger/pdf?student=${encodeURIComponent(selectedStudentState)}`, '_blank');
     }
   };
 
