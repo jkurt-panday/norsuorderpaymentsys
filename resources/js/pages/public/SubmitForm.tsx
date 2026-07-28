@@ -573,7 +573,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         files,
                                     );
                                 }}
-                                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,"
+                                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.svg"
                                 maxSize={10 * 1024 * 1024} // 10MB
                                 allowsMultiple={true}
                             />
@@ -632,6 +632,8 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                 size={file.size}
                                                 progress={100}
                                                 type={iconType}
+                                                // Force light background and make child button icons clearly visible:
+                                                className="bg-black text-white [&_button:hover]:bg-gray-100! [&_button:hover]:text-gray-900!"
                                                 onDelete={() =>
                                                     handleFileDelete(index)
                                                 }

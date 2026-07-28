@@ -1,24 +1,50 @@
-// resources/js/pages/public/Success.tsx
+// /home/kurt_/norsuorderpaymentsys/resources/js/pages/public/Success.tsx
+
+import React from 'react';
 import {
     Card,
     CardContent,
-    CardDescription,
     CardHeader,
     CardTitle,
+    CardDescription,
+    CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle } from '@untitledui/icons';
-import { route } from 'ziggy-js';
-import { router } from '@inertiajs/react';
-// import { format } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
+import { Link } from '@inertiajs/react';
+import PublicLayout from '@/pages/layouts/PublicLayout';
+import {
+    CheckCircle,
+    Download,
+    FileText,
+    Mail,
+    Phone,
+    MapPin,
+    User,
+    Building,
+    Hash,
+    CreditCard,
+    Receipt,
+} from 'lucide-react';
 
 interface SupportingDocument {
     id: number;
     original_filename: string;
+    file_url: string;
     file_size: number;
     mime_type: string;
     uploaded_at: string;
+}
+
+interface Membership {
+    id: number;
+    member_code: string;
+}
+
+interface PaymentOption {
+    id: number;
+    payment_desc: string;
 }
 
 interface FormInput {
@@ -34,151 +60,165 @@ interface FormInput {
     address: string;
     amount: string;
     request_type: string;
-    membership: {
-        member_code: string;
-    };
-    paymentDetailOption: {
-        payment_desc: string;
-    };
-    supporting_documents: SupportingDocument[];
+    membership: Membership;
+    payment_detail_option: PaymentOption;
+    supportingDocuments: SupportingDocument[];
     created_at: string;
 }
 
 interface Props {
-    referenceNumber: string;
+    reference_number: string;
     formInput: FormInput;
 }
 
-export default function Success({ referenceNumber, formInput }: Props) {
-    // Format file size
-    const getReadableFileSize = (bytes: number) => {
-        if (bytes === 0) return '0 KB';
-        const suffixes = ['B', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(1024));
-        return (
-            Math.round((bytes / Math.pow(1024, i)) * 100) / 100 +
-            ' ' +
-            suffixes[i]
-        );
-    };
-
-    // Format date without date-fns
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        const options: Intl.DateTimeFormatOptions = {
+export default function Success({ reference_number, formInput }: Props) {
+    // Format date
+    const formatDate = (date: string) => {
+        return new Date(date).toLocaleDateString('en-PH', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
             hour: '2-digit',
             minute: '2-digit',
-        };
-        return date.toLocaleDateString('en-US', options);
-    };
-
-    const goHome = () => {
-        router.visit('/');
-    };
-
-    const downloadDocument = (documentId: number) => {
-        router.visit(`/api/supporting-documents/${documentId}/download`, {
-            method: 'get',
         });
     };
 
-    // Add loading/error state
-    if (!formInput) {
-        return (
-            <div className="min-h-screen bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-                <div className="mx-auto max-w-4xl text-center">
-                    <h1 className="text-2xl font-bold text-gray-900">
-                        Submission Successful!
-                    </h1>
-                    <p className="mt-4 text-gray-600">
-                        Reference Number: <strong>{referenceNumber}</strong>
-                    </p>
-                    <p className="mt-2 text-gray-500">
-                        Loading submission details...
-                    </p>
-                    <Button
-                        onClick={() => router.visit('/public/form')}
-                        className="mt-6"
-                    >
-                        Submit Another Request
-                    </Button>
-                </div>
-            </div>
-        );
-    }
+    // Format currency
+    const formatCurrency = (amount: string) => {
+        return new Intl.NumberFormat('en-PH', {
+            style: 'currency',
+            currency: 'PHP',
+        }).format(parseFloat(amount));
+    };
+
+    // Format file size
+    const formatFileSize = (bytes: number) => {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
 
     return (
-        <div className="min-h-screen bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-4xl">
-                {/* Success Header */}
-                <div className="mb-8 text-center">
+        <div className="container mx-auto max-w-4xl px-4 py-8">
+            <Card className="border-green-200 shadow-lg">
+                <CardHeader className="border-b border-green-200 bg-green-50 text-center">
                     <div className="mb-4 flex justify-center">
-                        <div className="rounded-full bg-green-100 p-4">
-                            <CheckCircle className="h-16 w-16 stroke-[1.5] text-green-600" />
-                        </div>
+                        <CheckCircle className="h-16 w-16 text-green-500" />
                     </div>
-                    <h1 className="text-3xl font-bold text-gray-900">
+                    <CardTitle className="text-3xl font-bold text-green-700">
                         Submission Successful!
-                    </h1>
-                    <p className="mt-2 text-gray-600">
+                    </CardTitle>
+                    <CardDescription className="text-lg">
                         Your request has been submitted successfully.
-                    </p>
-                    <div className="mt-4 inline-block rounded-lg bg-blue-50 px-6 py-3">
-                        <p className="text-sm text-gray-600">
+                    </CardDescription>
+                </CardHeader>
+
+                <CardContent className="space-y-6 pt-6">
+                    {/* Reference Number */}
+                    <div className="rounded-lg bg-muted/50 p-4 text-center">
+                        <p className="text-sm text-muted-foreground">
                             Reference Number
                         </p>
-                        <p className="font-mono text-2xl font-bold text-blue-600">
-                            {referenceNumber}
+                        <p className="font-mono text-2xl font-bold text-primary">
+                            {reference_number}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            Please keep this reference number for tracking your
+                            request.
                         </p>
                     </div>
-                </div>
 
-                {/* Form Data */}
-                <Card className="mb-6">
-                    <CardHeader>
-                        <CardTitle>Submission Details</CardTitle>
-                        <CardDescription>
-                            Submitted on {formatDate(formInput.created_at)}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        {/* Personal Information */}
-                        <div>
-                            <h3 className="mb-3 text-lg font-semibold">
-                                Personal Information
-                            </h3>
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <Separator />
+
+                    {/* Contact Information */}
+                    <div>
+                        <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold">
+                            <User className="h-5 w-5" />
+                            Contact Information
+                        </h3>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div className="flex items-start gap-2">
+                                <Mail className="mt-1 h-4 w-4 text-muted-foreground" />
                                 <div>
-                                    <p className="text-sm text-gray-500">
-                                        Full Name
-                                    </p>
-                                    <p className="font-medium">
-                                        {formInput.firstname_or_office}{' '}
-                                        {formInput.middlename_or_project || ''}{' '}
-                                        {formInput.lastname_or_agency}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">
+                                    <p className="text-sm text-muted-foreground">
                                         Email
                                     </p>
                                     <p className="font-medium">
                                         {formInput.email}
                                     </p>
                                 </div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                                <Phone className="mt-1 h-4 w-4 text-muted-foreground" />
                                 <div>
-                                    <p className="text-sm text-gray-500">
+                                    <p className="text-sm text-muted-foreground">
                                         Contact Number
                                     </p>
                                     <p className="font-medium">
                                         {formInput.contact_num}
                                     </p>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Identity Details */}
+                    <div>
+                        <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold">
+                            <Building className="h-5 w-5" />
+                            Identity Details
+                        </h3>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div>
+                                <p className="text-sm text-muted-foreground">
+                                    First Name / Office
+                                </p>
+                                <p className="font-medium">
+                                    {formInput.firstname_or_office}
+                                </p>
+                            </div>
+                            {formInput.middlename_or_project && (
                                 <div>
-                                    <p className="text-sm text-gray-500">
+                                    <p className="text-sm text-muted-foreground">
+                                        Middle Name / Project
+                                    </p>
+                                    <p className="font-medium">
+                                        {formInput.middlename_or_project}
+                                    </p>
+                                </div>
+                            )}
+                            <div>
+                                <p className="text-sm text-muted-foreground">
+                                    Last Name / Agency
+                                </p>
+                                <p className="font-medium">
+                                    {formInput.lastname_or_agency}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">
+                                    Office / College
+                                </p>
+                                <p className="font-medium">
+                                    {formInput.office_or_college}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">
+                                    Position / Designation
+                                </p>
+                                <p className="font-medium">
+                                    {formInput.position_or_designation}
+                                </p>
+                            </div>
+                            <div className="col-span-full flex items-start gap-2">
+                                <MapPin className="mt-1 h-4 w-4 text-muted-foreground" />
+                                <div>
+                                    <p className="text-sm text-muted-foreground">
                                         Address
                                     </p>
                                     <p className="font-medium">
@@ -187,146 +227,140 @@ export default function Success({ referenceNumber, formInput }: Props) {
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <Separator />
+                    <Separator />
 
-                        {/* Professional Information */}
-                        <div>
-                            <h3 className="mb-3 text-lg font-semibold">
-                                Professional Information
-                            </h3>
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                <div>
-                                    <p className="text-sm text-gray-500">
-                                        Office / College
-                                    </p>
-                                    <p className="font-medium">
-                                        {formInput.office_or_college}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">
-                                        Position / Designation
-                                    </p>
-                                    <p className="font-medium">
-                                        {formInput.position_or_designation}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">
-                                        Membership Type
-                                    </p>
-                                    <p className="font-medium">
-                                        {formInput.membership?.member_code ||
-                                            'N/A'}
-                                    </p>
-                                </div>
+                    {/* Request Details */}
+                    <div>
+                        <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold">
+                            <Receipt className="h-5 w-5" />
+                            Request Details
+                        </h3>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div>
+                                <p className="text-sm text-muted-foreground">
+                                    Request Type
+                                </p>
+                                <Badge variant="secondary" className="mt-1">
+                                    {formInput.request_type}
+                                </Badge>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">
+                                    Amount
+                                </p>
+                                <p className="text-xl font-bold text-primary">
+                                    {formatCurrency(formInput.amount)}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">
+                                    Membership Type
+                                </p>
+                                <p className="font-medium">
+                                    {formInput.membership.member_code}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">
+                                    Payment Details
+                                </p>
+                                <p className="font-medium">
+                                    {formInput.payment_detail_option
+                                        ?.payment_desc || 'N/A'}
+                                </p>
                             </div>
                         </div>
+                    </div>
 
-                        <Separator />
+                    <Separator />
 
-                        {/* Request Details */}
-                        <div>
-                            <h3 className="mb-3 text-lg font-semibold">
-                                Request Details
-                            </h3>
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                                <div>
-                                    <p className="text-sm text-gray-500">
-                                        Request Type
-                                    </p>
-                                    <p className="font-medium">
-                                        {formInput.request_type}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">
-                                        Amount
-                                    </p>
-                                    <p className="font-medium">
-                                        ₱{Number(formInput.amount).toFixed(2)}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">
-                                        Payment Details
-                                    </p>
-                                    <p className="font-medium">
-                                        {formInput.paymentDetailOption
-                                            ?.payment_desc || 'N/A'}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <Separator />
-
-                        {/* Supporting Documents */}
-                        <div>
-                            <h3 className="mb-3 text-lg font-semibold">
-                                Supporting Documents
-                            </h3>
-                            {formInput.supporting_documents &&
-                            formInput.supporting_documents.length > 0 ? (
-                                <ul className="space-y-2">
-                                    {formInput.supporting_documents.map(
+                    {/* Supporting Documents */}
+                    {formInput.supportingDocuments &&
+                        formInput.supportingDocuments.length > 0 && (
+                            <div>
+                                <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold">
+                                    <FileText className="h-5 w-5" />
+                                    Supporting Documents
+                                </h3>
+                                <div className="space-y-2">
+                                    {formInput.supportingDocuments.map(
                                         (doc) => (
-                                            <li
+                                            <div
                                                 key={doc.id}
-                                                className="flex items-center justify-between rounded-lg bg-gray-50 p-3"
+                                                className="flex items-center justify-between rounded-lg bg-muted/30 p-3 transition-colors hover:bg-muted/50"
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <span className="text-sm font-medium">
-                                                        {doc.original_filename}
-                                                    </span>
-                                                    <span className="text-xs text-gray-500">
-                                                        (
-                                                        {getReadableFileSize(
-                                                            doc.file_size,
-                                                        )}
-                                                        )
-                                                    </span>
-                                                    <span className="text-xs text-gray-400">
-                                                        {doc.mime_type}
-                                                    </span>
+                                                    <FileText className="h-5 w-5 text-muted-foreground" />
+                                                    <div>
+                                                        <p className="text-sm font-medium">
+                                                            {
+                                                                doc.original_filename
+                                                            }
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {formatFileSize(
+                                                                doc.file_size,
+                                                            )}{' '}
+                                                            •{doc.mime_type} •
+                                                            Uploaded:{' '}
+                                                            {formatDate(
+                                                                doc.uploaded_at,
+                                                            )}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                                 <Button
-                                                    variant="link"
+                                                    variant="outline"
                                                     size="sm"
                                                     onClick={() =>
-                                                        downloadDocument(doc.id)
+                                                        window.open(
+                                                            doc.file_url,
+                                                            '_blank',
+                                                        )
                                                     }
-                                                    className="text-blue-600"
                                                 >
-                                                    Download
+                                                    <Download className="mr-1 h-4 w-4" />
+                                                    View
                                                 </Button>
-                                            </li>
+                                            </div>
                                         ),
                                     )}
-                                </ul>
-                            ) : (
-                                <p className="text-gray-500">
-                                    No documents uploaded
-                                </p>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
+                                </div>
+                            </div>
+                        )}
 
-                {/* Actions */}
-                <div className="flex justify-center gap-4">
-                    <Button onClick={goHome} variant="outline">
-                        Go to Home
-                    </Button>
-                    <Button onClick={() => window.print()} variant="outline">
-                        Print Receipt
-                    </Button>
-                    <Button onClick={() => router.visit('/public/form')}>
-                        Submit Another Request
-                    </Button>
-                </div>
-            </div>
+                    <Separator />
+
+                    {/* Submission Details */}
+                    <div className="text-sm text-muted-foreground">
+                        <p>Submitted on: {formatDate(formInput.created_at)}</p>
+                    </div>
+                </CardContent>
+
+                <CardFooter className="flex flex-col gap-4 border-t pt-6">
+                    <div className="max-w-xl text-center text-sm text-muted-foreground">
+                        <p>
+                            A confirmation email has been sent to your email
+                            address. Our team will review your request and
+                            contact you shortly.
+                        </p>
+                    </div>
+                    <div className="flex gap-4">
+                        <Button asChild variant="outline">
+                            <Link href="/public/form">
+                                Submit Another Request
+                            </Link>
+                        </Button>
+                        <Button asChild>
+                            <Link href="/">Go to Home</Link>
+                        </Button>
+                    </div>
+                </CardFooter>
+            </Card>
         </div>
     );
 }
+
+Success.layout = (page: React.ReactNode) => <PublicLayout>{page}</PublicLayout>;

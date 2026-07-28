@@ -522,7 +522,7 @@ export const FileListItemProgressFill = ({
                     tooltip="Delete"
                     icon={Trash01}
                     size="xs"
-                    className="-mt-2 -mr-2 self-start"
+                    className="-mt-2 -mr-2 self-start text-white"
                     onClick={onDelete}
                 />
             </div>
