@@ -10,8 +10,6 @@ use App\Services\ReferenceNumberService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class FormInputController extends Controller
@@ -56,18 +54,18 @@ class FormInputController extends Controller
             'payment_detail_option_id' => 'required|exists:payment_detail_options,id',
             
             'documents'                => 'nullable|array',
-            'documents.*'              => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'documents.*'              => 'file|mimes:pdf,jpg,jpeg,png,webp,svg|max:10240',
         ]);
 
         try {
             DB::beginTransaction();
 
             // 2. Generate Reference Number
-            $referenceNumber = $this->referenceNumberService->generate();
+            $reference_number = $this->referenceNumberService->generate();
 
             // 3. Create FormInput Record
             $formInput = FormInput::create([
-                'reference_number'        => $referenceNumber,
+                'reference_number'        => $reference_number,
                 'email'                   => $request->email,
                 'contact_num'             => $request->contact_num,
                 'firstname_or_office'     => $request->firstname_or_office,
@@ -93,8 +91,18 @@ class FormInputController extends Controller
             DB::commit();
 
             // Redirect to success page
-            return redirect()->route('public.success', [
-                'referenceNumber' => $formInput->reference_number
+            // return redirect()->route('public.success', [
+            //     'reference_number' => $formInput->reference_number
+            // ]);
+
+            // Load relationships before sending to the frontend
+            $formInput->load(['membership', 'paymentDetailOption', 'supportingDocuments']);
+
+            // OPTION 1: Return to success page via Inertia render (no redirect)
+            // This avoids another database query
+            return Inertia::render('public/Success', [
+                'reference_number' => $formInput->reference_number,
+                'formInput' => $formInput,
             ]);
 
         } catch (\Exception $e) {
@@ -108,19 +116,26 @@ class FormInputController extends Controller
     /**
      * Display the success page after order submission.
      */
-    public function success($referenceNumber)
+    public function success($reference_number)
     {
-        $formInput = FormInput::where('reference_number', $referenceNumber)
+        \Log::info('Success method called with reference number: ' . $reference_number);
+        
+        $formInput = FormInput::where('reference_number', $reference_number)
             ->with(['membership', 'paymentDetailOption', 'supportingDocuments'])
             ->first();
 
+        \Log::info('Form input found: ' . ($formInput ? 'Yes' : 'No'));
+
         if (!$formInput) {
-            return redirect()->route('public.success')
+            \Log::warning('Form input not found for reference: ' . $reference_number);
+            return redirect()->route('public.form')
                             ->with('error', 'Submission not found.');
         }
 
+        \Log::info('Rendering Success page with data');
+        
         return Inertia::render('public/Success', [
-            'referenceNumber' => $referenceNumber,
+            'reference_number' => $reference_number,
             'formInput' => $formInput,
         ]);
     }
