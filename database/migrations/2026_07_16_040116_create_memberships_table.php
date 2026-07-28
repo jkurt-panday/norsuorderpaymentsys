@@ -13,7 +13,7 @@ return new class extends Migration
             $table->string('member_code', 50)->unique();
             $table->string('member_desc', 255);
             $table->timestamps();
-            
+
             $table->index('member_code');
         });
     }

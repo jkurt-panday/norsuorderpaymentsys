@@ -10,13 +10,16 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "barryvdh/laravel-dompdf": "*",
         "inertiajs/inertia-laravel": "^3.0",
         "laravel/chisel": "^0.1.0",
         "laravel/fortify": "*",
         "laravel/framework": "^13.17",
         "laravel/sanctum": "*",
         "laravel/tinker": "^3.0",
-        "laravel/wayfinder": "^0.1.14"
+        "laravel/wayfinder": "^0.1.14",
+        "maatwebsite/excel": "*",
+        "revolution/laravel-google-sheets": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.24",
@@ -41,7 +44,7 @@
             "Tests\\": "tests/"
         }
     },
-    "scripts": {
+  "scripts": {
         "setup": [
             "composer install",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
@@ -97,6 +100,10 @@
         ]
     },
     "extra": {
+        "google/apiclient-services": [
+            "Sheets",
+            "Drive"
+        ],
         "laravel": {
             "dont-discover": [],
             "installer": {

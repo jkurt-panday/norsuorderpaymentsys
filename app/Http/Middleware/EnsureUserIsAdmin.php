@@ -10,13 +10,16 @@ class EnsureUserIsAdmin
 {
     /**
      * Handle an incoming request.
-     *
-     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        abort_unless($request->user()?->role === 'admin', Response::HTTP_FORBIDDEN);
+        // 1. Check if the user is authenticated (logged in)
+        // 2. Check if their database 'role' column says exactly 'admin'
+        if ($request->user() && $request->user()->role === 'admin') {
+            return $next($request); // Let them proceed to the route!
+        }
 
-        return $next($request);
+        // 3. Kick them out with a 403 Forbidden error if they aren't an admin
+        abort(403, 'Unauthorized action. Admin access required.');
     }
 }
