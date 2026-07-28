@@ -19,28 +19,28 @@ import {
 } from '@/components/ui/combobox';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-// import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import PublicLayout from '@/pages/layouts/PublicLayout';
 
 const reqType = ['New Request', 'Re-issue Request', 'Other'] as const;
+const enlarge = 'h-12 px-4 text-base';
 
-const memId = ['NORSUFFA', 'NAPU', 'Not Applicable'] as const;
+interface Membership {
+    id: number | string;
+    member_code: string;
+}
 
-const paymentDet = [
-    'Comprehensive Exam - Doctorate',
-    'Comprehensive Exam - Masters',
-    'IGP FABLAB',
-    'IGP Royalty Fee of NORSU Logo',
-    'IGP Sale of Agricultural Produce',
-    'IGP Sale of Beverages and Meals',
-    'IGP Sale of Bid Docs',
-] as const;
+interface PaymentOption {
+    id: number | string;
+    payment_desc: string;
+}
 
-const enlarge =
-    "h-12 px-4 text-base";
+interface Props {
+    memberships: Membership[];
+    paymentOptions: PaymentOption[];
+}
 
-export default function SubmitForm() {
+export default function SubmitForm({ memberships, paymentOptions }: Props) {
     // functions
     const [value, setValue] = useState('');
 
@@ -53,6 +53,7 @@ export default function SubmitForm() {
         }
     };
 
+    // ? component ui
     return (
         <>
             <Card>
@@ -75,7 +76,8 @@ export default function SubmitForm() {
                                     <FieldLabel htmlFor="input-field-email">
                                         Email Address
                                     </FieldLabel>
-                                    <Input className={enlarge}
+                                    <Input
+                                        className={enlarge}
                                         id="input-field-email"
                                         type="email"
                                         placeholder="jondoe@mail.com"
@@ -88,7 +90,8 @@ export default function SubmitForm() {
                                     <FieldLabel htmlFor="input-field-contact">
                                         Contact Num
                                     </FieldLabel>
-                                    <Input className={enlarge}
+                                    <Input
+                                        className={enlarge}
                                         id="input-field-contact"
                                         type="tel"
                                         placeholder="0912 333 4444"
@@ -111,7 +114,11 @@ export default function SubmitForm() {
                                     <FieldLabel htmlFor="input-field-fname">
                                         First Name / Office
                                     </FieldLabel>
-                                    <Input className={enlarge} id="input-field-fname" type="text" />
+                                    <Input
+                                        className={enlarge}
+                                        id="input-field-fname"
+                                        type="text"
+                                    />
                                 </Field>
                             </div>
                             <div className="space-y-2">
@@ -120,7 +127,11 @@ export default function SubmitForm() {
                                     <FieldLabel htmlFor="input-field-mname">
                                         Middle Name / Project
                                     </FieldLabel>
-                                    <Input className={enlarge} id="input-field-mname" type="text" />
+                                    <Input
+                                        className={enlarge}
+                                        id="input-field-mname"
+                                        type="text"
+                                    />
                                 </Field>
                             </div>
                             <div className="space-y-2">
@@ -129,7 +140,11 @@ export default function SubmitForm() {
                                     <FieldLabel htmlFor="input-field-lname">
                                         Last Name / Agency
                                     </FieldLabel>
-                                    <Input className={enlarge} id="input-field-lname" type="text" />
+                                    <Input
+                                        className={enlarge}
+                                        id="input-field-lname"
+                                        type="text"
+                                    />
                                 </Field>
                             </div>
                         </div>
@@ -142,7 +157,8 @@ export default function SubmitForm() {
                                     <FieldLabel htmlFor="input-field-off-coll">
                                         Office / College
                                     </FieldLabel>
-                                    <Input className={enlarge}
+                                    <Input
+                                        className={enlarge}
                                         id="input-field-off-coll"
                                         type="text"
                                     />
@@ -154,7 +170,8 @@ export default function SubmitForm() {
                                     <FieldLabel htmlFor="input-field-pos-des">
                                         Position / Designation
                                     </FieldLabel>
-                                    <Input className={enlarge}
+                                    <Input
+                                        className={enlarge}
                                         id="input-field-pos-des"
                                         type="text"
                                     />
@@ -168,7 +185,11 @@ export default function SubmitForm() {
                             <FieldLabel htmlFor="input-field-address">
                                 Address
                             </FieldLabel>
-                            <Input className={enlarge} id="input-field-address" type="text" />
+                            <Input
+                                className={enlarge}
+                                id="input-field-address"
+                                type="text"
+                            />
                         </Field>
                     </div>
                     <Separator />
@@ -183,7 +204,8 @@ export default function SubmitForm() {
                                 <div className="flex h-12 items-center justify-center rounded-l-md border border-r-0 bg-muted px-4 text-base text-muted-foreground">
                                     &#x20B1;
                                 </div>
-                                <Input className={`${enlarge} rounded-l-none`}
+                                <Input
+                                    className={`${enlarge} rounded-l-none`}
                                     id="input-field-amount"
                                     type="text"
                                     inputMode="decimal"
@@ -202,6 +224,7 @@ export default function SubmitForm() {
                             <Combobox items={reqType}>
                                 <ComboboxInput
                                     placeholder="Select a request type"
+                                    className={enlarge}
                                     showClear
                                 />
                                 <ComboboxContent>
@@ -226,9 +249,10 @@ export default function SubmitForm() {
                             <FieldLabel htmlFor="input-field-memtype">
                                 Membership Type
                             </FieldLabel>
-                            <Combobox items={memId}>
+                            <Combobox items={memberships}>
                                 <ComboboxInput
                                     placeholder="Select membership"
+                                    className={enlarge}
                                     showClear
                                 />
                                 <ComboboxContent>
@@ -236,14 +260,14 @@ export default function SubmitForm() {
                                         No items found.
                                     </ComboboxEmpty>
                                     <ComboboxList>
-                                        {(item) => (
+                                        {memberships.map((item) => (
                                             <ComboboxItem
-                                                key={item}
-                                                value={item}
+                                                key={item.id}
+                                                value={item.member_code}
                                             >
-                                                {item}
+                                                {item.member_code}
                                             </ComboboxItem>
-                                        )}
+                                        ))}
                                     </ComboboxList>
                                 </ComboboxContent>
                             </Combobox>
@@ -254,24 +278,26 @@ export default function SubmitForm() {
                             <FieldLabel htmlFor="input-field-paydet">
                                 Payment Details
                             </FieldLabel>
-                            <Combobox items={paymentDet}>
+                            <Combobox items={paymentOptions}>
                                 <ComboboxInput
+                                    itemProp="paymentOption"
                                     placeholder="Select payment details"
                                     showClear
+                                    className={enlarge}
                                 />
                                 <ComboboxContent>
                                     <ComboboxEmpty>
                                         No items found.
                                     </ComboboxEmpty>
                                     <ComboboxList>
-                                        {(item) => (
+                                        {paymentOptions.map((item) => (
                                             <ComboboxItem
-                                                key={item}
-                                                value={item}
+                                                key={item.id}
+                                                value={item.payment_desc}
                                             >
-                                                {item}
+                                                {item.payment_desc}
                                             </ComboboxItem>
-                                        )}
+                                        ))}
                                     </ComboboxList>
                                 </ComboboxContent>
                             </Combobox>
@@ -282,7 +308,7 @@ export default function SubmitForm() {
                         Supporting Documents
                     </CardTitle>
                     {/* file uploads */}
-                    <FileUploadDropZone />
+                    <FileUploadDropZone className="bg-white text-black" />
                 </CardContent>
 
                 <CardFooter className="flex justify-end gap-2 pt-25">
