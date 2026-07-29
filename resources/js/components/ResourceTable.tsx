@@ -121,7 +121,7 @@ export default function ResourceTable<T extends { id: number }>({
     };
 
     return (
-       <div className="min-h-screen bg-slate-50 mx-auto min-w-0 w-full max-w-7xl space-y-4 p-3 sm:p-6">
+       <div className="mx-auto min-w-0 w-full max-w-7xl space-y-4 p-3 sm:p-6">
             <Head title={title} />
 
             <div className="flex items-center justify-between">
@@ -135,7 +135,7 @@ export default function ResourceTable<T extends { id: number }>({
                 </Link>
             </div>
 
-            <Card className="w-full overflow-hidden py-0">
+           <Card className="w-full overflow-hidden py-0 border-slate-200/70 shadow-sm">
                 <CardContent className="overflow-x-auto p-0">
                     <Table className="min-w-[640px]">
                         <TableHeader>
@@ -143,7 +143,7 @@ export default function ResourceTable<T extends { id: number }>({
                                 {columns.map((col, i) => (
                                     <TableHead
                                         key={i}
-                                        className={`h-11 whitespace-nowrap bg-white text-xs font-semibold uppercase tracking-wide text-slate-500 ${
+                                        className={`h-11 whitespace-nowrap bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-600 ${
                                             i === 0 ? 'pl-6' : ''
                                         }`}
                                     >
@@ -160,7 +160,7 @@ export default function ResourceTable<T extends { id: number }>({
                                 resource.data.map((row, i) => (
                                     <TableRow
                                         key={row.id}
-                                        className={`border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/70 ${
+                                        className={`border-b border-slate-100 transition-colors last:border-0 hover:bg-blue-50/40 ${
                                             i % 2 === 1 ? 'bg-slate-50/30' : ''
                                         }`}
                                     >
@@ -180,6 +180,7 @@ export default function ResourceTable<T extends { id: number }>({
                                                     href={editHref(row)}
                                                     className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-amber-400 text-white transition-colors hover:bg-amber-500"
                                                     aria-label="Edit"
+                                                    title="Edit"
                                                 >
                                                     <Pencil className="h-3.5 w-3.5" />
                                                 </Link>
@@ -188,6 +189,7 @@ export default function ResourceTable<T extends { id: number }>({
                                                     onClick={() => openDeleteModal(row.id)}
                                                     className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-red-600 text-white transition-colors hover:bg-red-700"
                                                     aria-label="Delete"
+                                                    title="Delete"
                                                 >
                                                     <Trash2 className="h-3.5 w-3.5" />
                                                 </button>

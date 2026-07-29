@@ -1,6 +1,6 @@
 ﻿import React from 'react';
 import { Link, Head, usePage, usePoll } from '@inertiajs/react';
-import { StatCard, ChartCard, ActivityLogList, type ActivityLogItem } from '@/components/Reusable';
+import { StatCard, ChartCard, ActivityLogList, getDayLabel, type ActivityLogItem } from '@/components/Reusable';
 
 interface RecentRequest {
     id: number;
@@ -22,6 +22,10 @@ interface DashboardPageProps {
     pendingRequests?: number;
     approvedRequests?: number;
     cancelledRequests?: number;
+    totalRequestsLastDate?: string | null;
+    pendingLastDate?: string | null;
+    approvedLastDate?: string | null;
+    cancelledLastDate?: string | null;
     statusBreakdown?: ChartDatum[];
     requestsOverTime?: ChartDatum[];
     requestsByMembership?: ChartDatum[];
@@ -75,17 +79,21 @@ export default function Dashboard() {
         ],
     });
 
-    const {
-        totalRequests = 0,
-        pendingRequests = 0,
-        approvedRequests = 0,
-        cancelledRequests = 0,
-        statusBreakdown = [],
-        requestsOverTime = [],
-        requestsByMembership = [],
-        recentRequests: allRecentRequests = [],
-        recentActivity = [],
-    } = usePage<DashboardPageProps>().props;
+        const {
+            totalRequests = 0,
+            pendingRequests = 0,
+            approvedRequests = 0,
+            cancelledRequests = 0,
+            totalRequestsLastDate = null,
+            pendingLastDate = null,
+            approvedLastDate = null,
+            cancelledLastDate = null,
+            statusBreakdown = [],
+            requestsOverTime = [],
+            requestsByMembership = [],
+            recentRequests: allRecentRequests = [],
+            recentActivity = [],
+        } = usePage<DashboardPageProps>().props;
 
     // Only show requests created today — anything before or after today is excluded.
     const todayStr = new Date().toDateString();
@@ -109,10 +117,10 @@ export default function Dashboard() {
 
                 {/* Stat cards */}
                 <div className="grid gap-4 md:grid-cols-4">
-                    <StatCard label="Total Requests" value={totalRequests} bgClass="bg-slate-900" textClass="text-white" />
-                    <StatCard label="Pending" value={pendingRequests} bgClass="bg-amber-100" textClass="text-slate-950" />
-                    <StatCard label="Approved" value={approvedRequests} bgClass="bg-emerald-100" textClass="text-slate-950" />
-                    <StatCard label="Cancelled" value={cancelledRequests} bgClass="bg-rose-100" textClass="text-slate-950" />
+                    <StatCard label="Total Requests" value={totalRequests} bgClass="bg-slate-900" textClass="text-white" subtitle={getDayLabel(totalRequestsLastDate)} />
+                    <StatCard label="Pending" value={pendingRequests} bgClass="bg-amber-100" textClass="text-slate-950" subtitle={getDayLabel(pendingLastDate)} />
+                    <StatCard label="Approved" value={approvedRequests} bgClass="bg-emerald-100" textClass="text-slate-950" subtitle={getDayLabel(approvedLastDate)} />
+                    <StatCard label="Cancelled" value={cancelledRequests} bgClass="bg-rose-100" textClass="text-slate-950" subtitle={getDayLabel(cancelledLastDate)} />
                 </div>
 
                 {/* Charts */}
@@ -123,6 +131,7 @@ export default function Dashboard() {
                         data={statusBreakdown}
                         xKey="name"
                         yKey="count"
+                        pieColors={['#f59e0b', '#22c55e', '#ef4444']}
                     />
                     <div className="lg:col-span-2">
                         <ChartCard

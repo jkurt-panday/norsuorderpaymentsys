@@ -25,6 +25,12 @@ class StaffInputController extends Controller
             ->groupBy('status')
             ->pluck('count', 'status');
 
+        $latestByStatus = StaffInput::query()
+        ->selectRaw('status, MAX(created_at) as latest')
+        ->groupBy('status')
+        ->pluck('latest', 'status');
+
+        $totalRequestsLastDate = FormInput::max('created_at');
         $requestsOverTime = FormInput::query()
             ->where('created_at', '>=', $startDate)
             ->get(['created_at'])
@@ -58,6 +64,10 @@ class StaffInputController extends Controller
             'pendingRequests' => $statusCounts->get('pending', 0),
             'approvedRequests' => $statusCounts->get('approved', 0),
             'cancelledRequests' => $statusCounts->get('cancelled', 0),
+            'totalRequestsLastDate' => $totalRequestsLastDate,
+            'pendingLastDate' => $latestByStatus->get('pending'),
+            'approvedLastDate' => $latestByStatus->get('approved'),
+            'cancelledLastDate' => $latestByStatus->get('cancelled'),
             'statusBreakdown' => collect(['pending', 'approved', 'cancelled'])
                 ->map(fn (string $status) => [
                     'name' => ucfirst($status),

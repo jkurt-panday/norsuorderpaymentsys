@@ -3,8 +3,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { Inbox } from 'lucide-react';
 import { toast } from 'sonner';
 import staff from '@/routes/staff';
-import RequestTable, { type ColumnDef, type PaginatedData } from '@/components/RequestTable';
-import { Badge } from '@/components/ui/badge';
+import RequestTable, { type ColumnDef, type PaginatedData, StatusBadge } from '@/components/RequestTable';
 
 interface StaffInput {
   id: number;
@@ -43,19 +42,11 @@ interface PageProps {
   flash?: FlashProps;
 }
 
-const getStatusColor = (status: string): string => {
-  switch (status) {
-    case 'approved':
-      return 'bg-emerald-500 hover:bg-emerald-600 text-white';
-    case 'cancelled':
-      return 'bg-red-500 hover:bg-red-600 text-white';
-    case 'pending':
-      return 'bg-amber-500 hover:bg-amber-600 text-white';
-    case 'unprocessed':
-      return 'bg-blue-500 hover:bg-blue-600 text-white';
-    default:
-      return 'bg-slate-500 hover:bg-slate-600 text-white';
-  }
+const STATUS_TO_COLOR: Record<string, string> = {
+  approved: 'green',
+  cancelled: 'red',
+  pending: 'orange',
+  unprocessed: 'grey',
 };
 
 const formatDate = (dateString: string) => {
@@ -148,6 +139,7 @@ const ManageRequests: React.FC = () => {
       header: 'Amount',
       width: '110px',
       align: 'right',
+      className: 'tabular-nums',
       render: (row) => formatCurrency(row.amount),
     },
     { header: 'Membership', width: '130px', render: (row) => row.membership?.member_code ?? 'N/A' },
@@ -157,9 +149,10 @@ const ManageRequests: React.FC = () => {
       render: (row) => {
         const currentStatus = row.staffInput?.status ?? 'unprocessed';
         return (
-          <Badge variant="default" className={`${getStatusColor(currentStatus)} capitalize`}>
-            {currentStatus}
-          </Badge>
+          <StatusBadge
+            label={currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}
+            color={STATUS_TO_COLOR[currentStatus]}
+          />
         );
       },
     },

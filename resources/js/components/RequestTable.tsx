@@ -1,4 +1,6 @@
 import * as React from "react";
+import { Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -10,8 +12,6 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -27,6 +27,16 @@ interface PaginationLink {
   active: boolean;
 }
 
+export function StatusBadge({ label, color }: { label: string; color?: keyof typeof STATUS_COLORS | string }) {
+  const dotColor = resolveStatusColor(color);
+  
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", dotColor)} />
+      {label}
+    </span>
+  );
+}
 /** Shape of a Laravel paginator's JSON */
 export interface PaginatedData<T> {
   data: T[];
@@ -164,7 +174,7 @@ export default function RequestTable<T extends { id: number | string }>({
       )}
 
       {/* ---- Filter bar: search + status + date range ---- */}
-      <Card className="min-w-0">
+      <Card className="min-w-0 border-slate-200/70 shadow-sm">
         <CardContent className="p-3 sm:p-4">
           <form
             onSubmit={onFilterSubmit}
@@ -272,7 +282,7 @@ export default function RequestTable<T extends { id: number | string }>({
       </Card>
 
       {/* ---- Table ---- */}
-      <Card className="min-w-0 overflow-hidden py-0">
+      <Card className="min-w-0 overflow-hidden py-0 border-slate-200/70 shadow-sm">
         <CardContent className="min-w-0 overflow-x-auto p-0">
           <Table>
             <TableHeader>
@@ -282,10 +292,10 @@ export default function RequestTable<T extends { id: number | string }>({
                     key={i}
                     style={col.width ? { width: col.width } : undefined}
                     className={cn(
-                      "h-11 whitespace-nowrap bg-white text-xs font-semibold uppercase tracking-wide text-slate-500",
-                      i === 0 && "pl-4 sm:pl-6",
+                    "h-11 whitespace-nowrap bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-600",
+                        i === 0 && "pl-4 sm:pl-6",
                       col.align && alignClass[col.align],
-                      col.hideOnMobile && "hidden md:table-cell",
+                      col.hideOnMobile && "hidden md:table-cell     ",
                       col.className
                     )}
                   >
@@ -316,7 +326,7 @@ export default function RequestTable<T extends { id: number | string }>({
                   <TableRow
                     key={row.id}
                     className={cn(
-                      "border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/70",
+                      "border-b border-slate-100 transition-colors last:border-0 hover:bg-blue-50/40",
                       i % 2 === 1 && "bg-slate-50/30"
                     )}
                   >
@@ -326,7 +336,7 @@ export default function RequestTable<T extends { id: number | string }>({
                         style={col.width ? { width: col.width } : undefined}
                         className={cn(
                           "py-3 text-sm text-slate-700",
-                          j === 0 && "pl-4 sm:pl-6",
+                          j === 0 && "pl-4 sm:pl-6 font-medium text-slate-900",
                           col.align && alignClass[col.align],
                           col.hideOnMobile && "hidden md:table-cell",
                           col.className

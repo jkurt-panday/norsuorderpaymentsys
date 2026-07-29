@@ -17,6 +17,21 @@ import { Plus, Pencil, Trash2, CheckCircle2, Activity } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
+
+export function getDayLabel(dateString?: string | null): string | null {
+    if (!dateString) return null;
+
+    const date = new Date(dateString);
+    const today = new Date();
+    date.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    const diffDays = Math.round((today.getTime() - date.getTime()) / 86400000);
+
+    if (diffDays <= 0) return 'Today';
+    if (diffDays === 1) return '1 day ago';
+    return `${diffDays} days ago`;
+}
 /* ============================================================
    1. StatCard — single number metric
    ============================================================ */
@@ -26,6 +41,7 @@ export interface StatCardProps {
     bgClass?: string;
     textClass?: string;
     icon?: React.ReactNode;
+    subtitle?: string | null;
 }
 
 export function StatCard({
@@ -34,6 +50,7 @@ export function StatCard({
     bgClass = 'bg-slate-900',
     textClass = 'text-white',
     icon,
+    subtitle,
 }: StatCardProps) {
     return (
         <div className={`rounded-3xl p-6 shadow-sm ${bgClass} ${textClass}`}>
@@ -42,6 +59,7 @@ export function StatCard({
                 {icon && <span className="opacity-80">{icon}</span>}
             </div>
             <p className="mt-4 text-3xl font-semibold">{value}</p>
+            {subtitle && <p className="mt-1 text-xs opacity-60">{subtitle}</p>}
         </div>
     );
 }
