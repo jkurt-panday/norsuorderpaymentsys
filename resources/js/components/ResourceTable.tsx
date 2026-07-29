@@ -143,14 +143,14 @@ export default function ResourceTable<T extends { id: number }>({
                                 {columns.map((col, i) => (
                                     <TableHead
                                         key={i}
-                                        className={`h-11 whitespace-nowrap bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500 ${
+                                        className={`h-11 whitespace-nowrap bg-white text-xs font-semibold uppercase tracking-wide text-slate-500 ${
                                             i === 0 ? 'pl-6' : ''
                                         }`}
                                     >
                                         {col.header}
                                     </TableHead>
                                 ))}
-                                <TableHead className="h-11 bg-slate-50/80 pr-6 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                <TableHead className="h-11 bg-white pr-6 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                                     Actions
                                 </TableHead>
                             </TableRow>

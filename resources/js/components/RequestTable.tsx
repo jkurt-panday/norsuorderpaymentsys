@@ -282,7 +282,7 @@ export default function RequestTable<T extends { id: number | string }>({
                     key={i}
                     style={col.width ? { width: col.width } : undefined}
                     className={cn(
-                      "h-11 whitespace-nowrap bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500",
+                      "h-11 whitespace-nowrap bg-white text-xs font-semibold uppercase tracking-wide text-slate-500",
                       i === 0 && "pl-4 sm:pl-6",
                       col.align && alignClass[col.align],
                       col.hideOnMobile && "hidden md:table-cell",
@@ -294,7 +294,7 @@ export default function RequestTable<T extends { id: number | string }>({
                 ))}
                 <TableHead
                   style={{ width: actionsWidth }}
-                  className="h-11 bg-slate-50/80 pr-4 text-right text-xs font-semibold uppercase tracking-wide text-slate-500 sm:pr-6"
+                  className="h-11 bg-white  pr-4 text-right text-xs font-semibold uppercase tracking-wide text-slate-500 sm:pr-6"
                 >
                   Actions
                 </TableHead>

@@ -27,7 +27,7 @@ import { router } from '@inertiajs/react';
 import { UploadCloud02 } from '@untitledui/icons';
 
 const reqType = ['New Request', 'Re-issue Request', 'Other'] as const;
-const enlarge = 'h-12 px-4 text-base';
+const enlarge = 'h-12 px-4 text-base border-2 border-slate-300 bg-slate-50 focus-visible:border-slate-500 focus-visible:bg-white';
 
 interface Membership {
     id: number | string;
@@ -116,11 +116,31 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
     // Add state for supporting documents
     const [supportingDocuments, setSupportingDocuments] = useState<File[]>([]);
 
+    // Tracks animated upload progress (0-100) for each file, keyed by a stable file identifier
+    const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+
+    // Builds a stable, unique key for a File object so we can track its progress
+    const getFileKey = (file: File) => `${file.name}-${file.size}-${file.lastModified}`;
+
+    // Animates a single file's progress from 0 to 100 over ~0.8s
+    const animateFileProgress = (file: File) => {
+        const key = getFileKey(file);
+        setUploadProgress((prev) => ({ ...prev, [key]: 0 }));
+
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += 10;
+            setUploadProgress((prev) => ({ ...prev, [key]: Math.min(progress, 100) }));
+            if (progress >= 100) clearInterval(interval);
+        }, 80);
+    };
+
     // handle file drop
     const handleFileDrop = (files: FileList) => {
         const newFiles = Array.from(files);
         setSupportingDocuments((prev) => [...prev, ...newFiles]);
         setData('has_documents', true);
+        newFiles.forEach((file) => animateFileProgress(file));
     };
 
     // Handle file deletion
@@ -630,7 +650,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                 key={`${file.name}-${index}`}
                                                 name={file.name}
                                                 size={file.size}
-                                                progress={100}
+                                                progress={uploadProgress[getFileKey(file)] ?? 0}
                                                 type={iconType}
                                                 // Force light background and make child button icons clearly visible:
                                                 className="bg-black text-white [&_button:hover]:bg-gray-100! [&_button:hover]:text-gray-900!"

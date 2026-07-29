@@ -83,14 +83,14 @@ export default function ResourceForm({
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 mx-auto min-w-0 w-full max-w-7xl space-y-4 p-3 sm:p-6">
+        <div className="mx-auto min-w-0 w-full max-w-3xl space-y-4 p-3 sm:p-6">
             <Head title={title} />
 
             <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
                 <Link
                     href={backHref}
-                    className="inline-flex items-center gap-2 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                    className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back
