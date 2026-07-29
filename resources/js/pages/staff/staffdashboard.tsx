@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { Link, Head, usePage } from '@inertiajs/react';
+import { Link, Head, usePage, usePoll } from '@inertiajs/react';
 import { StatCard, ChartCard, ActivityLogList, type ActivityLogItem } from '@/components/Reusable';
 
 interface RecentRequest {
@@ -45,18 +45,36 @@ const statusBadgeClass = (status?: string) => {
 const formatDate = (value?: string | null) => {
 
     if (!value)
-        
+
         {
         return '-'
         };
 
     const date = new Date(value);
-    
+
     if (Number.isNaN(date.getTime())) return value;
     return date.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 };
 
 export default function Dashboard() {
+    // Polls the server every 10 seconds and re-fetches this page's props,
+    // re-rendering automatically with fresh data — no full page reload,
+    // no manual refresh needed. `only` limits the refetch to just the
+    // data this dashboard needs, instead of every shared prop.
+    usePoll(10000, {
+        only: [
+            'totalRequests',
+            'pendingRequests',
+            'approvedRequests',
+            'cancelledRequests',
+            'statusBreakdown',
+            'requestsOverTime',
+            'requestsByMembership',
+            'recentRequests',
+            'recentActivity',
+        ],
+    });
+
     const {
         totalRequests = 0,
         pendingRequests = 0,

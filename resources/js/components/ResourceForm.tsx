@@ -61,16 +61,15 @@ export default function ResourceForm({
 
     const resolvedSubmitLabel = submitLabel ?? (method === 'post' ? 'Create' : 'Update');
     const resolvedProcessingLabel = processingLabel ?? (method === 'post' ? 'Creating...' : 'Updating...');
-    const resolvedSuccessMessage =
-        successMessage ?? (method === 'post' ? 'Record created successfully.' : 'Record updated successfully.');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
         const options = {
-            onSuccess: () => {
-                toast.success(resolvedSuccessMessage);
-            },
+            // No toast.success here on purpose. The backend already flashes a
+            // specific success message on redirect (e.g. "Membership created
+            // successfully."), and the destination index page listens for it.
+            // Showing a generic toast here too would duplicate that message.
             onError: () => {
                 toast.error('Please check the form for errors.');
             },
@@ -84,7 +83,7 @@ export default function ResourceForm({
     };
 
     return (
-        <div className="mx-auto w-full max-w-7xl space-y-4 p-4 sm:p-6">
+        <div className="min-h-screen bg-slate-50 mx-auto min-w-0 w-full max-w-7xl space-y-4 p-3 sm:p-6">
             <Head title={title} />
 
             <div className="flex items-center justify-between">
@@ -151,4 +150,4 @@ export default function ResourceForm({
             </Card>
         </div>
     );
-}   
+}

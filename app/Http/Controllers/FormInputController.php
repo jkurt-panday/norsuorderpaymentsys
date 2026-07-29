@@ -33,15 +33,15 @@ class FormInputController extends Controller
      * Display the public submission form
      */
     public function create()
-{
-    $memberships = Membership::orderBy('member_desc')->get();
-    $paymentOptions = PaymentDetailOption::orderBy('payment_desc')->get();
+    {
+        $memberships = Membership::orderBy('member_desc')->get();
+        $paymentOptions = PaymentDetailOption::orderBy('payment_desc')->get();
 
-    return Inertia::render('SubmitForm', [
-        'memberships' => $memberships,
-        'paymentOptions' => $paymentOptions,
-    ]);
-}
+        return Inertia::render('public/SubmitForm', [
+            'memberships' => $memberships,
+            'paymentOptions' => $paymentOptions,
+        ]);
+    }
 
     public function store(Request $request)
     {
@@ -59,7 +59,7 @@ class FormInputController extends Controller
             'amount'                   => 'required|numeric|min:0',
             'membership_id'            => 'required|exists:memberships,id',
             'payment_detail_option_id' => 'required|exists:payment_detail_options,id',
-            
+
             'documents'                => 'nullable|array',
             'documents.*'              => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
@@ -98,7 +98,7 @@ class FormInputController extends Controller
                     $storedFilename = Str::uuid() . '.' . $extension;
 
                     $file->storeAs('supporting-documents', $storedFilename, 'public');
-    
+
                     $fileUrl = Storage::disk('public')->url('supporting-documents/' . $storedFilename);
 
                     SupportingDocument::create([
@@ -115,30 +115,23 @@ class FormInputController extends Controller
             }
 
             DB::commit();
-            return response()->json([
-                    'success' => true,
-                    'message' => 'Order of payment submitted successfully!',
-                    'reference_number' => $formInput->reference_number,
-                ]);
+
+            // Eager-load relations before rendering, so the Success page
+            // receives formInput.membership and formInput.paymentDetailOption
+            // as populated nested objects instead of undefined.
+            $formInput->load(['membership', 'paymentDetailOption']);
+
+            // Render the success page directly — no separate success() action
+            // or route needed, since we already have everything we need here.
+            return Inertia::render('public/Success', [
+                'referenceNumber' => $formInput->reference_number,
+                'formInput' => $formInput,
+            ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withInput()->with('error', 'Failed to submit request: ' . $e->getMessage());
         }
-    }
-
-    /**
-     * Display the success page after order submission.
-     */
-    public function success($referenceNumber = null)
-    {
-        // Optionally fetch the record if you want to display submission details
-        $formInput = null;
-        if ($referenceNumber) {
-            $formInput = FormInput::where('reference_number', $referenceNumber)->first();
-        }
-
-        return view('public.success', compact('referenceNumber', 'formInput'));
     }
 
     /**
