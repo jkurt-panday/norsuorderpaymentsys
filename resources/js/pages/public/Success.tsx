@@ -62,7 +62,7 @@ interface FormInput {
     amount: string;
     request_type: string;
     membership: Membership;
-    payment_detail_option: PaymentOption;
+    paymentDetailOption: PaymentOption; // was payment_detail_option
     supportingDocuments: SupportingDocument[];
     created_at: string;
 }
@@ -356,8 +356,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                         Payment Details
                                     </p>
                                     <p className="font-medium">
-                                        {formInput.payment_detail_option
-                                            ?.payment_desc || 'N/A'}
+                                         {formInput.paymentDetailOption?.payment_desc || 'N/A'}
                                     </p>
                                 </div>
                             </div>

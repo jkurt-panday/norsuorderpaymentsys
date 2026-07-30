@@ -135,27 +135,27 @@ class StaffInputController extends Controller
     /**
      * Show form for processing a specific request
      */
-    public function create(FormInput $formInput)
-    {
-        if ($formInput->staffInput()->exists()) {
-            return redirect()
-                ->route('staff.requests.show', $formInput)
-                ->with('warning', 'This request has already been processed.');
-        }
-
-        $bankAccounts = BankAccountInfo::orderBy('bank_name')->get();
-        $uacsList = Uacs::orderBy('object_code')->get();
-
-        $formInput->loadMissing('supportingDocuments');
-        $documents = $formInput->supportingDocuments()->get();
-
-        return Inertia::render('staff/requestform/processrequest', compact(
-            'formInput',
-            'bankAccounts',
-            'uacsList',
-            'documents'
-        ));
+   public function create(FormInput $formInput)
+{
+    if ($formInput->staffInput()->exists()) {
+        return redirect()
+            ->route('staff.requests.show', $formInput)
+            ->with('warning', 'This request has already been processed.');
     }
+
+    $bankAccounts = BankAccountInfo::orderBy('bank_name')->get();
+    $uacsList = Uacs::orderBy('object_code')->get();
+
+    $formInput->loadMissing(['membership', 'paymentDetailOption', 'supportingDocuments']);
+    $documents = $formInput->supportingDocuments()->get();
+
+    return Inertia::render('staff/requestform/processrequest', compact(
+        'formInput',
+        'bankAccounts',
+        'uacsList',
+        'documents'
+    ));
+}
 
     /**
      * Store staff processing data
