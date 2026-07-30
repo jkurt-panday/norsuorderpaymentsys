@@ -1,8 +1,15 @@
 import React, { useEffect } from 'react';
 import { Code } from 'lucide-react';
 import { toast } from 'sonner';
-import { create, edit, destroy } from '@/actions/App/Http/Controllers/UacsController';
-import ResourceTable, { type PaginatedData, type ColumnDef } from '@/components/ResourceTable';
+import {
+    create,
+    edit,
+    destroy,
+} from '@/actions/App/Http/Controllers/UacsController';
+import ResourceTable, {
+    type PaginatedData,
+    type ColumnDef,
+} from '@/components/ResourceTable';
 import { Badge } from '@/components/ui/badge';
 
 // ============ TYPE DEFINITIONS ============
@@ -41,7 +48,10 @@ export default function UacsIndex({ uacs, flash }: UacsIndexProps) {
         {
             header: 'Object Code',
             render: (row) => (
-                <Badge variant="secondary" className="bg-slate-800 text-white hover:bg-slate-800">
+                <Badge
+                    variant="secondary"
+                    className="bg-slate-800 text-white hover:bg-slate-800"
+                >
                     {row.object_code}
                 </Badge>
             ),
@@ -59,6 +69,8 @@ export default function UacsIndex({ uacs, flash }: UacsIndexProps) {
             addHref={create()}
             columns={columns}
             resource={uacs}
+            resourceKey="uacs"
+            pollInterval={5000}
             editHref={(row) => edit(row.id)}
             deleteUrl={(id) => destroy(id).url}
             emptyIcon={Code}

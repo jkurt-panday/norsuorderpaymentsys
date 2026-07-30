@@ -1,8 +1,15 @@
 import React, { useEffect } from 'react';
 import { Users } from 'lucide-react';
 import { toast } from 'sonner';
-import ResourceTable, { type PaginatedData, type ColumnDef } from '@/components/ResourceTable';
-import { create, edit, destroy } from '@/actions/App/Http/Controllers/MembershipController';
+import ResourceTable, {
+    type PaginatedData,
+    type ColumnDef,
+} from '@/components/ResourceTable';
+import {
+    create,
+    edit,
+    destroy,
+} from '@/actions/App/Http/Controllers/MembershipController';
 
 // ============ TYPE DEFINITIONS ============
 interface Membership {
@@ -32,7 +39,10 @@ const formatDate = (dateString: string): string => {
 };
 
 // ============ COMPONENT ============
-export default function MembershipsIndex({ memberships, flash }: MembershipsIndexProps) {
+export default function MembershipsIndex({
+    memberships,
+    flash,
+}: MembershipsIndexProps) {
     // Surface flash messages from the backend (e.g. delete blocked because the
     // membership is still in use). Without this, a rejected delete silently
     // redirects back with no visible feedback to the user.
@@ -73,6 +83,8 @@ export default function MembershipsIndex({ memberships, flash }: MembershipsInde
             addHref={create()}
             columns={columns}
             resource={memberships}
+            resourceKey="memberships"
+            pollInterval={5000}
             editHref={(row) => edit(row.id)}
             deleteUrl={(id) => destroy(id).url}
             emptyIcon={Users}

@@ -1,8 +1,15 @@
 import React, { useEffect } from 'react';
 import { Landmark } from 'lucide-react';
 import { toast } from 'sonner';
-import { create, edit, destroy } from '@/actions/App/Http/Controllers/BankAccountInfoController';
-import ResourceTable, { type PaginatedData, type ColumnDef } from '@/components/ResourceTable';
+import {
+    create,
+    edit,
+    destroy,
+} from '@/actions/App/Http/Controllers/BankAccountInfoController';
+import ResourceTable, {
+    type PaginatedData,
+    type ColumnDef,
+} from '@/components/ResourceTable';
 import { Badge } from '@/components/ui/badge';
 
 // ============ TYPE DEFINITIONS ============
@@ -24,7 +31,10 @@ interface BankAccountsIndexProps {
 }
 
 // ============ COMPONENT ============
-export default function BankAccountsIndex({ bankAccounts, flash }: BankAccountsIndexProps) {
+export default function BankAccountsIndex({
+    bankAccounts,
+    flash,
+}: BankAccountsIndexProps) {
     // Surface flash messages from the backend (e.g. delete blocked because the
     // bank account is still in use). Without this, a rejected delete silently
     // redirects back with no visible feedback to the user.
@@ -64,6 +74,8 @@ export default function BankAccountsIndex({ bankAccounts, flash }: BankAccountsI
             addHref={create()}
             columns={columns}
             resource={bankAccounts}
+            resourceKey="bankAccounts"
+            pollInterval={5000}
             editHref={(row) => edit(row.id)}
             deleteUrl={(id) => destroy(id).url}
             emptyIcon={Landmark}

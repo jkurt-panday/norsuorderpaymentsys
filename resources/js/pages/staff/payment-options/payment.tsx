@@ -1,8 +1,15 @@
 import React, { useEffect } from 'react';
 import { CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
-import { create, edit, destroy } from '@/actions/App/Http/Controllers/PaymentDetailOptionController';
-import ResourceTable, { type PaginatedData, type ColumnDef } from '@/components/ResourceTable';
+import {
+    create,
+    edit,
+    destroy,
+} from '@/actions/App/Http/Controllers/PaymentDetailOptionController';
+import ResourceTable, {
+    type PaginatedData,
+    type ColumnDef,
+} from '@/components/ResourceTable';
 
 // ============ TYPE DEFINITIONS ============
 interface PaymentOption {
@@ -31,7 +38,10 @@ const formatDate = (dateString: string): string => {
 };
 
 // ============ COMPONENT ============
-export default function PaymentOptionsIndex({ paymentOptions, flash }: PaymentOptionsIndexProps) {
+export default function PaymentOptionsIndex({
+    paymentOptions,
+    flash,
+}: PaymentOptionsIndexProps) {
     // Surface flash messages from the backend (e.g. delete blocked because the
     // payment option is still in use). Without this, a rejected delete silently
     // redirects back with no visible feedback to the user.
@@ -66,6 +76,8 @@ export default function PaymentOptionsIndex({ paymentOptions, flash }: PaymentOp
             addHref={create()}
             columns={columns}
             resource={paymentOptions}
+            resourceKey="paymentOptions"
+            pollInterval={5000}
             editHref={(row) => edit(row.id)}
             deleteUrl={(id) => destroy(id).url}
             emptyIcon={CreditCard}
