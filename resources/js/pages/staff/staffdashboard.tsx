@@ -71,6 +71,10 @@ export default function Dashboard() {
             'pendingRequests',
             'approvedRequests',
             'cancelledRequests',
+            'totalRequestsLastDate',
+            'pendingLastDate',
+            'approvedLastDate',
+            'cancelledLastDate',
             'statusBreakdown',
             'requestsOverTime',
             'requestsByMembership',
@@ -79,21 +83,21 @@ export default function Dashboard() {
         ],
     });
 
-        const {
-            totalRequests = 0,
-            pendingRequests = 0,
-            approvedRequests = 0,
-            cancelledRequests = 0,
-            totalRequestsLastDate = null,
-            pendingLastDate = null,
-            approvedLastDate = null,
-            cancelledLastDate = null,
-            statusBreakdown = [],
-            requestsOverTime = [],
-            requestsByMembership = [],
-            recentRequests: allRecentRequests = [],
-            recentActivity = [],
-        } = usePage<DashboardPageProps>().props;
+    const {
+        totalRequests = 0,
+        pendingRequests = 0,
+        approvedRequests = 0,
+        cancelledRequests = 0,
+        totalRequestsLastDate = null,
+        pendingLastDate = null,
+        approvedLastDate = null,
+        cancelledLastDate = null,
+        statusBreakdown = [],
+        requestsOverTime = [],
+        requestsByMembership = [],
+        recentRequests: allRecentRequests = [],
+        recentActivity = [],
+    } = usePage<DashboardPageProps>().props;
 
     // Only show requests created today — anything before or after today is excluded.
     const todayStr = new Date().toDateString();
@@ -117,16 +121,41 @@ export default function Dashboard() {
 
                 {/* Stat cards */}
                 <div className="grid gap-4 md:grid-cols-4">
-                    <StatCard label="Total Requests" value={totalRequests} bgClass="bg-slate-900" textClass="text-white" subtitle={getDayLabel(totalRequestsLastDate)} />
-                    <StatCard label="Pending" value={pendingRequests} bgClass="bg-amber-100" textClass="text-slate-950" subtitle={getDayLabel(pendingLastDate)} />
-                    <StatCard label="Approved" value={approvedRequests} bgClass="bg-emerald-100" textClass="text-slate-950" subtitle={getDayLabel(approvedLastDate)} />
-                    <StatCard label="Cancelled" value={cancelledRequests} bgClass="bg-rose-100" textClass="text-slate-950" subtitle={getDayLabel(cancelledLastDate)} />
+                    <StatCard
+                        label="Total Requests"
+                        value={totalRequests}
+                        bgClass="bg-slate-900"
+                        textClass="text-white"
+                        subtitle={getDayLabel(totalRequestsLastDate)}
+                    />
+                    <StatCard
+                        label="Pending"
+                        value={pendingRequests}
+                        bgClass="bg-amber-100"
+                        textClass="text-slate-950"
+                        subtitle={getDayLabel(pendingLastDate)}
+                    />
+                    <StatCard
+                        label="Approved"
+                        value={approvedRequests}
+                        bgClass="bg-emerald-100"
+                        textClass="text-slate-950"
+                        subtitle={getDayLabel(approvedLastDate)}
+                    />
+                    <StatCard
+                        label="Cancelled"
+                        value={cancelledRequests}
+                        bgClass="bg-rose-100"
+                        textClass="text-slate-950"
+                        subtitle={getDayLabel(cancelledLastDate)}
+                    />
                 </div>
 
                 {/* Charts */}
                 <div className="mt-6 grid gap-4 lg:grid-cols-3">
                     <ChartCard
                         title="Requests by Status"
+                        description="Current breakdown of all requests"
                         type="pie"
                         data={statusBreakdown}
                         xKey="name"
@@ -136,6 +165,7 @@ export default function Dashboard() {
                     <div className="lg:col-span-2">
                         <ChartCard
                             title="Requests Over the Last 30 Days"
+                            description="Daily request volume, rolling window"
                             type="line"
                             data={requestsOverTime}
                             xKey="date"
@@ -147,6 +177,7 @@ export default function Dashboard() {
                 <div className="mt-4">
                     <ChartCard
                         title="Requests by Membership"
+                        description="Total requests submitted per membership type"
                         type="bar"
                         data={requestsByMembership}
                         xKey="name"

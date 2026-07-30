@@ -29,7 +29,7 @@ interface PaginationLink {
 
 export function StatusBadge({ label, color }: { label: string; color?: keyof typeof STATUS_COLORS | string }) {
   const dotColor = resolveStatusColor(color);
-  
+
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
       <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", dotColor)} />
@@ -150,16 +150,12 @@ export default function RequestTable<T extends { id: number | string }>({
   onFilterReset,
 }: RequestTableProps<T>) {
   const rows = resource.data;
-  // Show the summary/pagination bar whenever there's at least one row —
-  // a single-page result (e.g. 2 records) still shows
-  // "Showing 1 to 2 of 2 results" this way.
   const showPagination = rows.length > 0;
 
   const selectedStatus = statusOptions.find((opt) => opt.value === status);
 
   return (
     <div className="min-h-screen bg-slate-50 mx-auto min-w-0 w-full max-w-7xl space-y-4 p-3 sm:p-6">
-      {/* ---- Title, sits above the search/filter section ---- */}
       {(title || resource.total !== undefined) && (
         <div className="flex flex-wrap items-center justify-between gap-2">
           {title && (
@@ -175,108 +171,114 @@ export default function RequestTable<T extends { id: number | string }>({
 
       {/* ---- Filter bar: search + status + date range ---- */}
       <Card className="min-w-0 border-slate-200/70 shadow-sm">
-        <CardContent className="p-3 sm:p-4">
-          <form
-            onSubmit={onFilterSubmit}
-            className="flex flex-nowrap items-end gap-3 overflow-x-auto pb-1"
-          >
-            <div className="flex min-w-[200px] flex-1 flex-col gap-1.5 sm:min-w-[240px]">
-              <label htmlFor="rt-search" className="text-xs font-medium text-slate-600">
-                Search
-              </label>
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <Input
-                  id="rt-search"
-                  placeholder={searchPlaceholder}
-                  value={search}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  className="rounded-full pl-9"
-                />
+        <CardContent className="p-4 sm:p-5">
+          <form onSubmit={onFilterSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12">
+              {/* Search — widest field since it's the primary filter */}
+              <div className="flex flex-col gap-1.5 lg:col-span-4">
+                <label htmlFor="rt-search" className="text-xs font-medium text-slate-600">
+                  Search
+                </label>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    id="rt-search"
+                    placeholder={searchPlaceholder}
+                    value={search}
+                    onChange={(e) => onSearchChange(e.target.value)}
+                    className="h-10 rounded-lg pl-9"
+                  />
+                </div>
+              </div>
+
+              {/* Status */}
+              <div className="flex flex-col gap-1.5 lg:col-span-2">
+                <label className="text-xs font-medium text-slate-600">Status</label>
+                <Select
+                  value={status || "all"}
+                  onValueChange={(v) => onStatusChange(v === "all" ? "" : v)}
+                >
+                  <SelectTrigger className="h-10 w-full rounded-lg">
+                    <SelectValue placeholder={statusPlaceholder}>
+                      {status && selectedStatus ? (
+                        <span className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "h-2 w-2 shrink-0 rounded-full",
+                              resolveStatusColor(selectedStatus.color)
+                            )}
+                          />
+                          {selectedStatus.label}
+                        </span>
+                      ) : (
+                        statusPlaceholder
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{statusPlaceholder}</SelectItem>
+                    {statusOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        <span className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "h-2 w-2 shrink-0 rounded-full",
+                              resolveStatusColor(opt.color)
+                            )}
+                          />
+                          {opt.label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Date range — grouped into one connected control with a
+                  shared border and a small "to" divider, instead of two
+                  identical floating pill inputs. */}
+              <div className="flex flex-col gap-1.5 lg:col-span-4">
+                <label className="text-xs font-medium text-slate-600">Date Range</label>
+                <div className="flex h-10 items-center overflow-hidden rounded-lg border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring/50">
+                  <input
+                    id="rt-date-from"
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => onDateFromChange(e.target.value)}
+                    aria-label="Date from"
+                    className="h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-slate-700 outline-none [color-scheme:light]"
+                  />
+                  <span className="shrink-0 px-1 text-xs font-medium text-slate-400">to</span>
+                  <input
+                    id="rt-date-to"
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => onDateToChange(e.target.value)}
+                    aria-label="Date to"
+                    className="h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-slate-700 outline-none [color-scheme:light]"
+                  />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-end gap-2 lg:col-span-2">
+                <Button
+                  type="submit"
+                  className="h-10 flex-1 gap-2 rounded-lg bg-blue-900 text-white hover:bg-blue-950 lg:flex-none"
+                >
+                  <Filter className="h-4 w-4" />
+                  <span>Filter</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 rounded-lg"
+                  onClick={onFilterReset}
+                >
+                  Reset
+                </Button>
               </div>
             </div>
-
-            <div className="flex shrink-0 flex-col gap-1.5">
-              <label className="text-xs font-medium text-slate-600">Status</label>
-              <Select
-                value={status || "all"}
-                onValueChange={(v) => onStatusChange(v === "all" ? "" : v)}
-              >
-                <SelectTrigger className="w-[140px] shrink-0 rounded-full sm:w-[160px]">
-                  <SelectValue placeholder={statusPlaceholder}>
-                    {status && selectedStatus ? (
-                      <span className="flex items-center gap-2">
-                        <span
-                          className={cn(
-                            "h-2 w-2 shrink-0 rounded-full",
-                            resolveStatusColor(selectedStatus.color)
-                          )}
-                        />
-                        {selectedStatus.label}
-                      </span>
-                    ) : (
-                      statusPlaceholder
-                    )}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{statusPlaceholder}</SelectItem>
-                  {statusOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      <span className="flex items-center gap-2">
-                        <span
-                          className={cn(
-                            "h-2 w-2 shrink-0 rounded-full",
-                            resolveStatusColor(opt.color)
-                          )}
-                        />
-                        {opt.label}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex shrink-0 flex-col gap-1.5">
-              <label htmlFor="rt-date-from" className="text-xs font-medium text-slate-600">
-                Date From
-              </label>
-              <Input
-                id="rt-date-from"
-                type="date"
-                value={dateFrom}
-                onChange={(e) => onDateFromChange(e.target.value)}
-                className="w-[140px] shrink-0 rounded-full sm:w-[160px]"
-              />
-            </div>
-
-            <div className="flex shrink-0 flex-col gap-1.5">
-              <label htmlFor="rt-date-to" className="text-xs font-medium text-slate-600">
-                Date To
-              </label>
-              <Input
-                id="rt-date-to"
-                type="date"
-                value={dateTo}
-                onChange={(e) => onDateToChange(e.target.value)}
-                className="w-[140px] shrink-0 rounded-full sm:w-[160px]"
-              />
-            </div>
-
-            <Button type="submit" className="shrink-0 rounded-full bg-blue-900 text-white hover:bg-blue-950">
-              <Filter className="h-4 w-4" />
-              <span className="hidden sm:inline">Filter</span>
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              className="shrink-0 rounded-full"
-              onClick={onFilterReset}
-            >
-              Reset
-            </Button>
           </form>
         </CardContent>
       </Card>

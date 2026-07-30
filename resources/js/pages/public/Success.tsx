@@ -68,12 +68,16 @@ interface FormInput {
 }
 
 interface Props {
-    reference_number: string;
+    reference_number?: string;
     formInput: FormInput;
 }
 
 export default function Success({ reference_number, formInput }: Props) {
-    // Format date
+    // Fall back to formInput.reference_number if the top-level prop wasn't
+    // passed by the controller — this is why the reference number box was
+    // rendering blank.
+    const displayReferenceNumber = reference_number || formInput.reference_number;
+
     const formatDate = (date: string) => {
         return new Date(date).toLocaleDateString('en-PH', {
             year: 'numeric',
@@ -84,7 +88,6 @@ export default function Success({ reference_number, formInput }: Props) {
         });
     };
 
-    // Format currency
     const formatCurrency = (amount: string) => {
         return new Intl.NumberFormat('en-PH', {
             style: 'currency',
@@ -92,7 +95,6 @@ export default function Success({ reference_number, formInput }: Props) {
         }).format(parseFloat(amount));
     };
 
-    // Format file size
     const formatFileSize = (bytes: number) => {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
@@ -104,20 +106,23 @@ export default function Success({ reference_number, formInput }: Props) {
     // Opens the browser's native print dialog. From there the user can print
     // physically, or choose "Save as PDF" (available on virtually every
     // modern OS/browser print dialog) to download a copy of this record.
-    // The print:hidden classes below hide interactive/irrelevant UI
-    // (buttons, action links) so the printed/saved output only shows the
-    // actual transcript of the submission.
     const handlePrint = () => {
         window.print();
     };
 
     return (
-        <div className="container mx-auto max-w-4xl px-4 py-8">
-            {/* Print-only styles: tidy up the printed page by removing shadows/
-                borders that only make sense on-screen, and ensure the card
-                isn't clipped to a fixed height when content overflows. */}
+        <div className="container mx-auto max-w-4xl px-4 py-8 print:max-w-none print:p-0">
             <style>{`
                 @media print {
+                    @page {
+                        size: auto;
+                        margin: 0.35in;
+                    }
+                    * {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                        color-adjust: exact !important;
+                    }
                     body * {
                         visibility: hidden;
                     }
@@ -131,13 +136,64 @@ export default function Success({ reference_number, formInput }: Props) {
                         top: 0;
                         width: 100%;
                     }
+                    /* Everything below shrinks the on-screen sizing down to
+                       something that actually fits a single printed page —
+                       without this, the normal text-3xl headings, p-6
+                       padding, and space-y-6 gaps overflow onto a second
+                       page even though the content itself is short. */
+                    #success-print-area {
+                        font-size: 13px !important;
+                        line-height: 1.4 !important;
+                    }
+                    #success-print-area h1,
+                    #success-print-area h2,
+                    #success-print-area h3 {
+                        font-size: 14.5px !important;
+                        margin-bottom: 5px !important;
+                    }
+                    #success-print-area .text-2xl { font-size: 19px !important; }
+                    #success-print-area .text-xl  { font-size: 15px !important; }
+                    #success-print-area .text-lg  { font-size: 14px !important; }
+                    #success-print-area .text-sm  { font-size: 12px !important; }
+                    #success-print-area .text-xs  { font-size: 10.5px !important; }
+                    #success-print-area .h-5.w-5   { height: 14px !important; width: 14px !important; }
+                    #success-print-area .h-4.w-4   { height: 12px !important; width: 12px !important; }
+                    #success-print-area .p-6  { padding: 6px !important; }
+                    #success-print-area .p-4  { padding: 5px !important; }
+                    #success-print-area .p-3  { padding: 4px !important; }
+                    #success-print-area .pt-6 { padding-top: 6px !important; }
+                    #success-print-area .space-y-6 > * + * { margin-top: 6px !important; }
+                    #success-print-area .space-y-2 > * + * { margin-top: 2px !important; }
+                    #success-print-area .gap-4 { gap: 4px !important; }
+                    #success-print-area .gap-2 { gap: 3px !important; }
+                    #success-print-area .mb-4  { margin-bottom: 4px !important; }
+                    #success-print-area .mb-3  { margin-bottom: 3px !important; }
+                    #success-print-area .mb-1  { margin-bottom: 1px !important; }
+                    #success-print-area .mt-1  { margin-top: 1px !important; }
+                    #success-print-area .rounded-lg,
+                    #success-print-area .rounded-full {
+                        padding-top: 3px !important;
+                        padding-bottom: 3px !important;
+                    }
+                    /* md:grid-cols-2 is a viewport-width breakpoint (≥768px).
+                       The printed page's usable width (Letter minus margins)
+                       renders narrower than that, so the breakpoint never
+                       activates and the grid silently collapses to a single
+                       stacked column. Force two columns unconditionally
+                       during print so it matches the on-screen layout. */
+                    #success-print-area .grid {
+                        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                    }
+                    #success-print-area .col-span-full {
+                        grid-column: 1 / -1 !important;
+                    }
                 }
             `}</style>
 
             <div id="success-print-area">
                 <Card className="border-green-200 shadow-lg print:border-0 print:shadow-none">
-                    <CardHeader className="border-b border-green-200 bg-green-50 text-center print:bg-white">
-                        <div className="mb-4 flex justify-center print:hidden">
+                    <CardHeader className="border-b border-green-200 bg-green-50 text-center print:hidden">
+                        <div className="mb-4 flex justify-center">
                             <CheckCircle className="h-16 w-16 text-green-500" />
                         </div>
                         <CardTitle className="text-3xl font-bold text-green-700">
@@ -150,14 +206,14 @@ export default function Success({ reference_number, formInput }: Props) {
 
                     <CardContent className="space-y-6 pt-6">
                         {/* Reference Number */}
-                        <div className="rounded-lg bg-muted/50 p-4 text-center">
+                        <div className="rounded-lg bg-muted/50 p-4 text-center print:break-inside-avoid">
                             <p className="text-sm text-muted-foreground">
                                 Reference Number
                             </p>
                             <p className="font-mono text-2xl font-bold text-primary">
-                                {reference_number}
+                                {displayReferenceNumber}
                             </p>
-                            <p className="mt-1 text-xs text-muted-foreground">
+                            <p className="mt-1 text-xs text-muted-foreground print:hidden">
                                 Please keep this reference number for tracking your
                                 request.
                             </p>
@@ -166,7 +222,7 @@ export default function Success({ reference_number, formInput }: Props) {
                         <Separator />
 
                         {/* Contact Information */}
-                        <div>
+                        <div className="print:break-inside-avoid">
                             <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold">
                                 <User className="h-5 w-5" />
                                 Contact Information
@@ -200,7 +256,7 @@ export default function Success({ reference_number, formInput }: Props) {
                         <Separator />
 
                         {/* Identity Details */}
-                        <div>
+                        <div className="print:break-inside-avoid">
                             <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold">
                                 <Building className="h-5 w-5" />
                                 Identity Details
@@ -265,7 +321,7 @@ export default function Success({ reference_number, formInput }: Props) {
                         <Separator />
 
                         {/* Request Details */}
-                        <div>
+                        <div className="print:break-inside-avoid">
                             <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold">
                                 <Receipt className="h-5 w-5" />
                                 Request Details
@@ -283,7 +339,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                     <p className="text-sm text-muted-foreground">
                                         Amount
                                     </p>
-                                    <p className="text-xl font-bold text-primary">
+                                    <p className="text-xl font-bold text-primary print:text-black">
                                         {formatCurrency(formInput.amount)}
                                     </p>
                                 </div>
@@ -312,7 +368,7 @@ export default function Success({ reference_number, formInput }: Props) {
                         {/* Supporting Documents */}
                         {formInput.supportingDocuments &&
                             formInput.supportingDocuments.length > 0 && (
-                                <div>
+                                <div className="print:break-inside-avoid">
                                     <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold">
                                         <FileText className="h-5 w-5" />
                                         Supporting Documents
@@ -322,7 +378,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                             (doc) => (
                                                 <div
                                                     key={doc.id}
-                                                    className="flex items-center justify-between rounded-lg bg-muted/30 p-3 transition-colors hover:bg-muted/50"
+                                                    className="flex items-center justify-between rounded-lg bg-muted/30 p-3 transition-colors hover:bg-muted/50 print:break-inside-avoid"
                                                 >
                                                     <div className="flex items-center gap-3">
                                                         <FileText className="h-5 w-5 text-muted-foreground" />
@@ -332,7 +388,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                                                     doc.original_filename
                                                                 }
                                                             </p>
-                                                            <p className="text-xs text-muted-foreground">
+                                                            <p className="text-xs text-muted-foreground print:hidden">
                                                                 {formatFileSize(
                                                                     doc.file_size,
                                                                 )}{' '}
@@ -368,12 +424,12 @@ export default function Success({ reference_number, formInput }: Props) {
                         <Separator />
 
                         {/* Submission Details */}
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-sm text-muted-foreground print:break-inside-avoid">
                             <p>Submitted on: {formatDate(formInput.created_at)}</p>
                         </div>
                     </CardContent>
 
-                    <CardFooter className="flex flex-col gap-4 border-t pt-6">
+                    <CardFooter className="flex flex-col gap-4 border-t pt-6 print:hidden">
                         <div className="max-w-xl text-center text-sm text-muted-foreground">
                             <p>
                                 A confirmation email has been sent to your email
@@ -381,7 +437,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                 contact you shortly.
                             </p>
                         </div>
-                        <div className="flex flex-wrap justify-center gap-4 print:hidden">
+                        <div className="flex flex-wrap justify-center gap-4">
                             <Button variant="secondary" onClick={handlePrint}>
                                 <Printer className="mr-2 h-4 w-4" />
                                 Print / Save as PDF

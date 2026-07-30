@@ -77,7 +77,7 @@ class StaffInputController extends Controller
             'requestsOverTime' => $requestsOverTime,
             'requestsByMembership' => FormInput::query()
                 ->join('memberships', 'form_inputs.membership_id', '=', 'memberships.id')
-                ->selectRaw('memberships.member_desc as name, count(*) as count')
+                ->selectRaw('memberships.member_code as name, count(*) as count')
                 ->groupBy('memberships.id', 'memberships.member_desc')
                 ->orderBy('name')
                 ->get(),

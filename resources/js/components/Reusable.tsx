@@ -4,6 +4,7 @@ import {
     BarChart,
     CartesianGrid,
     Cell,
+    Legend,
     Line,
     LineChart,
     Pie,
@@ -17,7 +18,6 @@ import { Plus, Pencil, Trash2, CheckCircle2, Activity } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
-
 export function getDayLabel(dateString?: string | null): string | null {
     if (!dateString) return null;
 
@@ -29,9 +29,12 @@ export function getDayLabel(dateString?: string | null): string | null {
     const diffDays = Math.round((today.getTime() - date.getTime()) / 86400000);
 
     if (diffDays <= 0) return 'Today';
+
     if (diffDays === 1) return '1 day ago';
+
     return `${diffDays} days ago`;
 }
+
 /* ============================================================
    1. StatCard — single number metric
    ============================================================ */
@@ -81,6 +84,23 @@ export interface ChartCardProps {
 
 const DEFAULT_PIE_COLORS = ['#0d6efd', '#0dcaf0', '#ffc107', '#198754', '#dc3545', '#6f42c1'];
 
+// Custom dot renderer for the line chart — only draws a visible dot where
+// the value is greater than 0, so long flat (zero) stretches read as
+// intentionally quiet instead of being cluttered with dots at zero.
+function renderLineDot(yKey: string, color: string) {
+    return (props: { cx?: number; cy?: number; payload?: Record<string, string | number> }) => {
+        const { cx, cy, payload } = props;
+
+        if (cx === undefined || cy === undefined || !payload) return <></>;
+
+        const value = Number(payload[yKey] ?? 0);
+
+        if (value <= 0) return <></>;
+
+        return <circle cx={cx} cy={cy} r={3} fill={color} />;
+    };
+}
+
 export function ChartCard({
     title,
     description,
@@ -92,6 +112,9 @@ export function ChartCard({
     height = 280,
     pieColors = DEFAULT_PIE_COLORS,
 }: ChartCardProps) {
+    const pieTotal =
+        type === 'pie' ? data.reduce((sum, d) => sum + Number(d[yKey] ?? 0), 0) : 0;
+
     return (
         <Card>
             <CardHeader>
@@ -99,27 +122,58 @@ export function ChartCard({
                 {description && <p className="text-sm text-slate-500">{description}</p>}
             </CardHeader>
             <CardContent>
-                <div style={{ width: '100%', height }}>
-                    <ResponsiveContainer>
+        <div style={{ width: '100%', height, position: 'relative' }}>
+            <div className="relative z-10 h-full w-full">
+                <ResponsiveContainer>
                         {type === 'bar' ? (
-                            <BarChart data={data}>
+                            <BarChart data={data} layout="vertical" margin={{ left: 100, right: 24 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                <XAxis dataKey={xKey} tick={{ fontSize: 12, fill: '#64748b' }} />
-                                <YAxis tick={{ fontSize: 12, fill: '#64748b' }} allowDecimals={false} />
+                                <XAxis
+                                    type="number"
+                                    tick={{ fontSize: 12, fill: '#64748b' }}
+                                    allowDecimals={false}
+                                    domain={[0, (dataMax: number) => Math.ceil(dataMax * 1.2)]}
+                                />
+                                <YAxis
+                                    type="category"
+                                    dataKey={xKey}
+                                    tick={{ fontSize: 11, fill: '#64748b' }}
+                                    width={100}
+                                />
                                 <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} />
-                                <Bar dataKey={yKey} fill={color} radius={[6, 6, 0, 0]} />
+                                <Bar dataKey={yKey} fill={color} radius={[0, 6, 6, 0]} barSize={28} />
                             </BarChart>
                         ) : type === 'line' ? (
                             <LineChart data={data}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                                 <XAxis dataKey={xKey} tick={{ fontSize: 12, fill: '#64748b' }} />
                                 <YAxis tick={{ fontSize: 12, fill: '#64748b' }} allowDecimals={false} />
-                                <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} />
-                                <Line type="monotone" dataKey={yKey} stroke={color} strokeWidth={2.5} dot={{ r: 3 }} />
+                                <Tooltip
+                                    contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }}
+                                    labelFormatter={(label) =>
+                                        new Date(label).toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                        })
+                                    }
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey={yKey}
+                                    stroke={color}
+                                    strokeWidth={2.5}
+                                    dot={renderLineDot(yKey, color)}
+                                />
                             </LineChart>
                         ) : (
                             <PieChart>
                                 <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} />
+                                <Legend
+                                    verticalAlign="bottom"
+                                    height={36}
+                                    iconType="circle"
+                                    wrapperStyle={{ fontSize: 12 }}
+                                />
                                 <Pie
                                     data={data}
                                     dataKey={yKey}
@@ -135,6 +189,13 @@ export function ChartCard({
                             </PieChart>
                         )}
                     </ResponsiveContainer>
+                    </div>
+                    {type === 'pie' && (
+                        <div className="pointer-events-none absolute inset-0 z-0 flex flex-col items-center justify-center pb-9">
+                            <span className="text-2xl font-bold text-slate-900">{pieTotal}</span>
+                            <span className="text-xs text-slate-500">Total</span>
+                        </div>
+                    )}
                 </div>
             </CardContent>
         </Card>

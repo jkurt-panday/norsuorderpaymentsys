@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { Plus, Pencil, Trash2, X, ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import {
     Table,
@@ -11,6 +11,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
+import { useConfirm } from '@/components/confirm-dialog';
 
 // ============ TYPE DEFINITIONS ============
 export interface PaginationLink {
@@ -39,6 +40,14 @@ export interface ColumnDef<T> {
     render: (row: T, index: number) => React.ReactNode;
     /** Optional extra classes for the <td> */
     className?: string;
+    /**
+     * Fixed column width (e.g. '20%', '160px'). Without this, a long text
+     * column (like a description) will greedily eat all remaining space and
+     * push everything after it — including Actions — far out to the right
+     * with a big dead gap in between. Give your widest text column a
+     * reasonable cap (e.g. '40%') to prevent that.
+     */
+    width?: string;
 }
 
 export interface ResourceTableProps<T extends { id: number }> {
@@ -62,8 +71,13 @@ export interface ResourceTableProps<T extends { id: number }> {
     emptyMessage: string;
     /** Text shown in the delete confirmation body (defaults to a generic message) */
     deleteConfirmMessage?: string;
-    /** Toast message shown after a successful delete (defaults to a generic message) */
-    deleteSuccessMessage?: string;
+    /** Fixed width for the Actions column. Defaults to '96px' (two pill buttons). */
+    actionsWidth?: string;
+    /**
+     * Optional content rendered between the header row and the table card —
+     * e.g. a search bar, once this resource has enough rows to need one.
+     */
+    filters?: React.ReactNode;
 }
 
 // ============ COMPONENT ============
@@ -78,30 +92,22 @@ export default function ResourceTable<T extends { id: number }>({
     emptyIcon: EmptyIcon,
     emptyMessage,
     deleteConfirmMessage = 'Are you sure you want to delete this record?',
-    deleteSuccessMessage = 'Record deleted successfully.',
+    actionsWidth = '96px',
+    filters,
 }: ResourceTableProps<T>) {
-    const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
-    const [isDeleting, setIsDeleting] = useState<boolean>(false);
+    const confirm = useConfirm();
 
-    const openDeleteModal = (id: number) => {
-        setDeleteTargetId(id);
-    };
+    const handleDeleteClick = async (id: number) => {
+        const ok = await confirm({
+            title: 'Confirm Delete',
+            description: deleteConfirmMessage,
+            confirmLabel: 'Delete',
+            variant: 'destructive',
+        });
 
-    const closeDeleteModal = () => {
-        if (isDeleting) {
-            return;
-        }
-        setDeleteTargetId(null);
-    };
+        if (!ok) return;
 
-    const confirmDelete = () => {
-        if (deleteTargetId === null) {
-            return;
-        }
-
-        setIsDeleting(true);
-
-        router.delete(deleteUrl(deleteTargetId), {
+        router.delete(deleteUrl(id), {
             preserveScroll: true,
             // No toast.success here on purpose. A redirect back to this page is
             // "successful" from Inertia's point of view even when the backend
@@ -113,19 +119,22 @@ export default function ResourceTable<T extends { id: number }>({
             onError: () => {
                 toast.error('Something went wrong while deleting.');
             },
-            onFinish: () => {
-                setIsDeleting(false);
-                setDeleteTargetId(null);
-            },
         });
     };
 
     return (
-       <div className="mx-auto min-w-0 w-full max-w-7xl space-y-4 p-3 sm:p-6">
+        // Greyish page background so the white title bar / filter card /
+        // table card actually stand out, matching the Requests page.
+        <div className="min-h-screen bg-slate-50 mx-auto min-w-0 w-full max-w-7xl space-y-4 p-3 sm:p-6">
             <Head title={title} />
 
-            <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-3">
+                    <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+                    <span className="text-sm text-slate-500">
+                        {resource.total.toLocaleString()} total
+                    </span>
+                </div>
                 <Link
                     href={addHref}
                     className="inline-flex items-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-950"
@@ -135,15 +144,23 @@ export default function ResourceTable<T extends { id: number }>({
                 </Link>
             </div>
 
-           <Card className="w-full overflow-hidden py-0 border-slate-200/70 shadow-sm">
+            {filters}
+
+            <Card className="w-full overflow-hidden py-0 border-slate-200/70 shadow-sm">
                 <CardContent className="overflow-x-auto p-0">
-                    <Table className="min-w-[640px]">
+                    <Table className="min-w-[640px] table-fixed">
+                        <colgroup>
+                            {columns.map((col, i) => (
+                                <col key={i} style={col.width ? { width: col.width } : undefined} />
+                            ))}
+                            <col style={{ width: actionsWidth }} />
+                        </colgroup>
                         <TableHeader>
                             <TableRow className="border-b border-slate-200 hover:bg-transparent">
                                 {columns.map((col, i) => (
                                     <TableHead
                                         key={i}
-                                        className={`h-11 whitespace-nowrap bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-600 ${
+                                        className={`h-11 truncate bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-600 ${
                                             i === 0 ? 'pl-6' : ''
                                         }`}
                                     >
@@ -167,7 +184,7 @@ export default function ResourceTable<T extends { id: number }>({
                                         {columns.map((col, j) => (
                                             <TableCell
                                                 key={j}
-                                                className={`py-3 text-sm ${col.className ?? 'text-slate-700'} ${
+                                                className={`py-3 text-sm ${col.className ?? 'truncate text-slate-700'} ${
                                                     j === 0 ? 'pl-6' : ''
                                                 }`}
                                             >
@@ -175,25 +192,28 @@ export default function ResourceTable<T extends { id: number }>({
                                             </TableCell>
                                         ))}
                                         <TableCell className="py-3 pr-6 text-right">
-                                            <div className="flex items-center justify-end gap-1.5">
-                                                <Link
-                                                    href={editHref(row)}
-                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-amber-400 text-white transition-colors hover:bg-amber-500"
-                                                    aria-label="Edit"
-                                                    title="Edit"
-                                                >
-                                                    <Pencil className="h-3.5 w-3.5" />
-                                                </Link>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openDeleteModal(row.id)}
-                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-red-600 text-white transition-colors hover:bg-red-700"
-                                                    aria-label="Delete"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </button>
-                                            </div>
+                                            {/* Connected pill action group — matches the
+                                                Requests page's View/Process/Edit style
+                                                instead of two separate floating squares. */}
+                                        <div className="inline-flex overflow-hidden rounded-full shadow-sm">
+                                            <Link
+                                                href={editHref(row)}
+                                                className="flex h-8 w-8 items-center justify-center bg-amber-400 text-white transition-colors hover:bg-amber-500"
+                                                aria-label="Edit"
+                                                title="Edit"
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </Link>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDeleteClick(row.id)}
+                                                className="flex h-8 w-8 items-center justify-center border-l border-white/20 bg-red-600 text-white transition-colors hover:bg-red-700"
+                                                aria-label="Delete"
+                                                title="Delete"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        </div>
                                         </TableCell>
                                     </TableRow>
                                 ))
@@ -251,54 +271,6 @@ export default function ResourceTable<T extends { id: number }>({
                     </div>
                 )}
             </Card>
-
-            {/* Delete Confirmation Modal */}
-            {deleteTargetId !== null && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
-                    onClick={closeDeleteModal}
-                >
-                    <div
-                        className="w-full max-w-md rounded-lg bg-white shadow-xl"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-                            <h5 className="text-base font-semibold text-slate-900">Confirm Delete</h5>
-                            <button
-                                type="button"
-                                onClick={closeDeleteModal}
-                                disabled={isDeleting}
-                                className="text-slate-400 hover:text-slate-600 disabled:opacity-50"
-                                aria-label="Close"
-                            >
-                                <X className="h-4 w-4" />
-                            </button>
-                        </div>
-                        <div className="px-5 py-4">
-                            <p className="text-sm text-slate-700">{deleteConfirmMessage}</p>
-                            <p className="mt-1 text-xs text-red-600">This action cannot be undone.</p>
-                        </div>
-                        <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
-                            <button
-                                type="button"
-                                onClick={closeDeleteModal}
-                                disabled={isDeleting}
-                                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                onClick={confirmDelete}
-                                disabled={isDeleting}
-                                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
-                            >
-                                {isDeleting ? 'Deleting...' : 'Delete'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

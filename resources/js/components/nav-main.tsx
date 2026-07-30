@@ -23,14 +23,14 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                     return (
                         <div key={item.title}>
                             {item.separatorBefore && (
-                                <hr className="my-2 mx-2.5 border-white/20" />
+                                <hr className="my-2 mx-2.5 border-slate-800" />
                             )}
                             <SidebarMenuItem>
                                 <SidebarMenuButton
                                     asChild
                                     isActive={isActive}
                                     className={cn(
-                                        "mx-2.5 my-1 rounded-lg px-5 py-2.5 text-[17px] transition-colors duration-300 text-white/80 hover:bg-white/10 hover:text-white data-[active=true]:bg-white/20 data-[active=true]:text-white",
+                                        "mx-2.5 my-1 rounded-lg px-5 py-2.5 text-[17px] transition-colors duration-300 text-slate-300 hover:bg-slate-800 hover:text-white data-[active=true]:bg-blue-900 data-[active=true]:text-white",
                                         isCollapsed && "justify-center px-2"
                                     )}
                                 >
