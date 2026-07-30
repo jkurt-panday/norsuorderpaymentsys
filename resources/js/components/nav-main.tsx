@@ -25,16 +25,15 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                             {item.separatorBefore && (
                                 <hr className="my-2 mx-2.5 border-slate-800" />
                             )}
-                            <SidebarMenuItem>
-                                <SidebarMenuButton
-                                    asChild
-                                    isActive={isActive}
-                                    className={cn(
-                                        "mx-2.5 my-1 rounded-lg px-5 py-2.5 text-[17px] transition-colors duration-300 text-slate-300 hover:bg-slate-800 hover:text-white data-[active=true]:bg-blue-900 data-[active=true]:text-white",
-                                        isCollapsed && "justify-center px-2"
-                                    )}
-                                >
-                                    <Link href={item.href} prefetch>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton
+                                        render={<Link href={item.href} prefetch />}
+                                        isActive={isActive}
+                                        className={cn(
+                                            "mx-2.5 my-1 rounded-lg px-5 py-2.5 text-[17px] transition-colors duration-300 text-slate-300 hover:bg-slate-800 hover:text-white data-[active=true]:bg-blue-900 data-[active=true]:text-white",
+                                            isCollapsed && "justify-center px-2"
+                                        )}
+                                    >
                                         {item.icon && (
                                             <span className={cn(
                                                 "inline-flex w-5 justify-center",
@@ -44,9 +43,8 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                             </span>
                                         )}
                                         {!isCollapsed && <span>{item.title}</span>}
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
                         </div>
                     );
                 })}

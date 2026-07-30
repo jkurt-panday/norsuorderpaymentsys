@@ -126,7 +126,7 @@ export function ChartCard({
             <div className="relative z-10 h-full w-full">
                 <ResponsiveContainer>
                         {type === 'bar' ? (
-                            <BarChart data={data} layout="vertical" margin={{ left: 100, right: 24 }}>
+                            <BarChart data={data} layout="vertical" margin={{ left: -10, right: 50 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                                 <XAxis
                                     type="number"
