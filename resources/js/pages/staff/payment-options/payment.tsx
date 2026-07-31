@@ -16,6 +16,7 @@ interface PaymentOption {
     id: number;
     payment_desc: string;
     created_at: string;
+    display_number: number;
 }
 
 interface FlashProps {
@@ -51,12 +52,14 @@ export default function PaymentOptionsIndex({
     }, [flash]);
 
     // ============ COLUMNS ============
-    // Defined inside the component so it can close over `paymentOptions.from`
-    // for correct sequential numbering across pagination pages.
+    // `sortable` uses the exact backend column name (must match
+    // PaymentDetailOptionController's $sortableColumns allowlist) so
+    // clicking a header actually submits ?sort=...&direction=... instead of
+    // just showing a decorative arrow.
     const columns: ColumnDef<PaymentOption>[] = [
         {
             header: 'ID',
-            render: (row, index) => (paymentOptions.from ?? 1) + index,
+            render: (row) => row.display_number,
         },
         {
             header: 'Payment Description',
@@ -77,12 +80,18 @@ export default function PaymentOptionsIndex({
             columns={columns}
             resource={paymentOptions}
             resourceKey="paymentOptions"
-            pollInterval={5000}
+            pollInterval={15000}
             editHref={(row) => edit(row.id)}
             deleteUrl={(id) => destroy(id).url}
             emptyIcon={CreditCard}
             emptyMessage="No payment details options found"
             deleteConfirmMessage="Are you sure you want to delete this payment option?"
+            sortOptions={[
+                { label: 'Newest', sort: 'created_at', direction: 'desc' },
+                { label: 'Oldest', sort: 'created_at', direction: 'asc' },
+                { label: 'A–Z', sort: 'payment_desc', direction: 'asc' },
+                { label: 'Z–A', sort: 'payment_desc', direction: 'desc' },
+            ]}
         />
     );
 }

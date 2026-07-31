@@ -2,30 +2,44 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
 use App\Http\Requests\BankAccountInfoRequest;
 use App\Models\BankAccountInfo;
-use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
-class BankAccountInfoController extends Controller
+
+class BankAccountInfoController extends BaseResourceController
 {
     /**
      * Display list of bank accounts
      */
-    public function index()
-    {
-        $bankAccounts = BankAccountInfo::orderBy('bank_name')
-            ->orderBy('account_name')
-            ->paginate(10);
-
-        return Inertia::render('staff/bankaccounts/bankaccount', compact('bankAccounts'));
-    }
-
+    protected string $model = BankAccountInfo::class;
+    protected array $searchableColumns = ['bank_name', 'account_name'];
+    protected string $indexView = 'staff/bankaccounts/bankaccount';
+    protected string $resourceKey = 'bankAccounts';
+    protected string $orderBy = 'bank_name';
+    protected string $orderDirection = 'asc';
+    protected array $secondaryOrderBy = [
+        ['column' => 'account_name', 'direction' => 'asc'],
+    ];
+    protected array $sortableColumns = ['id', 'bank_name', 'account_name', 'created_at'];
+    protected array $filterableColumns = [];
     /**
      * Show create form
      */
+    protected function modifyIndexQuery(Builder $query, Request $request): Builder
+    {
+        $table = (new $this->model)->getTable();
+        return $query
+            ->select('*')
+            ->selectRaw(
+                "(SELECT COUNT(*) FROM {$table} AS t2 WHERE t2.id <= {$table}.id) as display_number"
+            );
+    }
+
     public function create()
     {
         return Inertia::render('staff/bankaccounts/createbankaccount');

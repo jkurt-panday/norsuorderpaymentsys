@@ -13,11 +13,17 @@ import ResourceTable, {
 import { Badge } from '@/components/ui/badge';
 
 // ============ TYPE DEFINITIONS ============
+// created_at added here even though it's not rendered as a visible column —
+// it's still present on the row data from Supabase/Eloquent by default (as
+// long as it isn't in the model's $hidden array), and it's needed so the
+// "Newest"/"Oldest" sort options below have a real field to reference.
 interface BankAccount {
     id: number;
     account_name: string;
     bank_name: string;
     account_num: string;
+    created_at: string;
+    display_number: number;
 }
 
 interface FlashProps {
@@ -43,11 +49,10 @@ export default function BankAccountsIndex({
         if (flash?.error) toast.error(flash.error);
     }, [flash]);
 
-    // ============ COLUMNS ============
     const columns: ColumnDef<BankAccount>[] = [
         {
             header: 'ID',
-            render: (row, index) => (bankAccounts.from ?? 1) + index,
+            render: (row) => row.display_number,
         },
         {
             header: 'Account Name',
@@ -75,12 +80,18 @@ export default function BankAccountsIndex({
             columns={columns}
             resource={bankAccounts}
             resourceKey="bankAccounts"
-            pollInterval={5000}
+            pollInterval={15000}
             editHref={(row) => edit(row.id)}
             deleteUrl={(id) => destroy(id).url}
             emptyIcon={Landmark}
             emptyMessage="No bank accounts found"
             deleteConfirmMessage="Are you sure you want to delete this bank account?"
+            sortOptions={[
+                { label: 'Newest', sort: 'created_at', direction: 'desc' },
+                { label: 'Oldest', sort: 'created_at', direction: 'asc' },
+                { label: 'A–Z', sort: 'account_name', direction: 'asc' },
+                { label: 'Z–A', sort: 'account_name', direction: 'desc' },
+            ]}
         />
     );
 }

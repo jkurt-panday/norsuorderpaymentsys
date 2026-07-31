@@ -4,25 +4,38 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UacsRequest;
 use App\Models\Uacs;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
-class UacsController extends Controller
+class UacsController extends BaseResourceController
 {
+     protected string $model = Uacs::class;
+    protected array $searchableColumns = ['object_code', 'account_title'];
+    protected string $indexView = 'staff/uacs/uacs';
+    protected string $resourceKey = 'uacs';
+    protected string $orderBy = 'object_code';
+    protected string $orderDirection = 'desc';
+    protected array $sortableColumns = ['id', 'object_code', 'account_title', 'created_at'];
+    protected array $filterableColumns = [];
     /**
      * Display a listing of the resource.
      */
-    public function index()
-    {
-        $uacs = Uacs::orderBy('object_code')->paginate(10);
-        return Inertia::render('staff/uacs/uacs', compact('uacs'));
-    }
 
     /**
      * Show the form for creating a new resource.
      */
+       protected function modifyIndexQuery(Builder $query, Request $request): Builder
+    {
+        $table = (new $this->model)->getTable();
+        return $query
+            ->select('*')
+            ->selectRaw(
+                "(SELECT COUNT(*) FROM {$table} AS t2 WHERE t2.id <= {$table}.id) as display_number"
+            );
+    }
     public function create()
     {
         return Inertia::render('staff/uacs/createuacs');

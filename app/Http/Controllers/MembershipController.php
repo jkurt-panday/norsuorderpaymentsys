@@ -4,27 +4,47 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\MembershipRequest;
 use App\Models\Membership;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 
-class MembershipController extends Controller
+class MembershipController extends BaseResourceController
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        $memberships = Membership::orderBy('id', 'asc')->paginate(10);
+    // ---- Config consumed by BaseResourceController::index() ----
+    protected string $model = Membership::class;
+    protected array $searchableColumns = ['member_code', 'member_desc'];
+    protected string $indexView = 'staff/memberships/membership';
+    protected string $resourceKey = 'memberships';
+    protected int $perPage = 10;
+    protected string $orderBy = 'id';
+    protected string $orderDirection = 'asc';
+    // Allowlist: only these columns can be sorted on via ?sort=...
+    protected array $sortableColumns = ['id', 'member_code', 'member_desc', 'created_at'];
+    // Membership has no obvious status/type field to filter on today —
+    // leave empty. Add entries here (e.g. ['type' => 'member_type']) if
+    // one gets added later.
+    protected array $filterableColumns = [];
 
-        return Inertia::render('staff/memberships/membership', [
-            'memberships' => $memberships,
-            'flash' => [
-                'success' => session('success'),
-                'error' => session('error'),
-            ]
-        ]);
+    // index() is now inherited from BaseResourceController — no need to
+    // redeclare it here. Everything below is unchanged from before.
+
+    /**
+     * Adds a `display_number` column via ROW_NUMBER() — a rank that's
+     * always computed against a FIXED base order (id ASC), independent of
+     * whatever sort the user currently has applied for display. That's
+     * what keeps each row's number permanent/stable even when sorting
+     * newest, oldest, A–Z, etc.
+     */
+    protected function modifyIndexQuery(Builder $query, Request $request): Builder
+    {
+            $table = (new $this->model)->getTable();
+        return $query
+            ->select('*')
+            ->selectRaw(
+                "(SELECT COUNT(*) FROM {$table} AS t2 WHERE t2.id <= {$table}.id) as display_number"
+            );
     }
 
     /**
@@ -101,9 +121,6 @@ class MembershipController extends Controller
         }
     }
 
-    /**
-     * Remove the specified resource from storage safely.
-     */
     /**
      * Remove the specified resource from storage safely.
      */

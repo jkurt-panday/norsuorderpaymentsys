@@ -6,6 +6,14 @@ import {
     Trash2,
     ChevronLeft,
     ChevronRight,
+    Search,
+    ChevronDown,
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown,
+    Check,
+    RefreshCw,
+    RotateCcw,
     type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -18,6 +26,11 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { useConfirm } from '@/components/confirm-dialog';
 
 // ============ TYPE DEFINITIONS ============
@@ -36,74 +49,45 @@ export interface PaginatedData<T> {
 }
 
 export interface ColumnDef<T> {
-    /** Column header label */
     header: string;
-    /**
-     * Renders the cell content for a given row.
-     * `index` is the row's position within the CURRENT PAGE (0-based) —
-     * use it with `resource.from` to build a sequential display number,
-     * e.g. render: (row, index) => (resource.from ?? 1) + index
-     */
     render: (row: T, index: number) => React.ReactNode;
-    /** Optional extra classes for the <td> */
     className?: string;
-    /**
-     * Fixed column width (e.g. '20%', '160px'). Without this, a long text
-     * column (like a description) will greedily eat all remaining space and
-     * push everything after it — including Actions — far out to the right
-     * with a big dead gap in between. Give your widest text column a
-     * reasonable cap (e.g. '40%') to prevent that.
-     */
     width?: string;
+    sortable?: boolean | string;
+}
+
+export interface SortOptionDef {
+    label: string;
+    sort: string;
+    direction: 'asc' | 'desc';
 }
 
 export interface ResourceTableProps<T extends { id: number }> {
-    /** Page <title> and heading */
     title: string;
-    /** Label for the "add new" button */
+    description?: string;
+    icon?: LucideIcon;
     addLabel: string;
-    /** href for the "add new" button (from a Wayfinder route function, e.g. create()) */
     addHref: string | { url: string; method?: string };
-    /** Column definitions, in display order */
     columns: ColumnDef<T>[];
-    /** Paginated resource data (Laravel's ->paginate() shape) */
     resource: PaginatedData<T>;
-    /** The Inertia prop key that `resource` is bound to on this page (e.g. 'requests').
-     *  Required when `pollInterval` is set, so polling can reload *only* this prop
-     *  instead of the whole page payload. */
     resourceKey?: string;
-    /** Builds the edit href for a given row (e.g. (row) => edit(row.id)) */
     editHref: (row: T) => string | { url: string; method?: string };
-    /** Builds the delete URL for a given row id (e.g. (id) => destroy(id).url) */
     deleteUrl: (id: number) => string;
-    /** Icon shown in the empty state */
     emptyIcon: LucideIcon;
-    /** Message shown in the empty state */
     emptyMessage: string;
-    /** Text shown in the delete confirmation body (defaults to a generic message) */
     deleteConfirmMessage?: string;
-    /** Fixed width for the Actions column. Defaults to '96px' (two pill buttons). */
     actionsWidth?: string;
-    /**
-     * Optional content rendered between the header row and the table card —
-     * e.g. a search bar, once this resource has enough rows to need one.
-     */
     filters?: React.ReactNode;
-    /**
-     * Enables live polling for this table. Pass an interval in ms (e.g. 5000).
-     * Omit entirely to leave the table static (no polling, no behavior change).
-     * Requires `resourceKey` to be set.
-     */
     pollInterval?: number;
-    /**
-     * How long the highlight animation stays on a new/changed row, in ms.
-     * Defaults to 2000.
-     */
     highlightDuration?: number;
+    searchPlaceholder?: string;
+    searchValue?: string;
+    onSearchChange?: (value: string) => void;
+    /** Called when the search is actually submitted (button click or Enter). Only relevant in controlled mode. */
+    onSearchSubmit?: (value: string) => void;
+    sortOptions?: SortOptionDef[];
 }
 
-// Shallow content signature for a row, used to detect "changed" (not just "new").
-// Falls back gracefully for any row shape — doesn't need to know the row's fields.
 function rowSignature(row: unknown): string {
     try {
         return JSON.stringify(row);
@@ -115,6 +99,8 @@ function rowSignature(row: unknown): string {
 // ============ COMPONENT ============
 export default function ResourceTable<T extends { id: number }>({
     title,
+    description,
+    icon: HeaderIcon,
     addLabel,
     addHref,
     columns,
@@ -129,12 +115,52 @@ export default function ResourceTable<T extends { id: number }>({
     filters,
     pollInterval,
     highlightDuration = 2000,
+    searchPlaceholder = 'Search...',
+    searchValue,
+    onSearchChange,
+    onSearchSubmit,
+    sortOptions,
 }: ResourceTableProps<T>) {
     const confirm = useConfirm();
 
-    // ---- Live update detection -------------------------------------------
-    // Tracks id -> content signature from the last render, so we can tell
-    // which rows are brand new vs. changed vs. untouched after a poll.
+    const [displayData, setDisplayData] = useState<T[]>(resource.data);
+
+    useEffect(() => {
+        setDisplayData(resource.data);
+    }, [resource.data]);
+g
+    function compareValues(a: unknown, b: unknown): number {
+        if (a === b) return 0;
+        if (a === null || a === undefined) return -1;
+        if (b === null || b === undefined) return 1;
+
+        const aNum = typeof a === 'number' ? a : Number(a);
+        const bNum = typeof b === 'number' ? b : Number(b);
+        if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) {
+            return aNum - bNum;
+        }
+
+        const aDate = Date.parse(String(a));
+        const bDate = Date.parse(String(b));
+        if (!Number.isNaN(aDate) && !Number.isNaN(bDate)) {
+            return aDate - bDate;
+        }
+
+        return String(a).localeCompare(String(b));
+    }
+
+    function optimisticallySort(sortKey: string, direction: 'asc' | 'desc') {
+        setDisplayData((current) => {
+            const sorted = [...current].sort((rowA, rowB) => {
+                const valueA = (rowA as Record<string, unknown>)[sortKey];
+                const valueB = (rowB as Record<string, unknown>)[sortKey];
+                const result = compareValues(valueA, valueB);
+                return direction === 'asc' ? result : -result;
+            });
+            return sorted;
+        });
+    }
+
     const prevSignatures = useRef<Map<number, string> | null>(null);
     const [highlightedIds, setHighlightedIds] = useState<Set<number>>(
         new Set(),
@@ -153,14 +179,12 @@ export default function ResourceTable<T extends { id: number }>({
 
             if (prevSignatures.current) {
                 const prevSig = prevSignatures.current.get(row.id);
-                // New row (wasn't present before) or changed content.
                 if (prevSig === undefined || prevSig !== sig) {
                     changed.push(row.id);
                 }
             }
         }
 
-        // Skip highlighting on the very first render — nothing to diff against yet.
         if (prevSignatures.current && changed.length > 0) {
             setHighlightedIds((prev) => {
                 const next = new Set(prev);
@@ -187,7 +211,6 @@ export default function ResourceTable<T extends { id: number }>({
 
         prevSignatures.current = nextSignatures;
 
-        // Clean up pending timers on unmount.
         return () => {
             highlightTimers.current.forEach((t) => clearTimeout(t));
             highlightTimers.current.clear();
@@ -195,11 +218,8 @@ export default function ResourceTable<T extends { id: number }>({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [resource.data]);
 
-    // ---- Polling -------------------------------------------------------
-    // `only` scopes the reload to this resource's prop so polling stays cheap —
-    // without it, every tick would re-fetch the entire page's props.
     const { start, stop } = usePoll(
-        pollInterval ?? 5000,
+        pollInterval ?? 15000,
         {
             only: resourceKey ? [resourceKey] : undefined,
             preserveScroll: true,
@@ -222,7 +242,6 @@ export default function ResourceTable<T extends { id: number }>({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pollInterval, resourceKey]);
 
-    // ---- Delete flow (pauses polling while the confirm dialog is open) -----
     const handleDeleteClick = async (id: number) => {
         if (pollInterval) stop();
 
@@ -240,13 +259,6 @@ export default function ResourceTable<T extends { id: number }>({
 
         router.delete(deleteUrl(id), {
             preserveScroll: true,
-            // No toast.success here on purpose. A redirect back to this page is
-            // "successful" from Inertia's point of view even when the backend
-            // rejected the delete (e.g. return back()->with('error', '...') for
-            // a record still in use) — it's still just a normal 302 response.
-            // The actual outcome (deleted vs. still-in-use) should come from the
-            // backend's flash message, surfaced by a flash-listening useEffect
-            // on the page that renders this table.
             onError: () => {
                 toast.error('Something went wrong while deleting.');
             },
@@ -256,35 +268,281 @@ export default function ResourceTable<T extends { id: number }>({
         });
     };
 
+    const [isNavigating, setIsNavigating] = useState(false);
+
+    const navigateWithParams = (
+        overrides: Record<string, string | undefined>,
+    ) => {
+        const url = new URL(window.location.href);
+
+        for (const [key, value] of Object.entries(overrides)) {
+            if (value) {
+                url.searchParams.set(key, value);
+            } else {
+                url.searchParams.delete(key);
+            }
+        }
+        url.searchParams.delete('page');
+
+        router.get(
+            url.pathname + url.search,
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                only: resourceKey ? [resourceKey] : undefined,
+                showProgress: false,
+                onStart: () => setIsNavigating(true),
+                onFinish: () => setIsNavigating(false),
+            },
+        );
+    };
+
+    // ---- Built-in search (only when the parent isn't already
+    // controlling search itself via searchValue/onSearchChange) --------
+    // Submits on button click / Enter key press instead of live-as-you-type,
+    // so the request only fires once the person is done typing and confirms.
+    // Note: matching should be case-insensitive on the BACKEND — if you're
+    // on Postgres, plain `LIKE` is case-sensitive there, so the controller
+    // needs `ILIKE` (or `whereRaw('LOWER(col) LIKE ?', ...)`) for "NoRsu" to
+    // match "norsu". No frontend change can fix that half of this.
+    const isControlledSearch = onSearchChange !== undefined;
+
+    const [internalSearch, setInternalSearch] = useState<string>(() => {
+        if (typeof window === 'undefined') return '';
+        return new URLSearchParams(window.location.search).get('search') ?? '';
+    });
+
+    const effectiveSearchValue = isControlledSearch
+        ? (searchValue ?? '')
+        : internalSearch;
+
+    const handleSearchInputChange = (value: string) => {
+        if (isControlledSearch) {
+            onSearchChange?.(value);
+        } else {
+            setInternalSearch(value);
+        }
+    };
+
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (isControlledSearch) {
+            onSearchSubmit?.(effectiveSearchValue);
+            return;
+        }
+
+        navigateWithParams({ search: effectiveSearchValue || undefined });
+    };
+
+    const urlParams =
+        typeof window !== 'undefined'
+            ? new URLSearchParams(window.location.search)
+            : new URLSearchParams();
+    const currentSort = urlParams.get('sort') ?? '';
+    const currentDirection =
+        (urlParams.get('direction') as 'asc' | 'desc') || 'asc';
+
+    const handleSortClick = (sortKey: string) => {
+        const isActiveColumn = currentSort === sortKey;
+
+        if (!isActiveColumn) {
+            optimisticallySort(sortKey, 'asc');
+            navigateWithParams({ sort: sortKey, direction: 'asc' });
+        } else if (currentDirection === 'asc') {
+            optimisticallySort(sortKey, 'desc');
+            navigateWithParams({ sort: sortKey, direction: 'desc' });
+        } else {
+            navigateWithParams({ sort: undefined, direction: undefined });
+        }
+    };
+
+    const activeSortValue = sortOptions?.find(
+        (o) => o.sort === currentSort && o.direction === currentDirection,
+    )
+        ? `${currentSort}:${currentDirection}`
+        : '';
+
+    const handleSortSelectChange = (value: string) => {
+        const [sort, direction] = value.split(':') as [string, 'asc' | 'desc'];
+        optimisticallySort(sort, direction);
+        navigateWithParams({ sort, direction });
+    };
+    // ---- Full reset button --------------------------------------
+    // Unlike the plain reload above (same view, fresh data), this clears
+    // search, sort, and any query-string filters entirely and returns the
+    // table to its default unfiltered/unsorted state — a hard reset, not
+    // just a refetch. Deliberately NOT scoped via `only`/`preserveState`
+    // so the URL and every derived prop genuinely clear.
+
+    const [isResetting, setIsResetting] = useState(false);
+
+    const handleReloadAndReset = () => {
+        setInternalSearch('');
+        if (isControlledSearch) {
+            onSearchChange?.('');
+            onSearchSubmit?.('');
+        }
+
+        router.get(
+            window.location.pathname,
+            {},
+            {
+                preserveScroll: true,
+                replace: true,
+                showProgress: false,
+                onStart: () => setIsResetting(true),
+                onFinish: () => setIsResetting(false),
+            },
+        );
+    };
+
     return (
-        // Greyish page background so the white title bar / filter card /
-        // table card actually stand out, matching the Requests page.
         <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-slate-50 p-3 sm:p-6">
             <Head title={title} />
 
-            <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-3">
-                    <h2 className="text-lg font-semibold text-slate-900">
-                        {title}
-                    </h2>
-                    <span className="text-sm text-slate-500">
-                        {resource.total.toLocaleString()} total
-                    </span>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
+                <div className="flex items-center gap-4">
+                    {HeaderIcon && (
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100">
+                            <HeaderIcon className="h-5 w-5 text-blue-600" />
+                        </div>
+                    )}
+                    <div>
+                        <h2 className="text-xl font-bold text-slate-900">
+                            {title}
+                        </h2>
+                        {description && (
+                            <p className="text-sm text-slate-500">
+                                {description}
+                            </p>
+                        )}
+                    </div>
                 </div>
                 <Link
                     href={addHref}
-                    className="inline-flex items-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-950"
+                    className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
                 >
                     <Plus className="h-4 w-4" />
                     {addLabel}
                 </Link>
             </div>
 
-            {filters}
+            <Card className="w-full overflow-hidden rounded-2xl border-slate-200/70 py-0 shadow-sm">
+                <div className="relative h-0.5 w-full overflow-hidden bg-transparent">
+                    {(isNavigating || isResetting) && (
+                        <div className="absolute inset-0 animate-[table-loading-bar_1s_ease-in-out_infinite] bg-blue-500" />
+                    )}
+                </div>
+                <style>{`
+                    @keyframes table-loading-bar {
+                        0% { transform: translateX(-100%); }
+                        100% { transform: translateX(100%); }
+                    }
+                `}</style>
+                {/* ---- Toolbar row: search form (button/Enter submit) + optional extra filters + sort dropdown ---- */}
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
+                    <form
+                        onSubmit={handleSearchSubmit}
+                        className="flex w-full max-w-md flex-1 items-center gap-2"
+                    >
+                        <div className="relative flex-1">
+                            <input
+                                type="text"
+                                value={effectiveSearchValue}
+                                onChange={(e) =>
+                                    handleSearchInputChange(e.target.value)
+                                }
+                                placeholder={searchPlaceholder}
+                                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-blue-200"
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            aria-label="Search"
+                            title="Search"
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-700"
+                        >
+                            <Search className="h-4 w-4" />
+                        </button>
+                    </form>
+                    <div className="flex items-center gap-2">
+                        {filters}
+                        {sortOptions && sortOptions.length > 0 && (
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <button
+                                        type="button"
+                                        className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border text-slate-500 transition-colors hover:bg-slate-50 ${
+                                            activeSortValue
+                                                ? 'border-blue-300 bg-blue-50 text-blue-600'
+                                                : 'border-slate-200 bg-white'
+                                        }`}
+                                        aria-label="Sort"
+                                        title="Sort"
+                                    >
+                                        <ArrowUpDown className="h-4 w-4" />
+                                    </button>
+                                </PopoverTrigger>
+                                <PopoverContent
+                                    align="end"
+                                    className="w-52 space-y-1 p-2"
+                                >
+                                    <p className="px-2 py-1.5 text-xs font-semibold text-slate-500 uppercase">
+                                        Sort by
+                                    </p>
+                                    {sortOptions.map((opt) => {
+                                        const optionValue = `${opt.sort}:${opt.direction}`;
+                                        const isActive =
+                                            optionValue === activeSortValue;
+                                        return (
+                                            <button
+                                                key={optionValue}
+                                                type="button"
+                                                onClick={() =>
+                                                    handleSortSelectChange(
+                                                        optionValue,
+                                                    )
+                                                }
+                                                className={`flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-sm transition-colors ${
+                                                    isActive
+                                                        ? 'bg-blue-50 font-medium text-blue-700'
+                                                        : 'text-slate-600 hover:bg-slate-50'
+                                                }`}
+                                            >
+                                                {opt.label}
+                                                {isActive && (
+                                                    <Check className="h-3.5 w-3.5" />
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </PopoverContent>
+                            </Popover>
+                        )}
+                        <button
+                            type="button"
+                            onClick={handleReloadAndReset}
+                            disabled={isResetting}
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            aria-label="Reload and reset table"
+                            title="Reload and reset table"
+                        >
+                            <RefreshCw
+                                className={`h-4 w-4 ${isResetting ? 'animate-spin' : ''}`}
+                            />
+                        </button>
+                    </div>
+                </div>
 
-            <Card className="w-full overflow-hidden border-slate-200/70 py-0 shadow-sm">
                 <CardContent className="overflow-x-auto p-0">
-                    <Table className="min-w-[640px] table-fixed">
+                    <Table
+                        className={`min-w-[640px] table-fixed transition-opacity duration-150 ${
+                            isNavigating ? 'opacity-60' : 'opacity-100'
+                        }`}
+                    >
                         <colgroup>
                             {columns.map((col, i) => (
                                 <col
@@ -300,24 +558,64 @@ export default function ResourceTable<T extends { id: number }>({
                         </colgroup>
                         <TableHeader>
                             <TableRow className="border-b border-slate-200 hover:bg-transparent">
-                                {columns.map((col, i) => (
-                                    <TableHead
-                                        key={i}
-                                        className={`h-11 truncate bg-slate-50/80 text-xs font-semibold tracking-wide text-slate-600 uppercase ${
-                                            i === 0 ? 'pl-6' : ''
-                                        }`}
-                                    >
-                                        {col.header}
-                                    </TableHead>
-                                ))}
+                                {columns.map((col, i) => {
+                                    const sortKey =
+                                        typeof col.sortable === 'string'
+                                            ? col.sortable
+                                            : null;
+                                    const isActiveSort =
+                                        sortKey !== null &&
+                                        currentSort === sortKey;
+
+                                    const headerContent = (
+                                        <span className="inline-flex items-center gap-1.5">
+                                            {col.header}
+                                            {sortKey ? (
+                                                isActiveSort ? (
+                                                    currentDirection ===
+                                                    'asc' ? (
+                                                        <ArrowUp className="h-3 w-3 text-blue-600" />
+                                                    ) : (
+                                                        <ArrowDown className="h-3 w-3 text-blue-600" />
+                                                    )
+                                                ) : (
+                                                    <ArrowUpDown className="h-3 w-3 text-slate-400" />
+                                                )
+                                            ) : (
+                                                col.sortable && (
+                                                    <ArrowUpDown className="h-3 w-3 text-slate-400" />
+                                                )
+                                            )}
+                                        </span>
+                                    );
+
+                                    return (
+                                        <TableHead
+                                            key={i}
+                                            className={`h-11 truncate bg-slate-50/80 text-xs font-semibold tracking-wide text-slate-600 uppercase ${
+                                                i === 0 ? 'pl-6' : ''
+                                            } ${sortKey ? 'cursor-pointer select-none hover:text-slate-900' : ''}`}
+                                            onClick={
+                                                sortKey
+                                                    ? () =>
+                                                          handleSortClick(
+                                                              sortKey,
+                                                          )
+                                                    : undefined
+                                            }
+                                        >
+                                            {headerContent}
+                                        </TableHead>
+                                    );
+                                })}
                                 <TableHead className="h-11 bg-white pr-6 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
                                     Actions
                                 </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {resource.data.length > 0 ? (
-                                resource.data.map((row, i) => {
+                            {displayData.length > 0 ? (
+                                displayData.map((row, i) => {
                                     const isHighlighted = highlightedIds.has(
                                         row.id,
                                     );
@@ -343,9 +641,6 @@ export default function ResourceTable<T extends { id: number }>({
                                                 </TableCell>
                                             ))}
                                             <TableCell className="py-3 pr-6 text-right">
-                                                {/* Connected pill action group — matches the
-                                                    Requests page's View/Process/Edit style
-                                                    instead of two separate floating squares. */}
                                                 <div className="inline-flex overflow-hidden rounded-full shadow-sm">
                                                     <Link
                                                         href={editHref(row)}
@@ -396,12 +691,22 @@ export default function ResourceTable<T extends { id: number }>({
                 </CardContent>
 
                 {resource.data.length > 0 && (
-                    <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3">
+                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                            <span>Show</span>
+                            <span className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 px-2.5 text-slate-600">
+                                {resource.data.length}
+                                <ChevronDown className="h-3.5 w-3.5" />
+                            </span>
+                            <span>entries</span>
+                        </div>
+
                         <p className="text-sm text-slate-500">
                             Showing {resource.from ?? 0} to {resource.to ?? 0}{' '}
                             of {resource.total} results
                         </p>
-                        <div className="flex items-center gap-1">
+
+                        <div className="flex items-center gap-1.5">
                             {resource.links.map((link, index) => {
                                 const rawLabel = link.label
                                     .replace(/&laquo;|&raquo;/g, '')
@@ -424,13 +729,13 @@ export default function ResourceTable<T extends { id: number }>({
                                                   : rawLabel
                                         }
                                         as={link.url ? 'a' : 'span'}
-                                        className={`inline-flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-colors ${
+                                        className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border text-sm font-medium transition-colors ${
                                             link.active
-                                                ? 'bg-blue-900 text-white hover:bg-blue-950'
+                                                ? 'border-blue-600 bg-blue-600 text-white hover:bg-blue-700'
                                                 : link.url
-                                                  ? 'text-slate-600 hover:bg-slate-100'
-                                                  : 'cursor-not-allowed text-slate-300'
-                                        }`}
+                                                  ? 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                                                  : 'cursor-not-allowed border-slate-100 text-slate-300'
+                                        } ${link.active ? 'rounded-full' : ''}`}
                                     >
                                         {isPrev ? (
                                             <ChevronLeft className="h-4 w-4" />

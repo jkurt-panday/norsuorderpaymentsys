@@ -249,7 +249,7 @@ const ManageRequests: React.FC = () => {
             columns={columns}
             resource={formInputs}
             resourceKey="formInputs"
-            pollInterval={5000}
+            pollInterval={15000}
             renderActions={renderActions}
             actionsWidth="110px"
             emptyIcon={Inbox}

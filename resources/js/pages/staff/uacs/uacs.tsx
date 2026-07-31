@@ -13,10 +13,16 @@ import ResourceTable, {
 import { Badge } from '@/components/ui/badge';
 
 // ============ TYPE DEFINITIONS ============
+// created_at added here even though it's not rendered as a visible column —
+// it's still present on the row data from Supabase/Eloquent by default (as
+// long as it isn't in the model's $hidden array), and it's needed so the
+// "Newest"/"Oldest" sort options below have a real field to reference.
 interface UacsRecord {
     id: number;
     object_code: string;
     account_title: string;
+    created_at: string;
+    display_number: number;
 }
 
 interface FlashProps {
@@ -39,11 +45,10 @@ export default function UacsIndex({ uacs, flash }: UacsIndexProps) {
         if (flash?.error) toast.error(flash.error);
     }, [flash]);
 
-    // ============ COLUMNS ============
     const columns: ColumnDef<UacsRecord>[] = [
         {
             header: 'ID',
-            render: (row, index) => (uacs.from ?? 1) + index,
+            render: (row) => row.display_number,
         },
         {
             header: 'Object Code',
@@ -70,12 +75,18 @@ export default function UacsIndex({ uacs, flash }: UacsIndexProps) {
             columns={columns}
             resource={uacs}
             resourceKey="uacs"
-            pollInterval={5000}
+            pollInterval={15000}
             editHref={(row) => edit(row.id)}
             deleteUrl={(id) => destroy(id).url}
             emptyIcon={Code}
             emptyMessage="No UACS records found"
             deleteConfirmMessage="Are you sure you want to delete this UACS record?"
+            sortOptions={[
+                { label: 'Newest', sort: 'created_at', direction: 'desc' },
+                { label: 'Oldest', sort: 'created_at', direction: 'asc' },
+                { label: 'A–Z', sort: 'account_title', direction: 'asc' },
+                { label: 'Z–A', sort: 'account_title', direction: 'desc' },
+            ]}
         />
     );
 }

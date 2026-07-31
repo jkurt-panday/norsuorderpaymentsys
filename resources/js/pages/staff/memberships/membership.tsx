@@ -17,6 +17,7 @@ interface Membership {
     member_code: string;
     member_desc: string;
     created_at: string;
+    display_number: number;
 }
 
 interface FlashProps {
@@ -52,10 +53,18 @@ export default function MembershipsIndex({
     }, [flash]);
 
     // ============ COLUMNS ============
+    // `sortable` is set to the exact backend column name (matches
+    // MembershipController's $sortableColumns allowlist) so clicking the
+    // header actually submits ?sort=...&direction=... instead of just
+    // showing a decorative arrow.
+    //
+    // ID uses `display_number` — a permanent rank computed server-side via
+    // ROW_NUMBER() OVER (ORDER BY id ASC), so it stays fixed per record
+    // regardless of whatever sort is currently applied for display.
     const columns: ColumnDef<Membership>[] = [
         {
             header: 'ID',
-            render: (row, index) => (memberships.from ?? 1) + index,
+            render: (row) => row.display_number,
         },
         {
             header: 'Member Code',
@@ -84,12 +93,18 @@ export default function MembershipsIndex({
             columns={columns}
             resource={memberships}
             resourceKey="memberships"
-            pollInterval={5000}
+            pollInterval={15000}
             editHref={(row) => edit(row.id)}
             deleteUrl={(id) => destroy(id).url}
             emptyIcon={Users}
             emptyMessage="No memberships found"
             deleteConfirmMessage="Are you sure you want to delete this membership?"
+            sortOptions={[
+                { label: 'Newest', sort: 'created_at', direction: 'desc' },
+                { label: 'Oldest', sort: 'created_at', direction: 'asc' },
+                { label: 'A–Z', sort: 'member_desc', direction: 'asc' },
+                { label: 'Z–A', sort: 'member_desc', direction: 'desc' },
+            ]}
         />
     );
 }
