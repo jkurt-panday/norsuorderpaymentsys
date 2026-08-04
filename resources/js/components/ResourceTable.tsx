@@ -566,7 +566,7 @@ export default function ResourceTable<T extends { id: number }>({
 
                 <CardContent className="overflow-x-auto p-0">
                     <Table
-                        className={`min-w-[640px] table-fixed transition-opacity duration-150 ${
+                        className={`min-w-[800px] table-fixed transition-opacity duration-150 ${
                             isNavigating ? 'opacity-60' : 'opacity-100'
                         }`}
                     >

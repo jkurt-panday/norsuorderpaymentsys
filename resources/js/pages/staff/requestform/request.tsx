@@ -142,7 +142,15 @@ const ManageRequests: React.FC = () => {
                 </Link>
             ),
         },
-        { header: 'Name', width: '180px', render: (row) => row.full_name },
+        {
+            header: 'Name',
+            width: '180px',
+            render: (row) => (
+                <div className="max-w-[180px] truncate" title={row.full_name}>
+                    {row.full_name}
+                </div>
+            ),
+        },
         { header: 'Email', width: '220px', render: (row) => row.email },
         {
             header: 'Amount',

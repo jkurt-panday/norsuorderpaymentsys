@@ -324,7 +324,10 @@ export default function RequestTable<T extends { id: number | string }>({
             {(title || resource.total !== undefined) && (
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     {title && (
-                        <h2 className="text-base font-semibold text-slate-900 sm:text-lg">
+                        <h2
+                            className="max-w-xs truncate text-base font-semibold text-slate-900 sm:max-w-md sm:text-lg"
+                            title={title}
+                        >
                             {title}
                         </h2>
                     )}
