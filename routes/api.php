@@ -9,9 +9,6 @@ Route::prefix('client')->group(function () {
     // Public form submission
     Route::post('/form-input', [FormInputController::class, 'store']);
     Route::get('/form-input/{id}', [FormInputController::class, 'show']);
-
-    // Optional: For checking form status
-    Route::get('/form-input/{id}/status', [FormInputController::class, 'checkStatus']);
 });
 
 // Staff routes (protected with authentication)

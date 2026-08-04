@@ -3,13 +3,12 @@ import {
   Search,
   DollarSign,
   GraduationCap,
-  Layers,
   Wallet,
+  AlertTriangle,
   PlusCircle,
-  Pencil,
-  Trash2,
+  Scale,
 } from 'lucide-react';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,26 +29,31 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import { Separator } from '@/components/ui/separator';
 
-export interface LedgerRecord {
+export interface LawLedgerRecord {
   id: string | number;
+  lastName: string;
+  firstName: string;
+  middleInitial: string;
   name: string;
   course: string;
   schoolYear: string;
-  term: string;
+  semesterOrSummer: string;
   units: number;
   transactionDate: string;
   referenceNo: string;
   particulars: string;
-  ratePerUnit: number;
+  tuitionPerUnitOrFeePerSemester: number;
+  arOrPayment: string;
   amount: number;
-  arPayment: 'AR' | 'Payment' | 'Adjustment';
+  status: string;
   remark: string;
   inputBy: string;
 }
 
-export interface LedgerPaginator {
-  data: LedgerRecord[];
+export interface LawLedgerPaginator {
+  data: LawLedgerRecord[];
   links?: { url: string | null; label: string; active: boolean }[];
   meta?: {
     current_page: number;
@@ -81,57 +85,93 @@ return '-';
   // Extract YYYY-MM-DD date part to prevent browser timezone shifting
   const datePart = normalized.includes('T') ? normalized.split('T')[0] : normalized.split(' ')[0];
   const parsedDate = new Date(`${datePart}T00:00:00`);
-  if (Number.isNaN(parsedDate.getTime())) return datePart;
-  return parsedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' });
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return datePart;
+  }
+
+  return parsedDate.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+  });
+}
+
+function statusBadgeVariant(status: string | null | undefined) {
+  const s = (status ?? '').toLowerCase();
+
+  if (s === 'paid' || s === 'settled') {
+return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+}
+
+  if (s === 'pending') {
+return 'bg-amber-50 text-amber-700 border-amber-200';
+}
+
+  if (s === 'overdue') {
+return 'bg-red-50 text-red-700 border-red-200';
+}
+
+  if (s === 'partial payment') {
+return 'bg-blue-50 text-blue-700 border-blue-200';
+}
+
+  return 'bg-slate-50 text-slate-700 border-slate-200';
 }
 
 interface IndexProps {
-  records?: LedgerPaginator;
-  filters?: { search?: string; year?: string; month?: string };
-  availableYears?: number[];
+  records?: LawLedgerPaginator;
+  filters?: {
+    search?: string;
+    school_year?: string;
+    semester_or_summer?: string;
+    course?: string;
+    status?: string;
+    date_from?: string;
+    date_to?: string;
+  };
   stats?: {
     totalStudents?: number;
-    totalUnits?: number;
-    totalCharges?: number;
+    totalAssessments?: number;
     totalPayments?: number;
     outstandingBalance?: number;
   };
+  filterOptions?: {
+    courses: string[];
+    schoolYears: string[];
+    semesters: string[];
+    statuses: string[];
+  };
 }
 
-export default function Index({ records, filters, availableYears = [], stats }: IndexProps) {
-  const rows: LedgerRecord[] = records?.data ?? [];
+export default function Index({ records, filters, stats, filterOptions }: IndexProps) {
+  const rows: LawLedgerRecord[] = records?.data ?? [];
   const [searchQuery, setSearchQuery] = useState(filters?.search ?? '');
-  const [selectedYear, setSelectedYear] = useState(filters?.year ?? '');
-  const [selectedMonth, setSelectedMonth] = useState(filters?.month ?? '');
+  const [schoolYear, setSchoolYear] = useState(filters?.school_year ?? '');
+  const [semester, setSemester] = useState(filters?.semester_or_summer ?? '');
+  const [course, setCourse] = useState(filters?.course ?? '');
+  const [status, setStatus] = useState(filters?.status ?? '');
   const importForm = useForm<{ file: File | null }>({ file: null });
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Debounced search — fires 300ms after the user stops typing
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      applyFilters(searchQuery, selectedYear, selectedMonth);
-    }, 300);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
-
-  const applyFilters = (nextSearch = searchQuery, nextYear = selectedYear, nextMonth = selectedMonth) => {
+  const applyFilters = (overrides: Record<string, string> = {}) => {
     const params: Record<string, string> = {};
 
-    if (nextSearch.trim()) {
-params.search = nextSearch.trim();
-}
+    const current = {
+      search: searchQuery,
+      school_year: schoolYear,
+      semester_or_summer: semester,
+      course: course,
+      status: status,
+      ...overrides,
+    };
 
-    if (nextYear) {
-params.year = nextYear;
+    Object.entries(current).forEach(([key, value]) => {
+      if (value && value.trim()) {
+params[key] = value.trim();
 }
+    });
 
-    if (nextMonth) {
-params.month = nextMonth;
-}
-
-    router.get('/graduate-ledger', params, {
+    router.get('/law-ledger', params, {
       preserveState: true,
       replace: true,
     });
@@ -139,45 +179,24 @@ params.month = nextMonth;
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (debounceRef.current) clearTimeout(debounceRef.current);
     applyFilters();
-  };
-
-  const handleFilterChange = () => {
-    const params: Record<string, string> = {};
-
-    if (searchQuery.trim()) {
-params.search = searchQuery.trim();
-}
-
-    if (selectedYear) {
-params.year = selectedYear;
-}
-
-    if (selectedMonth) {
-params.month = selectedMonth;
-}
-
-    router.get('/graduate-ledger', params, {
-      preserveState: true,
-      replace: true,
-    });
   };
 
   // ---- Server-backed Metric Summary ----
   const totalStudents = stats?.totalStudents ?? 0;
-  const totalUnits = stats?.totalUnits ?? 0;
-  const totalCharges = stats?.totalCharges ?? 0;
+  const totalAssessments = stats?.totalAssessments ?? 0;
+  const totalPayments = stats?.totalPayments ?? 0;
   const outstandingBalance = stats?.outstandingBalance ?? 0;
 
   const currentPage = records?.meta?.current_page ?? records?.current_page ?? 1;
   const lastPage = records?.meta?.last_page ?? records?.last_page ?? 1;
   const totalRecordCount = records?.meta?.total ?? records?.total ?? rows.length;
+
   const paginationLinks = records?.links ?? [];
 
   return (
     <div className="min-h-screen bg-[#FAFAF5] p-4 md:p-8">
-      <Head title="Graduate School Ledger" />
+      <Head title="Law School Ledger" />
 
       <div className="max-w-7xl mx-auto space-y-6">
 
@@ -185,12 +204,13 @@ params.month = selectedMonth;
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#CFE3FF] pb-5">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight text-[#0B3D91]">Graduate School Ledger</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-[#0B3D91]">Law School Ledger</h1>
               <Badge variant="outline" className="bg-[#EAF2FF] text-[#0B62E0] border-[#B9D8FF] font-semibold">
-                Postgraduate Registry
+                <Scale className="h-3 w-3 mr-1" />
+                Law School
               </Badge>
             </div>
-            <p className="text-sm text-[#5C7A9E] mt-0.5">Tuition, fees, and payment transactions by student.</p>
+            <p className="text-sm text-[#5C7A9E] mt-0.5">Tuition, fees, and payment transactions for law school students.</p>
           </div>
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 w-full md:w-auto">
@@ -199,52 +219,77 @@ params.month = selectedMonth;
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#7FA6D6]" />
                 <Input
                   type="search"
-                  placeholder="Search name, course, or OR/JEV #..."
+                  placeholder="Search name, ID, or ref #..."
                   className="pl-8 h-9 bg-white border-[#CFE3FF] focus-visible:ring-[#0F6FFF]"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    const nextValue = e.target.value;
+                    setSearchQuery(nextValue);
+                    applyFilters({ search: nextValue });
+                  }}
                 />
               </div>
 
-              {/* Dynamic year filter from DB */}
               <select
-                value={selectedYear}
+                value={schoolYear}
                 onChange={(e) => {
-                  const nextYear = e.target.value;
-                  setSelectedYear(nextYear);
-                  applyFilters(searchQuery, nextYear, selectedMonth);
+                  const v = e.target.value;
+                  setSchoolYear(v);
+                  applyFilters({ school_year: v });
                 }}
                 className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
               >
-                <option value="">All Years</option>
-                {availableYears.map((yr) => (
-                  <option key={yr} value={String(yr)}>{yr}</option>
+                <option value="">All School Years</option>
+                {(filterOptions?.schoolYears ?? []).map((sy) => (
+                  <option key={sy} value={sy}>{sy}</option>
                 ))}
               </select>
 
               <select
-                value={selectedMonth}
+                value={semester}
                 onChange={(e) => {
-                  const nextMonth = e.target.value;
-                  setSelectedMonth(nextMonth);
-                  applyFilters(searchQuery, selectedYear, nextMonth);
+                  const v = e.target.value;
+                  setSemester(v);
+                  applyFilters({ semester_or_summer: v });
                 }}
                 className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
               >
-                <option value="">All Months</option>
-                <option value="1">Jan</option>
-                <option value="2">Feb</option>
-                <option value="3">Mar</option>
-                <option value="4">Apr</option>
-                <option value="5">May</option>
-                <option value="6">Jun</option>
-                <option value="7">Jul</option>
-                <option value="8">Aug</option>
-                <option value="9">Sep</option>
-                <option value="10">Oct</option>
-                <option value="11">Nov</option>
-                <option value="12">Dec</option>
+                <option value="">All Semesters</option>
+                {(filterOptions?.semesters ?? []).map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
               </select>
+
+              <select
+                value={course}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setCourse(v);
+                  applyFilters({ course: v });
+                }}
+                className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+              >
+                <option value="">All Courses</option>
+                {(filterOptions?.courses ?? []).map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+
+              <select
+                value={status}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setStatus(v);
+                  applyFilters({ status: v });
+                }}
+                className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+              >
+                <option value="">All Statuses</option>
+                {(filterOptions?.statuses ?? []).map((st) => (
+                  <option key={st} value={st}>{st}</option>
+                ))}
+              </select>
+
             </form>
 
             <div className="flex flex-wrap items-center justify-end gap-2 ml-auto">
@@ -258,7 +303,7 @@ params.month = selectedMonth;
                     importForm.setData('file', file);
 
                     if (file) {
-                      importForm.post('/graduate-ledger/import', {
+                      importForm.post('/law-ledger/import', {
                         forceFormData: true,
                         preserveScroll: true,
                         onSuccess: () => {
@@ -272,7 +317,7 @@ params.month = selectedMonth;
                 Import Excel/CSV
               </label>
 
-              <Button className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white" onClick={() => router.get('/graduate-ledger/add')}>
+              <Button className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white" onClick={() => router.get('/law-ledger/add')}>
                 <PlusCircle className="h-4 w-4 mr-1.5" />
                 New Transaction
               </Button>
@@ -289,36 +334,36 @@ params.month = selectedMonth;
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{totalStudents}</div>
-              <p className="text-[10px] text-[#8AA8CC] mt-1">Unique active students</p>
+              <p className="text-[10px] text-[#8AA8CC] mt-1">Unique law school students</p>
             </CardContent>
           </Card>
 
           <Card className="shadow-xs border border-[#CFE3FF] bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-[#5C7A9E]">Total Units</CardTitle>
-              <Layers className="h-4 w-4 text-[#0F6FFF]" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{totalUnits}</div>
-              <p className="text-[10px] text-[#8AA8CC] mt-1">Total units enrolled</p>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-xs border border-[#CFE3FF] bg-white">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-[#5C7A9E]">Total Charges (AR)</CardTitle>
+              <CardTitle className="text-sm font-medium text-[#5C7A9E]">Total Assessments</CardTitle>
               <DollarSign className="h-4 w-4 text-[#0F6FFF]" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{currency(totalCharges)}</div>
+              <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{currency(totalAssessments)}</div>
               <p className="text-[10px] text-[#8AA8CC] mt-1">Total tuition + fees billed</p>
             </CardContent>
           </Card>
 
           <Card className="shadow-xs border border-[#CFE3FF] bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-[#5C7A9E]">Outstanding Balance</CardTitle>
+              <CardTitle className="text-sm font-medium text-[#5C7A9E]">Total Payments</CardTitle>
               <Wallet className="h-4 w-4 text-[#0F6FFF]" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{currency(totalPayments)}</div>
+              <p className="text-[10px] text-[#8AA8CC] mt-1">Total payments received</p>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-xs border border-[#CFE3FF] bg-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-[#5C7A9E]">Outstanding Balance</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-orange-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{currency(outstandingBalance)}</div>
@@ -327,7 +372,71 @@ params.month = selectedMonth;
           </Card>
         </div>
 
-        {/* Ledger Table */}
+        {/* Summary Analytics */}
+        <Card className="border border-[#CFE3FF] bg-white">
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-600">Outstanding Balance</span>
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
+              </div>
+              <p className="text-xl font-bold text-slate-900">{currency(outstandingBalance)}</p>
+              <div className="h-2 bg-orange-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-orange-500 rounded-full transition-all duration-500"
+                  style={{ 
+                    width: `${totalAssessments > 0 ? Math.min((outstandingBalance / totalAssessments) * 100, 100) : 0}%` 
+                  }}
+                />
+              </div>
+            </div>
+
+            <Separator className="my-6" />
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 bg-white rounded-lg border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-600">Collection Rate</span>
+                  <span className="text-sm font-medium text-slate-900">
+                    {totalAssessments > 0 
+                      ? `${((totalPayments / totalAssessments) * 100).toFixed(1)}%` 
+                      : '0.0%'}
+                  </span>
+                </div>
+                <div className="mt-2 h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                    style={{ 
+                      width: `${totalAssessments > 0 ? Math.min((totalPayments / totalAssessments) * 100, 100) : 0}%` 
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 bg-white rounded-lg border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-600">Average Transaction</span>
+                  <span className="text-sm font-medium text-slate-900">
+                    {totalRecordCount > 0 
+                      ? currency((totalAssessments + totalPayments) / totalRecordCount)
+                      : '₱0.00'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">Per record</p>
+              </div>
+
+              <div className="p-4 bg-white rounded-lg border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-600">Records This Page</span>
+                  <span className="text-sm font-medium text-slate-900">{rows.length}</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">of {totalRecordCount.toLocaleString()} total</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Ledger Table with Pagination */}
         <Card className="border border-[#CFE3FF] bg-white">
           <CardHeader className="pb-2">
             <CardTitle className="text-md text-[#0B3D91]">Transaction Ledger</CardTitle>
@@ -341,18 +450,18 @@ params.month = selectedMonth;
                 <tr className="border-b border-[#CFE3FF] bg-[#F3F8FF]">
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 pl-2 whitespace-nowrap">Name</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Course</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">S.Y.</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Term</th>
+                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">School Year</th>
+                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Semester/Summer</th>
                   <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Units</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Trans. Date</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Ref. (JEV/OR #)</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Particulars</th>
-                  <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Rate/Unit</th>
+                  <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Tuition/Unit or Reg. & Misc. Fee</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">AR/Payment</th>
                   <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Amount</th>
+                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Status</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Remark</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Input By</th>
-                  <th className="text-center font-medium text-[#5C7A9E] py-2 pr-2 whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -368,36 +477,25 @@ params.month = selectedMonth;
                       <td className="py-2 pr-4 pl-2 font-medium whitespace-nowrap text-[#0B3D91]">{r.name}</td>
                       <td className="py-2 pr-4 text-[#334E68]">{r.course}</td>
                       <td className="py-2 pr-4 text-[#334E68]">{r.schoolYear}</td>
-                      <td className="py-2 pr-4 text-[#334E68]">{r.term}</td>
+                      <td className="py-2 pr-4 text-[#334E68]">{r.semesterOrSummer}</td>
                       <td className="py-2 pr-4 text-right text-[#334E68]">{r.units}</td>
                       <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{formatTransactionDate(r.transactionDate)}</td>
                       <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{r.referenceNo}</td>
                       <td className="py-2 pr-4 text-[#334E68]">{r.particulars}</td>
-                      <td className="py-2 pr-4 text-right text-[#334E68]">{currency(r.ratePerUnit)}</td>
+                      <td className="py-2 pr-4 text-right text-[#334E68]">{currency(r.tuitionPerUnitOrFeePerSemester)}</td>
                       <td className="py-2 pr-4">
                         <Badge variant="outline" className="border-[#B9D8FF] text-[#0B62E0] bg-[#EAF2FF]">
-                          {r.arPayment}
+                          {r.arOrPayment}
                         </Badge>
                       </td>
                       <td className="py-2 pr-4 text-right font-medium text-[#0B3D91]">{currency(r.amount)}</td>
+                      <td className="py-2 pr-4">
+                        <Badge variant="outline" className={statusBadgeVariant(r.status)}>
+                          {r.status}
+                        </Badge>
+                      </td>
                       <td className="py-2 pr-4 text-[#8AA8CC]">{r.remark}</td>
                       <td className="py-2 pr-4 text-[#8AA8CC]">{r.inputBy}</td>
-                      <td className="py-2 pr-2 text-center whitespace-nowrap">
-                        <button
-                          onClick={() => router.get(`/graduate-ledger/${r.id}/edit`)}
-                          className="inline-flex items-center justify-center p-1.5 rounded hover:bg-[#EAF2FF] text-[#0B62E0] transition-colors mr-1"
-                          title="Edit"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(r.id, r.name)}
-                          className="inline-flex items-center justify-center p-1.5 rounded hover:bg-red-50 text-red-500 transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </td>
                     </tr>
                   ))
                 )}
@@ -405,7 +503,7 @@ params.month = selectedMonth;
             </table>
           </CardContent>
 
-          {/* Pagination Footer */}
+          {/* ---- Pagination Footer ---- */}
           {paginationLinks.length > 3 && (
             <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-[#CFE3FF] pt-4 pb-4 gap-4">
               <div className="text-xs text-[#5C7A9E]">

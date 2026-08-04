@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class FormInput extends Model
 {
-    protected $table = 'form_input';
+    protected $table = 'form_inputs';
 
     protected $fillable = [
         'email',
@@ -20,7 +20,7 @@ class FormInput extends Model
         'amount',
         'request_type',
         'membership_id',
-        'payment_details_id',
+        'payment_detail_option_id',
         'supporting_documents',
     ];
 
@@ -36,7 +36,7 @@ class FormInput extends Model
 
     public function paymentDetails()
     {
-        return $this->belongsTo(PaymentDetailsOption::class, 'payment_details_id');
+        return $this->belongsTo(PaymentDetailsOption::class, 'payment_detail_option_id');
     }
 
     public function staffInput()

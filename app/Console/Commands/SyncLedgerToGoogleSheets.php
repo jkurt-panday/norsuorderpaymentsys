@@ -4,11 +4,11 @@ namespace App\Console\Commands;
 
 use App\Models\GraduateLedger;
 use Illuminate\Console\Command;
-use Revolution\Google\Sheets\Facades\Sheets;
 
 class SyncLedgerToGoogleSheets extends Command
 {
     protected $signature = 'ledger:sync-sheets';
+
     protected $description = 'Pushes all records from DB to Google Sheets';
 
     public function handle()
@@ -30,8 +30,8 @@ class SyncLedgerToGoogleSheets extends Command
                 'AR/PAYMENT',
                 'AMOUNT',
                 'REMARKS',
-                'INPUT BY:'
-            ]
+                'INPUT BY:',
+            ],
         ];
 
         foreach ($records as $r) {
@@ -60,7 +60,7 @@ class SyncLedgerToGoogleSheets extends Command
         $this->info('Clearing old Google Sheet data...');
         $sheetsService->spreadsheet($spreadsheetId)->sheet('Graduate School')->clear();
 
-        $this->info('Uploading ' . count($rows) . ' rows to Google Sheets...');
+        $this->info('Uploading '.count($rows).' rows to Google Sheets...');
         foreach (array_chunk($rows, 1000) as $chunk) {
             $sheetsService->spreadsheet($spreadsheetId)->sheet('Graduate School')->append($chunk);
         }
