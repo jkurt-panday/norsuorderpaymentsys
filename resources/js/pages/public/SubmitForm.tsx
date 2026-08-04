@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { useForm } from '@inertiajs/react';
 import { UploadCloud02 } from '@untitledui/icons';
-import { Mail } from 'lucide-react';
+import { Mail, User, ClipboardList, File } from 'lucide-react';
 import { useState } from 'react';
 import { FileUpload } from '@/components/application/file-upload/file-upload-base';
 import { Button } from '@/components/ui/button';
@@ -155,7 +155,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 </CardDescription>
                             </CardHeader>
 
-                            <CardContent className="space-y-6">
+                            <CardContent className="space-y-6 pt-6">
                                 {/* Section 1: Contact Information */}
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -166,7 +166,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                     Email Address
                                                 </FieldLabel>
                                                 <Input
-                                                    className={enlarge}
+                                                    className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-email"
                                                     type="email"
                                                     placeholder="jondoe@mail.com"
@@ -192,7 +192,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                     Contact Number
                                                 </FieldLabel>
                                                 <Input
-                                                    className={enlarge}
+                                                    className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-contact"
                                                     type="tel"
                                                     placeholder="0912 333 4444"
@@ -217,7 +217,8 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                     </div>
                                 </div>
                                 <Separator />
-                                <CardTitle className="text-2xl">
+                                <CardTitle className="flex items-center gap-2 text-2xl">
+                                    <User className="h-5 w-5 text-blue-600" />
                                     Identity Details
                                 </CardTitle>
                                 {/* Section 2: Additional Info */}
@@ -231,7 +232,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                     First Name / Office
                                                 </FieldLabel>
                                                 <Input
-                                                    className={enlarge}
+                                                    className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-fname"
                                                     type="text"
                                                     value={
@@ -260,7 +261,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                     Middle Name / Project
                                                 </FieldLabel>
                                                 <Input
-                                                    className={enlarge}
+                                                    className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-mname"
                                                     type="text"
                                                     value={
@@ -289,7 +290,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                     Last Name / Agency
                                                 </FieldLabel>
                                                 <Input
-                                                    className={enlarge}
+                                                    className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-lname"
                                                     type="text"
                                                     value={
@@ -322,7 +323,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                     Office / College
                                                 </FieldLabel>
                                                 <Input
-                                                    className={enlarge}
+                                                    className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-off-coll"
                                                     type="text"
                                                     value={
@@ -351,7 +352,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                     Position / Designation
                                                 </FieldLabel>
                                                 <Input
-                                                    className={enlarge}
+                                                    className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-pos-des"
                                                     type="text"
                                                     value={
@@ -382,7 +383,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                             Address
                                         </FieldLabel>
                                         <Input
-                                            className={enlarge}
+                                            className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                             id="input-field-address"
                                             type="text"
                                             value={data.address}
@@ -401,7 +402,8 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                     </Field>
                                 </div>
                                 <Separator />
-                                <CardTitle className="text-2xl">
+                                <CardTitle className="flex items-center gap-2 text-2xl">
+                                    <ClipboardList className="h-5 w-5 text-blue-600" />
                                     Request Details
                                 </CardTitle>
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
@@ -415,7 +417,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                 &#x20B1;
                                             </div>
                                             <Input
-                                                className={`${enlarge} rounded-l-none`}
+                                                className={`${enlarge} rounded-l-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                 id="input-field-amount"
                                                 type="text"
                                                 inputMode="decimal"
@@ -605,7 +607,8 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                     </Field>
                                 </div>
                                 <Separator />
-                                <CardTitle className="text-2xl">
+                                <CardTitle className="flex items-center gap-2 text-2xl">
+                                    <File className="h-5 w-5 text-blue-600" />
                                     Supporting Documents
                                 </CardTitle>
                                 {/* file uploads */}
