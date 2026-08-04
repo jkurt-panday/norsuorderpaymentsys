@@ -83,11 +83,11 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
         });
 
         // Debug: Check what's being sent
-        console.log('FormData entries:');
+        // console.log('FormData entries:');
 
-        for (const [key, value] of formData.entries()) {
-            console.log(key, value);
-        }
+        // for (const [key, value] of formData.entries()) {
+        //     console.log(key, value);
+        // }
 
         // Use post with FormData
         router.post('/public/form', formData, {
