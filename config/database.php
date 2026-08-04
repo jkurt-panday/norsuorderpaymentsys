@@ -97,6 +97,13 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
+            // Supabase uses PgBouncer in transaction mode on port 6543,
+            // which does not support server-side prepared statements.
+            // Emulating them client-side via PDO fixes the
+            // "prepared statement does not exist" error.
+            'options' => [
+                PDO::ATTR_EMULATE_PREPARES => true,
+            ],
         ],
 
         'sqlsrv' => [

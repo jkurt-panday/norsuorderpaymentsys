@@ -21,6 +21,9 @@ Route::middleware('auth')->group(function () {
     // Graduate Ledger: Single definition pointing to your controller
     Route::get('/graduate-ledger', [GraduateLedgerController::class, 'index'])
         ->name('graduate-ledger.index');
+    Route::get('/graduate-ledger/{id}/edit', [GraduateLedgerController::class, 'edit'])->name('graduate-ledger.edit');
+    Route::put('/graduate-ledger/{id}', [GraduateLedgerController::class, 'update'])->name('graduate-ledger.update');
+    Route::delete('/graduate-ledger/{id}', [GraduateLedgerController::class, 'destroy'])->name('graduate-ledger.destroy');
 
     // Law School Ledger Routes
     Route::get('/law-ledger/print-select', [LawSchoolLedgerController::class, 'printSelect'])->name('law-ledger.print-select');
