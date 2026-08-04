@@ -222,22 +222,22 @@ export default function Dashboard() {
                                 Recent Requests
                             </h2>
                         </div>
-                        <div className="p-6">
+                        <div className="p-4">
                             {recentRequests.length > 0 ? (
                                 <div className="overflow-x-auto">
-                                    <table className="min-w-full text-left text-sm text-slate-700">
+                                    <table className="w-full table-fixed text-left text-sm text-slate-700">
                                         <thead>
                                             <tr>
-                                                <th className="pb-3 font-medium text-slate-900">
+                                                <th className="w-[25%] pb-3 font-medium text-slate-900">
                                                     Reference
                                                 </th>
-                                                <th className="pb-3 font-medium text-slate-900">
+                                                <th className="w-[25%] pb-3 font-medium text-slate-900">
                                                     Name
                                                 </th>
-                                                <th className="pb-3 font-medium text-slate-900">
+                                                <th className="w-[20%] pb-3 font-medium text-slate-900">
                                                     Status
                                                 </th>
-                                                <th className="pb-3 font-medium text-slate-900">
+                                                <th className="w-[20%] pb-3 font-medium text-slate-900">
                                                     Date
                                                 </th>
                                             </tr>
@@ -246,7 +246,7 @@ export default function Dashboard() {
                                             {recentRequests.map((request) => (
                                                 <tr key={request.id}>
                                                     <td className="py-3">
-                                                        <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                                                        <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium whitespace-nowrap text-slate-700">
                                                             {
                                                                 request.reference_number
                                                             }
