@@ -6,8 +6,10 @@ import {
   Layers,
   Wallet,
   PlusCircle,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -79,21 +81,14 @@ return '-';
   // Extract YYYY-MM-DD date part to prevent browser timezone shifting
   const datePart = normalized.includes('T') ? normalized.split('T')[0] : normalized.split(' ')[0];
   const parsedDate = new Date(`${datePart}T00:00:00`);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return datePart;
-  }
-
-  return parsedDate.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-  });
+  if (Number.isNaN(parsedDate.getTime())) return datePart;
+  return parsedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' });
 }
 
 interface IndexProps {
   records?: LedgerPaginator;
   filters?: { search?: string; year?: string; month?: string };
+  availableYears?: number[];
   stats?: {
     totalStudents?: number;
     totalUnits?: number;
@@ -103,12 +98,23 @@ interface IndexProps {
   };
 }
 
-export default function Index({ records, filters, stats }: IndexProps) {
+export default function Index({ records, filters, availableYears = [], stats }: IndexProps) {
   const rows: LedgerRecord[] = records?.data ?? [];
   const [searchQuery, setSearchQuery] = useState(filters?.search ?? '');
   const [selectedYear, setSelectedYear] = useState(filters?.year ?? '');
   const [selectedMonth, setSelectedMonth] = useState(filters?.month ?? '');
   const importForm = useForm<{ file: File | null }>({ file: null });
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced search — fires 300ms after the user stops typing
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      applyFilters(searchQuery, selectedYear, selectedMonth);
+    }, 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
 
   const applyFilters = (nextSearch = searchQuery, nextYear = selectedYear, nextMonth = selectedMonth) => {
     const params: Record<string, string> = {};
@@ -133,6 +139,7 @@ params.month = nextMonth;
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     applyFilters();
   };
 
@@ -166,7 +173,6 @@ params.month = selectedMonth;
   const currentPage = records?.meta?.current_page ?? records?.current_page ?? 1;
   const lastPage = records?.meta?.last_page ?? records?.last_page ?? 1;
   const totalRecordCount = records?.meta?.total ?? records?.total ?? rows.length;
-
   const paginationLinks = records?.links ?? [];
 
   return (
@@ -196,14 +202,11 @@ params.month = selectedMonth;
                   placeholder="Search name, course, or OR/JEV #..."
                   className="pl-8 h-9 bg-white border-[#CFE3FF] focus-visible:ring-[#0F6FFF]"
                   value={searchQuery}
-                  onChange={(e) => {
-                  const nextValue = e.target.value;
-                  setSearchQuery(nextValue);
-                  applyFilters(nextValue, selectedYear, selectedMonth);
-                }}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
 
+              {/* Dynamic year filter from DB */}
               <select
                 value={selectedYear}
                 onChange={(e) => {
@@ -214,9 +217,9 @@ params.month = selectedMonth;
                 className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
               >
                 <option value="">All Years</option>
-                <option value="2024">2024</option>
-                <option value="2025">2025</option>
-                <option value="2026">2026</option>
+                {availableYears.map((yr) => (
+                  <option key={yr} value={String(yr)}>{yr}</option>
+                ))}
               </select>
 
               <select
@@ -242,7 +245,6 @@ params.month = selectedMonth;
                 <option value="11">Nov</option>
                 <option value="12">Dec</option>
               </select>
-
             </form>
 
             <div className="flex flex-wrap items-center justify-end gap-2 ml-auto">
@@ -325,7 +327,7 @@ params.month = selectedMonth;
           </Card>
         </div>
 
-        {/* Ledger Table with shadcn Pagination */}
+        {/* Ledger Table */}
         <Card className="border border-[#CFE3FF] bg-white">
           <CardHeader className="pb-2">
             <CardTitle className="text-md text-[#0B3D91]">Transaction Ledger</CardTitle>
@@ -350,12 +352,13 @@ params.month = selectedMonth;
                   <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Amount</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Remark</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Input By</th>
+                  <th className="text-center font-medium text-[#5C7A9E] py-2 pr-2 whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.length === 0 ? (
                   <tr>
-                    <td colSpan={13} className="text-center text-sm text-[#8AA8CC] py-8">
+                    <td colSpan={14} className="text-center text-sm text-[#8AA8CC] py-8">
                       No transactions found. Upload a CSV/Excel file or add one manually.
                     </td>
                   </tr>
@@ -379,6 +382,22 @@ params.month = selectedMonth;
                       <td className="py-2 pr-4 text-right font-medium text-[#0B3D91]">{currency(r.amount)}</td>
                       <td className="py-2 pr-4 text-[#8AA8CC]">{r.remark}</td>
                       <td className="py-2 pr-4 text-[#8AA8CC]">{r.inputBy}</td>
+                      <td className="py-2 pr-2 text-center whitespace-nowrap">
+                        <button
+                          onClick={() => router.get(`/graduate-ledger/${r.id}/edit`)}
+                          className="inline-flex items-center justify-center p-1.5 rounded hover:bg-[#EAF2FF] text-[#0B62E0] transition-colors mr-1"
+                          title="Edit"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(r.id, r.name)}
+                          className="inline-flex items-center justify-center p-1.5 rounded hover:bg-red-50 text-red-500 transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -386,7 +405,7 @@ params.month = selectedMonth;
             </table>
           </CardContent>
 
-          {/* ---- shadcn Pagination Footer ---- */}
+          {/* Pagination Footer */}
           {paginationLinks.length > 3 && (
             <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-[#CFE3FF] pt-4 pb-4 gap-4">
               <div className="text-xs text-[#5C7A9E]">

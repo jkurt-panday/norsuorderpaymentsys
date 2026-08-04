@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import { Printer, ArrowLeft } from 'lucide-react';
-import React, { useState } from 'react';
+import { Printer, ArrowLeft, Search } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -8,7 +8,19 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 interface Props {
   students: string[];
   selectedStudent: string | null;
-  records: any[];
+  records: {
+    id: number;
+    student_name: string;
+    course: string | null;
+    school_year: string | null;
+    semester_short: string | null;
+    semester: string | null;
+    transaction_date: string | null;
+    reference_or_jev_number: string | null;
+    particulars: string | null;
+    ar_payment: string | null;
+    amount: number | string | null;
+  }[];
   summary: {
     totalCharges: number;
     totalPayments: number;
@@ -20,13 +32,9 @@ function currency(n: number) {
   return `₱${(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function absAmount(val: any): number {
-  if (!val) {
-return 0;
-}
-
+function absAmount(val: unknown): number {
+  if (!val) return 0;
   const num = parseFloat(String(val).replace(/[^\d.]/g, ''));
-
   return isNaN(num) ? 0 : num;
 }
 
@@ -43,32 +51,40 @@ return '-';
 
   const datePart = normalized.includes('T') ? normalized.split('T')[0] : normalized.split(' ')[0];
   const parsedDate = new Date(`${datePart}T00:00:00`);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return datePart;
-  }
-
-  return parsedDate.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-  });
+  if (Number.isNaN(parsedDate.getTime())) return datePart;
+  return parsedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' });
 }
 
 export default function PrintSelect({ students, selectedStudent, records = [], summary }: Props) {
   const [selected, setSelected] = useState(selectedStudent || '');
+  const [query, setQuery] = useState(selectedStudent || '');
+  const [open, setOpen] = useState(false);
+  const comboRef = useRef<HTMLDivElement>(null);
 
-  const handleStudentSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const val = e.target.value;
-    setSelected(val);
-    router.get('/graduate-ledger/print-select', { student: val }, { preserveState: true });
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (comboRef.current && !comboRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filtered = query.trim()
+    ? students.filter((s) => s.toLowerCase().startsWith(query.trim().toLowerCase()))
+    : students;
+
+  const handleSelect = (name: string) => {
+    setSelected(name);
+    setQuery(name);
+    setOpen(false);
+    router.get('/graduate-ledger/print-select', { student: name }, { preserveState: true });
   };
 
   const handleOpenPdf = () => {
-    if (!selected) {
-return;
-}
-
+    if (!selected) return;
     window.open(`/graduate-ledger/pdf?student=${encodeURIComponent(selected)}`, '_blank');
   };
 
@@ -77,7 +93,7 @@ return;
       <Head title="Print Student Statement" />
 
       <div className="max-w-5xl mx-auto space-y-6">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#CFE3FF] pb-4">
           <div>
@@ -98,28 +114,57 @@ return;
           </div>
         </div>
 
-        {/* Selection Card */}
-        <Card className="border-[#CFE3FF] bg-white">
+        {/* Selection Card with Searchable Combobox */}
+        <Card className="border-[#CFE3FF] bg-white overflow-visible">
           <CardHeader>
             <CardTitle className="text-base text-[#0B3D91]">Select Graduate Student</CardTitle>
             <CardDescription className="text-[#7FA6D6]">
-              Choose from active registered students in the ledger database.
+              Type to search — {students.length} student{students.length === 1 ? '' : 's'} on record.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4 items-center">
-              <select
-                className="w-full sm:w-2/3 p-2.5 border border-[#CFE3FF] rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#0F6FFF]"
-                value={selected}
-                onChange={handleStudentSelect}
-              >
-                <option value="">-- Select Student Name --</option>
-                {students.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
+          <CardContent className="overflow-visible">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+
+              {/* Searchable combobox */}
+              <div className="relative w-full sm:w-2/3" ref={comboRef}>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#7FA6D6]" />
+                  <input
+                    type="text"
+                    className="w-full pl-8 pr-3 py-2.5 border border-[#CFE3FF] rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#0F6FFF] text-[#334E68]"
+                    placeholder="Search student name..."
+                    value={query}
+                    onChange={(e) => {
+                      setQuery(e.target.value);
+                      setOpen(true);
+                      if (e.target.value === '') setSelected('');
+                    }}
+                    onFocus={() => setOpen(true)}
+                  />
+                </div>
+
+                {open && filtered.length > 0 && (
+                  <ul className="absolute z-50 w-full mt-1 max-h-60 overflow-y-auto rounded-md border border-[#CFE3FF] bg-white shadow-lg">
+                    {filtered.map((name) => (
+                      <li
+                        key={name}
+                        onMouseDown={() => handleSelect(name)}
+                        className={`px-3 py-2 text-sm cursor-pointer hover:bg-[#EAF2FF] text-[#334E68] ${
+                          name === selected ? 'bg-[#EAF2FF] font-medium text-[#0B3D91]' : ''
+                        }`}
+                      >
+                        {name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {open && filtered.length === 0 && query.trim() && (
+                  <div className="absolute z-50 w-full mt-1 rounded-md border border-[#CFE3FF] bg-white shadow-lg px-3 py-2 text-sm text-[#8AA8CC]">
+                    No student found matching "{query}"
+                  </div>
+                )}
+              </div>
 
               <Button
                 disabled={!selected}
@@ -136,7 +181,7 @@ return;
         {/* Student Breakdown */}
         {selected && (
           <div className="space-y-6">
-            
+
             {/* Metric Overview */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Card className="border-[#CFE3FF] bg-white">
