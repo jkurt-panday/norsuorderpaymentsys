@@ -21,32 +21,29 @@ class LawSchoolLedgerController extends Controller
      */
     public function index(Request $request): Response
     {
-        $academicYear = $request->input('academic_year');
-        $semester = $request->input('semester');
-        $program = $request->input('program');
-        $yearLevel = $request->input('year_level');
+        $schoolYear = $request->input('school_year');
+        $semester = $request->input('semester_or_summer');
+        $course = $request->input('course');
         $status = $request->input('status');
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
 
         $query = LawSchoolLedger::query()
             ->when($request->input('search'), function ($query, $search) {
-                $query->where('student_name', 'like', "%{$search}%")
-                    ->orWhere('student_id', 'like', "%{$search}%")
-                    ->orWhere('reference_or_jev_number', 'like', "%{$search}%")
+                $query->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('middle_initial', 'like', "%{$search}%")
+                    ->orWhere('reference_jev_or_number', 'like', "%{$search}%")
                     ->orWhere('particulars', 'like', "%{$search}%");
             })
-            ->when($academicYear, function ($query, $academicYear) {
-                $query->where('academic_year', $academicYear);
+            ->when($schoolYear, function ($query, $schoolYear) {
+                $query->where('school_year', $schoolYear);
             })
             ->when($semester, function ($query, $semester) {
-                $query->where('semester', $semester);
+                $query->where('semester_or_summer', $semester);
             })
-            ->when($program, function ($query, $program) {
-                $query->where('program', $program);
-            })
-            ->when($yearLevel, function ($query, $yearLevel) {
-                $query->where('year_level', $yearLevel);
+            ->when($course, function ($query, $course) {
+                $query->where('course', $course);
             })
             ->when($status, function ($query, $status) {
                 $query->where('status', $status);
@@ -59,23 +56,28 @@ class LawSchoolLedgerController extends Controller
             });
 
         // 1. Calculate overall metrics using a cloned query BEFORE pagination
-        $totalStudents = (clone $query)
-            ->whereNotNull('student_name')
-            ->where('student_name', '!=', '')
-            ->distinct('student_name')
-            ->count('student_name');
+        $totalStudents = DB::query()
+            ->fromSub(
+                (clone $query)
+                    ->whereNotNull('last_name')
+                    ->where('last_name', '!=', '')
+                    ->select(['last_name', 'first_name', 'middle_initial'])
+                    ->distinct(),
+                'students'
+            )
+            ->count();
 
         $totalAssessments = (float) (clone $query)
-            ->whereRaw("UPPER(TRIM(transaction_type)) = 'ASSESSMENT'")
+            ->where('ar_or_payment', 'AR')
             ->sum('amount');
 
         $totalPayments = (float) (clone $query)
-            ->whereRaw("UPPER(TRIM(transaction_type)) IN ('PAYMENT', 'P', 'ADJUSTMENT', 'SETTLED')")
+            ->where('ar_or_payment', 'Payment')
             ->sum('amount');
 
         $outstandingBalance = (float) (clone $query)
             ->where('status', '!=', 'Paid')
-            ->sum('remaining_balance');
+            ->sum('amount');
 
         // 2. Fetch paginated records
         $records = $query
@@ -89,7 +91,7 @@ class LawSchoolLedgerController extends Controller
         return Inertia::render('law-ledger/Index', [
             'records' => $records,
             'filters' => $request->only([
-                'search', 'academic_year', 'semester', 'program', 'year_level', 'status', 'date_from', 'date_to'
+                'search', 'school_year', 'semester_or_summer', 'course', 'status', 'date_from', 'date_to'
             ]),
             'stats' => [
                 'totalStudents' => $totalStudents,
@@ -117,30 +119,23 @@ class LawSchoolLedgerController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'student_id' => ['nullable', 'string', 'max:255'],
-            'student_name' => ['required', 'string', 'max:255'],
-            'program' => ['nullable', 'string', 'max:50'],
-            'year_level' => ['nullable', 'string', 'max:10'],
-            'academic_year' => ['nullable', 'string', 'max:20'],
-            'semester' => ['nullable', 'string', 'max:50'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'middle_initial' => ['nullable', 'string', 'max:10'],
+            'course' => ['nullable', 'string', 'max:255'],
+            'school_year' => ['nullable', 'string', 'max:20'],
+            'semester_or_summer' => ['nullable', 'string', 'max:50'],
             'units' => ['nullable', 'numeric'],
             'transaction_date' => ['nullable', 'date'],
-            'due_date' => ['nullable', 'date'],
-            'reference_or_jev_number' => ['nullable', 'string', 'max:255'],
+            'reference_jev_or_number' => ['nullable', 'string', 'max:255'],
             'particulars' => ['nullable', 'string'],
-            'tuition_per_unit_or_misc' => ['nullable', 'numeric'],
-            'transaction_type' => ['nullable', 'string', 'max:50'],
+            'tuition_per_unit_or_fee_per_semester' => ['nullable', 'numeric'],
+            'ar_or_payment' => ['nullable', 'string', 'max:50'],
             'amount' => ['nullable', 'numeric'],
-            'remaining_balance' => ['nullable', 'numeric'],
             'status' => ['nullable', 'string', 'max:50'],
             'remarks' => ['nullable', 'string'],
             'input_by' => ['nullable', 'string', 'max:255'],
         ]);
-
-        // Auto-calculate remaining_balance if not provided
-        if (!isset($data['remaining_balance'])) {
-            $data['remaining_balance'] = $data['amount'] ?? 0;
-        }
 
         LawSchoolLedger::create($data);
 
@@ -188,11 +183,14 @@ class LawSchoolLedgerController extends Controller
     public function printSelect(Request $request): Response
     {
         $students = LawSchoolLedger::query()
-            ->whereNotNull('student_name')
-            ->where('student_name', '!=', '')
+            ->whereNotNull('last_name')
+            ->where('last_name', '!=', '')
             ->distinct()
-            ->orderBy('student_name', 'asc')
-            ->pluck('student_name');
+            ->orderBy('last_name', 'asc')
+            ->get(['last_name', 'first_name', 'middle_initial'])
+            ->map(function ($student) {
+                return trim("$student->last_name, $student->first_name " . ($student->middle_initial ? "$student->middle_initial" : ''));
+            });
 
         $selectedStudent = $request->input('student');
         $studentRecords = collect();
@@ -203,11 +201,19 @@ class LawSchoolLedgerController extends Controller
         ];
 
         if ($selectedStudent) {
-$studentRecords = LawSchoolLedger::query()
-            ->where('student_name', $selectedStudent)
-            ->orderBy('id', 'asc')
-            ->get()
-            ->map(fn($r) => $this->transformRecord($r));
+            $nameParts = $this->parseStudentName($selectedStudent);
+
+            $query = LawSchoolLedger::query();
+            if ($nameParts) {
+                $query->where('last_name', $nameParts['last_name'])
+                    ->where('first_name', $nameParts['first_name'])
+                    ->where('middle_initial', $nameParts['middle_initial'] ?? '');
+            } else {
+                $query->where('last_name', 'like', "%{$selectedStudent}%");
+            }
+
+            $studentRecords = $query->orderBy('id', 'asc')->get()
+                ->map(fn ($r) => $this->transformRecord($r));
 
             $balanceSummary = $this->calculateStudentBalance($studentRecords);
         }
@@ -231,10 +237,18 @@ $studentRecords = LawSchoolLedger::query()
 
         $studentName = str_replace(['−', '–', '—'], '-', (string) $request->input('student'));
 
-        $records = LawSchoolLedger::query()
-            ->where('student_name', $studentName)
-            ->orderBy('id', 'asc')
-            ->get();
+        $nameParts = $this->parseStudentName($studentName);
+
+        $query = LawSchoolLedger::query();
+        if ($nameParts) {
+            $query->where('last_name', $nameParts['last_name'])
+                ->where('first_name', $nameParts['first_name'])
+                ->where('middle_initial', $nameParts['middle_initial'] ?? '');
+        } else {
+            $query->where('last_name', 'like', "%{$studentName}%");
+        }
+
+        $records = $query->orderBy('id', 'asc')->get();
 
         $summary = $this->calculateStudentBalance($records);
 
@@ -276,41 +290,68 @@ $studentRecords = LawSchoolLedger::query()
             return null;
         }
 
+        $nameParts = $this->parseStudentName($studentName);
+
         $amount = (float) (Arr::get($normalized, 'amount', 0) ?? 0);
 
         return [
-            'student_id' => Arr::get($normalized, 'student_id') ?? Arr::get($normalized, 'id_number'),
-            'student_name' => $studentName,
-            'program' => Arr::get($normalized, 'program') ?? Arr::get($normalized, 'course'),
-            'year_level' => Arr::get($normalized, 'year_level') ?? Arr::get($normalized, 'year'),
-            'academic_year' => Arr::get($normalized, 'academic_year') ?? Arr::get($normalized, 'school_year') ?? Arr::get($normalized, 'sy'),
-            'semester' => Arr::get($normalized, 'semester'),
+            'last_name' => $nameParts['last_name'] ?? $studentName,
+            'first_name' => $nameParts['first_name'] ?? null,
+            'middle_initial' => $nameParts['middle_initial'] ?? null,
+            'course' => Arr::get($normalized, 'course') ?? Arr::get($normalized, 'program'),
+            'school_year' => Arr::get($normalized, 'school_year') ?? Arr::get($normalized, 'academic_year') ?? Arr::get($normalized, 'sy'),
+            'semester_or_summer' => Arr::get($normalized, 'semester_or_summer')
+                ?? Arr::get($normalized, 'semester')
+                ?? Arr::get($normalized, 'term'),
             'units' => (float) (Arr::get($normalized, 'units', 0) ?? 0),
             'transaction_date' => $this->normalizeDate(
                 Arr::get($normalized, 'transaction_date') ?? Arr::get($normalized, 'date')
             ),
-            'due_date' => $this->normalizeDate(Arr::get($normalized, 'due_date')),
-            'reference_or_jev_number' => Arr::get($normalized, 'reference_jev_o_r_number')
-                ?? Arr::get($normalized, 'reference_jev_or_number')
+            'reference_jev_or_number' => Arr::get($normalized, 'reference_jev_or_number')
+                ?? Arr::get($normalized, 'reference_jev_o_r_number')
                 ?? Arr::get($normalized, 'reference_or_jev_number')
                 ?? Arr::get($normalized, 'jev_no')
                 ?? Arr::get($normalized, 'or_no')
                 ?? Arr::get($normalized, 'ref_no'),
             'particulars' => Arr::get($normalized, 'particulars'),
-            'tuition_per_unit_or_misc' => (float) (
-                Arr::get($normalized, 'tuition_per_unit_reg_and_miscellaneous_per_semester')
-                ?? Arr::get($normalized, 'tuition_per_unit_or_misc', 0) 
+            'tuition_per_unit_or_fee_per_semester' => (float) (
+                Arr::get($normalized, 'tuition_per_unit_registration_and_misc_fee_per_semester')
+                ?? Arr::get($normalized, 'tuition_per_unit_reg_and_miscellaneous_per_semester')
+                ?? Arr::get($normalized, 'tuition_per_unit_or_fee_per_semester')
+                ?? Arr::get($normalized, 'tuition_per_unit_or_misc', 0)
                 ?? 0
             ),
-            'transaction_type' => Arr::get($normalized, 'transaction_type') 
-                ?? Arr::get($normalized, 'type') 
-                ?? 'Assessment',
+            'ar_or_payment' => Arr::get($normalized, 'ar_or_payment')
+                ?? Arr::get($normalized, 'ar_payment')
+                ?? Arr::get($normalized, 'transaction_type')
+                ?? Arr::get($normalized, 'type')
+                ?? 'AR',
             'amount' => $amount,
-            'remaining_balance' => $amount, // For new imports, remaining balance equals amount initially
             'status' => $this->determineStatus($amount, Arr::get($normalized, 'status')),
             'remarks' => Arr::get($normalized, 'remarks') ?? Arr::get($normalized, 'remark'),
             'input_by' => Arr::get($normalized, 'input_by'),
         ];
+    }
+
+    /**
+     * Parses a "LASTNAME, FIRSTNAME MI" formatted name into components.
+     */
+    private function parseStudentName(string $name): ?array
+    {
+        $name = trim((string) str_replace(['−', '–', '—'], '-', $name));
+
+        if (str_contains($name, ',')) {
+            [$lastName, $rest] = explode(',', $name, 2);
+            $parts = preg_split('/\s+/', trim($rest)) ?? [];
+
+            return [
+                'last_name' => trim($lastName),
+                'first_name' => $parts[0] ?? '',
+                'middle_initial' => $parts[1] ?? '',
+            ];
+        }
+
+        return null;
     }
 
     private function normalizeDate($value): ?string
@@ -347,21 +388,20 @@ $studentRecords = LawSchoolLedger::query()
     {
         return [
             'id' => $r->id,
-            'studentId' => $r->student_id,
-            'name' => $r->student_name,
-            'program' => $r->program,
-            'yearLevel' => $r->year_level,
-            'academicYear' => $r->academic_year,
-            'semester' => $r->semester,
+            'lastName' => $r->last_name,
+            'firstName' => $r->first_name,
+            'middleInitial' => $r->middle_initial,
+            'name' => trim("$r->last_name, $r->first_name " . ($r->middle_initial ? "$r->middle_initial" : '')),
+            'course' => $r->course,
+            'schoolYear' => $r->school_year,
+            'semesterOrSummer' => $r->semester_or_summer,
             'units' => (float) $r->units,
             'transactionDate' => $r->transaction_date,
-            'dueDate' => $r->due_date,
-            'referenceNo' => $r->reference_or_jev_number,
+            'referenceNo' => $r->reference_jev_or_number,
             'particulars' => $r->particulars,
-            'tuitionPerUnitOrMisc' => (float) ($r->tuition_per_unit_or_misc ?? 0),
-            'transactionType' => $r->transaction_type,
+            'tuitionPerUnitOrFeePerSemester' => (float) ($r->tuition_per_unit_or_fee_per_semester ?? 0),
+            'arOrPayment' => $r->ar_or_payment,
             'amount' => (float) $r->amount,
-            'remainingBalance' => (float) $r->remaining_balance,
             'status' => $r->status,
             'remark' => $r->remarks,
             'inputBy' => $r->input_by,
@@ -375,10 +415,10 @@ $studentRecords = LawSchoolLedger::query()
 
         foreach ($records as $record) {
             // Support both Eloquent models and transformed arrays
-            $rawType = strtoupper(trim($record->transaction_type ?? $record['transaction_type'] ?? ''));
+            $rawType = strtoupper(trim($record->ar_or_payment ?? $record['arOrPayment'] ?? $record['ar_or_payment'] ?? ''));
             $cleanAmount = (float) ($record->amount ?? $record['amount'] ?? 0);
 
-            if ($rawType === 'ASSESSMENT') {
+            if ($rawType === 'AR' || $rawType === 'ASSESSMENT') {
                 $totalAssessments += $cleanAmount;
             } else {
                 $totalPayments += $cleanAmount;
@@ -395,27 +435,26 @@ $studentRecords = LawSchoolLedger::query()
     private function getFilterOptions(): array
     {
         $currentYear = (int) date('Y');
-        $defaultAcademicYears = [];
+        $defaultSchoolYears = [];
         for ($i = $currentYear - 5; $i <= $currentYear + 3; $i++) {
-            $defaultAcademicYears[] = $i . '-' . ($i + 1);
+            $defaultSchoolYears[] = $i . '-' . ($i + 1);
         }
 
-        $academicYears = LawSchoolLedger::distinct()
-            ->orderBy('academic_year', 'desc')
-            ->pluck('academic_year')
+        $schoolYears = LawSchoolLedger::distinct()
+            ->orderBy('school_year', 'desc')
+            ->pluck('school_year')
             ->filter()
             ->values()
             ->all();
 
-        if (empty($academicYears)) {
-            $academicYears = $defaultAcademicYears;
+        if (empty($schoolYears)) {
+            $schoolYears = $defaultSchoolYears;
         }
 
         return [
-            'programs' => LawSchoolLedger::distinct()->orderBy('program')->pluck('program')->filter()->values()->all(),
-            'yearLevels' => LawSchoolLedger::distinct()->orderBy('year_level')->pluck('year_level')->filter()->values()->all(),
-            'academicYears' => $academicYears,
-            'semesters' => LawSchoolLedger::distinct()->orderBy('semester')->pluck('semester')->filter()->values()->all(),
+            'courses' => LawSchoolLedger::distinct()->orderBy('course')->pluck('course')->filter()->values()->all(),
+            'schoolYears' => $schoolYears,
+            'semesters' => LawSchoolLedger::distinct()->orderBy('semester_or_summer')->pluck('semester_or_summer')->filter()->values()->all(),
             'statuses' => LawSchoolLedger::distinct()->orderBy('status')->pluck('status')->filter()->values()->all(),
         ];
     }
