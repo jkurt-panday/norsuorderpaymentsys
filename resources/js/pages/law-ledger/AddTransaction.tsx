@@ -70,14 +70,7 @@ export default function AddTransaction({ filterOptions }: AddTransactionProps) {
     return [...new Set([...defaults, ...fromDb])];
   }, [filterOptions?.courses]);
 
-  const handleArOrPaymentChange = (value: string | null) => {
-    setData('ar_or_payment', value ?? '');
-    if (value === 'AR') {
-      setData('status', 'Pending');
-    } else if (value === 'Payment') {
-      setData('status', 'Paid');
-    }
-  };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 p-4 md:p-6 lg:p-8">
@@ -323,15 +316,13 @@ export default function AddTransaction({ filterOptions }: AddTransactionProps) {
                   <Label htmlFor="ar_or_payment" className="text-sm font-medium text-slate-700">
                     AR/Payment
                   </Label>
-                  <Select value={data.ar_or_payment} onValueChange={handleArOrPaymentChange}>
-                    <SelectTrigger className="h-10 bg-white border-slate-200">
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="AR">AR</SelectItem>
-                      <SelectItem value="Payment">Payment</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    id="ar_or_payment"
+                    value={data.ar_or_payment}
+                    onChange={e => setData('ar_or_payment', e.target.value)}
+                    className="h-10 bg-white border-slate-200"
+                    placeholder="e.g., AR, Payment, Adjustment"
+                  />
                   {errors.ar_or_payment && (
                     <p className="text-sm text-red-600">{errors.ar_or_payment}</p>
                   )}
@@ -359,18 +350,13 @@ export default function AddTransaction({ filterOptions }: AddTransactionProps) {
                   <Label htmlFor="status" className="text-sm font-medium text-slate-700">
                     Status
                   </Label>
-                  <Select value={data.status} onValueChange={value => setData('status', value ?? '')}>
-                    <SelectTrigger className="h-10 bg-white border-slate-200">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Pending">Pending</SelectItem>
-                      <SelectItem value="Paid">Paid</SelectItem>
-                      <SelectItem value="Overdue">Overdue</SelectItem>
-                      <SelectItem value="Partial Payment">Partial Payment</SelectItem>
-                      <SelectItem value="Settled">Settled</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    id="status"
+                    value={data.status}
+                    onChange={e => setData('status', e.target.value)}
+                    className="h-10 bg-white border-slate-200"
+                    placeholder="e.g., Pending, Paid, Overdue"
+                  />
                   {errors.status && (
                     <p className="text-sm text-red-600">{errors.status}</p>
                   )}
