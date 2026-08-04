@@ -40,15 +40,8 @@ function absAmount(val: unknown): number {
 
 function formatTransactionDate(value?: string | null) {
   if (!value) return '-';
-<<<<<<< Updated upstream
-
   const normalized = String(value).trim();
   if (!normalized) return '-';
-
-=======
-  const normalized = String(value).trim();
-  if (!normalized) return '-';
->>>>>>> Stashed changes
   const datePart = normalized.includes('T') ? normalized.split('T')[0] : normalized.split(' ')[0];
   const parsedDate = new Date(`${datePart}T00:00:00`);
   if (Number.isNaN(parsedDate.getTime())) return datePart;

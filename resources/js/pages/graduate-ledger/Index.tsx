@@ -69,16 +69,8 @@ function currency(n: number) {
 
 function formatTransactionDate(value?: string | null) {
   if (!value) return '-';
-<<<<<<< Updated upstream
-
   const normalized = String(value).trim();
   if (!normalized) return '-';
-
-  // Extract YYYY-MM-DD date part to prevent browser timezone shifting
-=======
-  const normalized = String(value).trim();
-  if (!normalized) return '-';
->>>>>>> Stashed changes
   const datePart = normalized.includes('T') ? normalized.split('T')[0] : normalized.split(' ')[0];
   const parsedDate = new Date(`${datePart}T00:00:00`);
   if (Number.isNaN(parsedDate.getTime())) return datePart;
@@ -118,22 +110,10 @@ export default function Index({ records, filters, availableYears = [], stats }: 
 
   const applyFilters = (nextSearch = searchQuery, nextYear = selectedYear, nextMonth = selectedMonth) => {
     const params: Record<string, string> = {};
-<<<<<<< Updated upstream
-
-    if (nextSearch.trim()) params.search = nextSearch.trim();
-    if (nextYear) params.year = nextYear;
-    if (nextMonth) params.month = nextMonth;
-
-    router.get('/graduate-ledger', params, {
-      preserveState: true,
-      replace: true,
-    });
-=======
     if (nextSearch.trim()) params.search = nextSearch.trim();
     if (nextYear) params.year = nextYear;
     if (nextMonth) params.month = nextMonth;
     router.get('/graduate-ledger', params, { preserveState: true, replace: true });
->>>>>>> Stashed changes
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -142,23 +122,9 @@ export default function Index({ records, filters, availableYears = [], stats }: 
     applyFilters();
   };
 
-<<<<<<< Updated upstream
-  const handleFilterChange = () => {
-    const params: Record<string, string> = {};
-
-    if (searchQuery.trim()) params.search = searchQuery.trim();
-    if (selectedYear) params.year = selectedYear;
-    if (selectedMonth) params.month = selectedMonth;
-
-    router.get('/graduate-ledger', params, {
-      preserveState: true,
-      replace: true,
-    });
-=======
   const handleDelete = (id: string | number, name: string) => {
     if (!window.confirm(`Delete transaction for "${name}"? This cannot be undone.`)) return;
     router.delete(`/graduate-ledger/${id}`, { preserveScroll: true });
->>>>>>> Stashed changes
   };
 
   // ---- Server-backed Metric Summary ----
@@ -421,14 +387,7 @@ export default function Index({ records, filters, availableYears = [], stats }: 
                         <PaginationItem key={index}>
                           <PaginationPrevious
                             href={link.url ?? '#'}
-<<<<<<< Updated upstream
-                            onClick={(e) => {
-                              e.preventDefault();
-                              if (link.url) router.get(link.url, {}, { preserveState: true, preserveScroll: true });
-                            }}
-=======
                             onClick={(e) => { e.preventDefault(); if (link.url) router.get(link.url, {}, { preserveState: true, preserveScroll: true }); }}
->>>>>>> Stashed changes
                             className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                           />
                         </PaginationItem>
@@ -440,14 +399,7 @@ export default function Index({ records, filters, availableYears = [], stats }: 
                         <PaginationItem key={index}>
                           <PaginationNext
                             href={link.url ?? '#'}
-<<<<<<< Updated upstream
-                            onClick={(e) => {
-                              e.preventDefault();
-                              if (link.url) router.get(link.url, {}, { preserveState: true, preserveScroll: true });
-                            }}
-=======
                             onClick={(e) => { e.preventDefault(); if (link.url) router.get(link.url, {}, { preserveState: true, preserveScroll: true }); }}
->>>>>>> Stashed changes
                             className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                           />
                         </PaginationItem>
@@ -467,18 +419,8 @@ export default function Index({ records, filters, availableYears = [], stats }: 
                         <PaginationLink
                           href={link.url ?? '#'}
                           isActive={link.active}
-<<<<<<< Updated upstream
-                          onClick={(e) => {
-                            e.preventDefault();
-                            if (link.url) router.get(link.url, {}, { preserveState: true, preserveScroll: true });
-                          }}
-                          className={`cursor-pointer ${
-                            link.active ? 'bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]' : 'text-[#0B3D91]'
-                          }`}
-=======
                           onClick={(e) => { e.preventDefault(); if (link.url) router.get(link.url, {}, { preserveState: true, preserveScroll: true }); }}
-                          className={`cursor-pointer ${link.active ? 'bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]' : 'text-[#0B3D91]'}`}
->>>>>>> Stashed changes
+                          className={`cursor-pointer ${link.active ? 'bg-[#0F6FFF]' : ''}`}
                         >
                           {link.label}
                         </PaginationLink>
