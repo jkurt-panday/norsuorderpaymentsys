@@ -27,7 +27,8 @@ import { Separator } from '@/components/ui/separator';
 import PublicLayout from '@/pages/layouts/PublicLayout';
 
 const reqType = ['New Request', 'Re-issue Request', 'Other'] as const;
-const enlarge = 'h-12 px-4 text-base';
+const enlarge =
+    "h-12 rounded-xl border-slate-300 bg-white px-4 text-base shadow-sm transition-all duration-200";
 
 interface Membership {
     id: number | string;
@@ -133,20 +134,20 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
     // ? component ui
     return (
         <>
-            <div className="min-h-screen bg-slate-50 px-4 py-10 sm:py-14">
+            <div className="min-h-screen bg-linear-to-b from-blue-50 via-slate-50 to-white px-6 py-12">
                 <div className="mx-auto max-w-4xl">
-                    <div className="mb-6 text-center">
-                        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+                <div className="mb-10 rounded-2xl border border-blue-100 bg-white px-8 py-8 text-center shadow-md">
+                    <h1 className="text-4xl font-bold tracking-tight text-blue-900">
                             Order of Payment Request
                         </h1>
-                        <p className="mt-1 text-sm text-slate-500">
+                        <p className="mt-3 text-base text-slate-600">
                             Fill out the form below to submit your request.
                         </p>
                     </div>
                     <form onSubmit={handleSubmit}>
-                        <Card className="overflow-hidden rounded-2xl border border-slate-200 shadow-lg">
+                    <Card className="overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-xl">
                             <CardHeader className="border-b border-slate-100 bg-white pb-6">
-                                <CardTitle className="flex items-center gap-2 text-2xl">
+                                <CardTitle className="flex items-center gap-3 text-xl font-semibold text-blue-900">
                                     <Mail className="h-5 w-5 text-blue-600" />
                                     Contact Information
                                 </CardTitle>
@@ -155,14 +156,14 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 </CardDescription>
                             </CardHeader>
 
-                            <CardContent className="space-y-6 pt-6">
+                            <CardContent className="space-y-6">
                                 {/* Section 1: Contact Information */}
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                         <div className="space-y-2">
                                             {/* email add */}
                                             <Field>
-                                                <FieldLabel htmlFor="input-field-email">
+                                                <FieldLabel htmlFor="input-field-email" className="mb-2 font-medium text-slate-700">
                                                     Email Address
                                                 </FieldLabel>
                                                 <Input
@@ -188,7 +189,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         <div className="space-y-2">
                                             {/* contact num */}
                                             <Field>
-                                                <FieldLabel htmlFor="input-field-contact">
+                                                <FieldLabel htmlFor="input-field-contact" className="mb-2 font-medium text-slate-700">
                                                     Contact Number
                                                 </FieldLabel>
                                                 <Input
@@ -216,8 +217,8 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         </div>
                                     </div>
                                 </div>
-                                <Separator />
-                                <CardTitle className="flex items-center gap-2 text-2xl">
+                                <Separator className="bg-blue-100" />
+                                <CardTitle className="flex items-center gap-3 text-xl font-semibold text-blue-900">
                                     <User className="h-5 w-5 text-blue-600" />
                                     Identity Details
                                 </CardTitle>
@@ -228,13 +229,14 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         <div className="space-y-2">
                                             {/* first name / office */}
                                             <Field>
-                                                <FieldLabel htmlFor="input-field-fname">
+                                                <FieldLabel htmlFor="input-field-fname" className="mb-2 font-medium text-slate-700">
                                                     First Name / Office
                                                 </FieldLabel>
                                                 <Input
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-fname"
                                                     type="text"
+                                                    placeholder='Juan'
                                                     value={
                                                         data.firstname_or_office
                                                     }
@@ -257,13 +259,14 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         <div className="space-y-2">
                                             {/* middle name / project */}
                                             <Field>
-                                                <FieldLabel htmlFor="input-field-mname">
+                                                <FieldLabel htmlFor="input-field-mname" className="mb-2 font-medium text-slate-700">
                                                     Middle Name / Project
                                                 </FieldLabel>
                                                 <Input
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-mname"
                                                     type="text"
+                                                    placeholder='Joseph'
                                                     value={
                                                         data.middlename_or_project
                                                     }
@@ -286,13 +289,14 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         <div className="space-y-2">
                                             {/* last name / agency */}
                                             <Field>
-                                                <FieldLabel htmlFor="input-field-lname">
+                                                <FieldLabel htmlFor="input-field-lname" className="mb-2 font-medium text-slate-700">
                                                     Last Name / Agency
                                                 </FieldLabel>
                                                 <Input
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-lname"
                                                     type="text"
+                                                    placeholder='Dela Cruz'
                                                     value={
                                                         data.lastname_or_agency
                                                     }
@@ -319,13 +323,14 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         <div className="space-y-2">
                                             {/* office / college */}
                                             <Field>
-                                                <FieldLabel htmlFor="input-field-off-coll">
+                                                <FieldLabel htmlFor="input-field-off-coll" className="mb-2 font-medium text-slate-700">
                                                     Office / College
                                                 </FieldLabel>
                                                 <Input
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-off-coll"
                                                     type="text"
+                                                    placeholder='College of Arts and Sciences'
                                                     value={
                                                         data.office_or_college
                                                     }
@@ -348,12 +353,13 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         <div className="space-y-2">
                                             {/* position / designation */}
                                             <Field>
-                                                <FieldLabel htmlFor="input-field-pos-des">
+                                                <FieldLabel htmlFor="input-field-pos-des" className="mb-2 font-medium text-slate-700">
                                                     Position / Designation
                                                 </FieldLabel>
                                                 <Input
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-pos-des"
+                                                    placeholder='Teacher'
                                                     type="text"
                                                     value={
                                                         data.position_or_designation
@@ -379,13 +385,14 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 <div className="space-y-4">
                                     {/* address */}
                                     <Field>
-                                        <FieldLabel htmlFor="input-field-address">
+                                        <FieldLabel htmlFor="input-field-address" className="mb-2 font-medium text-slate-700">
                                             Address
                                         </FieldLabel>
                                         <Input
                                             className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                             id="input-field-address"
                                             type="text"
+                                            placeholder='Kagawasan Ave. Dumaguete City'
                                             value={data.address}
                                             onChange={(e) =>
                                                 setData(
@@ -401,19 +408,19 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         )}
                                     </Field>
                                 </div>
-                                <Separator />
-                                <CardTitle className="flex items-center gap-2 text-2xl">
+                                <Separator className="bg-blue-100" />
+                                <CardTitle className="flex items-center gap-3 text-xl font-semibold text-blue-900">
                                     <ClipboardList className="h-5 w-5 text-blue-600" />
                                     Request Details
                                 </CardTitle>
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
                                     {/* amount */}
                                     <Field>
-                                        <FieldLabel htmlFor="input-field-amount">
+                                        <FieldLabel htmlFor="input-field-amount" className="mb-2 font-medium text-slate-700">
                                             Amount
                                         </FieldLabel>
                                         <div className="flex">
-                                            <div className="flex h-12 items-center justify-center rounded-l-md border border-r-0 bg-muted px-4 text-base text-muted-foreground">
+                                            <div className="flex h-12 items-center justify-center rounded-l-md border border-r-0 px-4 text-base bg-blue-50 text-blue-700 border-blue-200 font-semibold">
                                                 &#x20B1;
                                             </div>
                                             <Input
@@ -445,7 +452,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                     </Field>
                                     {/* request type */}
                                     <Field>
-                                        <FieldLabel htmlFor="input-field-reqtype">
+                                        <FieldLabel htmlFor="input-field-reqtype" className="mb-2 font-medium text-slate-700">
                                             Request Type
                                         </FieldLabel>
                                         <Combobox
@@ -488,7 +495,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                     </Field>
                                     {/* membership type */}
                                     <Field>
-                                        <FieldLabel htmlFor="input-field-memtype">
+                                        <FieldLabel htmlFor="input-field-memtype" className="mb-2 font-medium text-slate-700">
                                             Membership Type
                                         </FieldLabel>
                                         <Combobox
@@ -549,7 +556,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
 
                                     {/* payment details */}
                                     <Field>
-                                        <FieldLabel htmlFor="input-field-paydet">
+                                        <FieldLabel htmlFor="input-field-paydet" className="mb-2 font-medium text-slate-700">
                                             Payment Details
                                         </FieldLabel>
                                         <Combobox
@@ -606,8 +613,8 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         </Combobox>
                                     </Field>
                                 </div>
-                                <Separator />
-                                <CardTitle className="flex items-center gap-2 text-2xl">
+                                <Separator className="bg-blue-100" />
+                                <CardTitle className="flex items-center gap-3 text-xl font-semibold text-blue-900">
                                     <File className="h-5 w-5 text-blue-600" />
                                     Supporting Documents
                                 </CardTitle>
@@ -615,7 +622,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 {/* File Upload Drop Zone */}
                                 <FileUpload.Root>
                                     <FileUpload.DropZone
-                                        className="bg-white text-black"
+                                    className="rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50/40 transition hover:border-blue-500 hover:bg-blue-50"
                                         onDropFiles={handleFileDrop}
                                         onDropUnacceptedFiles={(files) => {
                                             console.log(
@@ -638,6 +645,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                     <div className="flex justify-center">
                                         <Button
                                             type="button"
+                                            className="rounded-xl bg-blue-600 px-6 hover:bg-blue-700"
                                             onClick={() => {
                                                 // Find the hidden file input and trigger click
                                                 const fileInput =
@@ -705,7 +713,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                             progress={100}
                                                             type={iconType}
                                                             // Force light background and make child button icons clearly visible:
-                                                            className="bg-black text-white [&_button:hover]:bg-gray-100! [&_button:hover]:text-gray-900!"
+                                                            className="text-blue-100 [&_button:hover]:bg-gray-100! [&_button:hover]:text-gray-900! rounded-xl border border-blue-100 bg-blue-600 shadow-sm"
                                                             onDelete={() =>
                                                                 handleFileDelete(
                                                                     index,
@@ -725,10 +733,13 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 </FileUpload.Root>
                             </CardContent>
 
-                            <CardFooter className="flex justify-end gap-2 pt-25">
+                            <CardFooter
+                                className="flex justify-end gap-2 pt-25 border-t border-blue-100 bg-slate-50 px-8 py-6"
+                            >
                                 <Button
                                     variant="outline"
                                     type="button"
+                                    className='rounded-xl border-slate-300 hover:bg-slate-100'
                                     onClick={() => {
                                         reset();
                                         setSupportingDocuments([]);
@@ -737,7 +748,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 >
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={processing}>
+                                <Button type="submit" disabled={processing} className='rounded-xl bg-blue-600 hover:bg-blue-800 shadow-md font-semibold'>
                                     {processing
                                         ? 'Submitting...'
                                         : 'Submit Request'}
