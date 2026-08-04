@@ -134,7 +134,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
     // ? component ui
     return (
         <>
-            <div className="min-h-screen bg-linear-to-b from-blue-50 via-slate-50 to-white px-6 py-12">
+            <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-200 to-white px-6 py-12">
                 <div className="mx-auto max-w-4xl">
                 <div className="mb-10 rounded-2xl border border-blue-100 bg-white px-8 py-8 text-center shadow-md">
                     <h1 className="text-4xl font-bold tracking-tight text-blue-900">
@@ -734,7 +734,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                             </CardContent>
 
                             <CardFooter
-                                className="flex justify-end gap-2 pt-25 border-t border-blue-100 bg-slate-50 px-8 py-6"
+                                className="flex justify-end gap-2 pt-2 px-8 py-6"
                             >
                                 <Button
                                     variant="outline"
