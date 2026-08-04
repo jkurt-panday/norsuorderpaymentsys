@@ -356,19 +356,6 @@ export default function Success({ reference_number, formInput }: Props) {
                                                                     </p>
                                                                 </div>
                                                             </div>
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() =>
-                                                                    window.open(
-                                                                        doc.file_url,
-                                                                        '_blank',
-                                                                    )
-                                                                }
-                                                            >
-                                                                <Download className="mr-1 h-4 w-4" />
-                                                                View
-                                                            </Button>
                                                         </div>
                                                     ),
                                                 )}
