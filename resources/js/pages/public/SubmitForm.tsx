@@ -266,7 +266,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-mname"
                                                     type="text"
-                                                    placeholder='Joseph'
+                                                    placeholder='Carlos'
                                                     value={
                                                         data.middlename_or_project
                                                     }
