@@ -30,6 +30,17 @@ class StaffInputController extends Controller
         ->groupBy('status')
         ->pluck('latest', 'status');
 
+        // "Unprocessed" isn't a StaffInput.status value — it's a FormInput
+        // that has no StaffInput row at all (same definition already used
+        // in index(): $query->whereDoesntHave('staffInput')). Pulled as one
+        // query (count + latest together) rather than two separate calls.
+        $unprocessedStats = FormInput::query()
+            ->whereDoesntHave('staffInput')
+            ->selectRaw('count(*) as count, MAX(created_at) as latest')
+            ->first();
+        $unprocessedCount = $unprocessedStats->count ?? 0;
+        $unprocessedLastDate = $unprocessedStats->latest ?? null;
+
         $totalRequestsLastDate = FormInput::max('created_at');
         $requestsOverTime = FormInput::query()
             ->where('created_at', '>=', $startDate)
@@ -61,18 +72,27 @@ class StaffInputController extends Controller
 
         return Inertia::render('staff/staffdashboard', [
             'totalRequests' => FormInput::count(),
+            'unprocessedRequests' => $unprocessedCount,
             'pendingRequests' => $statusCounts->get('pending', 0),
             'approvedRequests' => $statusCounts->get('approved', 0),
             'cancelledRequests' => $statusCounts->get('cancelled', 0),
             'totalRequestsLastDate' => $totalRequestsLastDate,
+            'unprocessedLastDate' => $unprocessedLastDate,
             'pendingLastDate' => $latestByStatus->get('pending'),
             'approvedLastDate' => $latestByStatus->get('approved'),
             'cancelledLastDate' => $latestByStatus->get('cancelled'),
-            'statusBreakdown' => collect(['pending', 'approved', 'cancelled'])
-                ->map(fn (string $status) => [
-                    'name' => ucfirst($status),
-                    'count' => $statusCounts->get($status, 0),
+            // Order here (Unprocessed, Pending, Approved, Cancelled) must match
+            // the pieColors array on the frontend: ['#94a3b8', '#f59e0b', '#22c55e', '#ef4444']
+            'statusBreakdown' => collect([
+                    ['name' => 'Unprocessed', 'count' => $unprocessedCount],
                 ])
+                ->concat(
+                    collect(['pending', 'approved', 'cancelled'])
+                        ->map(fn (string $status) => [
+                            'name' => ucfirst($status),
+                            'count' => $statusCounts->get($status, 0),
+                        ])
+                )
                 ->values(),
             'requestsOverTime' => $requestsOverTime,
             'requestsByMembership' => FormInput::query()

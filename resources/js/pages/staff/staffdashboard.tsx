@@ -1,6 +1,12 @@
 ﻿import React from 'react';
 import { Link, Head, usePage, usePoll } from '@inertiajs/react';
-import { StatCard, ChartCard, ActivityLogList, getDayLabel, type ActivityLogItem } from '@/components/Reusable';
+import {
+    StatCard,
+    ChartCard,
+    ActivityLogList,
+    getDayLabel,
+    type ActivityLogItem,
+} from '@/components/Reusable';
 
 interface RecentRequest {
     id: number;
@@ -22,10 +28,12 @@ interface DashboardPageProps {
     pendingRequests?: number;
     approvedRequests?: number;
     cancelledRequests?: number;
+    unprocessedRequests?: number;
     totalRequestsLastDate?: string | null;
     pendingLastDate?: string | null;
     approvedLastDate?: string | null;
     cancelledLastDate?: string | null;
+    unprocessedLastDate?: string | null;
     statusBreakdown?: ChartDatum[];
     requestsOverTime?: ChartDatum[];
     requestsByMembership?: ChartDatum[];
@@ -47,17 +55,18 @@ const statusBadgeClass = (status?: string) => {
 };
 
 const formatDate = (value?: string | null) => {
-
-    if (!value)
-
-        {
-        return '-'
-        };
+    if (!value) {
+        return '-';
+    }
 
     const date = new Date(value);
 
     if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+    return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: '2-digit',
+        year: 'numeric',
+    });
 };
 
 export default function Dashboard() {
@@ -71,6 +80,7 @@ export default function Dashboard() {
             'pendingRequests',
             'approvedRequests',
             'cancelledRequests',
+            'unprocessedRequests',
             'totalRequestsLastDate',
             'pendingLastDate',
             'approvedLastDate',
@@ -88,10 +98,12 @@ export default function Dashboard() {
         pendingRequests = 0,
         approvedRequests = 0,
         cancelledRequests = 0,
+        unprocessedRequests = 0,
         totalRequestsLastDate = null,
         pendingLastDate = null,
         approvedLastDate = null,
         cancelledLastDate = null,
+        unprocessedLastDate = null,
         statusBreakdown = [],
         requestsOverTime = [],
         requestsByMembership = [],
@@ -102,7 +114,7 @@ export default function Dashboard() {
     // Only show requests created today — anything before or after today is excluded.
     const todayStr = new Date().toDateString();
     const recentRequests = allRecentRequests.filter(
-        (request) => new Date(request.created_at).toDateString() === todayStr
+        (request) => new Date(request.created_at).toDateString() === todayStr,
     );
 
     return (
@@ -111,16 +123,25 @@ export default function Dashboard() {
             <div className="mx-auto max-w-7xl">
                 <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold text-slate-950">Dashboard</h1>
-                        <p className="text-sm text-slate-500">Staff dashboard overview for requests and activity.</p>
+                        <h1 className="text-2xl font-semibold text-slate-950">
+                            Dashboard
+                        </h1>
+                        <p className="text-sm text-slate-500">
+                            Staff dashboard overview for requests and activity.
+                        </p>
                     </div>
                     <div className="text-right text-sm text-slate-500 md:text-base">
-                        <p>Total Requests: <span className="font-semibold text-slate-900">{totalRequests}</span></p>
+                        <p>
+                            Total Requests:{' '}
+                            <span className="font-semibold text-slate-900">
+                                {totalRequests}
+                            </span>
+                        </p>
                     </div>
                 </div>
 
                 {/* Stat cards */}
-                <div className="grid gap-4 md:grid-cols-4">
+                <div className="grid gap-5 md:grid-cols-5">
                     <StatCard
                         label="Total Requests"
                         value={totalRequests}
@@ -149,6 +170,13 @@ export default function Dashboard() {
                         textClass="text-slate-950"
                         subtitle={getDayLabel(cancelledLastDate)}
                     />
+                    <StatCard
+                        label="Unprocessed"
+                        value={unprocessedRequests}
+                        bgClass="bg-slate-100" // ← this is Cancelled's color, not grey
+                        textClass="text-slate-950"
+                        subtitle={getDayLabel(unprocessedLastDate)} // ← wrong variable, copy-paste leftover
+                    />
                 </div>
 
                 {/* Charts */}
@@ -160,7 +188,7 @@ export default function Dashboard() {
                         data={statusBreakdown}
                         xKey="name"
                         yKey="count"
-                        pieColors={['#f59e0b', '#22c55e', '#ef4444']}
+                        pieColors={['#94a3b8', '#f59e0b', '#22c55e', '#ef4444']}
                     />
                     <div className="lg:col-span-2">
                         <ChartCard
@@ -190,7 +218,9 @@ export default function Dashboard() {
                 <div className="mt-6 grid gap-4 lg:grid-cols-2">
                     <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
                         <div className="flex items-center gap-2 border-b border-slate-200 px-6 py-4">
-                            <h2 className="text-base font-semibold text-slate-900">Recent Requests</h2>
+                            <h2 className="text-base font-semibold text-slate-900">
+                                Recent Requests
+                            </h2>
                         </div>
                         <div className="p-6">
                             {recentRequests.length > 0 ? (
@@ -198,10 +228,18 @@ export default function Dashboard() {
                                     <table className="min-w-full text-left text-sm text-slate-700">
                                         <thead>
                                             <tr>
-                                                <th className="pb-3 font-medium text-slate-900">Reference</th>
-                                                <th className="pb-3 font-medium text-slate-900">Name</th>
-                                                <th className="pb-3 font-medium text-slate-900">Status</th>
-                                                <th className="pb-3 font-medium text-slate-900">Date</th>
+                                                <th className="pb-3 font-medium text-slate-900">
+                                                    Reference
+                                                </th>
+                                                <th className="pb-3 font-medium text-slate-900">
+                                                    Name
+                                                </th>
+                                                <th className="pb-3 font-medium text-slate-900">
+                                                    Status
+                                                </th>
+                                                <th className="pb-3 font-medium text-slate-900">
+                                                    Date
+                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-200">
@@ -209,33 +247,52 @@ export default function Dashboard() {
                                                 <tr key={request.id}>
                                                     <td className="py-3">
                                                         <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                                                            {request.reference_number}
+                                                            {
+                                                                request.reference_number
+                                                            }
                                                         </span>
                                                     </td>
-                                                    <td className="py-3 text-slate-800">{request.full_name}</td>
+                                                    <td className="py-3 text-slate-800">
+                                                        {request.full_name}
+                                                    </td>
                                                     <td className="py-3">
                                                         <span
                                                             className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(request.staffInput?.status)}`}
                                                         >
-                                                            {request.staffInput?.status
-                                                                ? request.staffInput.status.charAt(0).toUpperCase() +
-                                                                  request.staffInput.status.slice(1)
+                                                            {request.staffInput
+                                                                ?.status
+                                                                ? request.staffInput.status
+                                                                      .charAt(0)
+                                                                      .toUpperCase() +
+                                                                  request.staffInput.status.slice(
+                                                                      1,
+                                                                  )
                                                                 : 'Unprocessed'}
                                                         </span>
                                                     </td>
-                                                    <td className="py-3 text-slate-600">{formatDate(request.created_at)}</td>
+                                                    <td className="py-3 text-slate-600">
+                                                        {formatDate(
+                                                            request.created_at,
+                                                        )}
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
                                 </div>
                             ) : (
-                                <p className="text-center text-sm text-slate-500">No recent requests</p>
+                                <p className="text-center text-sm text-slate-500">
+                                    No recent requests
+                                </p>
                             )}
                         </div>
                     </section>
 
-                    <ActivityLogList title="Recent Activity" logs={recentActivity} limit={8} />
+                    <ActivityLogList
+                        title="Recent Activity"
+                        logs={recentActivity}
+                        limit={8}
+                    />
                 </div>
             </div>
         </div>
