@@ -25,6 +25,7 @@ import { useForm } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import { router } from '@inertiajs/react';
 import { UploadCloud02 } from '@untitledui/icons';
+import { SmartphoneCharging } from 'lucide-react';
 
 const reqType = ['New Request', 'Re-issue Request', 'Other'] as const;
 const enlarge = 'h-12 px-4 text-base';
@@ -456,46 +457,46 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 <Combobox
                                     required
                                     items={memberships}
+                                    value={
+                                        memberships.find(
+                                            m => String(m.id) === data.membership_id
+                                        )?.member_code
+                                    }
                                     onValueChange={(value) => {
-                                        if (value) {
-                                            const selected = memberships.find(
-                                                (m) => m.member_code === value,
-                                            );
-                                            setData(
-                                                'membership_id',
-                                                selected
-                                                    ? String(selected.id)
-                                                    : '',
-                                            );
-                                        } else {
-                                            setData('membership_id', '');
-                                        }
+                                        const selected = memberships.find(
+                                            m => m.member_code === value
+                                        );
+
+                                        setData(
+                                            'membership_id',
+                                            selected ? String(selected.id) : ""
+                                        );
                                     }}
                                 >
                                     <ComboboxInput
                                         placeholder="Select membership"
                                         className={enlarge}
-                                        showClear
+                                        showClear={!!data.membership_id}
                                     />
                                     <ComboboxContent>
                                         <ComboboxEmpty>
                                             No items found.
                                         </ComboboxEmpty>
                                         <ComboboxList>
-                                            {memberships.map((item) => (
+                                            {(item) => (
                                                 <ComboboxItem
                                                     key={item.id}
                                                     value={item.member_code}
                                                 >
                                                     {item.member_code}
                                                 </ComboboxItem>
-                                            ))}
+                                            )}
                                         </ComboboxList>
                                     </ComboboxContent>
                                 </Combobox>
-                                {errors.payment_detail_option_id && (
+                                {errors.membership_id && (
                                     <p className="mt-1 text-sm text-red-500">
-                                        {errors.payment_detail_option_id}
+                                        {errors.membership_id}
                                     </p>
                                 )}
                             </Field>
@@ -508,32 +509,26 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 <Combobox
                                     required
                                     items={paymentOptions}
+                                    value={
+                                        paymentOptions.find(
+                                            p => String(p.id) === data.payment_detail_option_id
+                                        )?.payment_desc
+                                    }
                                     onValueChange={(value) => {
-                                        if (value) {
-                                            const selected =
-                                                paymentOptions.find(
-                                                    (p) =>
-                                                        p.payment_desc ===
-                                                        value,
-                                                );
-                                            setData(
-                                                'payment_detail_option_id',
-                                                selected
-                                                    ? String(selected.id)
-                                                    : '',
-                                            );
-                                        } else {
-                                            setData(
-                                                'payment_detail_option_id',
-                                                '',
-                                            );
-                                        }
+                                        const selected = paymentOptions.find(
+                                            p => p.payment_desc === value
+                                        );
+
+                                        setData(
+                                            'payment_detail_option_id',
+                                            selected ? String(selected.id) : ""
+                                        );
                                     }}
                                 >
                                     <ComboboxInput
                                         itemProp="paymentOption"
                                         placeholder="Select payment details"
-                                        showClear
+                                        showClear={!!data.payment_detail_option_id}
                                         className={enlarge}
                                     />
                                     <ComboboxContent>
@@ -541,14 +536,14 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                             No items found.
                                         </ComboboxEmpty>
                                         <ComboboxList>
-                                            {paymentOptions.map((item) => (
+                                            {(item) => (
                                                 <ComboboxItem
                                                     key={item.id}
                                                     value={item.payment_desc}
                                                 >
                                                     {item.payment_desc}
                                                 </ComboboxItem>
-                                            ))}
+                                            )}
                                         </ComboboxList>
                                     </ComboboxContent>
                                 </Combobox>
