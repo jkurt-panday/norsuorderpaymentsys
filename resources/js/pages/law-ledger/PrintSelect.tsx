@@ -31,21 +31,20 @@ import {
 
 interface LawLedgerRecord {
   id: number;
-  studentId: string;
+  lastName: string;
+  firstName: string;
+  middleInitial: string;
   name: string;
-  program: string;
-  yearLevel: string;
-  academicYear: string;
-  semester: string;
+  course: string;
+  schoolYear: string;
+  semesterOrSummer: string;
   units: number;
   transactionDate: string;
-  dueDate: string;
   referenceNo: string;
   particulars: string;
-  tuitionPerUnitOrMisc: number;
-  transactionType: string;
+  tuitionPerUnitOrFeePerSemester: number;
+  arOrPayment: string;
   amount: number;
-  remainingBalance: number;
   status: string;
   remark: string;
   inputBy: string;
@@ -138,16 +137,12 @@ function getStatusBadgeClass(status: string) {
 function getTransactionTypeBadgeClass(type: string) {
   const typeUpper = type?.toUpperCase() || '';
   
-  if (typeUpper === 'ASSESSMENT' || typeUpper === 'AR') {
+  if (typeUpper === 'AR' || typeUpper === 'ASSESSMENT') {
     return 'bg-purple-100 text-purple-700 border-purple-200';
   }
 
   if (typeUpper === 'PAYMENT') {
     return 'bg-green-100 text-green-700 border-green-200';
-  }
-
-  if (typeUpper === 'ADJUSTMENT') {
-    return 'bg-orange-100 text-orange-700 border-orange-200';
   }
   
   return 'bg-gray-100 text-gray-700 border-gray-200';
@@ -166,7 +161,7 @@ export default function PrintSelect({ students, selectedStudent, records, summar
 
   const handleGeneratePdf = () => {
     if (selectedStudentState) {
-      router.get(`/law-ledger/pdf?student=${encodeURIComponent(selectedStudentState)}`);
+      window.open(`/law-ledger/pdf?student=${encodeURIComponent(selectedStudentState)}`, '_blank');
     }
   };
 
@@ -281,7 +276,7 @@ export default function PrintSelect({ students, selectedStudent, records, summar
                         <TableHead>Date</TableHead>
                         <TableHead>Reference/JEV No.</TableHead>
                         <TableHead>Particulars</TableHead>
-                        <TableHead>Type</TableHead>
+                        <TableHead>AR/Payment</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
@@ -295,9 +290,9 @@ export default function PrintSelect({ students, selectedStudent, records, summar
                           <TableCell>
                             <Badge 
                               variant="outline" 
-                              className={`${getTransactionTypeBadgeClass(record.transactionType)} border text-xs`}
+                              className={`${getTransactionTypeBadgeClass(record.arOrPayment)} border text-xs`}
                             >
-                              {record.transactionType || '-'}
+                              {record.arOrPayment || '-'}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right font-medium">{currency(record.amount)}</TableCell>
