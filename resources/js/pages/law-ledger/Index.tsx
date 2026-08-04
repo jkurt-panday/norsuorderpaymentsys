@@ -114,7 +114,8 @@ interface IndexProps {
   };
   stats?: {
     totalStudents?: number;
-    totalAssessments?: number;
+    totalUnits?: number;
+    totalCharges?: number;
     totalPayments?: number;
     outstandingBalance?: number;
   };
@@ -164,7 +165,8 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
 
   // ---- Server-backed Metric Summary ----
   const totalStudents = stats?.totalStudents ?? 0;
-  const totalAssessments = stats?.totalAssessments ?? 0;
+  const totalUnits = stats?.totalUnits ?? 0;
+  const totalCharges = stats?.totalCharges ?? 0;
   const totalPayments = stats?.totalPayments ?? 0;
   const outstandingBalance = stats?.outstandingBalance ?? 0;
 
@@ -305,7 +307,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
         </div>
 
         {/* Metrics Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <Card className="shadow-xs border border-[#CFE3FF] bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-[#5C7A9E]">Students on Ledger</CardTitle>
@@ -319,12 +321,23 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
 
           <Card className="shadow-xs border border-[#CFE3FF] bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-[#5C7A9E]">Total Assessments</CardTitle>
+              <CardTitle className="text-sm font-medium text-[#5C7A9E]">Total Units</CardTitle>
+              <Scale className="h-4 w-4 text-[#0F6FFF]" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{totalUnits.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
+              <p className="text-[10px] text-[#8AA8CC] mt-1">Total enrolled units</p>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-xs border border-[#CFE3FF] bg-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-[#5C7A9E]">Total Charges (AR)</CardTitle>
               <DollarSign className="h-4 w-4 text-[#0F6FFF]" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{currency(totalAssessments)}</div>
-              <p className="text-[10px] text-[#8AA8CC] mt-1">Total tuition + fees billed</p>
+              <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{currency(totalCharges)}</div>
+              <p className="text-[10px] text-[#8AA8CC] mt-1">Total charges billed</p>
             </CardContent>
           </Card>
 
@@ -364,7 +377,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                 <div 
                   className="h-full bg-orange-500 rounded-full transition-all duration-500"
                   style={{ 
-                    width: `${totalAssessments > 0 ? Math.min((outstandingBalance / totalAssessments) * 100, 100) : 0}%` 
+                    width: `${totalCharges > 0 ? Math.min((outstandingBalance / totalCharges) * 100, 100) : 0}%` 
                   }}
                 />
               </div>
@@ -377,8 +390,8 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-600">Collection Rate</span>
                   <span className="text-sm font-medium text-slate-900">
-                    {totalAssessments > 0 
-                      ? `${((totalPayments / totalAssessments) * 100).toFixed(1)}%` 
+                    {totalCharges > 0 
+                      ? `${((totalPayments / totalCharges) * 100).toFixed(1)}%` 
                       : '0.0%'}
                   </span>
                 </div>
@@ -386,7 +399,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                   <div 
                     className="h-full bg-blue-500 rounded-full transition-all duration-500"
                     style={{ 
-                      width: `${totalAssessments > 0 ? Math.min((totalPayments / totalAssessments) * 100, 100) : 0}%` 
+                      width: `${totalCharges > 0 ? Math.min((totalPayments / totalCharges) * 100, 100) : 0}%` 
                     }}
                   />
                 </div>
@@ -397,7 +410,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                   <span className="text-sm text-slate-600">Average Transaction</span>
                   <span className="text-sm font-medium text-slate-900">
                     {totalRecordCount > 0 
-                      ? currency((totalAssessments + totalPayments) / totalRecordCount)
+                      ? currency((totalCharges + totalPayments) / totalRecordCount)
                       : '₱0.00'}
                   </span>
                 </div>
@@ -406,10 +419,10 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
 
               <div className="p-4 bg-white rounded-lg border border-slate-200">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">Records This Page</span>
-                  <span className="text-sm font-medium text-slate-900">{rows.length}</span>
+                  <span className="text-sm text-slate-600">Total Units Enrolled</span>
+                  <span className="text-sm font-medium text-slate-900">{totalUnits.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">of {totalRecordCount.toLocaleString()} total</p>
+                <p className="text-xs text-slate-500 mt-1">Across all records</p>
               </div>
             </div>
           </CardContent>

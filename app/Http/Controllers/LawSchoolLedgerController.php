@@ -67,17 +67,17 @@ class LawSchoolLedgerController extends Controller
             )
             ->count();
 
-        $totalAssessments = (float) (clone $query)
+        $totalUnits = (float) (clone $query)->sum('units');
+
+        $totalCharges = (float) (clone $query)
             ->where('ar_or_payment', 'AR')
             ->sum('amount');
 
-        $totalPayments = (float) (clone $query)
+        $totalPayments = abs((float) (clone $query)
             ->where('ar_or_payment', 'Payment')
-            ->sum('amount');
+            ->sum('amount'));
 
-        $outstandingBalance = (float) (clone $query)
-            ->where('status', '!=', 'Paid')
-            ->sum('amount');
+        $outstandingBalance = max(0, $totalCharges - $totalPayments);
 
         // 2. Fetch paginated records
         $records = $query
@@ -95,7 +95,8 @@ class LawSchoolLedgerController extends Controller
             ]),
             'stats' => [
                 'totalStudents' => $totalStudents,
-                'totalAssessments' => $totalAssessments,
+                'totalUnits' => $totalUnits,
+                'totalCharges' => $totalCharges,
                 'totalPayments' => $totalPayments,
                 'outstandingBalance' => $outstandingBalance,
             ],
