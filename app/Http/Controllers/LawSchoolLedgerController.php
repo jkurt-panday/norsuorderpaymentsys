@@ -132,7 +132,7 @@ class LawSchoolLedgerController extends Controller
             'tuition_per_unit_or_fee_per_semester' => ['nullable', 'numeric'],
             'ar_or_payment' => ['nullable', 'string', 'max:50'],
             'amount' => ['nullable', 'numeric'],
-            'status' => ['nullable', 'string', 'max:50'],
+            'status' => ['nullable', 'string'],
             'remarks' => ['nullable', 'string'],
             'input_by' => ['nullable', 'string', 'max:255'],
         ]);
