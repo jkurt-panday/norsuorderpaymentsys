@@ -105,6 +105,28 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
         });
     };
 
+    // Tracks animated upload progress (0-100) for each file, keyed by a stable file identifier
+    const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+
+    // Builds a stable, unique key for a File object so we can track its progress
+        const getFileKey = (file: File) => `${file.name}-${file.size}-${file.lastModified}`;
+    
+        // Animates a single file's progress from 0 to 100 over ~0.8s
+        const animateFileProgress = (file: File) => {
+            const key = getFileKey(file);
+            setUploadProgress((prev) => ({ ...prev, [key]: 0 }));
+    
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                setUploadProgress((prev) => ({ ...prev, [key]: Math.min(progress, 100) }));
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                }
+            }, 80);
+        };
+
     // ? file upload
     // Add state for supporting documents
     const [supportingDocuments, setSupportingDocuments] = useState<File[]>([]);
@@ -114,6 +136,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
         const newFiles = Array.from(files);
         setSupportingDocuments((prev) => [...prev, ...newFiles]);
         setData('has_documents', true);
+        newFiles.forEach((file) => animateFileProgress(file));
     };
 
     // Handle file deletion
@@ -710,7 +733,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                             key={`${file.name}-${index}`}
                                                             name={file.name}
                                                             size={file.size}
-                                                            progress={100}
+                                                            progress={uploadProgress[getFileKey(file)] ?? 0}
                                                             type={iconType}
                                                             // Force light background and make child button icons clearly visible:
                                                             className="text-blue-100 [&_button:hover]:bg-gray-100! [&_button:hover]:text-gray-900! rounded-xl border border-blue-100 bg-blue-600 shadow-sm"
