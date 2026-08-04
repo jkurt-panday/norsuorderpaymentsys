@@ -23,6 +23,7 @@ interface BankAccount {
     bank_name: string;
     account_num: string;
     created_at: string;
+    fund_cluster: string;
     display_number: number;
 }
 
@@ -57,6 +58,11 @@ export default function BankAccountsIndex({
         {
             header: 'Account Name',
             render: (row) => row.account_name,
+        },
+        {
+            header: 'Fund Cluster',
+            render: (row) =>
+                row.fund_cluster?.trim() ? row.fund_cluster : 'N/A',
         },
         {
             header: 'Bank Name',

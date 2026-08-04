@@ -1,33 +1,44 @@
 import React from 'react';
-import { store, index } from '@/actions/App/Http/Controllers/BankAccountInfoController';
-import ResourceForm from '@/components/ResourceForm';
+import {
+    store,
+    index,
+} from '@/actions/App/Http/Controllers/BankAccountInfoController';
+import ResourceForm, { type FieldDef } from '@/components/ResourceForm';
 
-// ============ COMPONENT ============
+const fields: FieldDef[] = [
+    {
+        name: 'account_name',
+        label: 'Account Name',
+        required: true,
+        colSpan: 'full',
+    },
+    {
+        name: 'fund_cluster',
+        label: 'Fund Cluster',
+        required: true,
+    },
+    {
+        name: 'bank_name',
+        label: 'Bank Name',
+        required: true,
+    },
+    {
+        name: 'account_num',
+        label: 'Account Number',
+        required: true,
+        colSpan: 'full',
+    },
+];
+
 export default function CreateBankAccount() {
     return (
         <ResourceForm
             title="Add Bank Account"
             backHref={index()}
-            fields={[
-                {
-                    name: 'account_name',
-                    label: 'Account Name',
-                    required: true,
-                },
-                {
-                    name: 'bank_name',
-                    label: 'Bank Name',
-                    required: true,
-                },
-                {
-                    name: 'account_num',
-                    label: 'Account Number',
-                    required: true,
-                    colSpan: 'full',
-                },
-            ]}
+            fields={fields}
             initialData={{
                 account_name: '',
+                fund_cluster: '',
                 bank_name: '',
                 account_num: '',
             }}

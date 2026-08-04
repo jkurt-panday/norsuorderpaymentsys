@@ -16,6 +16,7 @@ class BankAccountInfo extends Model
         'account_name',
         'bank_name',
         'account_num',
+        'fund_cluster'
     ];
 
     public function staffInputs(): HasMany

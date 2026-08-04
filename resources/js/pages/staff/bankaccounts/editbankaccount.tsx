@@ -1,5 +1,8 @@
 import React from 'react';
-import { update, index } from '@/actions/App/Http/Controllers/BankAccountInfoController';
+import {
+    update,
+    index,
+} from '@/actions/App/Http/Controllers/BankAccountInfoController';
 import ResourceForm from '@/components/ResourceForm';
 
 // ============ TYPE DEFINITIONS ============
@@ -8,6 +11,7 @@ interface BankAccount {
     account_name: string;
     bank_name: string;
     account_num: string;
+    fund_cluster: string;
 }
 
 interface EditBankAccountProps {
@@ -32,6 +36,12 @@ export default function EditBankAccount({ bankAccount }: EditBankAccountProps) {
                     required: true,
                 },
                 {
+                    name: 'fund_cluster',
+                    label: 'Fund Cluster',
+                    required: true,
+                    colSpan: 'full',
+                },
+                {
                     name: 'account_num',
                     label: 'Account Number',
                     required: true,
@@ -42,6 +52,7 @@ export default function EditBankAccount({ bankAccount }: EditBankAccountProps) {
                 account_name: bankAccount.account_name,
                 bank_name: bankAccount.bank_name,
                 account_num: bankAccount.account_num,
+                fund_cluster: bankAccount.fund_cluster,
             }}
             submitUrl={update(bankAccount.id).url}
             method="put"

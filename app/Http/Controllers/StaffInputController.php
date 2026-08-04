@@ -195,20 +195,20 @@ class StaffInputController extends Controller
     /**
      * Show form for editing staff processing
      */
-    public function edit(StaffInput $staffInput)
-    {
-        $staffInput->load('formInput');
-        $bankAccounts = BankAccountInfo::orderBy('bank_name')->get();
-        $uacsList = Uacs::orderBy('object_code')->get();
-        $documents = $staffInput->formInput->supportingDocuments;
+        public function edit(StaffInput $staffInput)
+        {
+            $staffInput->load(['formInput.membership', 'formInput.paymentDetailOption']);
+            $bankAccounts = BankAccountInfo::orderBy('bank_name')->get();
+            $uacsList = Uacs::orderBy('object_code')->get();
+            $documents = $staffInput->formInput->supportingDocuments;
 
-        return Inertia::render('staff/requestform/editrequest', compact(
-            'staffInput',
-            'bankAccounts',
-            'uacsList',
-            'documents'
-        ));
-    }
+            return Inertia::render('staff/requestform/editrequest', compact(
+                'staffInput',
+                'bankAccounts',
+                'uacsList',
+                'documents'
+            ));
+        }
 
     // App/Http/Controllers/StaffInputController.php
 

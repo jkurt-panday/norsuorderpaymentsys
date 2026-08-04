@@ -27,6 +27,7 @@ class BankAccountInfoRequest extends FormRequest
                 'max:50',
                 Rule::unique('bankaccount_infos', 'account_num')->ignore($accountId),
             ],
+            'fund_cluster' => ['required', 'string', 'max:100'],
         ];
     }
 
@@ -36,7 +37,9 @@ class BankAccountInfoRequest extends FormRequest
             'account_name.required' => 'Account name is required.',
             'bank_name.required' => 'Bank name is required.',
             'account_num.required' => 'Account number is required.',
-            'account_num.unique' => 'This account number already exists.',
+            'account_num.unique' => 'This Account Number already exists.',
+            'fund_cluster.unique' => 'This Fund Cluster already exists',
+            'fund_cluster.required' => 'This Fund cluster is required',
         ];
     }
 }

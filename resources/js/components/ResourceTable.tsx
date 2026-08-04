@@ -128,7 +128,7 @@ export default function ResourceTable<T extends { id: number }>({
     useEffect(() => {
         setDisplayData(resource.data);
     }, [resource.data]);
-g
+
     function compareValues(a: unknown, b: unknown): number {
         if (a === b) return 0;
         if (a === null || a === undefined) return -1;

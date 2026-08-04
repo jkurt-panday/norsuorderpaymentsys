@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('bankaccount_infos', function (Blueprint $table) {
             $table->id();
             $table->string('account_name', 255);
+            $table->string('fund_cluster', 50);
             $table->string('bank_name', 100);
             $table->string('account_num', 50)->unique();
             $table->timestamps();
