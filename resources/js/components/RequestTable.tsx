@@ -592,12 +592,12 @@ export default function RequestTable<T extends { id: number | string }>({
                 {showPagination && (
                     <div className="flex items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 sm:px-5">
                         <p className="shrink-0 text-xs text-slate-500 sm:text-sm">
-                            Showing {resource.from ?? 0} to {resource.to ?? 0}{' '}
-                            of {resource.total} results
+                            Showing {resource.from ?? 0}-{resource.to ?? 0} of{' '}
+                            {resource.total} results
                         </p>
 
-                        {resource.last_page > 10 ? (
-                            // ---- Page-jump dropdown (>10 pages) ----
+                        {resource.last_page > 3 ? (
+                            // ---- Page-jump dropdown (>1 pages) ----
                             // Same mechanism as ResourceTable: Prev / a
                             // popover with a type-to-jump input plus a
                             // scrollable page list / Next. Picking a page

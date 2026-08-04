@@ -7,10 +7,12 @@ import {
     ChevronLeft,
     ChevronRight,
     Search,
+    ChevronDown,
     ArrowUpDown,
     ArrowUp,
     ArrowDown,
     Check,
+    RefreshCw,
     type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -43,159 +45,50 @@ export interface PaginatedData<T> {
     from: number | null;
     to: number | null;
     total: number;
-    /**
-     * Laravel's paginator already includes these in its JSON output — just
-     * declaring them here so the frontend can use them (e.g. to build a
-     * page-jump dropdown once there are too many pages for a button row).
-     */
     current_page: number;
     last_page: number;
 }
 
 export interface ColumnDef<T> {
-    /** Column header label */
     header: string;
-    /**
-     * Renders the cell content for a given row.
-     * `index` is the row's position within the CURRENT PAGE (0-based) —
-     * use it with `resource.from` to build a sequential display number,
-     * e.g. render: (row, index) => (resource.from ?? 1) + index
-     */
     render: (row: T, index: number) => React.ReactNode;
-    /** Optional extra classes for the <td> */
     className?: string;
-    /**
-     * Fixed column width (e.g. '20%', '160px'). Without this, a long text
-     * column (like a description) will greedily eat all remaining space and
-     * push everything after it — including Actions — far out to the right
-     * with a big dead gap in between. Give your widest text column a
-     * reasonable cap (e.g. '40%') to prevent that.
-     */
     width?: string;
-    /**
-     * Enables sorting on this column.
-     * - Pass a string (the backend sort key, e.g. 'member_code') to make the
-     *   header clickable: clicking toggles asc/desc and submits `?sort=` +
-     *   `?direction=` via a live router.get, same mechanism as search.
-     * - Pass `true` for the old decorative-only behavior (arrow icon shown,
-     *   header not clickable, no request sent) — kept for backward compat.
-     */
     sortable?: boolean | string;
 }
 
-/**
- * A single preset entry in the sort dropdown (e.g. "Newest first").
- * Submits `?sort=` + `?direction=` via the same navigateWithParams
- * mechanism used by clickable column headers, so both stay in sync.
- */
 export interface SortOptionDef {
-    /** Label shown in the dropdown, e.g. 'Newest' */
     label: string;
-    /** Backend sort key, e.g. 'created_at'. Must be in the controller's sortableColumns allowlist. */
     sort: string;
-    /** Sort direction for this option */
     direction: 'asc' | 'desc';
 }
 
 export interface ResourceTableProps<T extends { id: number }> {
-    /** Page <title> and heading */
     title: string;
-    /**
-     * Optional one-line subtitle under the title, e.g.
-     * "Manage and maintain UACS accounts used for financial transactions."
-     */
     description?: string;
-    /**
-     * Optional icon shown in a small rounded circle to the left of the title,
-     * matching the design reference's header block. Omit to render the
-     * original plain-text header.
-     */
     icon?: LucideIcon;
-    /** Label for the "add new" button */
     addLabel: string;
-    /** href for the "add new" button (from a Wayfinder route function, e.g. create()) */
     addHref: string | { url: string; method?: string };
-    /** Column definitions, in display order */
     columns: ColumnDef<T>[];
-    /** Paginated resource data (Laravel's ->paginate() shape) */
     resource: PaginatedData<T>;
-    /** The Inertia prop key that `resource` is bound to on this page (e.g. 'requests').
-     *  Required when `pollInterval` is set, so polling can reload *only* this prop
-     *  instead of the whole page payload. */
     resourceKey?: string;
-    /** Builds the edit href for a given row (e.g. (row) => edit(row.id)) */
     editHref: (row: T) => string | { url: string; method?: string };
-    /** Builds the delete URL for a given row id (e.g. (id) => destroy(id).url) */
     deleteUrl: (id: number) => string;
-    /** Icon shown in the empty state */
     emptyIcon: LucideIcon;
-    /** Message shown in the empty state */
     emptyMessage: string;
-    /** Text shown in the delete confirmation body (defaults to a generic message) */
     deleteConfirmMessage?: string;
-    /** Fixed width for the Actions column. Defaults to '96px' (two pill buttons). */
     actionsWidth?: string;
-    /**
-     * Optional content rendered inside the toolbar row, to the right of the
-     * built-in search input (e.g. an extra select/filter control). Omit for
-     * just search + sort + the decorative list-view button.
-     */
     filters?: React.ReactNode;
-    /**
-     * Enables live polling for this table. Pass an interval in ms (e.g. 5000).
-     * Omit entirely to leave the table static (no polling, no behavior change).
-     * Requires `resourceKey` to be set.
-     */
     pollInterval?: number;
-    /**
-     * How long the highlight animation stays on a new/changed row, in ms.
-     * Defaults to 2000.
-     */
     highlightDuration?: number;
-    /**
-     * Placeholder text for the built-in search box, e.g.
-     * "Search by object code or account title...".
-     */
     searchPlaceholder?: string;
-    /**
-     * Optional controlled search value + handler, for pages that want to
-     * manage search state themselves (e.g. combining it with other filters,
-     * the way RequestTable's parent pages do). When provided, pass
-     * `onSearchSubmit` too — ResourceTable calls it when the person presses
-     * Enter or clicks the search button, and defers entirely to the parent
-     * otherwise.
-     *
-     * When omitted (the common case), ResourceTable manages the search box
-     * on its own: typing only updates local state, and pressing Enter or
-     * clicking the search button issues a `router.get` request with
-     * `?search=...` added to the current URL, scoped to `resourceKey` via
-     * Inertia's partial reload. Submit-based (not live-as-you-type) is
-     * deliberate — a fresh search always clears `page` since the old page
-     * number may not exist in the new results, so live search would bounce
-     * someone back to page 1 mid-keystroke. The matching Laravel controller
-     * just needs to read `$request->query('search')` and apply it as a
-     * `where(...)->orWhere(...)` filter before `paginate()`.
-     */
     searchValue?: string;
     onSearchChange?: (value: string) => void;
     /** Called when the search is actually submitted (button click or Enter). Only relevant in controlled mode. */
     onSearchSubmit?: (value: string) => void;
-    /**
-     * Preset sort options shown in a dropdown (e.g. Newest, Oldest, A–Z, Z–A).
-     * Each option submits `?sort=` + `?direction=` via the same live
-     * navigateWithParams mechanism used by clickable column headers, so
-     * picking a dropdown option and clicking a header both stay in sync.
-     * Omit entirely to hide the sort dropdown.
-     *
-     * The `sort` key for each option must be present in the matching
-     * controller's `sortableColumns` allowlist (BaseResourceController),
-     * or the backend will silently ignore it.
-     */
     sortOptions?: SortOptionDef[];
 }
 
-// Shallow content signature for a row, used to detect "changed" (not just "new").
-// Falls back gracefully for any row shape — doesn't need to know the row's fields.
 function rowSignature(row: unknown): string {
     try {
         return JSON.stringify(row);
@@ -231,14 +124,6 @@ export default function ResourceTable<T extends { id: number }>({
 }: ResourceTableProps<T>) {
     const confirm = useConfirm();
 
-    // ---- Optimistic client-side sort -------------------------------------
-    // The table is server-paginated, so a true "sort everything" always
-    // needs a round trip (other pages' rows aren't loaded in the browser).
-    // But we DO already have the current page's rows sitting in memory, so
-    // the moment someone clicks a sort, we immediately re-order just those
-    // visible rows in JS — no waiting to see anything move — and then
-    // quietly swap in the authoritative server result once it arrives
-    // (which will normally match, since it's the same rows re-sorted).
     const [displayData, setDisplayData] = useState<T[]>(resource.data);
 
     useEffect(() => {
@@ -250,21 +135,18 @@ export default function ResourceTable<T extends { id: number }>({
         if (a === null || a === undefined) return -1;
         if (b === null || b === undefined) return 1;
 
-        // Numeric compare when both sides parse cleanly as numbers.
         const aNum = typeof a === 'number' ? a : Number(a);
         const bNum = typeof b === 'number' ? b : Number(b);
         if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) {
             return aNum - bNum;
         }
 
-        // Date compare (handles ISO timestamp strings like created_at).
         const aDate = Date.parse(String(a));
         const bDate = Date.parse(String(b));
         if (!Number.isNaN(aDate) && !Number.isNaN(bDate)) {
             return aDate - bDate;
         }
 
-        // Fall back to locale-aware string compare.
         return String(a).localeCompare(String(b));
     }
 
@@ -280,9 +162,6 @@ export default function ResourceTable<T extends { id: number }>({
         });
     }
 
-    // ---- Live update detection -------------------------------------------
-    // Tracks id -> content signature from the last render, so we can tell
-    // which rows are brand new vs. changed vs. untouched after a poll.
     const prevSignatures = useRef<Map<number, string> | null>(null);
     const [highlightedIds, setHighlightedIds] = useState<Set<number>>(
         new Set(),
@@ -301,14 +180,12 @@ export default function ResourceTable<T extends { id: number }>({
 
             if (prevSignatures.current) {
                 const prevSig = prevSignatures.current.get(row.id);
-                // New row (wasn't present before) or changed content.
                 if (prevSig === undefined || prevSig !== sig) {
                     changed.push(row.id);
                 }
             }
         }
 
-        // Skip highlighting on the very first render — nothing to diff against yet.
         if (prevSignatures.current && changed.length > 0) {
             setHighlightedIds((prev) => {
                 const next = new Set(prev);
@@ -335,7 +212,6 @@ export default function ResourceTable<T extends { id: number }>({
 
         prevSignatures.current = nextSignatures;
 
-        // Clean up pending timers on unmount.
         return () => {
             highlightTimers.current.forEach((t) => clearTimeout(t));
             highlightTimers.current.clear();
@@ -343,9 +219,6 @@ export default function ResourceTable<T extends { id: number }>({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [resource.data]);
 
-    // ---- Polling -------------------------------------------------------
-    // `only` scopes the reload to this resource's prop so polling stays cheap —
-    // without it, every tick would re-fetch the entire page's props.
     const { start, stop } = usePoll(
         pollInterval ?? 15000,
         {
@@ -370,7 +243,6 @@ export default function ResourceTable<T extends { id: number }>({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pollInterval, resourceKey]);
 
-    // ---- Delete flow (pauses polling while the confirm dialog is open) -----
     const handleDeleteClick = async (id: number) => {
         if (pollInterval) stop();
 
@@ -388,13 +260,6 @@ export default function ResourceTable<T extends { id: number }>({
 
         router.delete(deleteUrl(id), {
             preserveScroll: true,
-            // No toast.success here on purpose. A redirect back to this page is
-            // "successful" from Inertia's point of view even when the backend
-            // rejected the delete (e.g. return back()->with('error', '...') for
-            // a record still in use) — it's still just a normal 302 response.
-            // The actual outcome (deleted vs. still-in-use) should come from the
-            // backend's flash message, surfaced by a flash-listening useEffect
-            // on the page that renders this table.
             onError: () => {
                 toast.error('Something went wrong while deleting.');
             },
@@ -404,15 +269,7 @@ export default function ResourceTable<T extends { id: number }>({
         });
     };
 
-    // ---- Unified query navigation -----------------------------------
-    // Single helper that reads the current URL, applies param overrides,
-    // resets to page 1 (since any new search/sort invalidates the
-    // old page number), and issues a scoped Inertia reload. Search and sort
-    // both funnel through this so they compose correctly instead of
-    // clobbering each other.
     const [isNavigating, setIsNavigating] = useState(false);
-    const [pageJumpOpen, setPageJumpOpen] = useState(false);
-    const [pageJumpInput, setPageJumpInput] = useState('');
 
     const navigateWithParams = (
         overrides: Record<string, string | undefined>,
@@ -443,48 +300,14 @@ export default function ResourceTable<T extends { id: number }>({
         );
     };
 
-    // Jumps straight to an arbitrary page number — used by the page-jump
-    // dropdown once there are too many pages for a button row to make
-    // sense. Unlike navigateWithParams (which always clears `page`, since
-    // any new sort/search invalidates the old page number), this is the
-    // one place that's SUPPOSED to set `page` — everything else in the
-    // current URL (search, sort, direction, etc.) is left untouched.
-    //
-    // Deliberately a STANDARD full visit here — no preserveState, no
-    // `only`. Those partial-reload optimizations are what caused the
-    // "click page 2, land back on page 1" bug: this now behaves exactly
-    // like the plain page-number <Link> buttons below, which never had
-    // that problem.
-    const navigateToPage = (page: number) => {
-        const url = new URL(window.location.href);
-
-        if (page > 1) {
-            url.searchParams.set('page', String(page));
-        } else {
-            url.searchParams.delete('page');
-        }
-
-        router.get(
-            url.pathname + url.search,
-            {},
-            {
-                preserveScroll: true,
-                onStart: () => setIsNavigating(true),
-                onFinish: () => setIsNavigating(false),
-            },
-        );
-    };
-
     // ---- Built-in search (only when the parent isn't already
     // controlling search itself via searchValue/onSearchChange) --------
-    // Submits on Enter / a Search button click — NOT live as you type.
-    // The earlier live-debounced version fired navigateWithParams() on
-    // every keystroke, and since a fresh search always clears `page`
-    // (correctly — the old page number may not even exist in the new
-    // results), that meant typing a single character while on page 2+
-    // instantly bounced back to page 1. Submit-based search fixes that:
-    // typing only ever updates local state, nothing navigates until the
-    // person actually confirms the search.
+    // Submits on button click / Enter key press instead of live-as-you-type,
+    // so the request only fires once the person is done typing and confirms.
+    // Note: matching should be case-insensitive on the BACKEND — if you're
+    // on Postgres, plain `LIKE` is case-sensitive there, so the controller
+    // needs `ILIKE` (or `whereRaw('LOWER(col) LIKE ?', ...)`) for "NoRsu" to
+    // match "norsu". No frontend change can fix that half of this.
     const isControlledSearch = onSearchChange !== undefined;
 
     const [internalSearch, setInternalSearch] = useState<string>(() => {
@@ -515,10 +338,6 @@ export default function ResourceTable<T extends { id: number }>({
         navigateWithParams({ search: effectiveSearchValue || undefined });
     };
 
-    // ---- Sorting ------------------------------------------------------
-    // Reads the current sort column/direction straight from the URL so the
-    // header arrows AND the sort dropdown reflect state after a page
-    // reload/poll, not just local component state.
     const urlParams =
         typeof window !== 'undefined'
             ? new URLSearchParams(window.location.search)
@@ -530,7 +349,6 @@ export default function ResourceTable<T extends { id: number }>({
     const handleSortClick = (sortKey: string) => {
         const isActiveColumn = currentSort === sortKey;
 
-        // Cycle: unsorted -> asc -> desc -> unsorted (back to neutral arrows).
         if (!isActiveColumn) {
             optimisticallySort(sortKey, 'asc');
             navigateWithParams({ sort: sortKey, direction: 'asc' });
@@ -538,15 +356,10 @@ export default function ResourceTable<T extends { id: number }>({
             optimisticallySort(sortKey, 'desc');
             navigateWithParams({ sort: sortKey, direction: 'desc' });
         } else {
-            // Going back to unsorted has no single "correct" client-side
-            // order to preview (it's whatever the backend's default order
-            // is), so just fire the request as before.
             navigateWithParams({ sort: undefined, direction: undefined });
         }
     };
 
-    // Value driving the sort menu. Encodes sort+direction into a single
-    // string ("created_at:desc") for easy comparison against each option.
     const activeSortValue = sortOptions?.find(
         (o) => o.sort === currentSort && o.direction === currentDirection,
     )
@@ -558,14 +371,65 @@ export default function ResourceTable<T extends { id: number }>({
         optimisticallySort(sort, direction);
         navigateWithParams({ sort, direction });
     };
+    // ---- Full reset button --------------------------------------
+    // Unlike the plain reload above (same view, fresh data), this clears
+    // search, sort, and any query-string filters entirely and returns the
+    // table to its default unfiltered/unsorted state — a hard reset, not
+    // just a refetch. Deliberately NOT scoped via `only`/`preserveState`
+    // so the URL and every derived prop genuinely clear.
+
+    const [isResetting, setIsResetting] = useState(false);
+
+    const handleReloadAndReset = () => {
+        setInternalSearch('');
+        if (isControlledSearch) {
+            onSearchChange?.('');
+            onSearchSubmit?.('');
+        }
+
+        router.get(
+            window.location.pathname,
+            {},
+            {
+                preserveScroll: true,
+                replace: true,
+                showProgress: false,
+                onStart: () => setIsResetting(true),
+                onFinish: () => setIsResetting(false),
+            },
+        );
+    };
+
+    // ---- Page-jump dropdown (copied from RequestTable, unchanged) ----
+    // Once there are more than 3 pages, the button row is replaced with
+    // Prev / a searchable "Page X of Y" dropdown / Next. Deliberately a
+    // plain full reload (no preserveState, no `only`) — that's what fixed
+    // the "click page 2, land back on page 1" bug there.
+    const [pageJumpOpen, setPageJumpOpen] = useState(false);
+    const [pageJumpInput, setPageJumpInput] = useState('');
+
+    const navigateToPage = (page: number) => {
+        const url = new URL(window.location.href);
+
+        if (page > 1) {
+            url.searchParams.set('page', String(page));
+        } else {
+            url.searchParams.delete('page');
+        }
+
+        router.get(
+            url.pathname + url.search,
+            {},
+            {
+                preserveScroll: true,
+            },
+        );
+    };
 
     return (
-        // Greyish page background so the white title bar / filter card /
-        // table card actually stand out, matching the Requests page.
         <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-slate-50 p-3 sm:p-6">
             <Head title={title} />
 
-            {/* ---- Header block: icon circle + title + description + Add button ---- */}
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
                 <div className="flex items-center gap-4">
                     {HeaderIcon && (
@@ -594,13 +458,8 @@ export default function ResourceTable<T extends { id: number }>({
             </div>
 
             <Card className="w-full overflow-hidden rounded-2xl border-slate-200/70 py-0 shadow-sm">
-                {/* Subtle local loading indicator — scoped to this table only,
-                    replaces Inertia's global top progress bar (which we
-                    suppress via showProgress: false) so clicking sort/search
-                    still gives instant visual feedback without a jarring
-                    full-page line. */}
                 <div className="relative h-0.5 w-full overflow-hidden bg-transparent">
-                    {isNavigating && (
+                    {(isNavigating || isResetting) && (
                         <div className="absolute inset-0 animate-[table-loading-bar_1s_ease-in-out_infinite] bg-blue-500" />
                     )}
                 </div>
@@ -610,20 +469,32 @@ export default function ResourceTable<T extends { id: number }>({
                         100% { transform: translateX(100%); }
                     }
                 `}</style>
-                {/* ---- Toolbar row: search + optional extra filters + sort dropdown + list-view button ---- */}
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
-                    <div className="relative w-full max-w-md flex-1">
-                        <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                        <input
-                            type="text"
-                            value={effectiveSearchValue}
-                            onChange={(e) =>
-                                handleSearchInputChange(e.target.value)
-                            }
-                            placeholder={searchPlaceholder}
-                            className="h-10 w-full rounded-xl border border-slate-200 bg-white pr-3 pl-9 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-blue-200"
-                        />
-                    </div>
+                {/* ---- Toolbar row: search form (button/Enter submit) + optional extra filters + sort dropdown ---- */}
+                <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white p-4">
+                    <form
+                        onSubmit={handleSearchSubmit}
+                        className="flex w-full max-w-md flex-1 items-center gap-2"
+                    >
+                        <div className="relative flex-1">
+                            <input
+                                type="text"
+                                value={effectiveSearchValue}
+                                onChange={(e) =>
+                                    handleSearchInputChange(e.target.value)
+                                }
+                                placeholder={searchPlaceholder}
+                                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-blue-200"
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            aria-label="Search"
+                            title="Search"
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-700"
+                        >
+                            <Search className="h-4 w-4" />
+                        </button>
+                    </form>
                     <div className="flex items-center gap-2">
                         {filters}
                         {sortOptions && sortOptions.length > 0 && (
@@ -678,6 +549,18 @@ export default function ResourceTable<T extends { id: number }>({
                                 </PopoverContent>
                             </Popover>
                         )}
+                        <button
+                            type="button"
+                            onClick={handleReloadAndReset}
+                            disabled={isResetting}
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            aria-label="Reload and reset table"
+                            title="Reload and reset table"
+                        >
+                            <RefreshCw
+                                className={`h-4 w-4 ${isResetting ? 'animate-spin' : ''}`}
+                            />
+                        </button>
                     </div>
                 </div>
 
@@ -785,9 +668,6 @@ export default function ResourceTable<T extends { id: number }>({
                                                 </TableCell>
                                             ))}
                                             <TableCell className="py-3 pr-6 text-right">
-                                                {/* Connected pill action group — matches the
-                                                    Requests page's View/Process/Edit style
-                                                    instead of two separate floating squares. */}
                                                 <div className="inline-flex overflow-hidden rounded-full shadow-sm">
                                                     <Link
                                                         href={editHref(row)}
@@ -839,19 +719,17 @@ export default function ResourceTable<T extends { id: number }>({
 
                 {resource.data.length > 0 && (
                     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3">
-                        <p className="shrink-0 text-sm text-slate-500">
-                            Showing {resource.from ?? 0} to {resource.to ?? 0}{' '}
-                            of {resource.total} entries
+                        <p className="shrink-0 text-xs text-slate-500 sm:text-sm">
+                            Showing {resource.from ?? 0}-{resource.to ?? 0} of{' '}
+                            {resource.total} results
                         </p>
 
-                        {resource.last_page > 10 ? (
-                            // ---- Page-jump dropdown ----
-                            // Once there are more than 10 pages, a button row
-                            // (even Laravel's elided "1 2 3 ... 8 9 10" version)
-                            // stops being a great way to navigate — so instead,
-                            // show Prev / a dropdown listing every page number /
-                            // Next. Picking a page jumps straight there while
-                            // keeping any active search/sort/filter params intact.
+                        {resource.last_page > 3 ? (
+                            // ---- Page-jump dropdown (>3 pages) ----
+                            // Copied from RequestTable: Prev / a popover with a
+                            // type-to-jump input plus a scrollable page list /
+                            // Next. Picking a page does a plain full reload —
+                            // no preserveState, no `only`.
                             (() => {
                                 const prevLink = resource.links.find((l) =>
                                     l.label
@@ -879,11 +757,7 @@ export default function ResourceTable<T extends { id: number }>({
                                                 )
                                             }
                                             aria-label="Previous page"
-                                            className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border text-sm font-medium transition-colors ${
-                                                prevLink?.url
-                                                    ? 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                                                    : 'cursor-not-allowed border-slate-100 text-slate-300'
-                                            }`}
+                                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 text-sm text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                                         >
                                             <ChevronLeft className="h-4 w-4" />
                                         </button>
@@ -904,7 +778,7 @@ export default function ResourceTable<T extends { id: number }>({
                                             <PopoverTrigger asChild>
                                                 <button
                                                     type="button"
-                                                    className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+                                                    className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
                                                 >
                                                     Page {resource.current_page}{' '}
                                                     of {resource.last_page}
@@ -914,12 +788,6 @@ export default function ResourceTable<T extends { id: number }>({
                                                 align="center"
                                                 className="w-48 space-y-2 p-2"
                                             >
-                                                {/* Type-to-jump — the actual
-                                                    "find it if the list gets
-                                                    long" input, since a plain
-                                                    scrollable list alone gets
-                                                    tedious past a handful of
-                                                    pages. */}
                                                 <form
                                                     onSubmit={(e) => {
                                                         e.preventDefault();
@@ -961,16 +829,12 @@ export default function ResourceTable<T extends { id: number }>({
                                                     />
                                                     <button
                                                         type="submit"
-                                                        className="h-8 shrink-0 rounded-md bg-blue-600 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
+                                                        className="h-8 shrink-0 rounded-md bg-blue-900 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-blue-950"
                                                     >
                                                         Go
                                                     </button>
                                                 </form>
 
-                                                {/* Scrollable browse list —
-                                                    stays available for
-                                                    picking visually instead
-                                                    of typing, if preferred. */}
                                                 <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-slate-100 pt-1.5">
                                                     {Array.from(
                                                         {
@@ -992,7 +856,7 @@ export default function ResourceTable<T extends { id: number }>({
                                                             className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
                                                                 page ===
                                                                 resource.current_page
-                                                                    ? 'bg-blue-50 font-medium text-blue-700'
+                                                                    ? 'bg-blue-50 font-medium text-blue-900'
                                                                     : 'text-slate-600 hover:bg-slate-50'
                                                             }`}
                                                         >
@@ -1012,11 +876,7 @@ export default function ResourceTable<T extends { id: number }>({
                                                 )
                                             }
                                             aria-label="Next page"
-                                            className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border text-sm font-medium transition-colors ${
-                                                nextLink?.url
-                                                    ? 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                                                    : 'cursor-not-allowed border-slate-100 text-slate-300'
-                                            }`}
+                                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 text-sm text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                                         >
                                             <ChevronRight className="h-4 w-4" />
                                         </button>
@@ -1024,8 +884,8 @@ export default function ResourceTable<T extends { id: number }>({
                                 );
                             })()
                         ) : (
-                            // ---- Standard button row (10 pages or fewer) ----
-                            <div className="flex max-w-full flex-nowrap items-center gap-1.5 overflow-x-auto">
+                            // ---- Standard button row (3 pages or fewer, unchanged) ----
+                            <div className="flex items-center gap-1.5">
                                 {resource.links.map((link, index) => {
                                     const rawLabel = link.label
                                         .replace(/&laquo;|&raquo;/g, '')
@@ -1048,7 +908,7 @@ export default function ResourceTable<T extends { id: number }>({
                                                       : rawLabel
                                             }
                                             as={link.url ? 'a' : 'span'}
-                                            className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-sm font-medium transition-colors ${
+                                            className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border text-sm font-medium transition-colors ${
                                                 link.active
                                                     ? 'border-blue-600 bg-blue-600 text-white hover:bg-blue-700'
                                                     : link.url
