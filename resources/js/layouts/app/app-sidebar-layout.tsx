@@ -56,8 +56,9 @@ const mainNavItems: SidebarItem[] = [
         title: 'Law Ledger',
         icon: Scale,
         items: [
-            { title: 'Law Overview', href: '#law-overview' },
-            { title: 'Law Transactions', href: '#law-transactions' },
+            { title: 'Law Overview', href: '/law-ledger' },
+            { title: 'New Transaction', href: '/law-ledger/add' },
+            { title: 'Print Statement', href: '/law-ledger/print-select' },
         ],
     },
 ];

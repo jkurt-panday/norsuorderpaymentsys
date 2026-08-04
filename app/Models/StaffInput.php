@@ -6,15 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class StaffInput extends Model
 {
-    protected $table = 'staff_input';
+    protected $table = 'staff_inputs';
 
     protected $fillable = [
         'form_input_id',
         'fundcluster_id',
-        'ref_doc_1',
-        'ref_date_1',
-        'ref_doc_2',
-        'ref_date_2',
+        'ref_document_id',
+        'ref_date',
         'uacs_id',
         'status',
     ];
