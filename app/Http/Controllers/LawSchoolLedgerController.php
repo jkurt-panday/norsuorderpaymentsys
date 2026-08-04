@@ -191,7 +191,9 @@ class LawSchoolLedgerController extends Controller
             ->get(['last_name', 'first_name', 'middle_initial'])
             ->map(function ($student) {
                 return trim("$student->last_name, $student->first_name " . ($student->middle_initial ? "$student->middle_initial" : ''));
-            });
+            })
+            ->unique()
+            ->values();
 
         $selectedStudent = $request->input('student');
         $studentRecords = collect();
@@ -202,18 +204,9 @@ class LawSchoolLedgerController extends Controller
         ];
 
         if ($selectedStudent) {
-            $nameParts = $this->parseStudentName($selectedStudent);
-
-            $query = LawSchoolLedger::query();
-            if ($nameParts) {
-                $query->where('last_name', $nameParts['last_name'])
-                    ->where('first_name', $nameParts['first_name'])
-                    ->where('middle_initial', $nameParts['middle_initial'] ?? '');
-            } else {
-                $query->where('last_name', 'like', "%{$selectedStudent}%");
-            }
-
-            $studentRecords = $query->orderBy('id', 'asc')->get()
+            $studentRecords = $this->queryStudentByName($selectedStudent)
+                ->orderBy('id', 'asc')
+                ->get()
                 ->map(fn ($r) => $this->transformRecord($r));
 
             $balanceSummary = $this->calculateStudentBalance($studentRecords);
@@ -238,18 +231,9 @@ class LawSchoolLedgerController extends Controller
 
         $studentName = str_replace(['−', '–', '—'], '-', (string) $request->input('student'));
 
-        $nameParts = $this->parseStudentName($studentName);
-
-        $query = LawSchoolLedger::query();
-        if ($nameParts) {
-            $query->where('last_name', $nameParts['last_name'])
-                ->where('first_name', $nameParts['first_name'])
-                ->where('middle_initial', $nameParts['middle_initial'] ?? '');
-        } else {
-            $query->where('last_name', 'like', "%{$studentName}%");
-        }
-
-        $records = $query->orderBy('id', 'asc')->get();
+        $records = $this->queryStudentByName($studentName)
+            ->orderBy('id', 'asc')
+            ->get();
 
         $summary = $this->calculateStudentBalance($records);
 
@@ -334,21 +318,44 @@ class LawSchoolLedgerController extends Controller
         ];
     }
 
-    /**
-     * Parses a "LASTNAME, FIRSTNAME MI" formatted name into components.
-     */
+    private function queryStudentByName(string $studentName)
+    {
+        $cleanName = trim((string) str_replace(['−', '–', '—'], '-', $studentName));
+
+        return LawSchoolLedger::query()->where(function ($q) use ($cleanName) {
+            $q->whereRaw("TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_initial, ''))) = ?", [$cleanName])
+              ->orWhereRaw("TRIM(CONCAT(last_name, ', ', first_name)) = ?", [$cleanName])
+              ->orWhere('last_name', 'like', "%{$cleanName}%");
+        });
+    }
+
     private function parseStudentName(string $name): ?array
     {
         $name = trim((string) str_replace(['−', '–', '—'], '-', $name));
 
         if (str_contains($name, ',')) {
             [$lastName, $rest] = explode(',', $name, 2);
-            $parts = preg_split('/\s+/', trim($rest)) ?? [];
+            $rest = trim($rest);
+
+            // If there's a middle initial as the last single character / word
+            $parts = preg_split('/\s+/', $rest) ?? [];
+            if (count($parts) > 1) {
+                $lastPart = end($parts);
+                if (strlen($lastPart) <= 2) { // Single letter or letter with dot like "A" or "A."
+                    $middleInitial = array_pop($parts);
+                    $firstName = implode(' ', $parts);
+                    return [
+                        'last_name' => trim($lastName),
+                        'first_name' => trim($firstName),
+                        'middle_initial' => rtrim($middleInitial, '.'),
+                    ];
+                }
+            }
 
             return [
                 'last_name' => trim($lastName),
-                'first_name' => $parts[0] ?? '',
-                'middle_initial' => $parts[1] ?? '',
+                'first_name' => $rest,
+                'middle_initial' => null,
             ];
         }
 
