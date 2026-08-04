@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { usePoll } from '@inertiajs/react';
+import { router, usePoll } from '@inertiajs/react';
 import { Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -20,6 +20,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
 interface PaginationLink {
@@ -287,6 +292,33 @@ export default function RequestTable<T extends { id: number | string }>({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pollInterval, resourceKey]);
 
+    // ---- Page-jump dropdown (only part changed per this request) ---------
+    // Same fix as ResourceTable: once there are more than 10 pages, the
+    // button row gets replaced with Prev / a searchable "Page X of Y"
+    // dropdown / Next. Deliberately a plain full reload (no preserveState,
+    // no `only`) — that's what fixed the "click page 2, land back on
+    // page 1" bug there, so the same approach is used here from the start.
+    const [pageJumpOpen, setPageJumpOpen] = React.useState(false);
+    const [pageJumpInput, setPageJumpInput] = React.useState('');
+
+    const navigateToPage = (page: number) => {
+        const url = new URL(window.location.href);
+
+        if (page > 1) {
+            url.searchParams.set('page', String(page));
+        } else {
+            url.searchParams.delete('page');
+        }
+
+        router.get(
+            url.pathname + url.search,
+            {},
+            {
+                preserveScroll: true,
+            },
+        );
+    };
+
     return (
         <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-slate-50 p-3 sm:p-6">
             {(title || resource.total !== undefined) && (
@@ -305,7 +337,7 @@ export default function RequestTable<T extends { id: number | string }>({
             )}
 
             {/* ---- Filter bar: search + status + date range ---- */}
-            <Card className="min-w-0 border-slate-200/70 shadow-sm">
+            <Card className="min-w-0 overflow-x-auto border-slate-200/70 shadow-sm">
                 <CardContent className="p-4 sm:p-5">
                     <form onSubmit={onFilterSubmit} className="space-y-4">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12">
@@ -563,52 +595,233 @@ export default function RequestTable<T extends { id: number | string }>({
                             Showing {resource.from ?? 0} to {resource.to ?? 0}{' '}
                             of {resource.total} results
                         </p>
-                        <div className="flex flex-nowrap items-center gap-1 overflow-x-auto">
-                            {resource.links.map((link, i) => {
-                                const rawLabel = link.label
-                                    .replace(/&laquo;|&raquo;/g, '')
-                                    .trim();
-                                const isPrev =
-                                    rawLabel.toLowerCase() === 'previous';
-                                const isNext =
-                                    rawLabel.toLowerCase() === 'next';
+
+                        {resource.last_page > 10 ? (
+                            // ---- Page-jump dropdown (>10 pages) ----
+                            // Same mechanism as ResourceTable: Prev / a
+                            // popover with a type-to-jump input plus a
+                            // scrollable page list / Next. Picking a page
+                            // does a plain full reload — no preserveState,
+                            // no `only` — since that's what fixed the
+                            // "lands back on page 1" bug in ResourceTable.
+                            (() => {
+                                const prevLink = resource.links.find((l) =>
+                                    l.label
+                                        .replace(/&laquo;|&raquo;/g, '')
+                                        .trim()
+                                        .toLowerCase()
+                                        .includes('previous'),
+                                );
+                                const nextLink = resource.links.find((l) =>
+                                    l.label
+                                        .replace(/&laquo;|&raquo;/g, '')
+                                        .trim()
+                                        .toLowerCase()
+                                        .includes('next'),
+                                );
 
                                 return (
-                                    <Button
-                                        key={i}
-                                        type="button"
-                                        size="icon"
-                                        variant={
-                                            link.active ? 'default' : 'outline'
-                                        }
-                                        disabled={!link.url}
-                                        onClick={() =>
-                                            link.url && onPageChange?.(link.url)
-                                        }
-                                        aria-label={
-                                            isPrev
-                                                ? 'Previous page'
-                                                : isNext
-                                                  ? 'Next page'
-                                                  : rawLabel
-                                        }
-                                        className={cn(
-                                            'h-8 w-8 shrink-0 rounded-md text-sm',
-                                            link.active &&
-                                                'bg-blue-900 text-white hover:bg-blue-950',
-                                        )}
-                                    >
-                                        {isPrev ? (
+                                    <div className="flex shrink-0 items-center gap-1.5">
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="outline"
+                                            disabled={!prevLink?.url}
+                                            onClick={() =>
+                                                navigateToPage(
+                                                    resource.current_page - 1,
+                                                )
+                                            }
+                                            aria-label="Previous page"
+                                            className="h-8 w-8 shrink-0 rounded-md text-sm"
+                                        >
                                             <ChevronLeft className="h-4 w-4" />
-                                        ) : isNext ? (
+                                        </Button>
+
+                                        <Popover
+                                            open={pageJumpOpen}
+                                            onOpenChange={(open) => {
+                                                setPageJumpOpen(open);
+                                                if (open) {
+                                                    setPageJumpInput(
+                                                        String(
+                                                            resource.current_page,
+                                                        ),
+                                                    );
+                                                }
+                                            }}
+                                        >
+                                            <PopoverTrigger asChild>
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+                                                >
+                                                    Page {resource.current_page}{' '}
+                                                    of {resource.last_page}
+                                                </button>
+                                            </PopoverTrigger>
+                                            <PopoverContent
+                                                align="center"
+                                                className="w-48 space-y-2 p-2"
+                                            >
+                                                {/* Type-to-jump input — the
+                                                    part that makes a long
+                                                    page list actually usable
+                                                    instead of just scrolling
+                                                    through every page. */}
+                                                <form
+                                                    onSubmit={(e) => {
+                                                        e.preventDefault();
+                                                        const parsed =
+                                                            Number(
+                                                                pageJumpInput,
+                                                            );
+                                                        if (
+                                                            !Number.isNaN(
+                                                                parsed,
+                                                            ) &&
+                                                            parsed >= 1 &&
+                                                            parsed <=
+                                                                resource.last_page
+                                                        ) {
+                                                            navigateToPage(
+                                                                parsed,
+                                                            );
+                                                            setPageJumpOpen(
+                                                                false,
+                                                            );
+                                                        }
+                                                    }}
+                                                    className="flex items-center gap-1.5"
+                                                >
+                                                    <input
+                                                        type="number"
+                                                        min={1}
+                                                        max={resource.last_page}
+                                                        value={pageJumpInput}
+                                                        onChange={(e) =>
+                                                            setPageJumpInput(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        placeholder={`1–${resource.last_page}`}
+                                                        className="h-8 w-full min-w-0 rounded-md border border-slate-200 px-2 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-200"
+                                                        autoFocus
+                                                    />
+                                                    <button
+                                                        type="submit"
+                                                        className="h-8 shrink-0 rounded-md bg-blue-900 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-blue-950"
+                                                    >
+                                                        Go
+                                                    </button>
+                                                </form>
+
+                                                {/* Scrollable browse list —
+                                                    still available for
+                                                    picking visually instead
+                                                    of typing, if preferred. */}
+                                                <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-slate-100 pt-1.5">
+                                                    {Array.from(
+                                                        {
+                                                            length: resource.last_page,
+                                                        },
+                                                        (_, i) => i + 1,
+                                                    ).map((page) => (
+                                                        <button
+                                                            key={page}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                navigateToPage(
+                                                                    page,
+                                                                );
+                                                                setPageJumpOpen(
+                                                                    false,
+                                                                );
+                                                            }}
+                                                            className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                                                                page ===
+                                                                resource.current_page
+                                                                    ? 'bg-blue-50 font-medium text-blue-900'
+                                                                    : 'text-slate-600 hover:bg-slate-50'
+                                                            }`}
+                                                        >
+                                                            Page {page}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </PopoverContent>
+                                        </Popover>
+
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="outline"
+                                            disabled={!nextLink?.url}
+                                            onClick={() =>
+                                                navigateToPage(
+                                                    resource.current_page + 1,
+                                                )
+                                            }
+                                            aria-label="Next page"
+                                            className="h-8 w-8 shrink-0 rounded-md text-sm"
+                                        >
                                             <ChevronRight className="h-4 w-4" />
-                                        ) : (
-                                            rawLabel
-                                        )}
-                                    </Button>
+                                        </Button>
+                                    </div>
                                 );
-                            })}
-                        </div>
+                            })()
+                        ) : (
+                            // ---- Standard button row (10 pages or fewer, unchanged) ----
+                            <div className="flex flex-nowrap items-center gap-1">
+                                {resource.links.map((link, i) => {
+                                    const rawLabel = link.label
+                                        .replace(/&laquo;|&raquo;/g, '')
+                                        .trim();
+                                    const isPrev =
+                                        rawLabel.toLowerCase() === 'previous';
+                                    const isNext =
+                                        rawLabel.toLowerCase() === 'next';
+
+                                    return (
+                                        <Button
+                                            key={i}
+                                            type="button"
+                                            size="icon"
+                                            variant={
+                                                link.active
+                                                    ? 'default'
+                                                    : 'outline'
+                                            }
+                                            disabled={!link.url}
+                                            onClick={() =>
+                                                link.url &&
+                                                onPageChange?.(link.url)
+                                            }
+                                            aria-label={
+                                                isPrev
+                                                    ? 'Previous page'
+                                                    : isNext
+                                                      ? 'Next page'
+                                                      : rawLabel
+                                            }
+                                            className={cn(
+                                                'h-8 w-8 shrink-0 rounded-md text-sm',
+                                                link.active &&
+                                                    'bg-blue-900 text-white hover:bg-blue-950',
+                                            )}
+                                        >
+                                            {isPrev ? (
+                                                <ChevronLeft className="h-4 w-4" />
+                                            ) : isNext ? (
+                                                <ChevronRight className="h-4 w-4" />
+                                            ) : (
+                                                rawLabel
+                                            )}
+                                        </Button>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 )}
             </Card>
