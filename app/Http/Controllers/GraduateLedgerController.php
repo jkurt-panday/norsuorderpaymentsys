@@ -126,28 +126,87 @@ class GraduateLedgerController extends Controller
 
         HeadingRowFormatter::default('slug');
 
-        $uploadedFile = $request->file('file');
-        $rows = Excel::toCollection(null, $uploadedFile)->first() ?? collect();
+        try {
+            $uploadedFile = $request->file('file');
+            $rows = Excel::toCollection(null, $uploadedFile)->first() ?? collect();
 
-        if ($rows->isEmpty()) {
-            return redirect()->route('graduate-ledger.index')->with('success', 'No rows found in the uploaded file.');
-        }
-
-        $headers = collect($rows->first())->map(fn ($header) => Str::slug((string) $header, '_'))->all();
-
-        $rows->slice(1)->each(function ($row) use ($headers) {
-            $rowData = collect($row)->mapWithKeys(function ($value, $index) use ($headers) {
-                return [$headers[$index] ?? 'column_'.$index => $value];
-            })->all();
-
-            $data = $this->mapImportRow($rowData);
-
-            if ($data !== null) {
-                GraduateLedger::create($data);
+            if ($rows->isEmpty()) {
+                return redirect()->route('graduate-ledger.index')->with('error', 'No rows found in the uploaded file.');
             }
-        });
 
-        return redirect()->route('graduate-ledger.index')->with('success', 'Import completed successfully.');
+            $headers = collect($rows->first())->map(fn ($header) => Str::slug((string) $header, '_'))->all();
+
+            if (empty($headers)) {
+                return redirect()->route('graduate-ledger.index')->with('error', 'No valid headers found in the uploaded file.');
+            }
+
+            // Required fields (matching the variants handled by mapImportRow)
+            $nameHeaders = ['name_last_name_first_name_m_i', 'name_last_name_first_name_mi', 'student_name', 'student', 'name'];
+            $typeHeaders = ['ar_payment', 'arpayment', 'type'];
+            $missingHeaders = [];
+
+            if (!array_intersect($nameHeaders, $headers)) {
+                $missingHeaders[] = 'Student Name';
+            }
+
+            if (!in_array('amount', $headers)) {
+                $missingHeaders[] = 'Amount';
+            }
+
+            if (!array_intersect($typeHeaders, $headers)) {
+                $missingHeaders[] = 'AR/Payment';
+            }
+
+            if (!empty($missingHeaders)) {
+                return redirect()->route('graduate-ledger.index')->with('error', 'Missing required headers: ' . implode(', ', $missingHeaders));
+            }
+
+            $importedCount = 0;
+            $failedRows = [];
+            $rowIndex = 1; // Start after header row
+
+            DB::beginTransaction();
+
+            try {
+                $rows->slice(1)->each(function ($row) use ($headers, &$importedCount, &$failedRows, &$rowIndex) {
+                    $rowIndex++;
+                    if (!is_array($row) && !$row instanceof \Illuminate\Support\Collection) {
+                        $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid row format'];
+                        return;
+                    }
+
+                    $rowData = collect($row)->mapWithKeys(function ($value, $index) use ($headers) {
+                        return [$headers[$index] ?? 'column_' . $index => $value];
+                    })->all();
+
+                    try {
+                        $data = $this->mapImportRow($rowData);
+                        if ($data !== null) {
+                            GraduateLedger::create($data);
+                            $importedCount++;
+                        } else {
+                            $failedRows[] = ['row' => $rowIndex, 'error' => 'Failed to map row data'];
+                        }
+                    } catch (\Throwable $e) {
+                        $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
+                    }
+                });
+
+                DB::commit();
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                throw $e;
+            }
+
+            if (!empty($failedRows)) {
+                $errorMessage = "Import completed with {$importedCount} rows. Failed rows: " . json_encode($failedRows);
+                return redirect()->route('graduate-ledger.index')->with('warning', $errorMessage);
+            }
+
+            return redirect()->route('graduate-ledger.index')->with('success', "Import completed successfully. Imported {$importedCount} rows.");
+        } catch (\Throwable $e) {
+            return redirect()->route('graduate-ledger.index')->with('error', 'Failed to import file: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -240,6 +299,13 @@ class GraduateLedgerController extends Controller
             return null;
         }
 
+        $units = (int) round((float) (Arr::get($normalized, 'units', 0) ?? 0));
+        $tuitionPerUnit = (float) (
+            Arr::get($normalized, 'tuition_per_unit_reg_and_miscellaneous_per_semester')
+            ?? Arr::get($normalized, 'tuition_per_unit_or_misc', 0) 
+            ?? 0
+        );
+
         return [
             'student_name' => $studentName,
             'course' => Arr::get($normalized, 'course'),
@@ -248,7 +314,7 @@ class GraduateLedgerController extends Controller
                 ?? Arr::get($normalized, 'semester_short') 
                 ?? Arr::get($normalized, 'term'),
             'semester' => Arr::get($normalized, 'semester'),
-            'units' => (int) round((float) (Arr::get($normalized, 'units', 0) ?? 0)),
+            'units' => $units,
             'transaction_date' => $this->normalizeDate(
                 Arr::get($normalized, 'transaction_date') ?? Arr::get($normalized, 'date')
             ),
@@ -259,18 +325,43 @@ class GraduateLedgerController extends Controller
                 ?? Arr::get($normalized, 'or_no')
                 ?? Arr::get($normalized, 'ref_no'),
             'particulars' => Arr::get($normalized, 'particulars'),
-            'tuition_per_unit_or_misc' => (float) (
-                Arr::get($normalized, 'tuition_per_unit_reg_and_miscellaneous_per_semester')
-                ?? Arr::get($normalized, 'tuition_per_unit_or_misc', 0) 
-                ?? 0
-            ),
+            'tuition_per_unit_or_misc' => $tuitionPerUnit,
             'ar_payment' => Arr::get($normalized, 'ar_payment') 
                 ?? Arr::get($normalized, 'arpayment') 
                 ?? Arr::get($normalized, 'type'),
-            'amount' => (float) (Arr::get($normalized, 'amount', 0) ?? 0),
-            'remarks' => Arr::get($normalized, 'remarks') ?? Arr::get($normalized, 'remark'),
+            'amount' => $this->normalizeAmount(Arr::get($normalized, 'amount'), $units, $tuitionPerUnit),
+            'remarks' => $this->cleanFormulaValue(Arr::get($normalized, 'remarks') ?? Arr::get($normalized, 'remark')),
             'input_by' => Arr::get($normalized, 'input_by'),
         ];
+    }
+
+    private function normalizeAmount($value, float $units, float $tuitionPerUnit): float
+    {
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+
+        $string = trim((string) $value);
+
+        if (str_starts_with($string, '=')) {
+            // Formula cell such as "=E2*I2" or "=I5*E5" (units x tuition per unit)
+            if ($units > 0 && $tuitionPerUnit > 0) {
+                return $units * $tuitionPerUnit;
+            }
+
+            return 0.0;
+        }
+
+        return (float) preg_replace('/[^\d.-]/', '', $string);
+    }
+
+    private function cleanFormulaValue($value)
+    {
+        if (is_string($value) && str_starts_with(trim($value), '=')) {
+            return null;
+        }
+
+        return $value;
     }
 
     private function normalizeDate($value): ?string
@@ -284,12 +375,27 @@ class GraduateLedgerController extends Controller
         }
 
         if (is_numeric($value)) {
-            return \Carbon\Carbon::createFromFormat('Ymd', (string) $value)->format('Y-m-d');
+            $numeric = (float) $value;
+
+            // 8-digit value like 20250805 is a Ymd date; otherwise treat as an Excel serial date
+            if ($numeric >= 19000000 && $numeric <= 21001231) {
+                $date = \Carbon\Carbon::createFromFormat('Ymd', (string) (int) $numeric);
+
+                return $date ? $date->format('Y-m-d') : null;
+            }
+
+            try {
+                return \Carbon\Carbon::instance(
+                    \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($numeric)
+                )->format('Y-m-d');
+            } catch (\Throwable $e) {
+                return null;
+            }
         }
 
         try {
             return \Carbon\Carbon::parse((string) $value)->format('Y-m-d');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return null;
         }
     }
