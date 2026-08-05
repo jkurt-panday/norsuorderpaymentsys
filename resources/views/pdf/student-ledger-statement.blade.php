@@ -123,6 +123,28 @@
             border-radius: 0 0 3px 3px;
         }
 
+        .semester-block { margin-bottom: 14px; }
+        .semester-header {
+            background-color: #F3F8FF;
+            color: #0B3D91;
+            font-size: 9pt;
+            font-weight: bold;
+            padding: 6px 8px;
+            border: 1px solid #CFE3FF;
+            border-bottom: none;
+        }
+        .section-table { width: 100%; border-collapse: collapse; }
+        .section-table td { border: 1px solid #EAF2FF; padding: 5px 8px; font-size: 9pt; }
+        .section-label {
+            background-color: #FAFAFA;
+            color: #666;
+            font-size: 7.5pt;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .subtotal-row td { font-weight: bold; background-color: #FBFDFF; }
+        .no-transactions td { text-align: center; color: #888; }
+
         .text-right { text-align: right; }
         .text-center { text-center: center; }
 
@@ -193,6 +215,13 @@
 
     @php
         $normalizeText = static fn ($value) => str_replace(['−', '–', '—'], '-', (string) $value);
+        $parseAmount = static fn ($value) => abs((float) preg_replace('/[^\d.]/', '', (string) $value));
+
+        // Group records by school year + semester, preserving original order
+        $semesterGroups = $records->groupBy(function ($r) use ($normalizeText) {
+            return $normalizeText($r->school_year) . '||' . $normalizeText($r->semester_short);
+        });
+    @endphp
 
         // Group records by School Year & Semester
         $groupedRecords = $records->groupBy(function ($r) {
@@ -216,111 +245,79 @@
         </tr>
     </table>
 
-    <!-- Student Metadata -->
-    <div class="meta-container">
-        <table class="meta-table">
-            <tr>
-                <td class="label">Student Name:</td>
-                <td class="value"><strong>{{ $normalizeText($studentName) }}</strong></td>
-                <td class="label" style="text-align: right; width: 80px;">Account Status:</td>
-                <td class="value text-right" style="width: 100px;">
-                    @if($summary['outstandingBalance'] <= 0)
-                        <span class="badge-settled">PAID / SETTLED</span>
-                    @else
-                        <span class="badge-outstanding">OUTSTANDING</span>
-                    @endif
-                </td>
-            </tr>
-            <tr>
-                <td class="label">Course / Program:</td>
-                <td class="value">{{ $normalizeText($records->first()->course ?? 'N/A') }}</td>
-                <td class="label" style="text-align: right;">Total Records:</td>
-                <td class="value text-right">{{ $records->count() }} transaction(s)</td>
-            </tr>
-        </table>
-    </div>
-
-    <!-- Grouped Ledger Tables per Semester -->
-    @forelse($groupedRecords as $termName => $termRecords)
+    @forelse($semesterGroups as $groupKey => $groupRecords)
         @php
-            $termCharges = 0;
-            $termPayments = 0;
+            [$schoolYear, $semesterShort] = array_pad(explode('||', $groupKey), 2, '');
+            $semesterLabel = trim($schoolYear . ($semesterShort ? " ({$semesterShort})" : ''));
 
-            foreach ($termRecords as $tr) {
-                $amt = abs((float) preg_replace('/[^\d.]/', '', (string) $tr->amount));
-                $type = strtoupper(trim($tr->ar_payment ?? 'AR'));
-                if ($type === 'AR') {
-                    $termCharges += $amt;
-                } else {
-                    $termPayments += $amt;
-                }
-            }
-            $termBalance = $termCharges - $termPayments;
+            $charges  = $groupRecords->filter(fn ($r) => strtoupper($r->ar_payment ?? 'AR') === 'AR');
+            $payments = $groupRecords->filter(fn ($r) => strtoupper($r->ar_payment ?? 'AR') === 'PAYMENT');
+
+            $chargesSubtotal  = $charges->sum(fn ($r) => $parseAmount($r->amount));
+            $paymentsSubtotal = $payments->sum(fn ($r) => $parseAmount($r->amount));
+
+            // Group payments by reference/OR number so the same receipt isn't repeated per line
+            $paymentBatches = $payments->groupBy(fn ($r) => $normalizeText($r->reference_or_jev_number ?? '-'));
         @endphp
 
-        <div class="term-header">
-            Academic Term: {{ $normalizeText($termName) }}
-        </div>
+        <div class="semester-block">
+            <div class="semester-header">S.Y. {{ $normalizeText($semesterLabel) }}</div>
 
-        <table class="ledger-table">
-            <thead>
-                <tr>
-                    <th width="15%">Date</th>
-                    <th width="20%">OR / JEV #</th>
-                    <th>Particulars</th>
-                    <th width="12%" class="text-center">Type</th>
-                    <th width="18%" class="text-right">Amount</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($termRecords as $r)
-                    <tr>
-                        <td>{{ $normalizeText($r->transaction_date ? \Carbon\Carbon::parse($r->transaction_date)->format('Y-m-d') : '-') }}</td>
-                        <td>{{ $normalizeText($r->reference_or_jev_number ?? '-') }}</td>
-                        <td>{{ $normalizeText($r->particulars ?? '-') }}</td>
-                        <td class="text-center">{{ $normalizeText(strtoupper($r->ar_payment ?? 'AR')) }}</td>
-                        <td class="text-right">
-                            @php
-                                $amt = abs((float) preg_replace('/[^\d.]/', '', (string) $r->amount));
-                                $type = strtoupper(trim($r->ar_payment ?? 'AR'));
-                                $isCredit = in_array($type, ['PAYMENT', 'P', 'ADJUSTMENT', 'ADJ']);
-                            @endphp
-                            @if($isCredit)
-                                <span style="color: #166534;">(₱{{ number_format($amt, 2) }})</span>
-                            @else
-                                ₱{{ number_format($amt, 2) }}
-                            @endif
-                        </td>
+            @if($charges->isEmpty() && $payments->isEmpty())
+                <table class="section-table">
+                    <tr class="no-transactions">
+                        <td>No transactions on record</td>
+                        <td class="text-right" style="width:15%;">₱0.00</td>
                     </tr>
-                @endforeach
-            </tbody>
-        </table>
+                </table>
+            @else
+                @if($charges->isNotEmpty())
+                    <table class="section-table">
+                        <tr>
+                            <td class="section-label" colspan="2">Charges</td>
+                        </tr>
+                        @foreach($charges as $r)
+                            <tr>
+                                <td>{{ $normalizeText($r->particulars ?? '-') }}</td>
+                                <td class="text-right" style="width:15%;">₱{{ number_format($parseAmount($r->amount), 2) }}</td>
+                            </tr>
+                        @endforeach
+                        <tr class="subtotal-row">
+                            <td>Subtotal charges</td>
+                            <td class="text-right">₱{{ number_format($chargesSubtotal, 2) }}</td>
+                        </tr>
+                    </table>
+                @endif
 
-        <div class="term-subtotal">
-            <table style="width: 100%; border-collapse: collapse;">
-                <tr>
-                    <td>Term Summary:</td>
-                    <td class="text-right" style="font-weight: normal; color: #475569;">
-                        Billed: <strong>₱{{ number_format($termCharges, 2) }}</strong> &nbsp;|&nbsp;
-                        Paid: <strong>₱{{ number_format($termPayments, 2) }}</strong> &nbsp;|&nbsp;
-                        Term Balance: <strong style="color: {{ $termBalance > 0 ? '#991B1B' : '#166534' }};">₱{{ number_format($termBalance, 2) }}</strong>
-                    </td>
-                </tr>
-            </table>
+                @if($payments->isNotEmpty())
+                    @foreach($paymentBatches as $refNumber => $batch)
+                        @php $batchSubtotal = $batch->sum(fn ($r) => $parseAmount($r->amount)); @endphp
+                        <table class="section-table" style="margin-top:6px;">
+                            <tr>
+                                <td class="section-label" colspan="2">Payments &middot; OR # {{ $refNumber }}</td>
+                            </tr>
+                            @foreach($batch as $r)
+                                <tr>
+                                    <td>{{ $normalizeText($r->particulars ?? '-') }}</td>
+                                    <td class="text-right" style="width:15%;">(₱{{ number_format($parseAmount($r->amount), 2) }})</td>
+                                </tr>
+                            @endforeach
+                            <tr class="subtotal-row">
+                                <td>Subtotal payments</td>
+                                <td class="text-right">(₱{{ number_format($batchSubtotal, 2) }})</td>
+                            </tr>
+                        </table>
+                    @endforeach
+                @endif
+            @endif
         </div>
     @empty
-        <div style="text-align: center; padding: 20px; color: #64748B; border: 1px solid #E2E8F0; border-radius: 4px;">
-            No transactions on record for this student.
-        </div>
+        <table class="section-table">
+            <tr class="no-transactions">
+                <td colspan="2">No transactions on record for this student.</td>
+            </tr>
+        </table>
     @endforelse
-
-    <!-- Bottom Summary & Signatures -->
-    <div class="bottom-section">
-        <div class="signature-box">
-            <p style="margin: 0; color: #475569;">Prepared & Checked by:</p>
-            <div class="signature-line"></div>
-            <p style="margin: 0; font-weight: bold; color: #1E293B;">Graduate School Accountant</p>
-        </div>
 
         <div class="summary-box">
             <table class="summary-table">
@@ -348,5 +345,3 @@
 
 </body>
 </html>
-
-
