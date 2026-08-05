@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\LawSchoolLedger;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -373,11 +374,11 @@ class LawSchoolLedgerController extends Controller
         }
 
         if (is_numeric($value)) {
-            return \Carbon\Carbon::createFromFormat('Ymd', (string) $value)->format('Y-m-d');
+            return Carbon::createFromFormat('Ymd', (string) $value)->format('Y-m-d');
         }
 
         try {
-            return \Carbon\Carbon::parse((string) $value)->format('Y-m-d');
+            return Carbon::parse((string) $value)->format('Y-m-d');
         } catch (\Exception $e) {
             return null;
         }

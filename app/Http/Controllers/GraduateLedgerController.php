@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\GraduateLedger;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -53,8 +54,8 @@ class GraduateLedgerController extends Controller
 
         $totalPayments = (float) (clone $query)
             ->where(function ($q) {
-                $q->whereIn(DB::raw("UPPER(TRIM(ar_payment))"), ['PAYMENT', 'P', 'PAYMENR', 'ADJUSTMENT', 'ADJ', 'SETTLED'])
-                  ->orWhere('amount', 'like', '%(%');
+                $q->whereIn(DB::raw('UPPER(TRIM(ar_payment))'), ['PAYMENT', 'P', 'PAYMENR', 'ADJUSTMENT', 'ADJ', 'SETTLED'])
+                    ->orWhere('amount', 'like', '%(%');
             })
             ->sum('amount');
 
@@ -67,9 +68,20 @@ class GraduateLedgerController extends Controller
         // Transform each row into the shape Index.tsx expects
         $records->through(fn ($r) => $this->transformRecord($r));
 
+        // Distinct years from transaction_date for the year filter dropdown
+        $availableYears = GraduateLedger::query()
+            ->whereNotNull('transaction_date')
+            ->selectRaw('EXTRACT(YEAR FROM transaction_date)::int as yr')
+            ->distinct()
+            ->orderBy('yr', 'desc')
+            ->pluck('yr')
+            ->filter()
+            ->values();
+
         return Inertia::render('graduate-ledger/Index', [
             'records' => $records,
             'filters' => $request->only(['search', 'year', 'month']),
+            'availableYears' => $availableYears,
             'stats' => [
                 'totalStudents' => $totalStudents,
                 'totalUnits' => $totalUnits,
@@ -85,7 +97,77 @@ class GraduateLedgerController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('graduate-ledger/AddTransaction');
+        $studentNames = GraduateLedger::query()
+            ->whereNotNull('student_name')
+            ->where('student_name', '!=', '')
+            ->distinct()
+            ->orderBy('student_name')
+            ->pluck('student_name');
+
+        return Inertia::render('graduate-ledger/AddTransaction', [
+            'studentNames' => $studentNames,
+            'authUserName' => auth()->user()?->name ?? '',
+        ]);
+    }
+
+    /**
+     * Shows the edit form for an existing ledger record.
+     */
+    public function edit(int $id): Response
+    {
+        $record = GraduateLedger::findOrFail($id);
+
+        $studentNames = GraduateLedger::query()
+            ->whereNotNull('student_name')
+            ->where('student_name', '!=', '')
+            ->distinct()
+            ->orderBy('student_name')
+            ->pluck('student_name');
+
+        return Inertia::render('graduate-ledger/EditTransaction', [
+            'record' => $record,
+            'studentNames' => $studentNames,
+            'authUserName' => auth()->user()?->name ?? '',
+        ]);
+    }
+
+    /**
+     * Updates an existing ledger record.
+     */
+    public function update(Request $request, int $id): RedirectResponse
+    {
+        $record = GraduateLedger::findOrFail($id);
+
+        $data = $request->validate([
+            'student_name'            => ['required', 'string', 'max:255'],
+            'course'                  => ['nullable', 'string', 'max:255'],
+            'school_year'             => ['nullable', 'string', 'max:50'],
+            'semester_short'          => ['nullable', 'string', 'max:50'],
+            'semester'                => ['nullable', 'string', 'max:100'],
+            'units'                   => ['nullable', 'integer', 'min:0'],
+            'transaction_date'        => ['nullable', 'date'],
+            'reference_or_jev_number' => ['nullable', 'string', 'max:255'],
+            'particulars'             => ['nullable', 'string'],
+            'tuition_per_unit_or_misc'=> ['nullable', 'numeric', 'min:0'],
+            'ar_payment'              => ['nullable', 'string', 'max:50'],
+            'amount'                  => ['nullable', 'numeric', 'min:0'],
+            'remarks'                 => ['nullable', 'string'],
+            'input_by'                => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $record->update($data);
+
+        return redirect()->route('graduate-ledger.index')->with('success', 'Transaction updated successfully.');
+    }
+
+    /**
+     * Deletes a ledger record.
+     */
+    public function destroy(int $id): RedirectResponse
+    {
+        GraduateLedger::findOrFail($id)->delete();
+
+        return redirect()->route('graduate-ledger.index')->with('success', 'Transaction deleted successfully.');
     }
 
     /**
@@ -244,8 +326,8 @@ class GraduateLedgerController extends Controller
             'student_name' => $studentName,
             'course' => Arr::get($normalized, 'course'),
             'school_year' => Arr::get($normalized, 'school_year') ?? Arr::get($normalized, 'sy'),
-            'semester_short' => Arr::get($normalized, 'semester_summer') 
-                ?? Arr::get($normalized, 'semester_short') 
+            'semester_short' => Arr::get($normalized, 'semester_summer')
+                ?? Arr::get($normalized, 'semester_short')
                 ?? Arr::get($normalized, 'term'),
             'semester' => Arr::get($normalized, 'semester'),
             'units' => (int) round((float) (Arr::get($normalized, 'units', 0) ?? 0)),
@@ -261,11 +343,11 @@ class GraduateLedgerController extends Controller
             'particulars' => Arr::get($normalized, 'particulars'),
             'tuition_per_unit_or_misc' => (float) (
                 Arr::get($normalized, 'tuition_per_unit_reg_and_miscellaneous_per_semester')
-                ?? Arr::get($normalized, 'tuition_per_unit_or_misc', 0) 
+                ?? Arr::get($normalized, 'tuition_per_unit_or_misc', 0)
                 ?? 0
             ),
-            'ar_payment' => Arr::get($normalized, 'ar_payment') 
-                ?? Arr::get($normalized, 'arpayment') 
+            'ar_payment' => Arr::get($normalized, 'ar_payment')
+                ?? Arr::get($normalized, 'arpayment')
                 ?? Arr::get($normalized, 'type'),
             'amount' => (float) (Arr::get($normalized, 'amount', 0) ?? 0),
             'remarks' => Arr::get($normalized, 'remarks') ?? Arr::get($normalized, 'remark'),
@@ -284,11 +366,11 @@ class GraduateLedgerController extends Controller
         }
 
         if (is_numeric($value)) {
-            return \Carbon\Carbon::createFromFormat('Ymd', (string) $value)->format('Y-m-d');
+            return Carbon::createFromFormat('Ymd', (string) $value)->format('Y-m-d');
         }
 
         try {
-            return \Carbon\Carbon::parse((string) $value)->format('Y-m-d');
+            return Carbon::parse((string) $value)->format('Y-m-d');
         } catch (\Exception $e) {
             return null;
         }
