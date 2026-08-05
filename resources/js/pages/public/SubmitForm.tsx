@@ -170,8 +170,8 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                             <img
                                 src="/finance_logo1.png"
                                 alt="NORSU Logo"
-                                width={200}
-                                height={200}
+                                width={500}
+                                height={500}
                                 className='pb-6'
                             />
                         </div>
