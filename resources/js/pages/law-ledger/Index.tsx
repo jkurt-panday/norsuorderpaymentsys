@@ -174,6 +174,8 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const lastPage = records?.meta?.last_page ?? records?.last_page ?? 1;
   const totalRecordCount = records?.meta?.total ?? records?.total ?? rows.length;
 
+  const [goToPage, setGoToPage] = React.useState<string>('');
+
   const paginationLinks = records?.links ?? [];
 
   return (
@@ -503,8 +505,54 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                 <span className="font-semibold text-[#0B3D91]">{lastPage}</span>
               </div>
 
-              <Pagination className="justify-end w-auto mx-0">
-                <PaginationContent className="gap-1">
+               <Pagination className="justify-end w-auto mx-0">
+                 <PaginationContent className="gap-1">
+                   <PaginationItem>
+                     <div className="flex items-center gap-1">
+                       <Input
+                         type="number"
+                         min="1"
+                         max={lastPage}
+                         value={goToPage}
+                         onChange={(e) => {
+                           setGoToPage(e.target.value);
+                         }}
+                         onKeyDown={(e) => {
+                           if (e.key === 'Enter') {
+                             const page = parseInt(goToPage);
+                             if (!isNaN(page)) {
+                               const validatedPage = Math.min(Math.max(page, 1), lastPage);
+                               router.get(`/law-ledger?page=${validatedPage}`, {}, {
+                                 preserveState: true,
+                                 preserveScroll: true,
+                               });
+                               setGoToPage('');
+                             }
+                           }
+                         }}
+                         placeholder={currentPage.toString()}
+                         className="w-16 h-8 text-center border border-[#CFE3FF] rounded-md focus:ring-[#0F6FFF] focus:border-[#0F6FFF]"
+                       />
+                       <Button
+                         variant="outline"
+                         size="sm"
+                         onClick={() => {
+                           const page = parseInt(goToPage);
+                           if (!isNaN(page)) {
+                             const validatedPage = Math.min(Math.max(page, 1), lastPage);
+                             router.get(`/law-ledger?page=${validatedPage}`, {}, {
+                               preserveState: true,
+                               preserveScroll: true,
+                             });
+                             setGoToPage('');
+                           }
+                         }}
+                         className="h-8 px-2 text-xs bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
+                       >
+                         Go
+                       </Button>
+                     </div>
+                   </PaginationItem>
                   {paginationLinks.map((link, index) => {
                     const isPrev = index === 0;
                     const isNext = index === paginationLinks.length - 1;
