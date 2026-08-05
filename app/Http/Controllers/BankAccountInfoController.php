@@ -20,7 +20,7 @@ class BankAccountInfoController extends BaseResourceController
     protected array $searchableColumns = ['bank_name', 'account_name'];
     protected string $indexView = 'staff/bankaccounts/bankaccount';
     protected string $resourceKey = 'bankAccounts';
-    protected string $orderBy = 'bank_name';
+    protected string $orderBy = 'id';
     protected string $orderDirection = 'asc';
     protected array $secondaryOrderBy = [
         ['column' => 'account_name', 'direction' => 'asc'],

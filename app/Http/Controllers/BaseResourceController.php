@@ -91,6 +91,7 @@ abstract class BaseResourceController extends Controller
             if ($search = $request->query('search')) {
                 $columns = $this->searchableColumns;
                 $searchLower = strtolower($search);
+                $q->orWhereRaw("LOWER({$column}) LIKE ?", ["%{$searchLower}%"]);
                 $query->where(function (Builder $q) use ($columns, $searchLower) {
                     foreach ($columns as $column) {
                         $q->orWhereRaw("LOWER({$column}) LIKE ?", ["%{$searchLower}%"]);

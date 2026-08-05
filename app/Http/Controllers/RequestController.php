@@ -39,8 +39,8 @@ class RequestController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        $formInputs = $query->orderBy('created_at', 'desc')->paginate(10);
+        $formInputs = $query->orderBy('created_at', 'asc')->paginate(10);
 
         return response()->json($formInputs);
     }
-}
+} 

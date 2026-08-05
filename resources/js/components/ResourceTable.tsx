@@ -457,7 +457,7 @@ export default function ResourceTable<T extends { id: number }>({
                 </Link>
             </div>
 
-            <Card className="w-full overflow-hidden rounded-2xl border-slate-200/70 py-0 shadow-sm">
+            <Card className="w-full gap-0 overflow-hidden rounded-2xl border-slate-200/70 py-0 shadow-sm">
                 <div className="relative h-0.5 w-full overflow-hidden bg-transparent">
                     {(isNavigating || isResetting) && (
                         <div className="absolute inset-0 animate-[table-loading-bar_1s_ease-in-out_infinite] bg-blue-500" />

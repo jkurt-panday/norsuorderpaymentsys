@@ -132,7 +132,7 @@ export default function Success({ reference_number, formInput }: Props) {
                             <CardHeader className="-mx-6 -mt-6 rounded-t-3xl rounded-b-3xl bg-linear-to-b from-blue-600 to-blue-400 px-8 py-10 text-center text-white">
                                 <div className="mx-auto flex items-center justify-center">
                                     <img
-                                        src="/norsu.png"
+                                        src="/finance_logo1.png"
                                         alt="NORSU Logo"
                                         width={200}
                                         height={200}
