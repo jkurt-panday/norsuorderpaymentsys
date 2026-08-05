@@ -1,19 +1,5 @@
 // /home/kurt_/norsuorderpaymentsys/resources/js/pages/public/Success.tsx
-
-import React from 'react';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-    CardDescription,
-    CardFooter,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import { Link } from '@inertiajs/react';
-import PublicLayout from '@/pages/layouts/PublicLayout';
 import {
     CheckCircle,
     Download,
@@ -22,12 +8,22 @@ import {
     Phone,
     MapPin,
     User,
-    Building,
-    Hash,
-    CreditCard,
     Receipt,
-    Printer,
+    IdCard,
 } from 'lucide-react';
+import React from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+    CardFooter,
+} from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import PublicLayout from '@/pages/layouts/PublicLayout';
 
 interface SupportingDocument {
     id: number;
@@ -62,8 +58,8 @@ interface FormInput {
     amount: string;
     request_type: string;
     membership: Membership;
-    paymentDetailOption: PaymentOption; // was payment_detail_option
-    supportingDocuments: SupportingDocument[];
+    payment_detail_option: PaymentOption;
+    supporting_documents: SupportingDocument[];
     created_at: string;
 }
 
@@ -76,7 +72,8 @@ export default function Success({ reference_number, formInput }: Props) {
     // Fall back to formInput.reference_number if the top-level prop wasn't
     // passed by the controller — this is why the reference number box was
     // rendering blank.
-    const displayReferenceNumber = reference_number || formInput.reference_number;
+    const displayReferenceNumber =
+        reference_number || formInput.reference_number;
 
     const formatDate = (date: string) => {
         return new Date(date).toLocaleDateString('en-PH', {
@@ -92,368 +89,321 @@ export default function Success({ reference_number, formInput }: Props) {
         return new Intl.NumberFormat('en-PH', {
             style: 'currency',
             currency: 'PHP',
-        }).format(parseFloat(amount));
+        })
+            .format(parseFloat(amount))
+            .replace('₱', '₱  ');
     };
 
     const formatFileSize = (bytes: number) => {
-        if (bytes === 0) return '0 Bytes';
+        if (bytes === 0) {
+            return '0 Bytes';
+        }
+
         const k = 1024;
         const sizes = ['Bytes', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
+
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
-    // Opens the browser's native print dialog. From there the user can print
-    // physically, or choose "Save as PDF" (available on virtually every
-    // modern OS/browser print dialog) to download a copy of this record.
-    const handlePrint = () => {
-        window.print();
+    const getRequestBadgeClass = (requestType: string) => {
+        switch (requestType) {
+            case 'New Request':
+                return 'bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-100';
+
+            case 'Re-issue Request':
+                return 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-100';
+
+            case 'Other':
+                return 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-100';
+
+            default:
+                return 'bg-slate-100 text-slate-700 border border-slate-200';
+        }
     };
 
+    // console.log('formInput:', formInput);
+    // console.log('supportingDocuments:', formInput?.supporting_documents);
+    // console.log('keys:', Object.keys(formInput ?? {}));
+
     return (
-        <div className="container mx-auto max-w-4xl px-4 py-8 print:max-w-none print:p-0">
-            <style>{`
-                @media print {
-                    @page {
-                        size: auto;
-                        margin: 0.35in;
-                    }
-                    * {
-                        -webkit-print-color-adjust: exact !important;
-                        print-color-adjust: exact !important;
-                        color-adjust: exact !important;
-                    }
-                    body * {
-                        visibility: hidden;
-                    }
-                    #success-print-area,
-                    #success-print-area * {
-                        visibility: visible;
-                    }
-                    #success-print-area {
-                        position: absolute;
-                        left: 0;
-                        top: 0;
-                        width: 100%;
-                    }
-                    /* Everything below shrinks the on-screen sizing down to
-                       something that actually fits a single printed page —
-                       without this, the normal text-3xl headings, p-6
-                       padding, and space-y-6 gaps overflow onto a second
-                       page even though the content itself is short. */
-                    #success-print-area {
-                        font-size: 13px !important;
-                        line-height: 1.4 !important;
-                    }
-                    #success-print-area h1,
-                    #success-print-area h2,
-                    #success-print-area h3 {
-                        font-size: 14.5px !important;
-                        margin-bottom: 5px !important;
-                    }
-                    #success-print-area .text-2xl { font-size: 19px !important; }
-                    #success-print-area .text-xl  { font-size: 15px !important; }
-                    #success-print-area .text-lg  { font-size: 14px !important; }
-                    #success-print-area .text-sm  { font-size: 12px !important; }
-                    #success-print-area .text-xs  { font-size: 10.5px !important; }
-                    #success-print-area .h-5.w-5   { height: 14px !important; width: 14px !important; }
-                    #success-print-area .h-4.w-4   { height: 12px !important; width: 12px !important; }
-                    #success-print-area .p-6  { padding: 6px !important; }
-                    #success-print-area .p-4  { padding: 5px !important; }
-                    #success-print-area .p-3  { padding: 4px !important; }
-                    #success-print-area .pt-6 { padding-top: 6px !important; }
-                    #success-print-area .space-y-6 > * + * { margin-top: 6px !important; }
-                    #success-print-area .space-y-2 > * + * { margin-top: 2px !important; }
-                    #success-print-area .gap-4 { gap: 4px !important; }
-                    #success-print-area .gap-2 { gap: 3px !important; }
-                    #success-print-area .mb-4  { margin-bottom: 4px !important; }
-                    #success-print-area .mb-3  { margin-bottom: 3px !important; }
-                    #success-print-area .mb-1  { margin-bottom: 1px !important; }
-                    #success-print-area .mt-1  { margin-top: 1px !important; }
-                    #success-print-area .rounded-lg,
-                    #success-print-area .rounded-full {
-                        padding-top: 3px !important;
-                        padding-bottom: 3px !important;
-                    }
-                    /* md:grid-cols-2 is a viewport-width breakpoint (≥768px).
-                       The printed page's usable width (Letter minus margins)
-                       renders narrower than that, so the breakpoint never
-                       activates and the grid silently collapses to a single
-                       stacked column. Force two columns unconditionally
-                       during print so it matches the on-screen layout. */
-                    #success-print-area .grid {
-                        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-                    }
-                    #success-print-area .col-span-full {
-                        grid-column: 1 / -1 !important;
-                    }
-                }
-            `}</style>
-
-            <div id="success-print-area">
-                <Card className="border-green-200 shadow-lg print:border-0 print:shadow-none">
-                    <CardHeader className="border-b border-green-200 bg-green-50 text-center print:hidden">
-                        <div className="mb-4 flex justify-center">
-                            <CheckCircle className="h-16 w-16 text-green-500" />
-                        </div>
-                        <CardTitle className="text-3xl font-bold text-green-700">
-                            Submission Successful!
-                        </CardTitle>
-                        <CardDescription className="text-lg">
-                            Your request has been submitted successfully.
-                        </CardDescription>
-                    </CardHeader>
-
-                    <CardContent className="space-y-6 pt-6">
-                        {/* Reference Number */}
-                        <div className="rounded-lg bg-muted/50 p-4 text-center print:break-inside-avoid">
-                            <p className="text-sm text-muted-foreground">
-                                Reference Number
-                            </p>
-                            <p className="font-mono text-2xl font-bold text-primary">
-                                {displayReferenceNumber}
-                            </p>
-                            <p className="mt-1 text-xs text-muted-foreground print:hidden">
-                                Please keep this reference number for tracking your
-                                request.
-                            </p>
-                        </div>
-
-                        <Separator />
-
-                        {/* Contact Information */}
-                        <div className="print:break-inside-avoid">
-                            <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold">
-                                <User className="h-5 w-5" />
-                                Contact Information
-                            </h3>
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                <div className="flex items-start gap-2">
-                                    <Mail className="mt-1 h-4 w-4 text-muted-foreground" />
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">
-                                            Email
-                                        </p>
-                                        <p className="font-medium">
-                                            {formInput.email}
-                                        </p>
-                                    </div>
+        <>
+            <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-100 to-white py-12">
+                <div className="mx-auto max-w-5xl px-6">
+                    <div className="borderborder-red-400 container mx-auto max-w-4xl px-4 py-8">
+                        <Card className="overflow-hidden rounded-3xl bg-white shadow-2xl">
+                            <CardHeader className="-mx-6 -mt-6 rounded-t-3xl rounded-b-3xl bg-linear-to-b from-blue-600 to-blue-400 px-8 py-10 text-center text-white">
+                                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm">
+                                    <CheckCircle className="h-14 w-14 text-white" />
                                 </div>
-                                <div className="flex items-start gap-2">
-                                    <Phone className="mt-1 h-4 w-4 text-muted-foreground" />
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">
-                                            Contact Number
-                                        </p>
-                                        <p className="font-medium">
-                                            {formInput.contact_num}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                                <CardTitle className="text-3xl font-bold text-green-300">
+                                    Submission Successful!
+                                </CardTitle>
+                                <CardDescription className="mt-2 text-blue-100">
+                                    Your request has been submitted
+                                    successfully.
+                                </CardDescription>
+                            </CardHeader>
 
-                        <Separator />
-
-                        {/* Identity Details */}
-                        <div className="print:break-inside-avoid">
-                            <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold">
-                                <Building className="h-5 w-5" />
-                                Identity Details
-                            </h3>
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                <div>
+                            <CardContent className="space-y-10 pt-8">
+                                {/* Reference Number */}
+                                <div className="rounded-2xl border border-blue-100 bg-blue-50 p-8 text-center shadow-sm">
                                     <p className="text-sm text-muted-foreground">
-                                        First Name / Office
+                                        Reference Number
                                     </p>
-                                    <p className="font-medium">
-                                        {formInput.firstname_or_office}
+                                    <p className="font-mono text-4xl font-bold tracking-widest text-blue-700">
+                                        {reference_number}
                                     </p>
-                                </div>
-                                {formInput.middlename_or_project && (
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">
-                                            Middle Name / Project
-                                        </p>
-                                        <p className="font-medium">
-                                            {formInput.middlename_or_project}
-                                        </p>
-                                    </div>
-                                )}
-                                <div>
-                                    <p className="text-sm text-muted-foreground">
-                                        Last Name / Agency
-                                    </p>
-                                    <p className="font-medium">
-                                        {formInput.lastname_or_agency}
+                                    <p className="text-slate-500">
+                                        Please keep this reference number for
+                                        tracking your request.
                                     </p>
                                 </div>
-                                <div>
-                                    <p className="text-sm text-muted-foreground">
-                                        Office / College
-                                    </p>
-                                    <p className="font-medium">
-                                        {formInput.office_or_college}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-muted-foreground">
-                                        Position / Designation
-                                    </p>
-                                    <p className="font-medium">
-                                        {formInput.position_or_designation}
-                                    </p>
-                                </div>
-                                <div className="col-span-full flex items-start gap-2">
-                                    <MapPin className="mt-1 h-4 w-4 text-muted-foreground" />
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">
-                                            Address
-                                        </p>
-                                        <p className="font-medium">
-                                            {formInput.address}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
-                        <Separator />
+                                <Separator />
 
-                        {/* Request Details */}
-                        <div className="print:break-inside-avoid">
-                            <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold">
-                                <Receipt className="h-5 w-5" />
-                                Request Details
-                            </h3>
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                {/* Contact Information */}
                                 <div>
-                                    <p className="text-sm text-muted-foreground">
-                                        Request Type
-                                    </p>
-                                    <Badge variant="secondary" className="mt-1">
-                                        {formInput.request_type}
-                                    </Badge>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-muted-foreground">
-                                        Amount
-                                    </p>
-                                    <p className="text-xl font-bold text-primary print:text-black">
-                                        {formatCurrency(formInput.amount)}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-muted-foreground">
-                                        Membership Type
-                                    </p>
-                                    <p className="font-medium">
-                                        {formInput.membership.member_code}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-muted-foreground">
-                                        Payment Details
-                                    </p>
-                                    <p className="font-medium">
-                                         {formInput.paymentDetailOption?.payment_desc || 'N/A'}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <Separator />
-
-                        {/* Supporting Documents */}
-                        {formInput.supportingDocuments &&
-                            formInput.supportingDocuments.length > 0 && (
-                                <div className="print:break-inside-avoid">
-                                    <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold">
-                                        <FileText className="h-5 w-5" />
-                                        Supporting Documents
+                                    <h3 className="mb-6 flex items-center gap-3 text-2xl font-semibold text-blue-900">
+                                        <User className="h-6 w-6 text-blue-700" />
+                                        Contact Information
                                     </h3>
-                                    <div className="space-y-2">
-                                        {formInput.supportingDocuments.map(
-                                            (doc) => (
-                                                <div
-                                                    key={doc.id}
-                                                    className="flex items-center justify-between rounded-lg bg-muted/30 p-3 transition-colors hover:bg-muted/50 print:break-inside-avoid"
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <FileText className="h-5 w-5 text-muted-foreground" />
-                                                        <div>
-                                                            <p className="text-sm font-medium">
-                                                                {
-                                                                    doc.original_filename
-                                                                }
-                                                            </p>
-                                                            <p className="text-xs text-muted-foreground print:hidden">
-                                                                {formatFileSize(
-                                                                    doc.file_size,
-                                                                )}{' '}
-                                                                •{doc.mime_type} •
-                                                                Uploaded:{' '}
-                                                                {formatDate(
-                                                                    doc.uploaded_at,
-                                                                )}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="print:hidden"
-                                                        onClick={() =>
-                                                            window.open(
-                                                                doc.file_url,
-                                                                '_blank',
-                                                            )
-                                                        }
-                                                    >
-                                                        <Download className="mr-1 h-4 w-4" />
-                                                        View
-                                                    </Button>
-                                                </div>
-                                            ),
-                                        )}
+                                    <div className="grid grid-cols-1 gap-x-10 gap-y-6 md:grid-cols-2">
+                                        <div className="flex items-start gap-2">
+                                            <Mail className="mt-1 h-4 w-4 text-muted-foreground" />
+                                            <div>
+                                                <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                                    Email
+                                                </p>
+                                                <p className="text-xl font-semibold text-slate-900">
+                                                    {formInput.email}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start gap-2">
+                                            <Phone className="mt-1 h-4 w-4 text-muted-foreground" />
+                                            <div>
+                                                <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                                    Contact Number
+                                                </p>
+                                                <p className="text-xl font-semibold text-slate-900">
+                                                    {formInput.contact_num}
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            )}
 
-                        <Separator />
+                                <Separator />
 
-                        {/* Submission Details */}
-                        <div className="text-sm text-muted-foreground print:break-inside-avoid">
-                            <p>Submitted on: {formatDate(formInput.created_at)}</p>
-                        </div>
-                    </CardContent>
+                                {/* Identity Details */}
+                                <div>
+                                    <h3 className="mb-6 flex items-center gap-3 text-2xl font-semibold text-blue-900">
+                                        <IdCard className="h-6 w-6 text-blue-700" />
+                                        Identity Details
+                                    </h3>
+                                    <div className="grid grid-cols-1 gap-x-10 gap-y-6 md:grid-cols-2">
+                                        <div>
+                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                                First Name / Office
+                                            </p>
+                                            <p className="text-xl font-semibold text-slate-900">
+                                                {formInput.firstname_or_office}
+                                            </p>
+                                        </div>
+                                        {formInput.middlename_or_project && (
+                                            <div>
+                                                <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                                    Middle Name / Project
+                                                </p>
+                                                <p className="text-xl font-semibold text-slate-900">
+                                                    {
+                                                        formInput.middlename_or_project
+                                                    }
+                                                </p>
+                                            </div>
+                                        )}
+                                        <div>
+                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                                Last Name / Agency
+                                            </p>
+                                            <p className="text-xl font-semibold text-slate-900">
+                                                {formInput.lastname_or_agency}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                                Office / College
+                                            </p>
+                                            <p className="text-xl font-semibold text-slate-900">
+                                                {formInput.office_or_college}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                                Position / Designation
+                                            </p>
+                                            <p className="text-xl font-semibold text-slate-900">
+                                                {
+                                                    formInput.position_or_designation
+                                                }
+                                            </p>
+                                        </div>
+                                        <div className="col-span-full flex items-start gap-2">
+                                            <MapPin className="mt-1 h-4 w-4 text-muted-foreground" />
+                                            <div>
+                                                <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                                    Address
+                                                </p>
+                                                <p className="text-xl font-semibold text-slate-900">
+                                                    {formInput.address}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                    <CardFooter className="flex flex-col gap-4 border-t pt-6 print:hidden">
-                        <div className="max-w-xl text-center text-sm text-muted-foreground">
-                            <p>
-                                A confirmation email has been sent to your email
-                                address. Our team will review your request and
-                                contact you shortly.
-                            </p>
-                        </div>
-                        <div className="flex flex-wrap justify-center gap-4">
-                            <Button variant="secondary" onClick={handlePrint}>
-                                <Printer className="mr-2 h-4 w-4" />
-                                Print / Save as PDF
-                            </Button>
-                            <Button asChild variant="outline">
-                                <Link href="/public/submit">
-                                    Submit Another Request
-                                </Link>
-                            </Button>
-                            <Button asChild>
-                                <Link href="/">Go to Home</Link>
-                            </Button>
-                        </div>
-                    </CardFooter>
-                </Card>
+                                <Separator />
+
+                                {/* Request Details */}
+                                <div>
+                                    <h3 className="mb-6 flex items-center gap-3 text-2xl font-semibold text-blue-900">
+                                        <Receipt className="h-6 w-6 text-blue-700" />
+                                        Request Details
+                                    </h3>
+                                    <div className="grid grid-cols-1 gap-x-10 gap-y-6 md:grid-cols-2">
+                                        <div>
+                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                                Request Type
+                                            </p>
+                                            <Badge
+                                                className={`rounded-full px-4 py-1 text-xl font-semibold shadow-sm ${getRequestBadgeClass(
+                                                    formInput.request_type,
+                                                )}`}
+                                            >
+                                                {formInput.request_type}
+                                            </Badge>
+                                        </div>
+                                        <div>
+                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                                Amount
+                                            </p>
+                                            <p className="text-3xl font-bold text-blue-700">
+                                                {formatCurrency(
+                                                    formInput.amount,
+                                                )}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                                Membership Type
+                                            </p>
+                                            <p className="text-lg font-semibold text-slate-900">
+                                                {
+                                                    formInput.membership
+                                                        .member_code
+                                                }
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                                Payment Details
+                                            </p>
+                                            <p className="text-lg font-semibold text-slate-900">
+                                                {formInput.payment_detail_option
+                                                    ?.payment_desc || 'N/A'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <Separator />
+
+                                {/* Supporting Documents */}
+                                {formInput.supporting_documents &&
+                                    formInput.supporting_documents.length >
+                                        0 && (
+                                        <div>
+                                            <h3 className="mb-6 flex items-center gap-3 text-2xl font-semibold text-blue-900">
+                                                <FileText className="h-5 w-5" />
+                                                Supporting Documents
+                                            </h3>
+                                            <div className="space-y-2">
+                                                {formInput.supporting_documents.map(
+                                                    (doc) => (
+                                                        <div
+                                                            key={doc.id}
+                                                            className="flex items-center justify-between rounded-lg bg-blue-400/25 p-3 transition-colors hover:bg-blue-400/40"
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <FileText className="h-5 w-5 text-muted-foreground" />
+                                                                <div>
+                                                                    <p className="text-sm font-medium">
+                                                                        {
+                                                                            doc.original_filename
+                                                                        }
+                                                                    </p>
+                                                                    <p className="text-xs text-muted-foreground">
+                                                                        {formatFileSize(
+                                                                            doc.file_size,
+                                                                        )}{' '}
+                                                                        •
+                                                                        {
+                                                                            doc.mime_type
+                                                                        }{' '}
+                                                                        •
+                                                                        Uploaded:{' '}
+                                                                        {formatDate(
+                                                                            doc.uploaded_at,
+                                                                        )}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ),
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                <Separator />
+
+                                {/* Submission Details */}
+                                <div className="font-lg text-center leading-7 text-slate-600">
+                                    <p className="font-xl mb-1 text-sm tracking-wide text-slate-500">
+                                        Submitted on:{' '}
+                                        {formatDate(formInput.created_at)}
+                                    </p>
+                                </div>
+                            </CardContent>
+
+                            <CardFooter className="flex flex-col gap-4 border-t pt-6">
+                                <div className="max-w-2xl text-center text-base leading-7 text-slate-600">
+                                    <p>
+                                        A confirmation email has been sent to
+                                        your email address. Our team will review
+                                        your request and contact you shortly.
+                                    </p>
+                                </div>
+                                <div className="flex gap-4">
+                                    <Button className="h-12 rounded-xl bg-blue-700 px-8 text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-800 hover:shadow-lg active:scale-[0.98]">
+                                        <Link href="/public/form">
+                                            Submit Another Request
+                                        </Link>
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="h-12 rounded-xl border-blue-200 px-8 text-base font-semibold text-blue-700 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800"
+                                    >
+                                        <Link href="/">Go to Home</Link>
+                                    </Button>
+                                </div>
+                            </CardFooter>
+                        </Card>
+                    </div>
+                </div>
             </div>
-        </div>
+        </>
     );
 }
 

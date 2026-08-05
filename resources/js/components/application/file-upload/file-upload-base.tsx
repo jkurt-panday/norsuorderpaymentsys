@@ -238,7 +238,7 @@ export const FileUploadDropZone = ({
                 color="gray"
                 theme="gradient"
                 size="md"
-                className={cx(isDisabled && 'opacity-50')}
+                className={cx(isDisabled && 'opacity-50 bg-blue-600')}
             />
 
             <div className="flex flex-col gap-1 text-center">
@@ -259,6 +259,7 @@ export const FileUploadDropZone = ({
                             size="md"
                             isDisabled={isDisabled}
                             onClick={() => inputRef.current?.click()}
+                            className='text-blue-600'
                         >
                             Click to upload{' '}
                             <span className="md:hidden">and attach files</span>
