@@ -26,7 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import PublicLayout from '@/pages/layouts/PublicLayout';
 
-const reqType = ['New Request', 'Re-issue Request', 'Other'] as const;
+const reqType = ['New Request', 'Re-issue Request'] as const;
 const enlarge =
     'h-12 rounded-xl border-slate-300 bg-white px-4 text-base shadow-sm transition-all duration-200';
 
@@ -163,6 +163,15 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
             <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-200 to-white px-6 py-12">
                 <div className="mx-auto max-w-4xl">
                     <div className="mb-10 rounded-2xl border border-blue-100 bg-white px-8 py-8 text-center shadow-md">
+                        <div className="flex justify-center">
+                            <img
+                                src="/finance_logo1.png"
+                                alt="NORSU Logo"
+                                width={500}
+                                height={500}
+                                className="pb-6"
+                            />
+                        </div>
                         <h1 className="text-4xl font-bold tracking-tight text-blue-900">
                             Order of Payment Request
                         </h1>
