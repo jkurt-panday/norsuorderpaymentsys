@@ -68,15 +68,19 @@ export function AppSidebar() {
                 {!isCollapsed ? (
                     <div className="flex flex-col items-center gap-2 py-2">
                         <img
-                            src="/norsu.png"
+                            src="/finance_logo1.png"
                             alt="NORSU Order of Payment System"
-                            className="h-12 w-12 rounded-md object-contain"
+                            width={250}
+                            height={250}
+                            className="rounded-md object-contain"
                         />
                         <div>
                             <h4 className="m-0 text-base font-semibold text-white">
                                 Order of Payment
                             </h4>
-                            <p className="text-xs text-slate-400">NORSU Staff Portal</p>
+                            <p className="text-xs text-slate-400">
+                                NORSU Staff Portal
+                            </p>
                         </div>
                     </div>
                 ) : (
