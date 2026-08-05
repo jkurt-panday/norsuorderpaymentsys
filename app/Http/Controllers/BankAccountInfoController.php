@@ -111,12 +111,7 @@ class BankAccountInfoController extends BaseResourceController
     /**
      * Delete a bank account safely
      */
-/**
-     * Delete a bank account safely
-     */
-/**
-     * Delete a bank account safely
-     */
+    
     public function destroy(BankAccountInfo $bankAccount)
     {
         try {

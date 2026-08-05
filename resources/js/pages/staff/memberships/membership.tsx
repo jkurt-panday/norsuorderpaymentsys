@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Users } from 'lucide-react';
-import { toast } from 'sonner';
+import { flashToast } from '@/utils/flashToast';
 import ResourceTable, {
     type PaginatedData,
     type ColumnDef,
@@ -48,8 +48,8 @@ export default function MembershipsIndex({
     // membership is still in use). Without this, a rejected delete silently
     // redirects back with no visible feedback to the user.
     useEffect(() => {
-        if (flash?.success) toast.success(flash.success);
-        if (flash?.error) toast.error(flash.error);
+        if (flash?.success) flashToast('success', flash.success);
+        if (flash?.error) flashToast('error', flash.error);
     }, [flash]);
 
     // ============ COLUMNS ============

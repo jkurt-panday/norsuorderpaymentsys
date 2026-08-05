@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link, useForm, usePage } from '@inertiajs/react';
-import { toast } from 'sonner';
+import { flashToast } from '@/utils/flashToast';
 import staff from '@/routes/staff';
 
 interface Membership {
@@ -74,9 +74,9 @@ export default function ProcessRequest() {
     // Surface flash messages from the backend (redirect ->with('success'/'error'/'warning', ...))
     // Without this, a successful/failed process silently redirects with no visible feedback.
     useEffect(() => {
-        if (flash?.success) toast.success(flash.success);
-        if (flash?.error) toast.error(flash.error);
-        if (flash?.warning) toast.warning(flash.warning);
+        if (flash?.success) flashToast('success', flash.success);
+        if (flash?.error) flashToast('error', flash.error);
+        if (flash?.warning) flashToast('warning', flash.warning);
     }, [flash]);
 
     const { data, setData, post, processing, errors } = useForm({

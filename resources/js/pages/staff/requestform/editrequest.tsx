@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useForm, usePage } from '@inertiajs/react';
-import { toast } from 'sonner';
+import { flashToast } from '@/utils/flashToast';
 import staff from '@/routes/staff';
 
 interface Membership {
@@ -82,9 +82,9 @@ export default function EditRequest() {
     const formInput = staffInput.form_input;
 
     useEffect(() => {
-        if (flash?.success) toast.success(flash.success);
-        if (flash?.error) toast.error(flash.error);
-        if (flash?.warning) toast.warning(flash.warning);
+        if (flash?.success) flashToast('success', flash.success);
+        if (flash?.error) flashToast('error', flash.error);
+        if (flash?.warning) flashToast('warning', flash.warning);
     }, [flash]);
 
     const { data, setData, put, processing, errors } = useForm({

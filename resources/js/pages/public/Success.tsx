@@ -125,11 +125,11 @@ export default function Success({ reference_number, formInput }: Props) {
 
     return (
         <>
-            <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-100 to-white py-12">
+            <div className="bg-linear-to-b min-h-screen from-blue-500 via-slate-100 to-white py-12">
                 <div className="mx-auto max-w-5xl px-6">
                     <div className="borderborder-red-400 container mx-auto max-w-4xl px-4 py-8">
                         <Card className="overflow-hidden rounded-3xl bg-white shadow-2xl">
-                            <CardHeader className="-mx-6 -mt-6 rounded-t-3xl rounded-b-3xl bg-linear-to-b from-blue-600 to-blue-400 px-8 py-10 text-center text-white">
+                            <CardHeader className="bg-linear-to-b -mx-6 -mt-6 rounded-b-3xl rounded-t-3xl from-blue-600 to-blue-400 px-8 py-10 text-center text-white">
                                 <div className="mx-auto flex items-center justify-center">
                                     <img
                                         src="/finance_logo1.png"
@@ -154,7 +154,7 @@ export default function Success({ reference_number, formInput }: Props) {
                             <CardContent className="space-y-10 pt-8">
                                 {/* Reference Number */}
                                 <div className="rounded-2xl border border-blue-100 bg-blue-50 p-8 text-center shadow-sm">
-                                    <p className="text-sm text-muted-foreground">
+                                    <p className="text-muted-foreground text-sm">
                                         Reference Number
                                     </p>
                                     <p className="font-mono text-4xl font-bold tracking-widest text-blue-700">
@@ -176,9 +176,9 @@ export default function Success({ reference_number, formInput }: Props) {
                                     </h3>
                                     <div className="grid grid-cols-1 gap-x-10 gap-y-6 md:grid-cols-2">
                                         <div className="flex items-start gap-2">
-                                            <Mail className="mt-1 h-4 w-4 text-muted-foreground" />
+                                            <Mail className="text-muted-foreground mt-1 h-4 w-4" />
                                             <div>
-                                                <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                                <p className="mb-1 text-sm font-medium uppercase tracking-wide text-slate-500">
                                                     Email
                                                 </p>
                                                 <p className="text-xl font-semibold text-slate-900">
@@ -187,9 +187,9 @@ export default function Success({ reference_number, formInput }: Props) {
                                             </div>
                                         </div>
                                         <div className="flex items-start gap-2">
-                                            <Phone className="mt-1 h-4 w-4 text-muted-foreground" />
+                                            <Phone className="text-muted-foreground mt-1 h-4 w-4" />
                                             <div>
-                                                <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                                <p className="mb-1 text-sm font-medium uppercase tracking-wide text-slate-500">
                                                     Contact Number
                                                 </p>
                                                 <p className="text-xl font-semibold text-slate-900">
@@ -210,7 +210,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                     </h3>
                                     <div className="grid grid-cols-1 gap-x-10 gap-y-6 md:grid-cols-2">
                                         <div>
-                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                            <p className="mb-1 text-sm font-medium uppercase tracking-wide text-slate-500">
                                                 First Name / Office
                                             </p>
                                             <p className="text-xl font-semibold text-slate-900">
@@ -219,7 +219,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                         </div>
                                         {formInput.middlename_or_project && (
                                             <div>
-                                                <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                                <p className="mb-1 text-sm font-medium uppercase tracking-wide text-slate-500">
                                                     Middle Name / Project
                                                 </p>
                                                 <p className="text-xl font-semibold text-slate-900">
@@ -230,7 +230,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                             </div>
                                         )}
                                         <div>
-                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                            <p className="mb-1 text-sm font-medium uppercase tracking-wide text-slate-500">
                                                 Last Name / Agency
                                             </p>
                                             <p className="text-xl font-semibold text-slate-900">
@@ -238,7 +238,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                            <p className="mb-1 text-sm font-medium uppercase tracking-wide text-slate-500">
                                                 Office / College
                                             </p>
                                             <p className="text-xl font-semibold text-slate-900">
@@ -246,7 +246,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                            <p className="mb-1 text-sm font-medium uppercase tracking-wide text-slate-500">
                                                 Position / Designation
                                             </p>
                                             <p className="text-xl font-semibold text-slate-900">
@@ -256,9 +256,9 @@ export default function Success({ reference_number, formInput }: Props) {
                                             </p>
                                         </div>
                                         <div className="col-span-full flex items-start gap-2">
-                                            <MapPin className="mt-1 h-4 w-4 text-muted-foreground" />
+                                            <MapPin className="text-muted-foreground mt-1 h-4 w-4" />
                                             <div>
-                                                <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                                <p className="mb-1 text-sm font-medium uppercase tracking-wide text-slate-500">
                                                     Address
                                                 </p>
                                                 <p className="text-xl font-semibold text-slate-900">
@@ -279,7 +279,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                     </h3>
                                     <div className="grid grid-cols-1 gap-x-10 gap-y-6 md:grid-cols-2">
                                         <div>
-                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                            <p className="mb-1 text-sm font-medium uppercase tracking-wide text-slate-500">
                                                 Request Type
                                             </p>
                                             <Badge
@@ -291,7 +291,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                             </Badge>
                                         </div>
                                         <div>
-                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                            <p className="mb-1 text-sm font-medium uppercase tracking-wide text-slate-500">
                                                 Amount
                                             </p>
                                             <p className="text-3xl font-bold text-blue-700">
@@ -301,7 +301,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                            <p className="mb-1 text-sm font-medium uppercase tracking-wide text-slate-500">
                                                 Membership Type
                                             </p>
                                             <p className="text-lg font-semibold text-slate-900">
@@ -312,7 +312,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                            <p className="mb-1 text-sm font-medium uppercase tracking-wide text-slate-500">
                                                 Payment Details
                                             </p>
                                             <p className="text-lg font-semibold text-slate-900">
@@ -342,14 +342,14 @@ export default function Success({ reference_number, formInput }: Props) {
                                                             className="flex items-center justify-between rounded-lg bg-blue-400/25 p-3 transition-colors hover:bg-blue-400/40"
                                                         >
                                                             <div className="flex items-center gap-3">
-                                                                <FileText className="h-5 w-5 text-muted-foreground" />
+                                                                <FileText className="text-muted-foreground h-5 w-5" />
                                                                 <div>
                                                                     <p className="text-sm font-medium">
                                                                         {
                                                                             doc.original_filename
                                                                         }
                                                                     </p>
-                                                                    <p className="text-xs text-muted-foreground">
+                                                                    <p className="text-muted-foreground text-xs">
                                                                         {formatFileSize(
                                                                             doc.file_size,
                                                                         )}{' '}
