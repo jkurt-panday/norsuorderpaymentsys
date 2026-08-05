@@ -20,7 +20,6 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import {
   Pagination,
   PaginationContent,
@@ -30,24 +29,24 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import { Separator } from '@/components/ui/separator';
 
 export interface LawLedgerRecord {
   id: string | number;
-  studentId: string;
+  lastName: string;
+  firstName: string;
+  middleInitial: string;
   name: string;
-  program: string;
-  yearLevel: string;
-  academicYear: string;
-  semester: string;
+  course: string;
+  schoolYear: string;
+  semesterOrSummer: string;
   units: number;
   transactionDate: string;
-  dueDate: string;
   referenceNo: string;
   particulars: string;
-  tuitionPerUnitOrMisc: number;
-  transactionType: string;
+  tuitionPerUnitOrFeePerSemester: number;
+  arOrPayment: string;
   amount: number;
-  remainingBalance: number;
   status: string;
   remark: string;
   inputBy: string;
@@ -73,10 +72,15 @@ function currency(n: number) {
 }
 
 function formatTransactionDate(value?: string | null) {
-  if (!value) return '-';
+  if (!value) {
+return '-';
+}
 
   const normalized = String(value).trim();
-  if (!normalized) return '-';
+
+  if (!normalized) {
+return '-';
+}
 
   // Extract YYYY-MM-DD date part to prevent browser timezone shifting
   const datePart = normalized.includes('T') ? normalized.split('T')[0] : normalized.split(' ')[0];
@@ -95,10 +99,23 @@ function formatTransactionDate(value?: string | null) {
 
 function statusBadgeVariant(status: string | null | undefined) {
   const s = (status ?? '').toLowerCase();
-  if (s === 'paid' || s === 'settled') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-  if (s === 'pending') return 'bg-amber-50 text-amber-700 border-amber-200';
-  if (s === 'overdue') return 'bg-red-50 text-red-700 border-red-200';
-  if (s === 'partial payment') return 'bg-blue-50 text-blue-700 border-blue-200';
+
+  if (s === 'paid' || s === 'settled') {
+return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+}
+
+  if (s === 'pending') {
+return 'bg-amber-50 text-amber-700 border-amber-200';
+}
+
+  if (s === 'overdue') {
+return 'bg-red-50 text-red-700 border-red-200';
+}
+
+  if (s === 'partial payment') {
+return 'bg-blue-50 text-blue-700 border-blue-200';
+}
+
   return 'bg-slate-50 text-slate-700 border-slate-200';
 }
 
@@ -106,10 +123,9 @@ interface IndexProps {
   records?: LawLedgerPaginator;
   filters?: {
     search?: string;
-    academic_year?: string;
-    semester?: string;
-    program?: string;
-    year_level?: string;
+    school_year?: string;
+    semester_or_summer?: string;
+    course?: string;
     status?: string;
     date_from?: string;
     date_to?: string;
@@ -121,9 +137,8 @@ interface IndexProps {
     outstandingBalance?: number;
   };
   filterOptions?: {
-    programs: string[];
-    yearLevels: string[];
-    academicYears: string[];
+    courses: string[];
+    schoolYears: string[];
     semesters: string[];
     statuses: string[];
   };
@@ -132,10 +147,9 @@ interface IndexProps {
 export default function Index({ records, filters, stats, filterOptions }: IndexProps) {
   const rows: LawLedgerRecord[] = records?.data ?? [];
   const [searchQuery, setSearchQuery] = useState(filters?.search ?? '');
-  const [academicYear, setAcademicYear] = useState(filters?.academic_year ?? '');
-  const [semester, setSemester] = useState(filters?.semester ?? '');
-  const [program, setProgram] = useState(filters?.program ?? '');
-  const [yearLevel, setYearLevel] = useState(filters?.year_level ?? '');
+  const [schoolYear, setSchoolYear] = useState(filters?.school_year ?? '');
+  const [semester, setSemester] = useState(filters?.semester_or_summer ?? '');
+  const [course, setCourse] = useState(filters?.course ?? '');
   const [status, setStatus] = useState(filters?.status ?? '');
   const importForm = useForm<{ file: File | null }>({ file: null });
 
@@ -144,16 +158,17 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
 
     const current = {
       search: searchQuery,
-      academic_year: academicYear,
-      semester: semester,
-      program: program,
-      year_level: yearLevel,
+      school_year: schoolYear,
+      semester_or_summer: semester,
+      course: course,
       status: status,
       ...overrides,
     };
 
     Object.entries(current).forEach(([key, value]) => {
-      if (value && value.trim()) params[key] = value.trim();
+      if (value && value.trim()) {
+params[key] = value.trim();
+}
     });
 
     router.get('/law-ledger', params, {
@@ -216,17 +231,17 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
               </div>
 
               <select
-                value={academicYear}
+                value={schoolYear}
                 onChange={(e) => {
                   const v = e.target.value;
-                  setAcademicYear(v);
-                  applyFilters({ academic_year: v });
+                  setSchoolYear(v);
+                  applyFilters({ school_year: v });
                 }}
                 className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
               >
-                <option value="">All Years</option>
-                {(filterOptions?.academicYears ?? []).map((ay) => (
-                  <option key={ay} value={ay}>{ay}</option>
+                <option value="">All School Years</option>
+                {(filterOptions?.schoolYears ?? []).map((sy) => (
+                  <option key={sy} value={sy}>{sy}</option>
                 ))}
               </select>
 
@@ -235,7 +250,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                 onChange={(e) => {
                   const v = e.target.value;
                   setSemester(v);
-                  applyFilters({ semester: v });
+                  applyFilters({ semester_or_summer: v });
                 }}
                 className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
               >
@@ -246,17 +261,17 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
               </select>
 
               <select
-                value={program}
+                value={course}
                 onChange={(e) => {
                   const v = e.target.value;
-                  setProgram(v);
-                  applyFilters({ program: v });
+                  setCourse(v);
+                  applyFilters({ course: v });
                 }}
                 className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
               >
-                <option value="">All Programs</option>
-                {(filterOptions?.programs ?? []).map((p) => (
-                  <option key={p} value={p}>{p}</option>
+                <option value="">All Courses</option>
+                {(filterOptions?.courses ?? []).map((c) => (
+                  <option key={c} value={c}>{c}</option>
                 ))}
               </select>
 
@@ -286,6 +301,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                   onChange={(e) => {
                     const file = e.target.files?.[0] ?? null;
                     importForm.setData('file', file);
+
                     if (file) {
                       importForm.post('/law-ledger/import', {
                         forceFormData: true,
@@ -432,56 +448,54 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b border-[#CFE3FF] bg-[#F3F8FF]">
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 pl-2 whitespace-nowrap">Student ID</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Name</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Program</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Year</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">A.Y.</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Semester</th>
+                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 pl-2 whitespace-nowrap">Name</th>
+                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Course</th>
+                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">School Year</th>
+                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Semester/Summer</th>
                   <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Units</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Trans. Date</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Ref. (JEV/OR #)</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Particulars</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Type</th>
+                  <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Tuition/Unit or Reg. & Misc. Fee</th>
+                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">AR/Payment</th>
                   <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Amount</th>
-                  <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Balance</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Status</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Remark</th>
+                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Input By</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.length === 0 ? (
                   <tr>
-                    <td colSpan={15} className="text-center text-sm text-[#8AA8CC] py-8">
+                    <td colSpan={14} className="text-center text-sm text-[#8AA8CC] py-8">
                       No transactions found. Upload a CSV/Excel file or add one manually.
                     </td>
                   </tr>
                 ) : (
                   rows.map((r) => (
                     <tr key={r.id} className="border-b border-[#EAF2FF] hover:bg-[#F3F8FF]">
-                      <td className="py-2 pr-4 pl-2 text-[#334E68]">{r.studentId}</td>
-                      <td className="py-2 pr-4 font-medium whitespace-nowrap text-[#0B3D91]">{r.name}</td>
-                      <td className="py-2 pr-4 text-[#334E68]">{r.program}</td>
-                      <td className="py-2 pr-4 text-[#334E68]">{r.yearLevel}</td>
-                      <td className="py-2 pr-4 text-[#334E68]">{r.academicYear}</td>
-                      <td className="py-2 pr-4 text-[#334E68]">{r.semester}</td>
+                      <td className="py-2 pr-4 pl-2 font-medium whitespace-nowrap text-[#0B3D91]">{r.name}</td>
+                      <td className="py-2 pr-4 text-[#334E68]">{r.course}</td>
+                      <td className="py-2 pr-4 text-[#334E68]">{r.schoolYear}</td>
+                      <td className="py-2 pr-4 text-[#334E68]">{r.semesterOrSummer}</td>
                       <td className="py-2 pr-4 text-right text-[#334E68]">{r.units}</td>
                       <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{formatTransactionDate(r.transactionDate)}</td>
                       <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{r.referenceNo}</td>
                       <td className="py-2 pr-4 text-[#334E68]">{r.particulars}</td>
+                      <td className="py-2 pr-4 text-right text-[#334E68]">{currency(r.tuitionPerUnitOrFeePerSemester)}</td>
                       <td className="py-2 pr-4">
                         <Badge variant="outline" className="border-[#B9D8FF] text-[#0B62E0] bg-[#EAF2FF]">
-                          {r.transactionType}
+                          {r.arOrPayment}
                         </Badge>
                       </td>
                       <td className="py-2 pr-4 text-right font-medium text-[#0B3D91]">{currency(r.amount)}</td>
-                      <td className="py-2 pr-4 text-right font-medium text-[#0B3D91]">{currency(r.remainingBalance)}</td>
                       <td className="py-2 pr-4">
                         <Badge variant="outline" className={statusBadgeVariant(r.status)}>
                           {r.status}
                         </Badge>
                       </td>
                       <td className="py-2 pr-4 text-[#8AA8CC]">{r.remark}</td>
+                      <td className="py-2 pr-4 text-[#8AA8CC]">{r.inputBy}</td>
                     </tr>
                   ))
                 )}
@@ -511,7 +525,10 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                             href={link.url ?? '#'}
                             onClick={(e) => {
                               e.preventDefault();
-                              if (link.url) router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+
+                              if (link.url) {
+router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+}
                             }}
                             className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                           />
@@ -526,7 +543,10 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                             href={link.url ?? '#'}
                             onClick={(e) => {
                               e.preventDefault();
-                              if (link.url) router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+
+                              if (link.url) {
+router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+}
                             }}
                             className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                           />
@@ -549,7 +569,10 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                           isActive={link.active}
                           onClick={(e) => {
                             e.preventDefault();
-                            if (link.url) router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+
+                            if (link.url) {
+router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+}
                           }}
                           className={`cursor-pointer ${
                             link.active ? 'bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]' : 'text-[#0B3D91]'

@@ -31,7 +31,7 @@
 <body>
 
     @php
-        $normalizeText = static fn ($value) => str_replace(['âˆ’', 'â€“', 'â€”'], '-', (string) $value);
+        $normalizeText = static fn ($value) => str_replace(['−', '–', '—'], '-', (string) $value);
     @endphp
 
     <div class="header">
@@ -39,18 +39,29 @@
         <p>OFFICIAL STUDENT STATEMENT OF ACCOUNT</p>
     </div>
 
+    @php
+        $firstRecord = $records->first();
+        // Debug info
+        $debugInfo = [
+            'studentName' => $studentName,
+            'recordsCount' => $records->count(),
+            'hasFirstRecord' => $firstRecord !== null,
+            'firstRecordData' => $firstRecord ? $firstRecord->toArray() : null
+        ];
+    @endphp
+    
     <table class="meta-table">
         <tr>
             <td><strong>Student Name:</strong> {{ $normalizeText($studentName) }}</td>
             <td class="text-right"><strong>Date Issued:</strong> {{ $generatedAt }}</td>
         </tr>
         <tr>
-            <td><strong>Student ID:</strong> {{ $normalizeText($records->first()->student_id ?? 'N/A') }}</td>
+            <td><strong>Course:</strong> {{ $normalizeText($firstRecord->course ?? 'N/A') }}</td>
             <td class="text-right"><strong>Status:</strong> {{ $summary['outstandingBalance'] <= 0 ? 'Settled' : 'Outstanding' }}</td>
         </tr>
         <tr>
-            <td><strong>Program:</strong> {{ $normalizeText($records->first()->program ?? 'N/A') }}</td>
-            <td class="text-right"><strong>Year Level:</strong> {{ $normalizeText($records->first()->year_level ?? 'N/A') }}</td>
+            <td><strong>School Year:</strong> {{ $normalizeText($firstRecord->school_year ?? 'N/A') }} {{ $firstRecord && $firstRecord->semester_or_summer ? "({$firstRecord->semester_or_summer})" : '' }}</td>
+            <td class="text-right"><strong>Units:</strong> {{ $normalizeText($firstRecord->units ?? 'N/A') }}</td>
         </tr>
     </table>
 
@@ -58,28 +69,30 @@
         <thead>
             <tr>
                 <th width="12%">Date</th>
-                <th width="15%">Academic Year</th>
                 <th width="15%">Ref / JEV #</th>
                 <th>Particulars</th>
-                <th width="12%" class="text-center">Type</th>
-                <th width="15%" class="text-right">Amount</th>
+                <th width="12%">Tuition/Unit or Reg. & Misc. Fee</th>
+                <th width="10%" class="text-center">AR/Payment</th>
+                <th width="12%" class="text-right">Amount</th>
             </tr>
         </thead>
         <tbody>
-            @forelse($records as $r)
-                <tr>
-                    <td>{{ $normalizeText($r->transaction_date ? \Carbon\Carbon::parse($r->transaction_date)->format('Y-m-d') : '-') }}</td>
-                    <td>{{ $normalizeText($r->academic_year) }} {{ $normalizeText($r->semester ? "({$r->semester})" : '') }}</td>
-                    <td>{{ $normalizeText($r->reference_or_jev_number ?? '-') }}</td>
-                    <td>{{ $normalizeText($r->particulars ?? '-') }}</td>
-                    <td class="text-center">{{ $normalizeText(strtoupper($r->transaction_type ?? 'ASSESSMENT')) }}</td>
-                    <td class="text-right">₱{{ number_format(abs((float) preg_replace('/[^\d.]/', '', (string) $r->amount)), 2) }}</td>
-                </tr>
-            @empty
+            @if($records->isNotEmpty())
+                @foreach($records as $r)
+                    <tr>
+                        <td>{{ $normalizeText($r->transaction_date ? \Carbon\Carbon::parse($r->transaction_date)->format('Y-m-d') : '-') }}</td>
+                        <td>{{ $normalizeText($r->reference_jev_or_number ?? '-') }}</td>
+                        <td>{{ $normalizeText($r->particulars ?? '-') }}</td>
+                        <td class="text-right">₱{{ number_format(abs((float) preg_replace('/[^\d.]/', '', (string) ($r->tuition_per_unit_or_fee_per_semester ?? 0))), 2) }}</td>
+                        <td class="text-center">{{ $normalizeText(strtoupper($r->ar_or_payment ?? 'AR')) }}</td>
+                        <td class="text-right">₱{{ number_format(abs((float) preg_replace('/[^\d.]/', '', (string) ($r->amount ?? 0))), 2) }}</td>
+                    </tr>
+                @endforeach
+            @else
                 <tr>
                     <td colSpan="6" class="text-center">No transactions on record for this student.</td>
                 </tr>
-            @endforelse
+            @endif
         </tbody>
     </table>
 

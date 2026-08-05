@@ -8,7 +8,19 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 interface Props {
   students: string[];
   selectedStudent: string | null;
-  records: any[];
+  records: {
+    id: number;
+    student_name: string;
+    course: string | null;
+    school_year: string | null;
+    semester_short: string | null;
+    semester: string | null;
+    transaction_date: string | null;
+    reference_or_jev_number: string | null;
+    particulars: string | null;
+    ar_payment: string | null;
+    amount: number | string | null;
+  }[];
   summary: {
     totalCharges: number;
     totalPayments: number;
@@ -20,13 +32,9 @@ function currency(n: number) {
   return `₱${(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function absAmount(val: any): number {
-  if (!val) {
-return 0;
-}
-
+function absAmount(val: unknown): number {
+  if (!val) return 0;
   const num = parseFloat(String(val).replace(/[^\d.]/g, ''));
-
   return isNaN(num) ? 0 : num;
 }
 
@@ -43,16 +51,8 @@ return '-';
 
   const datePart = normalized.includes('T') ? normalized.split('T')[0] : normalized.split(' ')[0];
   const parsedDate = new Date(`${datePart}T00:00:00`);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return datePart;
-  }
-
-  return parsedDate.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-  });
+  if (Number.isNaN(parsedDate.getTime())) return datePart;
+  return parsedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' });
 }
 
 export default function PrintSelect({ students, selectedStudent, records = [], summary }: Props) {
@@ -67,17 +67,15 @@ return students;
     return students.filter((name) => name.toLowerCase().includes(term));
   }, [students, search]);
 
-  const handleStudentSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const val = e.target.value;
-    setSelected(val);
-    router.get('/graduate-ledger/print-select', { student: val }, { preserveState: true });
+  const handleSelect = (name: string) => {
+    setSelected(name);
+    setQuery(name);
+    setOpen(false);
+    router.get('/graduate-ledger/print-select', { student: name }, { preserveState: true });
   };
 
   const handleOpenPdf = () => {
-    if (!selected) {
-return;
-}
-
+    if (!selected) return;
     window.open(`/graduate-ledger/pdf?student=${encodeURIComponent(selected)}`, '_blank');
   };
 
@@ -86,7 +84,7 @@ return;
       <Head title="Print Student Statement" />
 
       <div className="max-w-5xl mx-auto space-y-6">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#CFE3FF] pb-4">
           <div>
@@ -107,12 +105,12 @@ return;
           </div>
         </div>
 
-        {/* Selection Card */}
-        <Card className="border-[#CFE3FF] bg-white">
+        {/* Selection Card with Searchable Combobox */}
+        <Card className="border-[#CFE3FF] bg-white overflow-visible">
           <CardHeader>
             <CardTitle className="text-base text-[#0B3D91]">Select Graduate Student</CardTitle>
             <CardDescription className="text-[#7FA6D6]">
-              Choose from active registered students in the ledger database.
+              Type to search — {students.length} student{students.length === 1 ? '' : 's'} on record.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -182,7 +180,7 @@ return;
         {/* Student Breakdown */}
         {selected && (
           <div className="space-y-6">
-            
+
             {/* Metric Overview */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Card className="border-[#CFE3FF] bg-white">

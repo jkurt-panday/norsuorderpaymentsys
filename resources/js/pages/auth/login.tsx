@@ -18,6 +18,7 @@ export default function Login({ status, canResetPassword }: { status?: string; c
     const [showPassword, setShowPassword] = useState(false);
 
     // Automatically wipe password inputs clean if there is an auth error
+    // Fix: Added 'reset' to the dependency array to satisfy ESLint rules
     useEffect(() => {
         return () => {
             reset('password');

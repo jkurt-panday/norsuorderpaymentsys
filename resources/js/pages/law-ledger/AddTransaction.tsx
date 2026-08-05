@@ -1,5 +1,5 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,13 +19,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft } from 'lucide-react';
 
 interface AddTransactionProps {
   filterOptions?: {
-    programs: string[];
-    yearLevels: string[];
-    academicYears: string[];
+    courses: string[];
+    schoolYears: string[];
     semesters: string[];
     statuses: string[];
   };
@@ -33,21 +31,19 @@ interface AddTransactionProps {
 
 export default function AddTransaction({ filterOptions }: AddTransactionProps) {
   const { data, setData, post, processing, errors, reset } = useForm({
-    student_id: '',
-    student_name: '',
-    program: '',
-    year_level: '',
-    academic_year: '',
-    semester: '',
+    last_name: '',
+    first_name: '',
+    middle_initial: '',
+    course: '',
+    school_year: '',
+    semester_or_summer: '',
     units: '',
     transaction_date: '',
-    due_date: '',
-    reference_or_jev_number: '',
+    reference_jev_or_number: '',
     particulars: '',
-    tuition_per_unit_or_misc: '',
-    transaction_type: 'Assessment',
+    tuition_per_unit_or_fee_per_semester: '',
+    ar_or_payment: 'AR',
     amount: '',
-    remaining_balance: '',
     status: 'Pending',
     remarks: '',
     input_by: '',
@@ -62,14 +58,19 @@ export default function AddTransaction({ filterOptions }: AddTransactionProps) {
     });
   };
 
-  const handleTransactionTypeChange = (value: string | null) => {
-    setData('transaction_type', value ?? '');
-    if (value === 'Assessment') {
-      setData('status', 'Pending');
-    } else if (value === 'Payment') {
-      setData('status', 'Paid');
-    }
-  };
+  const semesterOptions = useMemo(() => {
+    const defaults = ['First Semester', 'Second Semester', 'Summer'];
+    const fromDb = filterOptions?.semesters ?? [];
+    return [...new Set([...defaults, ...fromDb])];
+  }, [filterOptions?.semesters]);
+
+  const courseOptions = useMemo(() => {
+    const defaults = ['JD', 'LLM', 'JSD'];
+    const fromDb = filterOptions?.courses ?? [];
+    return [...new Set([...defaults, ...fromDb])];
+  }, [filterOptions?.courses]);
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 p-4 md:p-6 lg:p-8">
@@ -107,124 +108,110 @@ export default function AddTransaction({ filterOptions }: AddTransactionProps) {
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="student_id" className="text-sm font-medium text-slate-700">
-                    Student ID <span className="text-red-500">*</span>
+                  <Label htmlFor="last_name" className="text-sm font-medium text-slate-700">
+                    Last Name <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    id="student_id"
-                    value={data.student_id}
-                    onChange={e => setData('student_id', e.target.value)}
+                    id="last_name"
+                    value={data.last_name}
+                    onChange={e => setData('last_name', e.target.value)}
                     className="h-10 bg-white border-slate-200"
-                    placeholder="e.g., 2021-00123"
+                    placeholder="e.g., CRUZ"
                   />
-                  {errors.student_id && (
-                    <p className="text-sm text-red-600">{errors.student_id}</p>
+                  {errors.last_name && (
+                    <p className="text-sm text-red-600">{errors.last_name}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="student_name" className="text-sm font-medium text-slate-700">
-                    Student Name <span className="text-red-500">*</span>
+                  <Label htmlFor="first_name" className="text-sm font-medium text-slate-700">
+                    First Name <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    id="student_name"
-                    value={data.student_name}
-                    onChange={e => setData('student_name', e.target.value)}
+                    id="first_name"
+                    value={data.first_name}
+                    onChange={e => setData('first_name', e.target.value)}
                     className="h-10 bg-white border-slate-200"
-                    placeholder="e.g., CRUZ, JUAN DELA"
+                    placeholder="e.g., JUAN"
                   />
-                  {errors.student_name && (
-                    <p className="text-sm text-red-600">{errors.student_name}</p>
+                  {errors.first_name && (
+                    <p className="text-sm text-red-600">{errors.first_name}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="program" className="text-sm font-medium text-slate-700">
-                    Program
+                  <Label htmlFor="middle_initial" className="text-sm font-medium text-slate-700">
+                    Middle Initial
                   </Label>
-                  <Select value={data.program} onValueChange={value => setData('program', value ?? '')}>
+                  <Input
+                    id="middle_initial"
+                    value={data.middle_initial}
+                    onChange={e => setData('middle_initial', e.target.value)}
+                    className="h-10 bg-white border-slate-200"
+                    placeholder="e.g., D"
+                  />
+                  {errors.middle_initial && (
+                    <p className="text-sm text-red-600">{errors.middle_initial}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="course" className="text-sm font-medium text-slate-700">
+                    Course
+                  </Label>
+                  <Select value={data.course} onValueChange={value => setData('course', value ?? '')}>
                     <SelectTrigger className="h-10 bg-white border-slate-200">
-                      <SelectValue placeholder="Select program" />
+                      <SelectValue placeholder="Select course" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Select program</SelectItem>
-                      {filterOptions?.programs?.map(program => (
-                        <SelectItem key={program} value={program}>{program}</SelectItem>
+                      <SelectItem value="">Select course</SelectItem>
+                      {courseOptions.map(course => (
+                        <SelectItem key={course} value={course}>{course}</SelectItem>
                       ))}
-                      <SelectItem value="JD">JD</SelectItem>
-                      <SelectItem value="LLM">LLM</SelectItem>
-                      <SelectItem value="JSD">JSD</SelectItem>
                     </SelectContent>
                   </Select>
-                  {errors.program && (
-                    <p className="text-sm text-red-600">{errors.program}</p>
+                  {errors.course && (
+                    <p className="text-sm text-red-600">{errors.course}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="year_level" className="text-sm font-medium text-slate-700">
-                    Year Level
+                  <Label htmlFor="school_year" className="text-sm font-medium text-slate-700">
+                    School Year
                   </Label>
-                  <Select value={data.year_level} onValueChange={value => setData('year_level', value ?? '')}>
+                  <Select value={data.school_year} onValueChange={value => setData('school_year', value ?? '')}>
                     <SelectTrigger className="h-10 bg-white border-slate-200">
-                      <SelectValue placeholder="Select year level" />
+                      <SelectValue placeholder="Select school year" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Select year level</SelectItem>
-                      {filterOptions?.yearLevels?.map(level => (
-                        <SelectItem key={level} value={level}>{level}</SelectItem>
-                      ))}
-                      <SelectItem value="1L">1L</SelectItem>
-                      <SelectItem value="2L">2L</SelectItem>
-                      <SelectItem value="3L">3L</SelectItem>
-                      <SelectItem value="4L">4L</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.year_level && (
-                    <p className="text-sm text-red-600">{errors.year_level}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="academic_year" className="text-sm font-medium text-slate-700">
-                    Academic Year
-                  </Label>
-                  <Select value={data.academic_year} onValueChange={value => setData('academic_year', value ?? '')}>
-                    <SelectTrigger className="h-10 bg-white border-slate-200">
-                      <SelectValue placeholder="Select academic year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Select academic year</SelectItem>
-                      {filterOptions?.academicYears?.map(year => (
+                      <SelectItem value="">Select school year</SelectItem>
+                      {filterOptions?.schoolYears?.map(year => (
                         <SelectItem key={year} value={year}>{year}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {errors.academic_year && (
-                    <p className="text-sm text-red-600">{errors.academic_year}</p>
+                  {errors.school_year && (
+                    <p className="text-sm text-red-600">{errors.school_year}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="semester" className="text-sm font-medium text-slate-700">
-                    Semester
+                  <Label htmlFor="semester_or_summer" className="text-sm font-medium text-slate-700">
+                    Semester/Summer
                   </Label>
-                  <Select value={data.semester} onValueChange={value => setData('semester', value ?? '')}>
+                  <Select value={data.semester_or_summer} onValueChange={value => setData('semester_or_summer', value ?? '')}>
                     <SelectTrigger className="h-10 bg-white border-slate-200">
                       <SelectValue placeholder="Select semester" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">Select semester</SelectItem>
-                      {filterOptions?.semesters?.map(sem => (
+                      {semesterOptions.map(sem => (
                         <SelectItem key={sem} value={sem}>{sem}</SelectItem>
                       ))}
-                      <SelectItem value="First Semester">First Semester</SelectItem>
-                      <SelectItem value="Second Semester">Second Semester</SelectItem>
-                      <SelectItem value="Summer">Summer</SelectItem>
                     </SelectContent>
                   </Select>
-                  {errors.semester && (
-                    <p className="text-sm text-red-600">{errors.semester}</p>
+                  {errors.semester_or_summer && (
+                    <p className="text-sm text-red-600">{errors.semester_or_summer}</p>
                   )}
                 </div>
               </CardContent>
@@ -258,22 +245,6 @@ export default function AddTransaction({ filterOptions }: AddTransactionProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="due_date" className="text-sm font-medium text-slate-700">
-                    Due Date
-                  </Label>
-                  <Input
-                    id="due_date"
-                    type="date"
-                    value={data.due_date}
-                    onChange={e => setData('due_date', e.target.value)}
-                    className="h-10 bg-white border-slate-200"
-                  />
-                  {errors.due_date && (
-                    <p className="text-sm text-red-600">{errors.due_date}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="units" className="text-sm font-medium text-slate-700">
                     Units
                   </Label>
@@ -292,18 +263,18 @@ export default function AddTransaction({ filterOptions }: AddTransactionProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="reference_or_jev_number" className="text-sm font-medium text-slate-700">
-                    Reference / JEV Number
+                  <Label htmlFor="reference_jev_or_number" className="text-sm font-medium text-slate-700">
+                    Reference JEV/O.R. Number
                   </Label>
                   <Input
-                    id="reference_or_jev_number"
-                    value={data.reference_or_jev_number}
-                    onChange={e => setData('reference_or_jev_number', e.target.value)}
+                    id="reference_jev_or_number"
+                    value={data.reference_jev_or_number}
+                    onChange={e => setData('reference_jev_or_number', e.target.value)}
                     className="h-10 bg-white border-slate-200"
                     placeholder="e.g., JEV-2024-001"
                   />
-                  {errors.reference_or_jev_number && (
-                    <p className="text-sm text-red-600">{errors.reference_or_jev_number}</p>
+                  {errors.reference_jev_or_number && (
+                    <p className="text-sm text-red-600">{errors.reference_jev_or_number}</p>
                   )}
                 </div>
 
@@ -324,39 +295,36 @@ export default function AddTransaction({ filterOptions }: AddTransactionProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="tuition_per_unit_or_misc" className="text-sm font-medium text-slate-700">
-                    Tuition per Unit / Miscellaneous
+                  <Label htmlFor="tuition_per_unit_or_fee_per_semester" className="text-sm font-medium text-slate-700">
+                    Tuition per Unit / Registration & Misc. Fee per Semester
                   </Label>
                   <Input
-                    id="tuition_per_unit_or_misc"
+                    id="tuition_per_unit_or_fee_per_semester"
                     type="number"
                     step="0.01"
-                    value={data.tuition_per_unit_or_misc}
-                    onChange={e => setData('tuition_per_unit_or_misc', e.target.value)}
+                    value={data.tuition_per_unit_or_fee_per_semester}
+                    onChange={e => setData('tuition_per_unit_or_fee_per_semester', e.target.value)}
                     className="h-10 bg-white border-slate-200"
                     placeholder="0.00"
                   />
-                  {errors.tuition_per_unit_or_misc && (
-                    <p className="text-sm text-red-600">{errors.tuition_per_unit_or_misc}</p>
+                  {errors.tuition_per_unit_or_fee_per_semester && (
+                    <p className="text-sm text-red-600">{errors.tuition_per_unit_or_fee_per_semester}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="transaction_type" className="text-sm font-medium text-slate-700">
-                    Transaction Type
+                  <Label htmlFor="ar_or_payment" className="text-sm font-medium text-slate-700">
+                    AR/Payment
                   </Label>
-                  <Select value={data.transaction_type} onValueChange={handleTransactionTypeChange}>
-                    <SelectTrigger className="h-10 bg-white border-slate-200">
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Assessment">Assessment</SelectItem>
-                      <SelectItem value="Payment">Payment</SelectItem>
-                      <SelectItem value="Adjustment">Adjustment</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.transaction_type && (
-                    <p className="text-sm text-red-600">{errors.transaction_type}</p>
+                  <Input
+                    id="ar_or_payment"
+                    value={data.ar_or_payment}
+                    onChange={e => setData('ar_or_payment', e.target.value)}
+                    className="h-10 bg-white border-slate-200"
+                    placeholder="e.g., AR, Payment, Adjustment"
+                  />
+                  {errors.ar_or_payment && (
+                    <p className="text-sm text-red-600">{errors.ar_or_payment}</p>
                   )}
                 </div>
 
@@ -379,39 +347,16 @@ export default function AddTransaction({ filterOptions }: AddTransactionProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="remaining_balance" className="text-sm font-medium text-slate-700">
-                    Remaining Balance
-                  </Label>
-                  <Input
-                    id="remaining_balance"
-                    type="number"
-                    step="0.01"
-                    value={data.remaining_balance}
-                    onChange={e => setData('remaining_balance', e.target.value)}
-                    className="h-10 bg-white border-slate-200"
-                    placeholder="0.00"
-                  />
-                  {errors.remaining_balance && (
-                    <p className="text-sm text-red-600">{errors.remaining_balance}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="status" className="text-sm font-medium text-slate-700">
                     Status
                   </Label>
-                  <Select value={data.status} onValueChange={value => setData('status', value ?? '')}>
-                    <SelectTrigger className="h-10 bg-white border-slate-200">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Pending">Pending</SelectItem>
-                      <SelectItem value="Paid">Paid</SelectItem>
-                      <SelectItem value="Overdue">Overdue</SelectItem>
-                      <SelectItem value="Partial Payment">Partial Payment</SelectItem>
-                      <SelectItem value="Settled">Settled</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    id="status"
+                    value={data.status}
+                    onChange={e => setData('status', e.target.value)}
+                    className="h-10 bg-white border-slate-200"
+                    placeholder="e.g., Pending, Paid, Overdue"
+                  />
                   {errors.status && (
                     <p className="text-sm text-red-600">{errors.status}</p>
                   )}

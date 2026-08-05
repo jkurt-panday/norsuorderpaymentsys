@@ -1,4 +1,5 @@
 import { Head, router } from '@inertiajs/react';
+import { ArrowLeft, FileText, Printer } from 'lucide-react';
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,8 @@ import {
   CardTitle,
   CardFooter,
 } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -17,8 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -27,25 +28,23 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ArrowLeft, FileText, Printer } from 'lucide-react';
 
 interface LawLedgerRecord {
   id: number;
-  studentId: string;
+  lastName: string;
+  firstName: string;
+  middleInitial: string;
   name: string;
-  program: string;
-  yearLevel: string;
-  academicYear: string;
-  semester: string;
+  course: string;
+  schoolYear: string;
+  semesterOrSummer: string;
   units: number;
   transactionDate: string;
-  dueDate: string;
   referenceNo: string;
   particulars: string;
-  tuitionPerUnitOrMisc: number;
-  transactionType: string;
+  tuitionPerUnitOrFeePerSemester: number;
+  arOrPayment: string;
   amount: number;
-  remainingBalance: number;
   status: string;
   remark: string;
   inputBy: string;
@@ -67,10 +66,15 @@ function currency(n: number) {
 }
 
 function formatDate(value?: string | null) {
-  if (!value) return '-';
+  if (!value) {
+return '-';
+}
   
   const normalized = String(value).trim();
-  if (!normalized) return '-';
+
+  if (!normalized) {
+return '-';
+}
 
   const datePart = normalized.includes('T') ? normalized.split('T')[0] : normalized.split(' ')[0];
   const parsedDate = new Date(`${datePart}T00:00:00`);
@@ -88,55 +92,59 @@ function formatDate(value?: string | null) {
 
 function getStatusBadgeVariant(status: string) {
   const statusUpper = status?.toUpperCase() || '';
-  
+
   if (statusUpper === 'PAID' || statusUpper === 'SETTLED') {
     return 'default';
   }
+
   if (statusUpper === 'PENDING') {
     return 'secondary';
   }
+
   if (statusUpper === 'OVERDUE') {
     return 'destructive';
   }
+
   if (statusUpper === 'PARTIAL PAYMENT') {
     return 'outline';
   }
-  
+
   return 'outline';
 }
 
 function getStatusBadgeClass(status: string) {
   const statusUpper = status?.toUpperCase() || '';
-  
+
   if (statusUpper === 'PAID' || statusUpper === 'SETTLED') {
     return 'bg-green-100 text-green-700 border-green-200 hover:bg-green-100';
   }
+
   if (statusUpper === 'PENDING') {
     return 'bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-100';
   }
+
   if (statusUpper === 'OVERDUE') {
     return 'bg-red-100 text-red-700 border-red-200 hover:bg-red-100';
   }
+
   if (statusUpper === 'PARTIAL PAYMENT') {
     return 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100';
   }
-  
+
   return 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-100';
 }
 
 function getTransactionTypeBadgeClass(type: string) {
   const typeUpper = type?.toUpperCase() || '';
-  
-  if (typeUpper === 'ASSESSMENT' || typeUpper === 'AR') {
+
+  if (typeUpper === 'AR' || typeUpper === 'ASSESSMENT') {
     return 'bg-purple-100 text-purple-700 border-purple-200';
   }
+
   if (typeUpper === 'PAYMENT') {
     return 'bg-green-100 text-green-700 border-green-200';
   }
-  if (typeUpper === 'ADJUSTMENT') {
-    return 'bg-orange-100 text-orange-700 border-orange-200';
-  }
-  
+
   return 'bg-gray-100 text-gray-700 border-gray-200';
 }
 
@@ -145,6 +153,7 @@ export default function PrintSelect({ students, selectedStudent, records, summar
 
   const handleStudentChange = (value: string | null) => {
     setSelectedStudentState(value ?? '');
+
     if (value) {
       router.get(`/law-ledger/print-select?student=${encodeURIComponent(value)}`);
     }
@@ -152,7 +161,7 @@ export default function PrintSelect({ students, selectedStudent, records, summar
 
   const handleGeneratePdf = () => {
     if (selectedStudentState) {
-      router.get(`/law-ledger/pdf?student=${encodeURIComponent(selectedStudentState)}`);
+      window.open(`/law-ledger/pdf?student=${encodeURIComponent(selectedStudentState)}`, '_blank');
     }
   };
 
@@ -251,13 +260,20 @@ export default function PrintSelect({ students, selectedStudent, records, summar
 
             {/* Student Ledger Table */}
             <Card className="border-slate-200 shadow-sm bg-white">
-              <CardHeader>
-                <CardTitle className="text-base font-semibold text-slate-900">
-                  {selectedStudentState} - Ledger Details
-                </CardTitle>
-                <CardDescription className="text-slate-500">
-                  Showing {records.length} transaction{records.length === 1 ? '' : 's'}
-                </CardDescription>
+              <CardHeader className="flex flex-row items-start justify-between space-y-0">
+                <div>
+                  <CardTitle className="text-base font-semibold text-slate-900">
+                    {selectedStudentState}
+                  </CardTitle>
+                  <CardDescription className="text-slate-500 mt-1">
+                    Showing {records.length} transaction{records.length === 1 ? '' : 's'}
+                  </CardDescription>
+                </div>
+                {records[0]?.course && (
+                  <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-300 font-semibold px-3 py-1 text-sm">
+                    Course: {records[0].course}
+                  </Badge>
+                )}
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
@@ -265,9 +281,10 @@ export default function PrintSelect({ students, selectedStudent, records, summar
                     <TableHeader>
                       <TableRow className="bg-slate-50 hover:bg-slate-50">
                         <TableHead>Date</TableHead>
+                        <TableHead>School Year</TableHead>
                         <TableHead>Reference/JEV No.</TableHead>
                         <TableHead>Particulars</TableHead>
-                        <TableHead>Type</TableHead>
+                        <TableHead>AR/Payment</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
@@ -276,19 +293,20 @@ export default function PrintSelect({ students, selectedStudent, records, summar
                       {records.map((record) => (
                         <TableRow key={record.id} className="hover:bg-slate-50 transition-colors">
                           <TableCell>{formatDate(record.transactionDate)}</TableCell>
+                          <TableCell>{record.schoolYear ? `${record.schoolYear}${record.semesterOrSummer ? ` (${record.semesterOrSummer})` : ''}` : '-'}</TableCell>
                           <TableCell className="font-mono text-sm">{record.referenceNo || '-'}</TableCell>
                           <TableCell>{record.particulars || '-'}</TableCell>
                           <TableCell>
-                            <Badge 
-                              variant="outline" 
-                              className={`${getTransactionTypeBadgeClass(record.transactionType)} border text-xs`}
+                            <Badge
+                              variant="outline"
+                              className={`${getTransactionTypeBadgeClass(record.arOrPayment)} border text-xs`}
                             >
-                              {record.transactionType || '-'}
+                              {record.arOrPayment || '-'}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right font-medium">{currency(record.amount)}</TableCell>
                           <TableCell>
-                            <Badge 
+                            <Badge
                               variant={getStatusBadgeVariant(record.status)}
                               className={`${getStatusBadgeClass(record.status)} border text-xs`}
                             >
