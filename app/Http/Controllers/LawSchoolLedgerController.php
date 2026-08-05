@@ -40,16 +40,16 @@ class LawSchoolLedgerController extends Controller
                     ->orWhere('particulars', 'like', "%{$search}%");
             })
             ->when($schoolYear, function ($query, $schoolYear) {
-                $query->where('school_year', $schoolYear);
+                $query->whereRaw('UPPER(TRIM(school_year)) = ?', [strtoupper(trim($schoolYear))]);
             })
             ->when($semester, function ($query, $semester) {
-                $query->where('semester_or_summer', $semester);
+                $query->whereRaw('UPPER(TRIM(semester_or_summer)) = ?', [strtoupper(trim($semester))]);
             })
             ->when($course, function ($query, $course) {
-                $query->where('course', $course);
+                $query->whereRaw('UPPER(TRIM(course)) = ?', [strtoupper(trim($course))]);
             })
             ->when($status, function ($query, $status) {
-                $query->where('status', $status);
+                $query->whereRaw('UPPER(TRIM(status)) = ?', [strtoupper(trim($status))]);
             })
             ->when($dateFrom, function ($query, $dateFrom) {
                 $query->whereDate('transaction_date', '>=', $dateFrom);
@@ -823,9 +823,11 @@ class LawSchoolLedgerController extends Controller
             $defaultSchoolYears[] = $i . '-' . ($i + 1);
         }
 
-        $schoolYears = LawSchoolLedger::distinct()
-            ->orderBy('school_year', 'desc')
-            ->pluck('school_year')
+        $schoolYears = LawSchoolLedger::query()
+            ->selectRaw('UPPER(TRIM(school_year)) as normalized_school_year')
+            ->distinct()
+            ->orderByDesc('normalized_school_year')
+            ->pluck('normalized_school_year')
             ->filter()
             ->values()
             ->all();
@@ -835,10 +837,31 @@ class LawSchoolLedgerController extends Controller
         }
 
         return [
-            'courses' => LawSchoolLedger::distinct()->orderBy('course')->pluck('course')->filter()->values()->all(),
+            'courses' => LawSchoolLedger::query()
+                ->selectRaw('UPPER(TRIM(course)) as normalized_course')
+                ->distinct()
+                ->orderBy('normalized_course')
+                ->pluck('normalized_course')
+                ->filter()
+                ->values()
+                ->all(),
             'schoolYears' => $schoolYears,
-            'semesters' => LawSchoolLedger::distinct()->orderBy('semester_or_summer')->pluck('semester_or_summer')->filter()->values()->all(),
-            'statuses' => LawSchoolLedger::distinct()->orderBy('status')->pluck('status')->filter()->values()->all(),
+            'semesters' => LawSchoolLedger::query()
+                ->selectRaw('UPPER(TRIM(semester_or_summer)) as normalized_semester')
+                ->distinct()
+                ->orderBy('normalized_semester')
+                ->pluck('normalized_semester')
+                ->filter()
+                ->values()
+                ->all(),
+            'statuses' => LawSchoolLedger::query()
+                ->selectRaw('UPPER(TRIM(status)) as normalized_status')
+                ->distinct()
+                ->orderBy('normalized_status')
+                ->pluck('normalized_status')
+                ->filter()
+                ->values()
+                ->all(),
         ];
     }
 }
