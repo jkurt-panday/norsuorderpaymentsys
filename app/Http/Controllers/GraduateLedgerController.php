@@ -142,8 +142,8 @@ class GraduateLedgerController extends Controller
             'student_name'            => ['required', 'string', 'max:255'],
             'course'                  => ['nullable', 'string', 'max:255'],
             'school_year'             => ['nullable', 'string', 'max:50'],
-            'semester_short'          => ['nullable', 'string', 'max:50'],
             'semester'                => ['nullable', 'string', 'max:100'],
+            'semester_short'          => ['nullable', 'string', 'max:50'],
             'units'                   => ['nullable', 'integer', 'min:0'],
             'transaction_date'        => ['nullable', 'date'],
             'reference_or_jev_number' => ['nullable', 'string', 'max:255'],
@@ -154,6 +154,12 @@ class GraduateLedgerController extends Controller
             'remarks'                 => ['nullable', 'string'],
             'input_by'                => ['nullable', 'string', 'max:255'],
         ]);
+
+        if (($data['ar_payment'] ?? null) === 'AR' && ($data['amount'] === null || $data['amount'] === '')) {
+            $units = $data['units'] ?? 0;
+            $rate = $data['tuition_per_unit_or_misc'] ?? 0;
+            $data['amount'] = $units * $rate;
+        }
 
         $record->update($data);
 
@@ -191,6 +197,12 @@ class GraduateLedgerController extends Controller
             'remarks' => ['nullable', 'string'],
             'input_by' => ['nullable', 'string', 'max:255'],
         ]);
+
+        if (($data['ar_payment'] ?? null) === 'AR' && ($data['amount'] === null || $data['amount'] === '')) {
+            $units = $data['units'] ?? 0;
+            $rate = $data['tuition_per_unit_or_misc'] ?? 0;
+            $data['amount'] = $units * $rate;
+        }
 
         GraduateLedger::create($data);
 
