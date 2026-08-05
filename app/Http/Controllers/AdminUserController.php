@@ -28,7 +28,12 @@ class AdminUserController extends Controller
             'role' => $validated['role'],
         ]);
 
-    
+        ActivityLog::create([
+            'actor_id' => $request->user()->id,
+            'action' => 'user.created',
+            'target_id' => $user->id,
+            'meta' => ['role' => $user->role, 'email' => $user->email],
+        ]);
 
         return back()->with('success', 'New system account registered successfully!');
     }

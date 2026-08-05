@@ -198,115 +198,38 @@ class GraduateLedgerController extends Controller
     }
 
     /**
-     * Imports a CSV/Excel spreadsheet into the graduate ledger.
-     * Supports the actual Graduate School Ledger export format where
-     * the first column header is blank (student name).
+     * Imports a spreadsheet into the graduate ledger.
      */
     public function import(Request $request): RedirectResponse
     {
         $request->validate([
-            'file' => [
-                'required', 
-                'file', 
-                function ($attribute, $value, $fail) {
-                    $extension = strtolower($value->getClientOriginalExtension());
-                    if (!in_array($extension, ['csv', 'xlsx', 'xls'])) {
-                        $fail('The file must be a file of type: csv, xlsx, xls.');
-                    }
-                }
-            ],
+            'file' => ['required', 'file', 'mimes:xlsx,csv,xls'],
         ]);
 
-        // 1. Extend execution limits for large uploads
-        set_time_limit(300);
-        ini_set('memory_limit', '512M');
+        HeadingRowFormatter::default('slug');
 
         $uploadedFile = $request->file('file');
-        $extension = strtolower($uploadedFile->getClientOriginalExtension());
+        $rows = Excel::toCollection(null, $uploadedFile)->first() ?? collect();
 
-        $imported = 0;
-        $skipped  = 0;
-        $insertData = [];
-        $now = now();
-
-        if ($extension === 'csv') {
-            // Streaming reader: reads line-by-line to avoid loading the whole file in memory
-            $path = $uploadedFile->getRealPath();
-            $handle = fopen($path, 'r');
-            if (!$handle) {
-                return redirect()->route('graduate-ledger.index')
-                    ->with('error', 'Could not open the uploaded CSV file.');
-            }
-
-            // Skip header row
-            fgetcsv($handle);
-
-            while (($row = fgetcsv($handle)) !== false) {
-                $data = $this->mapImportRow($row);
-
-                if ($data === null) {
-                    $skipped++;
-                    continue;
-                }
-
-                $data['created_at'] = $now;
-                $data['updated_at'] = $now;
-                $insertData[] = $data;
-
-                // Insert in batches of 1000 to keep memory footprint close to zero
-                if (count($insertData) >= 1000) {
-                    DB::transaction(function () use ($insertData) {
-                        GraduateLedger::insert($insertData);
-                    });
-                    $imported += count($insertData);
-                    $insertData = []; // Clear array to free memory immediately
-                }
-            }
-
-            if (!empty($insertData)) {
-                DB::transaction(function () use ($insertData) {
-                    GraduateLedger::insert($insertData);
-                });
-                $imported += count($insertData);
-            }
-
-            fclose($handle);
-        } else {
-            // Fallback for smaller Excel (.xlsx/.xls) files using PHPSpreadsheet
-            HeadingRowFormatter::default('none');
-            $rows = Excel::toCollection(null, $uploadedFile)->first() ?? collect();
-
-            if ($rows->isEmpty()) {
-                return redirect()->route('graduate-ledger.index')
-                    ->with('success', 'No rows found in the uploaded file.');
-            }
-
-            $rows->slice(1)->each(function ($row) use (&$insertData, &$skipped, $now) {
-                $r = $row->values()->all();
-                $data = $this->mapImportRow($r);
-
-                if ($data === null) {
-                    $skipped++;
-                    return;
-                }
-
-                $data['created_at'] = $now;
-                $data['updated_at'] = $now;
-                $insertData[] = $data;
-            });
-
-            if (!empty($insertData)) {
-                DB::transaction(function () use ($insertData, &$imported) {
-                    foreach (array_chunk($insertData, 1000) as $chunk) {
-                        GraduateLedger::insert($chunk);
-                        $imported += count($chunk);
-                    }
-                });
-            }
+        if ($rows->isEmpty()) {
+            return redirect()->route('graduate-ledger.index')->with('success', 'No rows found in the uploaded file.');
         }
 
-        return redirect()->route('graduate-ledger.index')
-            ->with('success', "Import complete: {$imported} records imported, {$skipped} blank rows skipped.");
+        $headers = collect($rows->first())->map(fn ($header) => Str::slug((string) $header, '_'))->all();
+
+        $rows->slice(1)->each(function ($row) use ($headers) {
+            $rowData = collect($row)->mapWithKeys(function ($value, $index) use ($headers) {
+                return [$headers[$index] ?? 'column_'.$index => $value];
+            })->all();
+
+            $data = $this->mapImportRow($rowData);
+
+            if ($data !== null) {
+                GraduateLedger::create($data);
+            }
+        });
+
+        return redirect()->route('graduate-ledger.index')->with('success', 'Import completed successfully.');
     }
 
     /**
@@ -376,55 +299,59 @@ class GraduateLedgerController extends Controller
     }
 
     /**
-     * Maps a positional CSV/Excel row array to DB columns.
-     *
-     * Expected column positions (0-indexed) for the Graduate School Ledger export:
-     *  0  = student_name         (header is blank in the CSV)
-     *  1  = course
-     *  2  = school_year
-     *  3  = semester_short       (e.g. "1st Sem.", "SUMMER")
-     *  4  = semester             (e.g. "First Semester", "Summer")
-     *  5  = units
-     *  6  = transaction_date     (M/D/YYYY format)
-     *  7  = reference_or_jev_number
-     *  8  = particulars
-     *  9  = tuition_per_unit_or_misc
-     *  10 = ar_payment           (AR / Payment)
-     *  11 = amount
-     *  12 = remarks
-     *  13 = input_by
-     *  14+ = ignored trailing columns
+     * Maps Excel/CSV rows flexibly to DB columns, tailored for Graduate School Ledger Excel format.
      */
     private function mapImportRow(array $row): ?array
     {
-        // --- Student name is always column 0 ---
-        $studentName = trim(str_replace(['−', '–', '—'], '-', (string) ($row[0] ?? '')));
+        $normalized = [];
 
-        if ($studentName === '') {
+        foreach ($row as $key => $value) {
+            $normalized[Str::slug((string) $key, '_')] = $value;
+        }
+
+        // Handles "NAME\n(Last Name, First Name, M.I.)" and standard variations
+        $studentName = Arr::get($normalized, 'name_last_name_first_name_m_i')
+            ?? Arr::get($normalized, 'name_last_name_first_name_mi')
+            ?? Arr::get($normalized, 'student_name')
+            ?? Arr::get($normalized, 'student')
+            ?? Arr::get($normalized, 'name');
+
+        $studentName = is_string($studentName) ? trim($studentName) : null;
+
+        if (blank($studentName)) {
             return null;
         }
 
-        $rawAmount  = (string) ($row[11] ?? '0');
-        $rawTuition = (string) ($row[9]  ?? '0');
-
         return [
-            'student_name'             => $studentName,
-            'course'                   => trim((string) ($row[1] ?? '')),
-            'school_year'              => trim((string) ($row[2] ?? '')),
-            'semester_short'           => trim((string) ($row[3] ?? '')),
-            'semester'                 => trim((string) ($row[4] ?? '')),
-            'units'                    => is_numeric($row[5] ?? null) ? (int) $row[5] : null,
-            'transaction_date'         => $this->normalizeDate($row[6] ?? null),
-            'reference_or_jev_number'  => trim((string) ($row[7] ?? '')),
-            'particulars'              => trim((string) ($row[8] ?? '')),
-            'tuition_per_unit_or_misc' => $this->cleanAmount($rawTuition),
-            'ar_payment'               => $this->normalizeArPaymentType(
-                                              (string) ($row[10] ?? ''),
-                                              str_contains($rawAmount, '(') && str_contains($rawAmount, ')')
-                                          ),
-            'amount'                   => $this->cleanAmount($rawAmount),
-            'remarks'                  => trim((string) ($row[12] ?? '')),
-            'input_by'                 => trim((string) ($row[13] ?? '')),
+            'student_name' => $studentName,
+            'course' => Arr::get($normalized, 'course'),
+            'school_year' => Arr::get($normalized, 'school_year') ?? Arr::get($normalized, 'sy'),
+            'semester_short' => Arr::get($normalized, 'semester_summer')
+                ?? Arr::get($normalized, 'semester_short')
+                ?? Arr::get($normalized, 'term'),
+            'semester' => Arr::get($normalized, 'semester'),
+            'units' => (int) round((float) (Arr::get($normalized, 'units', 0) ?? 0)),
+            'transaction_date' => $this->normalizeDate(
+                Arr::get($normalized, 'transaction_date') ?? Arr::get($normalized, 'date')
+            ),
+            'reference_or_jev_number' => Arr::get($normalized, 'reference_jev_o_r_number')
+                ?? Arr::get($normalized, 'reference_jev_or_number')
+                ?? Arr::get($normalized, 'reference_or_jev_number')
+                ?? Arr::get($normalized, 'jev_no')
+                ?? Arr::get($normalized, 'or_no')
+                ?? Arr::get($normalized, 'ref_no'),
+            'particulars' => Arr::get($normalized, 'particulars'),
+            'tuition_per_unit_or_misc' => (float) (
+                Arr::get($normalized, 'tuition_per_unit_reg_and_miscellaneous_per_semester')
+                ?? Arr::get($normalized, 'tuition_per_unit_or_misc', 0)
+                ?? 0
+            ),
+            'ar_payment' => Arr::get($normalized, 'ar_payment')
+                ?? Arr::get($normalized, 'arpayment')
+                ?? Arr::get($normalized, 'type'),
+            'amount' => (float) (Arr::get($normalized, 'amount', 0) ?? 0),
+            'remarks' => Arr::get($normalized, 'remarks') ?? Arr::get($normalized, 'remark'),
+            'input_by' => Arr::get($normalized, 'input_by'),
         ];
     }
 

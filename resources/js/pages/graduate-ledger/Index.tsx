@@ -1,4 +1,4 @@
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import {
   Search,
   DollarSign,
@@ -98,8 +98,7 @@ interface IndexProps {
   };
 }
 
-export default function Index({ records, filters, stats }: IndexProps) {
-  const { flash } = usePage<{ flash?: { success?: string; error?: string } }>().props;
+export default function Index({ records, filters, availableYears = [], stats }: IndexProps) {
   const rows: LedgerRecord[] = records?.data ?? [];
   const [searchQuery, setSearchQuery] = useState(filters?.search ?? '');
   const [selectedYear, setSelectedYear] = useState(filters?.year ?? '');
@@ -179,37 +178,6 @@ params.month = selectedMonth;
   return (
     <div className="min-h-screen bg-[#FAFAF5] p-4 md:p-8">
       <Head title="Graduate School Ledger" />
-
-      {flash?.success && (
-        <div className="max-w-7xl mx-auto mb-4 px-4 py-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium flex items-center gap-2">
-          <span className="text-emerald-500">✓</span> {flash.success}
-        </div>
-      )}
-      {flash?.error && (
-        <div className="max-w-7xl mx-auto mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm font-medium flex items-center gap-2">
-          <span>✗</span> {flash.error}
-        </div>
-      )}
-      {importForm.errors.file && (
-        <div className="max-w-7xl mx-auto mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm font-medium flex items-center gap-2">
-          <span>✗</span> {importForm.errors.file}
-        </div>
-      )}
-
-      {importForm.processing && (
-        <div className="max-w-7xl mx-auto mb-4 p-4 bg-white border border-[#CFE3FF] rounded-lg shadow-xs space-y-2">
-          <div className="flex items-center justify-between text-sm font-medium text-[#0B3D91]">
-            <span>Uploading and processing ledger data...</span>
-            <span>{importForm.progress ? `${importForm.progress.percentage}%` : 'Processing...'}</span>
-          </div>
-          <div className="w-full h-2 bg-[#EAF2FF] rounded-full overflow-hidden">
-            <div
-              className="h-full bg-[#0F6FFF] transition-all duration-150"
-              style={{ width: `${importForm.progress ? importForm.progress.percentage : 100}%` }}
-            />
-          </div>
-        </div>
-      )}
 
       <div className="max-w-7xl mx-auto space-y-6">
 
