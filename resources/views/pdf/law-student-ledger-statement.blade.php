@@ -74,6 +74,7 @@
                 <th width="12%">Tuition/Unit or Reg. & Misc. Fee</th>
                 <th width="10%" class="text-center">AR/Payment</th>
                 <th width="12%" class="text-right">Amount</th>
+                <th width="10%" class="text-center">Remarks</th>
             </tr>
         </thead>
         <tbody>
@@ -86,6 +87,7 @@
                         <td class="text-right">₱{{ number_format(abs((float) preg_replace('/[^\d.]/', '', (string) ($r->tuition_per_unit_or_fee_per_semester ?? 0))), 2) }}</td>
                         <td class="text-center">{{ $normalizeText(strtoupper($r->ar_or_payment ?? 'AR')) }}</td>
                         <td class="text-right">₱{{ number_format(abs((float) preg_replace('/[^\d.]/', '', (string) ($r->amount ?? 0))), 2) }}</td>
+                        <td class="text-center">{{ $summary['outstandingBalance'] <= 0 ? 'Settled' : 'Outstanding' }}</td>
                     </tr>
                 @endforeach
             @else
