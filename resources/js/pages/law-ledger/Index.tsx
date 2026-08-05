@@ -1,4 +1,4 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import {
   Search,
   DollarSign,
@@ -152,7 +152,6 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const [semester, setSemester] = useState(filters?.semester_or_summer ?? '');
   const [course, setCourse] = useState(filters?.course ?? '');
   const [status, setStatus] = useState(filters?.status ?? '');
-  const importForm = useForm<{ file: File | null }>({ file: null });
 
   const applyFilters = (overrides: Record<string, string> = {}) => {
     const params: Record<string, string> = {};
@@ -304,14 +303,16 @@ params[key] = value.trim();
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0] ?? null;
-                    importForm.setData('file', file);
 
                     if (file) {
-                      importForm.post('/law-ledger/import', {
+                      const form = new FormData();
+                      form.append('file', file);
+
+                      router.post('/law-ledger/import', form, {
                         forceFormData: true,
                         preserveScroll: true,
+                        preserveState: false,
                         onSuccess: () => {
-                          importForm.reset('file');
                           e.currentTarget.value = '';
                         },
                       });
@@ -400,7 +401,7 @@ params[key] = value.trim();
                 <div 
                   className="h-full bg-orange-500 rounded-full transition-all duration-500"
                   style={{ 
-                    width: `${totalCharges > 0 ? Math.min((outstandingBalance / totalCharges) * 100, 100) : 0}%` 
+                    width: `${totalCharges > 0 ? Math.min(Math.max(0, (outstandingBalance / totalCharges) * 100), 100) : 0}%` 
                   }}
                 />
               </div>
@@ -538,36 +539,38 @@ params[key] = value.trim();
                          onChange={(e) => {
                            setGoToPage(e.target.value);
                          }}
-                         onKeyDown={(e) => {
-                           if (e.key === 'Enter') {
-                             const page = parseInt(goToPage);
-                             if (!isNaN(page)) {
-                               const validatedPage = Math.min(Math.max(page, 1), lastPage);
-                               router.get(`/law-ledger?page=${validatedPage}`, {}, {
-                                 preserveState: true,
-                                 preserveScroll: true,
-                               });
-                               setGoToPage('');
-                             }
-                           }
-                         }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const page = parseInt(goToPage);
+
+                              if (!isNaN(page)) {
+                                const validatedPage = Math.min(Math.max(page, 1), lastPage);
+                                router.get(`/law-ledger?page=${validatedPage}`, {}, {
+                                  preserveState: true,
+                                  preserveScroll: true,
+                                });
+                                setGoToPage('');
+                              }
+                            }
+                          }}
                          placeholder={currentPage.toString()}
                          className="w-16 h-8 text-center border border-[#CFE3FF] rounded-md focus:ring-[#0F6FFF] focus:border-[#0F6FFF]"
                        />
                        <Button
                          variant="outline"
                          size="sm"
-                         onClick={() => {
-                           const page = parseInt(goToPage);
-                           if (!isNaN(page)) {
-                             const validatedPage = Math.min(Math.max(page, 1), lastPage);
-                             router.get(`/law-ledger?page=${validatedPage}`, {}, {
-                               preserveState: true,
-                               preserveScroll: true,
-                             });
-                             setGoToPage('');
-                           }
-                         }}
+                          onClick={() => {
+                            const page = parseInt(goToPage);
+
+                            if (!isNaN(page)) {
+                              const validatedPage = Math.min(Math.max(page, 1), lastPage);
+                              router.get(`/law-ledger?page=${validatedPage}`, {}, {
+                                preserveState: true,
+                                preserveScroll: true,
+                              });
+                              setGoToPage('');
+                            }
+                          }}
                          className="h-8 px-2 text-xs bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
                        >
                          Go

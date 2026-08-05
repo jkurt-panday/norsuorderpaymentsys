@@ -14,6 +14,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Imports\HeadingRowFormatter;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class LawSchoolLedgerController extends Controller
 {
@@ -70,13 +72,17 @@ class LawSchoolLedgerController extends Controller
 
         $totalUnits = (float) (clone $query)->sum('units');
 
-        $totalCharges = (float) (clone $query)
-            ->where('ar_or_payment', 'AR')
+        $statsQuery = clone $query;
+
+        $totalCharges = (float) (clone $statsQuery)
+            ->whereIn(DB::raw('UPPER(TRIM(ar_or_payment))'), ['AR', 'ASSESSMENT'])
             ->sum('amount');
 
-        $totalPayments = abs((float) (clone $query)
-            ->where('ar_or_payment', 'Payment')
-            ->sum('amount'));
+        $totalPayments = (float) (clone $statsQuery)
+            ->whereNotNull('ar_or_payment')
+            ->where('ar_or_payment', '!=', '')
+            ->whereNotIn(DB::raw('UPPER(TRIM(ar_or_payment))'), ['AR', 'ASSESSMENT'])
+            ->sum(DB::raw('ABS(amount)'));
 
         $outstandingBalance = max(0, $totalCharges - $totalPayments);
 
@@ -87,7 +93,7 @@ class LawSchoolLedgerController extends Controller
             ->withQueryString();
 
         // Transform each row into the shape Index.tsx expects
-        $records->through(fn ($r) => $this->transformRecord($r));
+        $records = $records->through(fn ($r) => $this->transformRecord($r));
 
         return Inertia::render('law-ledger/Index', [
             'records' => $records,
@@ -150,92 +156,335 @@ class LawSchoolLedgerController extends Controller
     public function import(Request $request): RedirectResponse
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,csv,xls'],
+            'file' => ['required', 'file', 'max:51200', 'mimes:xlsx,csv,xls'],
         ]);
 
-        HeadingRowFormatter::default('slug');
+        // Large law ledgers (20k+ rows + pivot sheets) need extra headroom.
+        $previousMemoryLimit = ini_get('memory_limit');
+        $previousTimeLimit = (int) ini_get('max_execution_time');
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
 
         try {
             $uploadedFile = $request->file('file');
-            $rows = Excel::toCollection(null, $uploadedFile)->first() ?? collect();
+            $extension = strtolower($uploadedFile->getClientOriginalExtension() ?: $uploadedFile->extension() ?: '');
 
-            if ($rows->isEmpty()) {
-                return redirect()->route('law-ledger.index')->with('error', 'No rows found in the uploaded file.');
+            if (in_array($extension, ['xlsx', 'xls'], true)) {
+                $result = $this->importFromSpreadsheet($uploadedFile->getRealPath());
+            } else {
+                $result = $this->importFromCsvCollection($uploadedFile);
             }
 
-            $headers = collect($rows->first())->map(fn ($header) => Str::slug((string) $header, '_'))->all();
-
-            if (empty($headers)) {
-                return redirect()->route('law-ledger.index')->with('error', 'No valid headers found in the uploaded file.');
+            if (! empty($result['error'])) {
+                return redirect()->route('law-ledger.index')->with('error', $result['error']);
             }
 
-            // Required fields (matching the variants handled by mapImportRow)
-            $nameHeaders = ['name_last_name_first_name_m_i', 'name_last_name_first_name_mi', 'student_name', 'student', 'name'];
-            $typeHeaders = ['ar_or_payment', 'ar_payment', 'arpayment', 'transaction_type', 'type'];
-            $missingHeaders = [];
+            $importedCount = $result['imported'];
+            $skippedCount = $result['skipped'];
+            $failedRows = $result['failed'];
 
-            if (!array_intersect($nameHeaders, $headers)) {
-                $missingHeaders[] = 'Name';
+            if ($importedCount === 0 && empty($failedRows)) {
+                return redirect()->route('law-ledger.index')->with('error', 'No valid data rows found in the uploaded file.');
             }
 
-            if (!in_array('amount', $headers)) {
-                $missingHeaders[] = 'Amount';
+            if (! empty($failedRows)) {
+                $sampleFailures = array_slice($failedRows, 0, 10);
+                $message = "Import finished: {$importedCount} imported";
+                if ($skippedCount > 0) {
+                    $message .= ", {$skippedCount} skipped";
+                }
+                $message .= ', '.count($failedRows).' failed. Sample: '.json_encode($sampleFailures);
+
+                return redirect()->route('law-ledger.index')->with('warning', $message);
             }
 
-            if (!array_intersect($typeHeaders, $headers)) {
-                $missingHeaders[] = 'AR/Payment';
+            $message = "Import completed successfully. Imported {$importedCount} rows.";
+            if ($skippedCount > 0) {
+                $message .= " Skipped {$skippedCount} empty rows.";
             }
 
-            if (!empty($missingHeaders)) {
-                return redirect()->route('law-ledger.index')->with('error', 'Missing required headers: ' . implode(', ', $missingHeaders));
-            }
-
-            $importedCount = 0;
-            $failedRows = [];
-            $rowIndex = 1; // Start after header row
-
-            DB::beginTransaction();
-
-            try {
-                $rows->slice(1)->each(function ($row) use ($headers, &$importedCount, &$failedRows, &$rowIndex) {
-                    $rowIndex++;
-                    if (!is_array($row) && !$row instanceof \Illuminate\Support\Collection) {
-                        $failedRows[] = ['row' => $rowIndex, 'error' => 'Invalid row format'];
-                        return;
-                    }
-
-                    $rowData = collect($row)->mapWithKeys(function ($value, $index) use ($headers) {
-                        return [$headers[$index] ?? 'column_' . $index => $value];
-                    })->all();
-
-                    try {
-                        $data = $this->mapImportRow($rowData);
-                        if ($data !== null) {
-                            LawSchoolLedger::create($data);
-                            $importedCount++;
-                        } else {
-                            $failedRows[] = ['row' => $rowIndex, 'error' => 'Failed to map row data'];
-                        }
-                    } catch (\Throwable $e) {
-                        $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
-                    }
-                });
-
-                DB::commit();
-            } catch (\Throwable $e) {
-                DB::rollBack();
-                throw $e;
-            }
-
-            if (!empty($failedRows)) {
-                $errorMessage = "Import completed with {$importedCount} rows. Failed rows: " . json_encode($failedRows);
-                return redirect()->route('law-ledger.index')->with('warning', $errorMessage);
-            }
-
-            return redirect()->route('law-ledger.index')->with('success', "Import completed successfully. Imported {$importedCount} rows.");
+            return redirect()->route('law-ledger.index')->with('success', $message);
         } catch (\Throwable $e) {
-            return redirect()->route('law-ledger.index')->with('error', 'Failed to import file: ' . $e->getMessage());
+            return redirect()->route('law-ledger.index')->with('error', 'Failed to import file: '.$e->getMessage());
+        } finally {
+            if ($previousMemoryLimit !== false) {
+                ini_set('memory_limit', $previousMemoryLimit);
+            }
+            if ($previousTimeLimit > 0) {
+                set_time_limit($previousTimeLimit);
+            }
         }
+    }
+
+    /**
+     * Stream-friendly import for large .xlsx/.xls law ledgers.
+     *
+     * @return array{imported:int,skipped:int,failed:array<int,array{row:int,error:string}>,error?:string}
+     */
+    private function importFromSpreadsheet(string $path): array
+    {
+        $reader = IOFactory::createReaderForFile($path);
+        $reader->setReadDataOnly(true);
+        $reader->setReadEmptyCells(false);
+
+        if (method_exists($reader, 'setLoadAllSheets')) {
+            // Prefer the main ledger sheet; avoid pivot/extra sheets.
+            $sheetNames = method_exists($reader, 'listWorksheetNames')
+                ? $reader->listWorksheetNames($path)
+                : [];
+
+            $preferred = null;
+            foreach ($sheetNames as $name) {
+                if (stripos($name, 'LAW') !== false || stripos($name, 'LEDGER') !== false) {
+                    $preferred = $name;
+                    break;
+                }
+            }
+
+            if ($preferred !== null && method_exists($reader, 'setLoadSheetsOnly')) {
+                $reader->setLoadSheetsOnly([$preferred]);
+            } elseif (! empty($sheetNames) && method_exists($reader, 'setLoadSheetsOnly')) {
+                $reader->setLoadSheetsOnly([$sheetNames[0]]);
+            }
+        }
+
+        $spreadsheet = $reader->load($path);
+        $sheet = $spreadsheet->getActiveSheet();
+        $highestRow = (int) $sheet->getHighestDataRow();
+        $highestColumn = $sheet->getHighestDataColumn();
+        $highestColumnIndex = Coordinate::columnIndexFromString($highestColumn);
+
+        // Cap to expected ledger columns (A–N) to avoid sparse far-right cells.
+        $highestColumnIndex = min($highestColumnIndex, 20);
+
+        if ($highestRow < 2) {
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
+
+            return ['imported' => 0, 'skipped' => 0, 'failed' => [], 'error' => 'No rows found in the uploaded file.'];
+        }
+
+        $headerRow = [];
+        for ($col = 1; $col <= $highestColumnIndex; $col++) {
+            $columnLetter = Coordinate::stringFromColumnIndex($col);
+            $value = $sheet->getCell($columnLetter . '1')->getValue();
+            $headerRow[] = is_string($value)
+                ? Str::slug(str_replace(["\n", "\r"], ' ', $value), '_')
+                : Str::slug((string) $value, '_');
+        }
+
+        $headerCheck = $this->validateImportHeaders($headerRow);
+        if ($headerCheck !== null) {
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
+
+            return ['imported' => 0, 'skipped' => 0, 'failed' => [], 'error' => $headerCheck];
+        }
+
+        $importedCount = 0;
+        $skippedCount = 0;
+        $failedRows = [];
+        $batch = [];
+        $now = now();
+        $batchSize = 250;
+
+        DB::beginTransaction();
+
+        try {
+            for ($row = 2; $row <= $highestRow; $row++) {
+                $rowValues = [];
+                $hasAnyValue = false;
+
+                for ($col = 1; $col <= $highestColumnIndex; $col++) {
+                    $columnLetter = Coordinate::stringFromColumnIndex($col);
+                    $cell = $sheet->getCell($columnLetter . $row);
+                    $value = $cell->getValue();
+
+                    // Prefer calculated value for formula cells (amount, remarks).
+                    if (is_string($value) && str_starts_with(ltrim($value), '=')) {
+                        try {
+                            $calculated = $cell->getCalculatedValue();
+                            if ($calculated !== null && $calculated !== '') {
+                                $value = $calculated;
+                            }
+                        } catch (\Throwable) {
+                            // Keep formula string; normalizeAmount can recompute units * tuition.
+                        }
+                    }
+
+                    if ($value !== null && $value !== '') {
+                        $hasAnyValue = true;
+                    }
+
+                    $rowValues[$headerRow[$col - 1] ?? 'column_'.($col - 1)] = $value;
+                }
+
+                if (! $hasAnyValue) {
+                    $skippedCount++;
+                    continue;
+                }
+
+                try {
+                    $data = $this->mapImportRow($rowValues);
+
+                    if ($data === null) {
+                        $skippedCount++;
+                        continue;
+                    }
+
+                    $batch[] = array_merge($data, [
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+                    $importedCount++;
+
+                    if (count($batch) >= $batchSize) {
+                        LawSchoolLedger::insert($batch);
+                        $batch = [];
+                    }
+                } catch (\Throwable $e) {
+                    $failedRows[] = ['row' => $row, 'error' => $e->getMessage()];
+                }
+            }
+
+            if (! empty($batch)) {
+                LawSchoolLedger::insert($batch);
+            }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
+            throw $e;
+        }
+
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
+
+        return [
+            'imported' => $importedCount,
+            'skipped' => $skippedCount,
+            'failed' => $failedRows,
+        ];
+    }
+
+    /**
+     * CSV import path (smaller files / simple exports).
+     *
+     * @return array{imported:int,skipped:int,failed:array<int,array{row:int,error:string}>,error?:string}
+     */
+    private function importFromCsvCollection($uploadedFile): array
+    {
+        HeadingRowFormatter::default('slug');
+
+        $rows = Excel::toCollection(null, $uploadedFile)->first() ?? collect();
+
+        if ($rows->isEmpty()) {
+            return ['imported' => 0, 'skipped' => 0, 'failed' => [], 'error' => 'No rows found in the uploaded file.'];
+        }
+
+        $headers = collect($rows->first())
+            ->map(fn ($header) => Str::slug(str_replace(["\n", "\r"], ' ', (string) $header), '_'))
+            ->all();
+
+        $headerCheck = $this->validateImportHeaders($headers);
+        if ($headerCheck !== null) {
+            return ['imported' => 0, 'skipped' => 0, 'failed' => [], 'error' => $headerCheck];
+        }
+
+        $importedCount = 0;
+        $skippedCount = 0;
+        $failedRows = [];
+        $batch = [];
+        $now = now();
+        $rowIndex = 1;
+
+        DB::beginTransaction();
+
+        try {
+            foreach ($rows->slice(1) as $row) {
+                $rowIndex++;
+
+                $rowData = collect($row)->mapWithKeys(function ($value, $index) use ($headers) {
+                    return [$headers[$index] ?? 'column_'.$index => $value];
+                })->all();
+
+                if (collect($rowData)->filter(fn ($v) => $v !== null && $v !== '')->isEmpty()) {
+                    $skippedCount++;
+                    continue;
+                }
+
+                try {
+                    $data = $this->mapImportRow($rowData);
+
+                    if ($data === null) {
+                        $skippedCount++;
+                        continue;
+                    }
+
+                    $batch[] = array_merge($data, [
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+                    $importedCount++;
+
+                    if (count($batch) >= 250) {
+                        LawSchoolLedger::insert($batch);
+                        $batch = [];
+                    }
+                } catch (\Throwable $e) {
+                    $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
+                }
+            }
+
+            if (! empty($batch)) {
+                LawSchoolLedger::insert($batch);
+            }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
+
+        return [
+            'imported' => $importedCount,
+            'skipped' => $skippedCount,
+            'failed' => $failedRows,
+        ];
+    }
+
+    /**
+     * @param  array<int,string>  $headers
+     */
+    private function validateImportHeaders(array $headers): ?string
+    {
+        if (empty(array_filter($headers))) {
+            return 'No valid headers found in the uploaded file.';
+        }
+
+        $nameHeaders = ['name_last_name_first_name_m_i', 'name_last_name_first_name_mi', 'student_name', 'student', 'name'];
+        $typeHeaders = ['ar_or_payment', 'ar_payment', 'arpayment', 'transaction_type', 'type'];
+        $missingHeaders = [];
+
+        if (! array_intersect($nameHeaders, $headers)) {
+            $missingHeaders[] = 'Name';
+        }
+
+        if (! in_array('amount', $headers, true)) {
+            $missingHeaders[] = 'Amount';
+        }
+
+        if (! array_intersect($typeHeaders, $headers)) {
+            $missingHeaders[] = 'AR/Payment';
+        }
+
+        if (! empty($missingHeaders)) {
+            return 'Missing required headers: '.implode(', ', $missingHeaders);
+        }
+
+        return null;
     }
 
     /**
@@ -467,10 +716,8 @@ class LawSchoolLedgerController extends Controller
         }
 
         if (is_numeric($value)) {
-<<<<<<< HEAD
             $numeric = (float) $value;
 
-            // 8-digit value like 20250805 is a Ymd date; otherwise treat as an Excel serial date
             if ($numeric >= 19000000 && $numeric <= 21001231) {
                 $date = \Carbon\Carbon::createFromFormat('Ymd', (string) (int) $numeric);
 
@@ -489,14 +736,6 @@ class LawSchoolLedgerController extends Controller
         try {
             return \Carbon\Carbon::parse((string) $value)->format('Y-m-d');
         } catch (\Throwable $e) {
-=======
-            return Carbon::createFromFormat('Ymd', (string) $value)->format('Y-m-d');
-        }
-
-        try {
-            return Carbon::parse((string) $value)->format('Y-m-d');
-        } catch (\Exception $e) {
->>>>>>> 983b7dff3961afa1601b6fd481044e922138bb41
             return null;
         }
     }

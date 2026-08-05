@@ -407,19 +407,9 @@ class GraduateLedgerController extends Controller
                 ?? Arr::get($normalized, 'or_no')
                 ?? Arr::get($normalized, 'ref_no'),
             'particulars' => Arr::get($normalized, 'particulars'),
-<<<<<<< HEAD
             'tuition_per_unit_or_misc' => $tuitionPerUnit,
             'ar_payment' => Arr::get($normalized, 'ar_payment') 
                 ?? Arr::get($normalized, 'arpayment') 
-=======
-            'tuition_per_unit_or_misc' => (float) (
-                Arr::get($normalized, 'tuition_per_unit_reg_and_miscellaneous_per_semester')
-                ?? Arr::get($normalized, 'tuition_per_unit_or_misc', 0)
-                ?? 0
-            ),
-            'ar_payment' => Arr::get($normalized, 'ar_payment')
-                ?? Arr::get($normalized, 'arpayment')
->>>>>>> 983b7dff3961afa1601b6fd481044e922138bb41
                 ?? Arr::get($normalized, 'type'),
             'amount' => $this->normalizeAmount(Arr::get($normalized, 'amount'), $units, $tuitionPerUnit),
             'remarks' => $this->cleanFormulaValue(Arr::get($normalized, 'remarks') ?? Arr::get($normalized, 'remark')),
@@ -467,10 +457,8 @@ class GraduateLedgerController extends Controller
         }
 
         if (is_numeric($value)) {
-<<<<<<< HEAD
             $numeric = (float) $value;
 
-            // 8-digit value like 20250805 is a Ymd date; otherwise treat as an Excel serial date
             if ($numeric >= 19000000 && $numeric <= 21001231) {
                 $date = \Carbon\Carbon::createFromFormat('Ymd', (string) (int) $numeric);
 
@@ -489,14 +477,6 @@ class GraduateLedgerController extends Controller
         try {
             return \Carbon\Carbon::parse((string) $value)->format('Y-m-d');
         } catch (\Throwable $e) {
-=======
-            return Carbon::createFromFormat('Ymd', (string) $value)->format('Y-m-d');
-        }
-
-        try {
-            return Carbon::parse((string) $value)->format('Y-m-d');
-        } catch (\Exception $e) {
->>>>>>> 983b7dff3961afa1601b6fd481044e922138bb41
             return null;
         }
     }
