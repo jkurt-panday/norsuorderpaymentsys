@@ -401,3 +401,52 @@
         --radius: 0.5rem;
     }
 }
+
+
+/* Printable Receipt Styles */
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 8mm;
+    }
+
+    body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Hide global page backgrounds, headers, and footers */
+    .print-container {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+        background: transparent !important;
+    }
+
+    /* Remove card shadow and force fit */
+    .print-card {
+        box-shadow: none !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 1rem !important;
+        break-inside: avoid !important;
+    }
+
+    /* Hide action buttons during print */
+    .no-print {
+        display: none !important;
+    }
+
+    /* Tighten vertical spacing to guarantee 1-page fit */
+    .print-header {
+        padding-top: 1.25rem !important;
+        padding-bottom: 1.25rem !important;
+    }
+
+    .print-content {
+        padding-top: 0.75rem !important;
+        padding-bottom: 0.75rem !important;
+        row-gap: 0.75rem !important;
+    }
+}
