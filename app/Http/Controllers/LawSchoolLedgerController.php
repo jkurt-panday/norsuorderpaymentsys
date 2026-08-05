@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\LawSchoolLedger;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -466,6 +467,7 @@ class LawSchoolLedgerController extends Controller
         }
 
         if (is_numeric($value)) {
+<<<<<<< HEAD
             $numeric = (float) $value;
 
             // 8-digit value like 20250805 is a Ymd date; otherwise treat as an Excel serial date
@@ -487,6 +489,14 @@ class LawSchoolLedgerController extends Controller
         try {
             return \Carbon\Carbon::parse((string) $value)->format('Y-m-d');
         } catch (\Throwable $e) {
+=======
+            return Carbon::createFromFormat('Ymd', (string) $value)->format('Y-m-d');
+        }
+
+        try {
+            return Carbon::parse((string) $value)->format('Y-m-d');
+        } catch (\Exception $e) {
+>>>>>>> 983b7dff3961afa1601b6fd481044e922138bb41
             return null;
         }
     }

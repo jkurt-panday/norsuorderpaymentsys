@@ -18,7 +18,7 @@ class GraduateLedgerImportTest extends TestCase
         $user = User::factory()->create();
 
         $file = tempnam(sys_get_temp_dir(), 'ledger-import').'.xlsx';
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->fromArray([
             ['student_name', 'course', 'school_year', 'semester_short', 'semester', 'units', 'transaction_date', 'reference_or_jev_number', 'particulars', 'tuition_per_unit_or_misc', 'ar_payment', 'amount', 'remarks', 'input_by'],
