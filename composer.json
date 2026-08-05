@@ -18,7 +18,9 @@
         "laravel/sanctum": "*",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
-        "maatwebsite/excel": "*"
+        "maatwebsite/excel": "*",
+        "symfony/brevo-mailer": "*",
+        "symfony/http-client": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.24",
@@ -99,10 +101,6 @@
         ]
     },
     "extra": {
-        "google/apiclient-services": [
-            "Sheets",
-            "Drive"
-        ],
         "laravel": {
             "dont-discover": [],
             "installer": {
