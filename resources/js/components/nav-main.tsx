@@ -23,14 +23,14 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                     return (
                         <div key={item.title}>
                             {item.separatorBefore && (
-                                <hr className="my-2 mx-2.5 border-slate-800" />
+                                <hr className="my-2 mx-2.5 border-blue-400/20" />
                             )}
                                 <SidebarMenuItem>
                                     <SidebarMenuButton
                                         render={<Link href={item.href} prefetch />}
                                         isActive={isActive}
                                         className={cn(
-                                            "mx-2.5 my-1 rounded-lg px-5 py-2.5 text-[17px] transition-colors duration-300 text-slate-300 hover:bg-slate-800 hover:text-white data-[active=true]:bg-blue-900 data-[active=true]:text-white",
+                                            "mx-2.5 my-1 rounded-lg px-5 py-2.5 text-[17px] transition-colors duration-300 text-blue-100/80 hover:bg-white/10 hover:text-white data-[active=true]:bg-[#0078d4] data-[active=true]:text-white data-[active=true]:shadow-sm",
                                             isCollapsed && "justify-center px-2"
                                         )}
                                     >

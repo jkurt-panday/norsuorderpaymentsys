@@ -27,7 +27,7 @@ createInertiaApp({
         resolvePageComponent(`./pages/${name}.tsx`, import.meta.glob('./pages/**/*.tsx')),
     layout: (name) => {
         switch (true) {
-            case name === 'welcome':
+            case name === 'welcome' || name === 'auth/login' || name === 'auth/forgot-password' || name === 'auth/reset-password':
                 return null;
             case name === 'SubmitForm':
                 return null;

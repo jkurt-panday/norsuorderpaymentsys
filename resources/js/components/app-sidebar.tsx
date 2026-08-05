@@ -62,9 +62,9 @@ export function AppSidebar() {
         <Sidebar
             collapsible="icon"
             variant="inset"
-            className="border-r border-slate-800 bg-slate-900 pt-5 text-white [&_[data-sidebar=sidebar]]:bg-transparent"
+            className="border-r border-blue-900/40 bg-[#003f7d] pt-5 text-white [&_[data-sidebar=sidebar]]:bg-transparent"
         >
-            <SidebarHeader className="mb-2 items-center border-b border-slate-800/70 bg-transparent px-3 pb-4 text-center">
+            <SidebarHeader className="mb-2 items-center border-b border-blue-400/20 bg-transparent px-3 pb-4 text-center">
                 {!isCollapsed ? (
                     <div className="flex flex-col items-center gap-2 py-2">
                         <img
@@ -92,14 +92,14 @@ export function AppSidebar() {
                 )}
             </SidebarHeader>
 
-            <SidebarContent className="mt-0 bg-transparent">
+            <SidebarContent className="mt-0 bg-transparent scrollbar-thin scrollbar-thumb-blue-700 scrollbar-track-transparent">
                 <NavMain items={mainNavItems} />
             </SidebarContent>
 
-            <SidebarFooter className="border-t border-slate-800/70 bg-transparent px-3 py-3">
+            <SidebarFooter className="border-t border-blue-400/20 bg-transparent px-3 py-3">
                 {!isCollapsed ? (
-                    <div className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-slate-800/60">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-900 text-sm font-semibold text-white">
+                    <div className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-blue-600/40">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-400/30 text-sm font-semibold text-white ring-2 ring-blue-300/40">
                             {/* Replace with actual user initials */}
                             JD
                         </div>
@@ -108,7 +108,7 @@ export function AppSidebar() {
                                 {/* Replace with actual user name */}
                                 Juan Dela Cruz
                             </span>
-                            <span className="truncate text-xs text-slate-400">
+                            <span className="truncate text-xs text-blue-200/70">
                                 {/* Replace with actual role/department */}
                                 Staff · Accounting
                             </span>
@@ -117,7 +117,7 @@ export function AppSidebar() {
                             href={staff.logout ? staff.logout() : '/logout'}
                             method="post"
                             as="button"
-                            className="shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-slate-700 hover:text-white"
+                            className="shrink-0 rounded-md p-1.5 text-blue-200/70 hover:bg-blue-500/40 hover:text-white"
                             aria-label="Log out"
                         >
                             <LogOut size={16} />
@@ -125,7 +125,7 @@ export function AppSidebar() {
                     </div>
                 ) : (
                     <div className="flex justify-center">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-900 text-xs font-semibold text-white">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-400/30 text-xs font-semibold text-white ring-2 ring-blue-300/40">
                             JD
                         </div>
                     </div>
