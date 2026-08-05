@@ -304,7 +304,7 @@ export default function RequestTable<T extends { id: number | string }>({
     const navigateToPage = (page: number) => {
         const url = new URL(window.location.href);
 
-        if (page > 1) {
+        if (page > 3) {
             url.searchParams.set('page', String(page));
         } else {
             url.searchParams.delete('page');
@@ -599,7 +599,7 @@ export default function RequestTable<T extends { id: number | string }>({
                             {resource.total} results
                         </p>
 
-                        {resource.last_page > 3 ? (
+                        {resource.last_page > 5 ? (
                             // ---- Page-jump dropdown (>1 pages) ----
                             // Same mechanism as ResourceTable: Prev / a
                             // popover with a type-to-jump input plus a
