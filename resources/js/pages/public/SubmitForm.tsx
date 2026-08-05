@@ -690,8 +690,11 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 <Separator className="bg-blue-100" />
                                 <CardTitle className="flex items-center gap-3 text-xl font-semibold text-blue-900">
                                     <File className="h-5 w-5 text-blue-600" />
-                                    Supporting Documents
+                                    Supporting Document(s)
                                 </CardTitle>
+                                <p className="mt-3 text-slate-600 text-sm">
+                                    e.g. (Assessment Form, Billing Statement, Computation Documents, Student ID, Liquidation Form)
+                                </p>
                                 {/* file uploads */}
                                 {/* File Upload Drop Zone */}
                                 <FileUpload.Root>
