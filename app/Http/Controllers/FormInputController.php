@@ -124,7 +124,7 @@ class FormInputController extends Controller
             // Render the success page directly — no separate success() action
             // or route needed, since we already have everything we need here.
             return Inertia::render('public/Success', [
-                'referenceNumber' => $formInput->reference_number,
+                'reference_number' => $formInput->reference_number,
                 'formInput' => $formInput,
             ]);
 

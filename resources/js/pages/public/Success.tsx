@@ -64,17 +64,12 @@ interface FormInput {
 }
 
 interface Props {
-    reference_number?: string;
+    reference_number: string;
     formInput: FormInput;
 }
 
 export default function Success({ reference_number, formInput }: Props) {
-    // Fall back to formInput.reference_number if the top-level prop wasn't
-    // passed by the controller — this is why the reference number box was
-    // rendering blank.
-    const displayReferenceNumber =
-        reference_number || formInput.reference_number;
-
+    // Format date
     const formatDate = (date: string) => {
         return new Date(date).toLocaleDateString('en-PH', {
             year: 'numeric',
@@ -85,6 +80,7 @@ export default function Success({ reference_number, formInput }: Props) {
         });
     };
 
+    // Format currency
     const formatCurrency = (amount: string) => {
         return new Intl.NumberFormat('en-PH', {
             style: 'currency',
@@ -94,6 +90,7 @@ export default function Success({ reference_number, formInput }: Props) {
             .replace('₱', '₱  ');
     };
 
+    // Format file size
     const formatFileSize = (bytes: number) => {
         if (bytes === 0) {
             return '0 Bytes';
