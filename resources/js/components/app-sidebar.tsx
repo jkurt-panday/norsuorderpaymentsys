@@ -23,33 +23,27 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: staff.dashboard(),
-        icon: Home,
     },
     {
         title: 'Requests',
         href: staff.requests.index(),
-        icon: FileText,
     },
     {
         title: 'Memberships',
         href: staff.memberships.index(),
-        icon: Users,
     },
     {
         title: 'Payment Options',
         href: staff.paymentOptions.index(),
-        icon: CreditCard,
         separatorBefore: true,
     },
     {
         title: 'Bank Accounts',
         href: staff.bankAccounts.index(),
-        icon: Landmark,
     },
     {
         title: 'UACS',
         href: staff.uacs.index(),
-        icon: ListTree,
         separatorBefore: true,
     },
 ];
@@ -92,7 +86,7 @@ export function AppSidebar() {
                 )}
             </SidebarHeader>
 
-            <SidebarContent className="mt-0 bg-transparent scrollbar-thin scrollbar-thumb-blue-700 scrollbar-track-transparent">
+            <SidebarContent className="mt-0 scrollbar-thin scrollbar-thumb-blue-700 scrollbar-track-transparent bg-transparent">
                 <NavMain items={mainNavItems} />
             </SidebarContent>
 
