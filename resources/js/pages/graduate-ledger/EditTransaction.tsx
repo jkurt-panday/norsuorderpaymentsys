@@ -1,9 +1,8 @@
-import { Head, useForm } from '@inertiajs/react';
-import { ArrowLeft } from 'lucide-react';
+import { Head, useForm, router } from '@inertiajs/react';
+import { ArrowLeft, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { router } from '@inertiajs/react';
 
 const courseOptions = [
   'PhD Educational Management',
@@ -35,7 +34,26 @@ const semesterOptions = ['1st Sem.', '2nd Sem.', 'Summer'];
 const particularsOptions = ['Registration', 'Tuition', 'Miscellaneous'];
 const typeOptions = ['AR', 'Payment', 'Adjustment'];
 
+interface LedgerRecord {
+  id: number;
+  student_name: string;
+  course: string | null;
+  school_year: string | null;
+  semester_short: string | null;
+  semester: string | null;
+  units: number | null;
+  transaction_date: string | null;
+  reference_or_jev_number: string | null;
+  particulars: string | null;
+  tuition_per_unit_or_misc: number | null;
+  ar_payment: string | null;
+  amount: number | null;
+  remarks: string | null;
+  input_by: string | null;
+}
+
 interface Props {
+  record: LedgerRecord;
   studentNames: string[];
   authUserName: string;
 }
@@ -45,22 +63,24 @@ function FieldError({ message }: { message?: string }) {
   return <p className="text-xs text-red-500 mt-1">{message}</p>;
 }
 
-export default function AddTransaction({ studentNames, authUserName }: Props) {
-  const { data, setData, post, processing, errors } = useForm({
-    student_name: '',
-    course: '',
-    school_year: '',
-    semester_short: '1st Sem.',
-    semester: 'First Semester',
-    units: '',
-    transaction_date: '',
-    reference_or_jev_number: '',
-    particulars: 'Tuition',
-    tuition_per_unit_or_misc: '',
-    ar_payment: 'AR',
-    amount: '',
-    remarks: '',
-    input_by: authUserName,
+export default function EditTransaction({ record, studentNames, authUserName }: Props) {
+  const { data, setData, put, processing, errors } = useForm({
+    student_name: record.student_name ?? '',
+    course: record.course ?? '',
+    school_year: record.school_year ?? '',
+    semester_short: record.semester_short ?? '1st Sem.',
+    semester: record.semester ?? 'First Semester',
+    units: String(record.units ?? ''),
+    transaction_date: record.transaction_date
+      ? String(record.transaction_date).split('T')[0]
+      : '',
+    reference_or_jev_number: record.reference_or_jev_number ?? '',
+    particulars: record.particulars ?? 'Tuition',
+    tuition_per_unit_or_misc: String(record.tuition_per_unit_or_misc ?? ''),
+    ar_payment: record.ar_payment ?? 'AR',
+    amount: String(record.amount ?? ''),
+    remarks: record.remarks ?? '',
+    input_by: record.input_by ?? authUserName,
   });
 
   const parsedUnits = Number(data.units || 0);
@@ -69,38 +89,52 @@ export default function AddTransaction({ studentNames, authUserName }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    post('/graduate-ledger', {
+    put(`/graduate-ledger/${record.id}`, {
       data: {
         ...data,
-        amount: computedAmount.toFixed(2),
-        transaction_date: data.transaction_date || new Date().toISOString().slice(0, 10),
+        amount: data.ar_payment === 'AR' ? computedAmount.toFixed(2) : data.amount,
       },
     });
   };
 
+  const handleDelete = () => {
+    if (!window.confirm(`Delete this transaction for "${record.student_name}"? This cannot be undone.`)) return;
+    router.delete(`/graduate-ledger/${record.id}`);
+  };
+
   return (
     <div className="min-h-screen bg-[#FAFAF5] p-4 md:p-8">
-      <Head title="Add Transaction" />
+      <Head title="Edit Transaction" />
       <div className="max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center gap-2 border-b border-[#CFE3FF] pb-4">
-          <Button variant="outline" size="sm" onClick={() => router.get('/graduate-ledger')} className="border-[#CFE3FF] text-[#0B3D91]">
-            <ArrowLeft className="h-4 w-4 mr-1" /> Back
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-[#0B3D91]">Add New Transaction</h1>
-            <p className="text-sm text-[#5C7A9E] mt-1">Create a manual ledger transaction entry for a student.</p>
+        <div className="flex items-center justify-between border-b border-[#CFE3FF] pb-4">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => router.get('/graduate-ledger')} className="border-[#CFE3FF] text-[#0B3D91]">
+              <ArrowLeft className="h-4 w-4 mr-1" /> Back
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-[#0B3D91]">Edit Transaction</h1>
+              <p className="text-sm text-[#5C7A9E] mt-1">Update the ledger transaction details below.</p>
+            </div>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDelete}
+            className="border-red-200 text-red-600 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4 mr-1" /> Delete
+          </Button>
         </div>
 
         <Card className="border-[#CFE3FF] bg-white">
           <CardHeader>
             <CardTitle className="text-base text-[#0B3D91]">Transaction Details</CardTitle>
-            <CardDescription className="text-[#7FA6D6]">Fill in the student information and financial details below.</CardDescription>
+            <CardDescription className="text-[#7FA6D6]">Update the student information and financial details below.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-              {/* Student Name with autocomplete datalist */}
+              {/* Student Name with autocomplete */}
               <div className="md:col-span-2">
                 <label className="text-sm text-[#334E68]">Student Name</label>
                 <Input
@@ -149,7 +183,6 @@ export default function AddTransaction({ studentNames, authUserName }: Props) {
 
               <div>
                 <label className="text-sm text-[#334E68]">Semester Short</label>
-                <p className="text-xs text-[#7FA6D6] mb-1">Short label for the term, such as 1st Sem. or 2nd Sem.</p>
                 <select
                   value={data.semester_short}
                   onChange={(e) => {
@@ -273,7 +306,7 @@ export default function AddTransaction({ studentNames, authUserName }: Props) {
                   disabled={processing}
                   className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white disabled:opacity-60"
                 >
-                  {processing ? 'Saving...' : 'Save Transaction'}
+                  {processing ? 'Saving...' : 'Update Transaction'}
                 </Button>
               </div>
             </form>
