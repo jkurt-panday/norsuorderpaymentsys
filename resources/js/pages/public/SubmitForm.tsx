@@ -46,8 +46,6 @@ interface Props {
 }
 
 export default function SubmitForm({ memberships, paymentOptions }: Props) {
-    // functions
-    const [value, setValue] = useState('');
 
     // ? form handling
     const { data, setData, processing, errors, reset } = useForm({
@@ -95,7 +93,6 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                 console.log('Success!', page);
                 reset();
                 setSupportingDocuments([]);
-                setValue('');
             },
             onError: (errors) => {
                 console.error('Validation errors:', errors);
@@ -130,7 +127,10 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                 ...prev,
                 [key]: Math.min(progress, 100),
             }));
-            if (progress >= 100) clearInterval(interval);
+
+            if (progress >= 100) {
+                clearInterval(interval);
+            }
         }, 80);
     };
 
@@ -818,7 +818,6 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                     onClick={() => {
                                         reset();
                                         setSupportingDocuments([]);
-                                        setValue('');
                                     }}
                                 >
                                     Cancel
