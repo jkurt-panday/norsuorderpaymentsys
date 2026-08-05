@@ -1,5 +1,8 @@
 import React from 'react';
-import { store, index } from '@/actions/App/Http/Controllers/PaymentDetailOptionController';
+import {
+    store,
+    index,
+} from '@/actions/App/Http/Controllers/PaymentDetailOptionController';
 import ResourceForm, { type FieldDef } from '@/components/ResourceForm';
 
 const fields: FieldDef[] = [
@@ -8,6 +11,7 @@ const fields: FieldDef[] = [
         label: 'Payment Description',
         required: true,
         colSpan: 'full',
+        placeholder: 'Enter the payment description',
     },
 ];
 

@@ -20,7 +20,7 @@ interface StaffInputFormInput {
     amount: number;
     request_type: string;
     membership: Membership | null;
-    paymentDetailOption: PaymentDetailOption | null;
+    payment_detail_option: PaymentDetailOption | null;
 }
 
 interface StaffInputRecord {
@@ -30,7 +30,7 @@ interface StaffInputRecord {
     ref_date: string;
     uacs_id: number;
     status: 'pending' | 'approved' | 'cancelled';
-    formInput: StaffInputFormInput;
+    form_input: StaffInputFormInput;
 }
 
 interface BankAccount {
@@ -79,7 +79,7 @@ const formatCurrency = (amount: number) => {
 export default function EditRequest() {
     const { staffInput, bankAccounts, documents, uacsList, flash } = usePage()
         .props as unknown as PageProps;
-    const formInput = staffInput.formInput;
+    const formInput = staffInput.form_input;
 
     useEffect(() => {
         if (flash?.success) toast.success(flash.success);
@@ -444,7 +444,7 @@ export default function EditRequest() {
                                         Payment Option:
                                     </p>
                                     <p className="text-slate-800">
-                                        {formInput.paymentDetailOption
+                                        {formInput.payment_detail_option
                                             ?.payment_desc ?? 'N/A'}
                                     </p>
                                 </div>

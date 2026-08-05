@@ -20,7 +20,9 @@ interface FormInput {
     amount: number;
     request_type: string;
     membership: Membership | null;
-    paymentDetailOption: PaymentDetailOption | null;
+    // Was `paymentDetailOption` — reverted to Laravel/Eloquent's default
+    // snake_case relation key, matching the database directly.
+    payment_detail_option: PaymentDetailOption | null;
 }
 
 interface BankAccount {
@@ -28,7 +30,6 @@ interface BankAccount {
     account_name: string;
     bank_name: string;
     account_num: string;
-    fund_cluster: string;
 }
 
 interface DocumentItem {
@@ -172,14 +173,13 @@ export default function ProcessRequest() {
                                             required
                                         >
                                             <option value="">
-                                                Select Fund Cluster
+                                                Select Bank Account
                                             </option>
                                             {bankAccounts.map((account) => (
                                                 <option
                                                     key={account.id}
                                                     value={account.id}
                                                 >
-                                                    {account.fund_cluster} -{' '}
                                                     {account.account_name} -{' '}
                                                     {account.bank_name} (
                                                     {account.account_num})
@@ -435,7 +435,7 @@ export default function ProcessRequest() {
                                         Payment Option:
                                     </p>
                                     <p className="text-slate-800">
-                                        {formInput.paymentDetailOption
+                                        {formInput.payment_detail_option
                                             ?.payment_desc ?? 'N/A'}
                                     </p>
                                 </div>

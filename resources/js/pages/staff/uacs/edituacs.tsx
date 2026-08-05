@@ -24,11 +24,13 @@ export default function EditUacs({ uacs }: EditUacsProps) {
                     name: 'object_code',
                     label: 'Object Code',
                     required: true,
+                    placeholder: 'Enter the object code',
                 },
                 {
                     name: 'account_title',
                     label: 'Account Title',
                     required: true,
+                    placeholder: 'Enter the account title',
                 },
             ]}
             initialData={{
