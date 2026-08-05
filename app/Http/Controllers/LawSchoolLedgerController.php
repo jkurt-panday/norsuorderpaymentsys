@@ -84,7 +84,21 @@ class LawSchoolLedgerController extends Controller
             ->whereNotIn(DB::raw('UPPER(TRIM(ar_or_payment))'), ['AR', 'ASSESSMENT'])
             ->sum(DB::raw('ABS(amount)'));
 
-        $outstandingBalance = max(0, $totalCharges - $totalPayments);
+        $outstandingBalance = (float) DB::query()
+            ->fromSub(
+                (clone $query)
+                    ->select([
+                        'last_name',
+                        'first_name',
+                        'middle_initial',
+                        DB::raw('SUM(CASE WHEN UPPER(TRIM(ar_or_payment)) IN (\'AR\', \'ASSESSMENT\') THEN amount ELSE 0 END) as charges'),
+                        DB::raw('SUM(CASE WHEN ar_or_payment IS NOT NULL AND ar_or_payment != \'\' AND UPPER(TRIM(ar_or_payment)) NOT IN (\'AR\', \'ASSESSMENT\') THEN ABS(amount) ELSE 0 END) as payments'),
+                    ])
+                    ->groupBy('last_name', 'first_name', 'middle_initial'),
+                'student_balances'
+            )
+            ->select(DB::raw('SUM(GREATEST(charges - payments, 0)) as outstanding'))
+            ->value('outstanding');
 
         // 2. Fetch paginated records
         $records = $query
