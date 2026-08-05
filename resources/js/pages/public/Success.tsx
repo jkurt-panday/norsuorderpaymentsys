@@ -9,8 +9,10 @@ import {
     User,
     Receipt,
     IdCard,
+    Printer,
 } from 'lucide-react';
-import React from 'react';
+import React, { useRef } from 'react';
+import { useReactToPrint } from 'react-to-print';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -118,6 +120,15 @@ export default function Success({ reference_number, formInput }: Props) {
         }
     };
 
+    // ? for printing
+    const receiptRef = useRef<HTMLDivElement>(null);
+
+    const handlePrint = useReactToPrint({
+        contentRef: receiptRef,
+
+        documentTitle: `Receipt-${reference_number}`,
+    });
+
     // console.log('formInput:', formInput);
     // console.log('supportingDocuments:', formInput?.supporting_documents);
     // console.log('keys:', Object.keys(formInput ?? {}));
@@ -126,9 +137,13 @@ export default function Success({ reference_number, formInput }: Props) {
         <>
             <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-100 to-white py-12">
                 <div className="mx-auto max-w-5xl px-6">
-                    <div className="borderborder-red-400 container mx-auto max-w-4xl px-4 py-8">
-                        <Card className="overflow-hidden rounded-3xl bg-white shadow-2xl">
-                            <CardHeader className="-mx-6 -mt-6 rounded-t-3xl rounded-b-3xl bg-linear-to-b from-blue-600 to-blue-400 px-8 py-10 text-center text-white">
+                    <div
+                        className="print-container container mx-auto max-w-4xl rounded-3xl px-4 py-8"
+                        id="print-receipt"
+                        ref={receiptRef}
+                    >
+                        <Card className="print-card overflow-hidden rounded-3xl bg-white shadow-2xl print:shadow-none">
+                            <CardHeader className="print-header -mx-6 -mt-6 rounded-t-3xl rounded-b-3xl bg-linear-to-b from-blue-600 to-blue-400 px-8 py-10 text-center text-white">
                                 <div className="mx-auto flex items-center justify-center">
                                     <img
                                         src="/norsu.png"
@@ -150,7 +165,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                 </CardDescription>
                             </CardHeader>
 
-                            <CardContent className="space-y-10 pt-8">
+                            <CardContent className="print-content space-y-10 pt-8">
                                 {/* Reference Number */}
                                 <div className="rounded-2xl border border-blue-100 bg-blue-50 p-8 text-center shadow-sm">
                                     <p className="text-sm text-muted-foreground">
@@ -382,7 +397,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                 </div>
                             </CardContent>
 
-                            <CardFooter className="flex flex-col gap-4 border-t pt-6">
+                            <CardFooter className="print-hidden flex flex-col gap-4 border-t pt-6 no-print">
                                 <div className="max-w-2xl text-center text-base leading-7 text-slate-600">
                                     <p>
                                         A confirmation email has been sent to
@@ -398,9 +413,11 @@ export default function Success({ reference_number, formInput }: Props) {
                                     </Button>
                                     <Button
                                         variant="outline"
+                                        onClick={handlePrint}
                                         className="h-12 rounded-xl border-blue-200 px-8 text-base font-semibold text-blue-700 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800"
                                     >
-                                        <Link href="/">Go to Home</Link>
+                                        <Printer className="mr-2 h-5 w-5" />
+                                        Print Receipt
                                     </Button>
                                 </div>
                             </CardFooter>
