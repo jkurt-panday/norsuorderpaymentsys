@@ -2,7 +2,6 @@
 import { Link } from '@inertiajs/react';
 import {
     CheckCircle,
-    Download,
     FileText,
     Mail,
     Phone,
