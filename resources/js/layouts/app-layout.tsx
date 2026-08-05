@@ -1,3 +1,4 @@
+import { useFlashToast } from '@/hooks/use-flash-toast';
 import AppLayoutTemplate from '@/layouts/app/app-sidebar-layout';
 import type { BreadcrumbItem } from '@/types';
 
@@ -8,6 +9,8 @@ export default function AppLayout({
     breadcrumbs?: BreadcrumbItem[];
     children: React.ReactNode;
 }) {
+    useFlashToast();
+
     return (
         <AppLayoutTemplate breadcrumbs={breadcrumbs}>
             {children}

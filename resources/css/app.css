@@ -16,9 +16,7 @@
 
 @theme {
     --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
-        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-        'Noto Color Emoji';
+        'Geist Variable', sans-serif;
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -218,8 +216,6 @@
 @theme inline {
     --font-heading:
         var(--font-sans);
-    --font-sans:
-        'Geist Variable', sans-serif;
     --color-sidebar-ring:
         var(--sidebar-ring);
     --color-sidebar-border:
