@@ -120,7 +120,7 @@ function AppSidebar() {
                                 >
                                     <CollapsibleTrigger
                                         render={
-                                            <SidebarMenuButton className="my-0.5 rounded-lg px-3 py-2.5 text-[15px] font-medium text-white hover:bg-white/5" />
+                                            <SidebarMenuButton className="my-0.5 rounded-lg px-3 py-2.5 text-[15px] font-medium text-white hover:bg-white/5 hover:text-white" />
                                         }
                                     >
                                         {item.icon && (

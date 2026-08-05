@@ -69,9 +69,11 @@ return students;
 
   const handleSelect = (name: string) => {
     setSelected(name);
-    setQuery(name);
-    setOpen(false);
     router.get('/graduate-ledger/print-select', { student: name }, { preserveState: true });
+  };
+
+  const handleStudentSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    handleSelect(e.target.value);
   };
 
   const handleOpenPdf = () => {
