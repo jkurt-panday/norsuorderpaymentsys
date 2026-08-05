@@ -26,9 +26,9 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import PublicLayout from '@/pages/layouts/PublicLayout';
 
-const reqType = ['New Request', 'Re-issue Request', 'Other'] as const;
+const reqType = ['New Request', 'Re-issue Request'] as const;
 const enlarge =
-    "h-12 rounded-xl border-slate-300 bg-white px-4 text-base shadow-sm transition-all duration-200";
+    'h-12 rounded-xl border-slate-300 bg-white px-4 text-base shadow-sm transition-all duration-200';
 
 interface Membership {
     id: number | string;
@@ -106,26 +106,32 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
     };
 
     // Tracks animated upload progress (0-100) for each file, keyed by a stable file identifier
-    const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+    const [uploadProgress, setUploadProgress] = useState<
+        Record<string, number>
+    >({});
 
     // Builds a stable, unique key for a File object so we can track its progress
-        const getFileKey = (file: File) => `${file.name}-${file.size}-${file.lastModified}`;
-    
-        // Animates a single file's progress from 0 to 100 over ~0.8s
-        const animateFileProgress = (file: File) => {
-            const key = getFileKey(file);
-            setUploadProgress((prev) => ({ ...prev, [key]: 0 }));
-    
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += 10;
-                setUploadProgress((prev) => ({ ...prev, [key]: Math.min(progress, 100) }));
-                
-                if (progress >= 100) {
-                    clearInterval(interval);
-                }
-            }, 80);
-        };
+    const getFileKey = (file: File) =>
+        `${file.name}-${file.size}-${file.lastModified}`;
+
+    // Animates a single file's progress from 0 to 100 over ~0.8s
+    const animateFileProgress = (file: File) => {
+        const key = getFileKey(file);
+        setUploadProgress((prev) => ({ ...prev, [key]: 0 }));
+
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += 10;
+            setUploadProgress((prev) => ({
+                ...prev,
+                [key]: Math.min(progress, 100),
+            }));
+
+            if (progress >= 100) {
+                clearInterval(interval);
+            }
+        }, 80);
+    };
 
     // ? file upload
     // Add state for supporting documents
@@ -159,8 +165,17 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
         <>
             <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-200 to-white px-6 py-12">
                 <div className="mx-auto max-w-4xl">
-                <div className="mb-10 rounded-2xl border border-blue-100 bg-white px-8 py-8 text-center shadow-md">
-                    <h1 className="text-4xl font-bold tracking-tight text-blue-900">
+                    <div className="mb-10 rounded-2xl border border-blue-100 bg-white px-8 py-8 text-center shadow-md">
+                        <div className="flex justify-center">
+                            <img
+                                src="/finance_logo1.png"
+                                alt="NORSU Logo"
+                                width={200}
+                                height={200}
+                                className='pb-6'
+                            />
+                        </div>
+                        <h1 className="text-4xl font-bold tracking-tight text-blue-900">
                             Order of Payment Request
                         </h1>
                         <p className="mt-3 text-base text-slate-600">
@@ -168,7 +183,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                         </p>
                     </div>
                     <form onSubmit={handleSubmit}>
-                    <Card className="overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-xl">
+                        <Card className="overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-xl">
                             <CardHeader className="border-b border-slate-100 bg-white pb-6">
                                 <CardTitle className="flex items-center gap-3 text-xl font-semibold text-blue-900">
                                     <Mail className="h-5 w-5 text-blue-600" />
@@ -186,7 +201,10 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         <div className="space-y-2">
                                             {/* email add */}
                                             <Field>
-                                                <FieldLabel htmlFor="input-field-email" className="mb-2 font-medium text-slate-700">
+                                                <FieldLabel
+                                                    htmlFor="input-field-email"
+                                                    className="mb-2 font-medium text-slate-700"
+                                                >
                                                     Email Address
                                                 </FieldLabel>
                                                 <Input
@@ -212,7 +230,10 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         <div className="space-y-2">
                                             {/* contact num */}
                                             <Field>
-                                                <FieldLabel htmlFor="input-field-contact" className="mb-2 font-medium text-slate-700">
+                                                <FieldLabel
+                                                    htmlFor="input-field-contact"
+                                                    className="mb-2 font-medium text-slate-700"
+                                                >
                                                     Contact Number
                                                 </FieldLabel>
                                                 <Input
@@ -252,14 +273,17 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         <div className="space-y-2">
                                             {/* first name / office */}
                                             <Field>
-                                                <FieldLabel htmlFor="input-field-fname" className="mb-2 font-medium text-slate-700">
+                                                <FieldLabel
+                                                    htmlFor="input-field-fname"
+                                                    className="mb-2 font-medium text-slate-700"
+                                                >
                                                     First Name / Office
                                                 </FieldLabel>
                                                 <Input
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-fname"
                                                     type="text"
-                                                    placeholder='Juan'
+                                                    placeholder="Juan"
                                                     value={
                                                         data.firstname_or_office
                                                     }
@@ -282,14 +306,17 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         <div className="space-y-2">
                                             {/* middle name / project */}
                                             <Field>
-                                                <FieldLabel htmlFor="input-field-mname" className="mb-2 font-medium text-slate-700">
+                                                <FieldLabel
+                                                    htmlFor="input-field-mname"
+                                                    className="mb-2 font-medium text-slate-700"
+                                                >
                                                     Middle Name / Project
                                                 </FieldLabel>
                                                 <Input
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-mname"
                                                     type="text"
-                                                    placeholder='Carlos'
+                                                    placeholder="Carlos"
                                                     value={
                                                         data.middlename_or_project
                                                     }
@@ -312,14 +339,17 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         <div className="space-y-2">
                                             {/* last name / agency */}
                                             <Field>
-                                                <FieldLabel htmlFor="input-field-lname" className="mb-2 font-medium text-slate-700">
+                                                <FieldLabel
+                                                    htmlFor="input-field-lname"
+                                                    className="mb-2 font-medium text-slate-700"
+                                                >
                                                     Last Name / Agency
                                                 </FieldLabel>
                                                 <Input
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-lname"
                                                     type="text"
-                                                    placeholder='Dela Cruz'
+                                                    placeholder="Dela Cruz"
                                                     value={
                                                         data.lastname_or_agency
                                                     }
@@ -346,14 +376,17 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         <div className="space-y-2">
                                             {/* office / college */}
                                             <Field>
-                                                <FieldLabel htmlFor="input-field-off-coll" className="mb-2 font-medium text-slate-700">
+                                                <FieldLabel
+                                                    htmlFor="input-field-off-coll"
+                                                    className="mb-2 font-medium text-slate-700"
+                                                >
                                                     Office / College
                                                 </FieldLabel>
                                                 <Input
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-off-coll"
                                                     type="text"
-                                                    placeholder='College of Arts and Sciences'
+                                                    placeholder="College of Arts and Sciences"
                                                     value={
                                                         data.office_or_college
                                                     }
@@ -376,13 +409,16 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         <div className="space-y-2">
                                             {/* position / designation */}
                                             <Field>
-                                                <FieldLabel htmlFor="input-field-pos-des" className="mb-2 font-medium text-slate-700">
+                                                <FieldLabel
+                                                    htmlFor="input-field-pos-des"
+                                                    className="mb-2 font-medium text-slate-700"
+                                                >
                                                     Position / Designation
                                                 </FieldLabel>
                                                 <Input
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-pos-des"
-                                                    placeholder='Teacher'
+                                                    placeholder="Teacher"
                                                     type="text"
                                                     value={
                                                         data.position_or_designation
@@ -408,14 +444,17 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 <div className="space-y-4">
                                     {/* address */}
                                     <Field>
-                                        <FieldLabel htmlFor="input-field-address" className="mb-2 font-medium text-slate-700">
+                                        <FieldLabel
+                                            htmlFor="input-field-address"
+                                            className="mb-2 font-medium text-slate-700"
+                                        >
                                             Address
                                         </FieldLabel>
                                         <Input
                                             className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                             id="input-field-address"
                                             type="text"
-                                            placeholder='Kagawasan Ave. Dumaguete City'
+                                            placeholder="Kagawasan Ave. Dumaguete City"
                                             value={data.address}
                                             onChange={(e) =>
                                                 setData(
@@ -439,11 +478,14 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
                                     {/* amount */}
                                     <Field>
-                                        <FieldLabel htmlFor="input-field-amount" className="mb-2 font-medium text-slate-700">
+                                        <FieldLabel
+                                            htmlFor="input-field-amount"
+                                            className="mb-2 font-medium text-slate-700"
+                                        >
                                             Amount
                                         </FieldLabel>
                                         <div className="flex">
-                                            <div className="flex h-12 items-center justify-center rounded-l-md border border-r-0 px-4 text-base bg-blue-50 text-blue-700 border-blue-200 font-semibold">
+                                            <div className="flex h-12 items-center justify-center rounded-l-md border border-r-0 border-blue-200 bg-blue-50 px-4 text-base font-semibold text-blue-700">
                                                 &#x20B1;
                                             </div>
                                             <Input
@@ -475,7 +517,10 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                     </Field>
                                     {/* request type */}
                                     <Field>
-                                        <FieldLabel htmlFor="input-field-reqtype" className="mb-2 font-medium text-slate-700">
+                                        <FieldLabel
+                                            htmlFor="input-field-reqtype"
+                                            className="mb-2 font-medium text-slate-700"
+                                        >
                                             Request Type
                                         </FieldLabel>
                                         <Combobox
@@ -518,7 +563,10 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                     </Field>
                                     {/* membership type */}
                                     <Field>
-                                        <FieldLabel htmlFor="input-field-memtype" className="mb-2 font-medium text-slate-700">
+                                        <FieldLabel
+                                            htmlFor="input-field-memtype"
+                                            className="mb-2 font-medium text-slate-700"
+                                        >
                                             Membership Type
                                         </FieldLabel>
                                         <Combobox
@@ -579,7 +627,10 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
 
                                     {/* payment details */}
                                     <Field>
-                                        <FieldLabel htmlFor="input-field-paydet" className="mb-2 font-medium text-slate-700">
+                                        <FieldLabel
+                                            htmlFor="input-field-paydet"
+                                            className="mb-2 font-medium text-slate-700"
+                                        >
                                             Payment Details
                                         </FieldLabel>
                                         <Combobox
@@ -645,7 +696,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 {/* File Upload Drop Zone */}
                                 <FileUpload.Root>
                                     <FileUpload.DropZone
-                                    className="rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50/40 transition hover:border-blue-500 hover:bg-blue-50"
+                                        className="rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50/40 transition hover:border-blue-500 hover:bg-blue-50"
                                         onDropFiles={handleFileDrop}
                                         onDropUnacceptedFiles={(files) => {
                                             console.log(
@@ -733,10 +784,16 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                             key={`${file.name}-${index}`}
                                                             name={file.name}
                                                             size={file.size}
-                                                            progress={uploadProgress[getFileKey(file)] ?? 0}
+                                                            progress={
+                                                                uploadProgress[
+                                                                    getFileKey(
+                                                                        file,
+                                                                    )
+                                                                ] ?? 0
+                                                            }
                                                             type={iconType}
                                                             // Force light background and make child button icons clearly visible:
-                                                            className="text-blue-100 [&_button:hover]:bg-gray-100! [&_button:hover]:text-gray-900! rounded-xl border border-blue-100 bg-blue-600 shadow-sm"
+                                                            className="rounded-xl border border-blue-100 bg-blue-600 text-blue-100 shadow-sm [&_button:hover]:bg-gray-100! [&_button:hover]:text-gray-900!"
                                                             onDelete={() =>
                                                                 handleFileDelete(
                                                                     index,
@@ -756,13 +813,11 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 </FileUpload.Root>
                             </CardContent>
 
-                            <CardFooter
-                                className="flex justify-end gap-2 pt-2 px-8 py-6"
-                            >
+                            <CardFooter className="flex justify-end gap-2 px-8 py-6 pt-2">
                                 <Button
                                     variant="outline"
                                     type="button"
-                                    className='rounded-xl border-slate-300 hover:bg-slate-100'
+                                    className="rounded-xl border-slate-300 hover:bg-slate-100"
                                     onClick={() => {
                                         reset();
                                         setSupportingDocuments([]);
@@ -771,7 +826,11 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 >
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={processing} className='rounded-xl bg-blue-600 hover:bg-blue-800 shadow-md font-semibold'>
+                                <Button
+                                    type="submit"
+                                    disabled={processing}
+                                    className="rounded-xl bg-blue-600 font-semibold shadow-md hover:bg-blue-800"
+                                >
                                     {processing
                                         ? 'Submitting...'
                                         : 'Submit Request'}

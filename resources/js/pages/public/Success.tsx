@@ -130,6 +130,15 @@ export default function Success({ reference_number, formInput }: Props) {
                     <div className="borderborder-red-400 container mx-auto max-w-4xl px-4 py-8">
                         <Card className="overflow-hidden rounded-3xl bg-white shadow-2xl">
                             <CardHeader className="-mx-6 -mt-6 rounded-t-3xl rounded-b-3xl bg-linear-to-b from-blue-600 to-blue-400 px-8 py-10 text-center text-white">
+                                <div className="mx-auto flex items-center justify-center">
+                                    <img
+                                        src="/norsu.png"
+                                        alt="NORSU Logo"
+                                        width={200}
+                                        height={200}
+                                        className="pb-6"
+                                    />
+                                </div>
                                 <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm">
                                     <CheckCircle className="h-14 w-14 text-white" />
                                 </div>
