@@ -88,7 +88,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
         // }
 
         // Use post with FormData
-        router.post('/public/form', formData, {
+        router.post('/public/submit', formData, {
             onSuccess: (page) => {
                 console.log('Success!', page);
                 reset();
