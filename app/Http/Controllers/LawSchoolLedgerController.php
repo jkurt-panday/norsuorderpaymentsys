@@ -394,12 +394,16 @@ class LawSchoolLedgerController extends Controller
 
     private function transformRecord(LawSchoolLedger $r): array
     {
+        $studentName = trim("$r->last_name, $r->first_name " . ($r->middle_initial ? "$r->middle_initial" : ''));
+        $studentRecords = $this->queryStudentByName($studentName)->get();
+        $balanceSummary = $this->calculateStudentBalance($studentRecords);
+        
         return [
             'id' => $r->id,
             'lastName' => $r->last_name,
             'firstName' => $r->first_name,
             'middleInitial' => $r->middle_initial,
-            'name' => trim("$r->last_name, $r->first_name " . ($r->middle_initial ? "$r->middle_initial" : '')),
+            'name' => $studentName,
             'course' => $r->course,
             'schoolYear' => $r->school_year,
             'semesterOrSummer' => $r->semester_or_summer,
@@ -411,7 +415,7 @@ class LawSchoolLedgerController extends Controller
             'arOrPayment' => $r->ar_or_payment,
             'amount' => (float) $r->amount,
             'status' => $r->status,
-            'remark' => $r->remarks,
+            'remark' => $balanceSummary['outstandingBalance'] <= 0 ? 'Settled' : 'Outstanding',
             'inputBy' => $r->input_by,
         ];
     }
