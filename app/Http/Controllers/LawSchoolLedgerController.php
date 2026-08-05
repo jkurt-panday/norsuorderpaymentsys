@@ -797,7 +797,7 @@ class LawSchoolLedgerController extends Controller
         return [
             'totalAssessments' => $totalAssessments,
             'totalPayments' => $totalPayments,
-            'outstandingBalance' => $totalAssessments - $totalPayments,
+            'outstandingBalance' => max(0, $totalAssessments - $totalPayments),
         ];
     }
 
