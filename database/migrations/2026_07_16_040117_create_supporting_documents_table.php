@@ -19,7 +19,7 @@ return new class extends Migration
             $table->unsignedBigInteger('file_size');
             $table->timestamp('uploaded_at');
             $table->timestamps();
-            
+
             $table->index('form_input_id');
             $table->index('uploaded_at');
             $table->index('stored_filename');

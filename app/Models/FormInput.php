@@ -64,6 +64,6 @@ class FormInput extends Model
     // Accessor for full name
     public function getFullNameAttribute(): string
     {
-        return trim($this->firstname_or_office . ' ' . $this->middlename_or_project . ' ' . $this->lastname_or_agency);
+        return trim($this->firstname_or_office.' '.$this->middlename_or_project.' '.$this->lastname_or_agency);
     }
 }

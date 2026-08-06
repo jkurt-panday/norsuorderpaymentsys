@@ -42,7 +42,7 @@ class GraduateLedgerTest extends TestCase
         ]);
     }
 
-    public function test_index_can_filter_records_by_year_and_month(): void
+    public function test_index_can_filter_records_by_school_year_and_date_range(): void
     {
         $user = User::factory()->create();
 
@@ -76,7 +76,7 @@ class GraduateLedgerTest extends TestCase
             'input_by' => 'Admin',
         ]);
 
-        $response = $this->actingAs($user)->get('/graduate-ledger?year=2024&month=7');
+        $response = $this->actingAs($user)->get('/graduate-ledger?school_year=2024-2025&date_from=2024-07-01&date_to=2024-07-31');
 
         $response->assertOk();
         $response->assertSee('Filtered Student');
