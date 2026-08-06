@@ -2,13 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StaffInput extends Model
 {
-    use HasFactory;
+    protected $table = 'staff_inputs';
 
     protected $fillable = [
         'form_input_id',
@@ -19,46 +17,18 @@ class StaffInput extends Model
         'status',
     ];
 
-    protected $casts = [
-        'ref_date' => 'date',
-        'status' => 'string',
-    ];
-
-    public function formInput(): BelongsTo
-    {
-        return $this->belongsTo(FormInput::class);
-    }
-
-    public function bankAccount(): BelongsTo
+    public function fundCluster()
     {
         return $this->belongsTo(BankAccountInfo::class, 'fundcluster_id');
     }
 
-    public function referenceDocument(): BelongsTo
+    public function uacs()
     {
-        return $this->belongsTo(SupportingDocument::class, 'ref_document_id');
+        return $this->belongsTo(UACS::class);
     }
 
-    public function uacs(): BelongsTo
+    public function formInput()
     {
-        return $this->belongsTo(Uacs::class);
-    }
-
-    // Accessor for status badge
-    public function getStatusBadgeAttribute(): string
-    {
-        $badges = [
-            'pending' => 'badge-warning',
-            'approved' => 'badge-success',
-            'cancelled' => 'badge-danger',
-        ];
-
-        return $badges[$this->status] ?? 'badge-secondary';
-    }
-
-    // Accessor for status label
-    public function getStatusLabelAttribute(): string
-    {
-        return ucfirst($this->status);
+        return $this->belongsTo(FormInput::class);
     }
 }

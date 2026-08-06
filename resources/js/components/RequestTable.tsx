@@ -370,7 +370,7 @@ export default function RequestTable<T extends { id: number | string }>({
 
             {/* ---- Filter bar: search + status + date range ---- */}
             <Card className="min-w-0 overflow-x-auto border-slate-200/70 shadow-sm">
-                <CardContent className="p-4 sm:p-5">
+                <CardContent className="p-5 sm:p-5">
                     <form onSubmit={onFilterSubmit} className="space-y-4">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12">
                             <div className="flex flex-col gap-1.5 lg:col-span-4">

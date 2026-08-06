@@ -4,14 +4,19 @@ use App\Http\Controllers\FormInputController;
 use App\Http\Controllers\StaffInputController;
 use Illuminate\Support\Facades\Route;
 
+<<<<<<< HEAD
 // ─────────────────────────────────────────────────────────────────────────────
 // Client Routes (no authentication required)
 // ─────────────────────────────────────────────────────────────────────────────
 
+=======
+// Client routes (no authentication needed for form submission)
+>>>>>>> origin
 Route::prefix('client')->group(function () {
     // Public form submission
     Route::post('/form-input', [FormInputController::class, 'store']);
     Route::get('/form-input/{id}', [FormInputController::class, 'show']);
+<<<<<<< HEAD
 
     // Optional: For checking form status
     Route::get('/form-input/{id}/status', [FormInputController::class, 'checkStatus']);
@@ -21,6 +26,11 @@ Route::prefix('client')->group(function () {
 // Staff Routes (Sanctum token auth protected)
 // ─────────────────────────────────────────────────────────────────────────────
 
+=======
+});
+
+// Staff routes (protected with authentication)
+>>>>>>> origin
 Route::prefix('staff')->middleware(['auth:sanctum'])->group(function () {
     // Staff input management
     Route::post('/staff-input', [StaffInputController::class, 'store']);

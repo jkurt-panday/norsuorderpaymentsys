@@ -1,5 +1,6 @@
 import { Link, usePage, router } from '@inertiajs/react';
 import {
+<<<<<<< HEAD
     Home,
     FileText,
     Users,
@@ -31,6 +32,22 @@ import {
     CollapsibleContent,
 } from '@/components/ui/collapsible';
 import {
+=======
+    GraduationCap,
+    HandCoins,
+    Receipt,
+    Award,
+    Settings,
+    BookOpen,
+    Scale,
+    ChevronRight,
+    FolderGit2
+} from 'lucide-react';
+import AppLogo from '@/components/app-logo';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import { Separator } from '@/components/ui/separator';
+import {
+>>>>>>> origin
     Sidebar,
     SidebarContent,
     SidebarFooter,
@@ -45,6 +62,10 @@ import {
     SidebarMenuSubItem,
     SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
+<<<<<<< HEAD
+=======
+import { dashboard } from '@/routes';
+>>>>>>> origin
 import type { AppLayoutProps } from '@/types';
 
 interface SidebarItem {
@@ -58,6 +79,7 @@ interface SidebarItem {
 }
 
 const mainNavItems: SidebarItem[] = [
+<<<<<<< HEAD
     { title: 'Dashboard', href: '/staff/staffdashboard', icon: Home },
     { title: 'Requests', href: '/staff/requests', icon: FileText },
     { title: 'Bank Accounts', href: '/staff/bank-accounts', icon: Building },
@@ -71,6 +93,13 @@ const mainNavItems: SidebarItem[] = [
     {
         title: 'Graduate Ledger',
         icon: HandCoins,
+=======
+
+    { title: 'Profile Settings', href: '#profile-settings', icon: Settings },
+    {
+        title: 'Graduate Ledger',
+        icon: BookOpen,
+>>>>>>> origin
         items: [
             { title: 'Ledger Overview', href: '/graduate-ledger' },
             { title: 'Print Statement', href: '/graduate-ledger/print-select' },
@@ -87,6 +116,7 @@ const mainNavItems: SidebarItem[] = [
     },
 ];
 
+<<<<<<< HEAD
 // Main Sidebar Component
 function AppSidebar() {
     const { url } = usePage();
@@ -266,12 +296,22 @@ function AppSidebarHeader({
 }
 
 // Main Layout Component
+=======
+const footerNavItems = [
+    { title: 'Repository', href: 'https://github.com/laravel/react-starter-kit', icon: FolderGit2 },
+    { title: 'Documentation', href: 'https://laravel.com/docs/starter-kits#react', icon: BookOpen },
+];
+
+>>>>>>> origin
 export default function AppSidebarLayout({
     children,
     breadcrumbs = [],
 }: AppLayoutProps) {
+    const { url } = usePage();
+
     return (
         <SidebarProvider>
+<<<<<<< HEAD
             <div className="flex h-screen w-full">
                 <AppSidebar />
                 <SidebarInset>
@@ -281,6 +321,149 @@ export default function AppSidebarLayout({
                     </main>
                 </SidebarInset>
             </div>
+=======
+            <Sidebar collapsible="icon" variant="inset">
+                <SidebarHeader>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton size="lg" className="h-auto py-2" render={<Link href={dashboard.url()} prefetch />}>
+                                <AppLogo />
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarHeader>
+
+                <SidebarContent>
+                    <SidebarMenu>
+                        {mainNavItems.map((item) => {
+                            const hasSubItems = item.items && item.items.length > 0;
+                            
+                            if (hasSubItems) {
+                                return (
+                                    <Collapsible key={item.title} className="group/collapsible">
+                                        <SidebarMenuItem>
+                                            <CollapsibleTrigger render={<SidebarMenuButton tooltip={item.title} />}>
+                                                {item.icon && <item.icon />}
+                                                <span>{item.title}</span>
+                                                <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                            </CollapsibleTrigger>
+                                            <CollapsibleContent>
+                                                <SidebarMenuSub>
+                                                    {item.items?.map((subItem) => (
+                                                        <SidebarMenuSubItem key={subItem.title}>
+                                                            <SidebarMenuSubButton
+                                                                isActive={url === subItem.href}
+                                                                href={subItem.href}
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    router.visit(subItem.href);
+                                                                }}
+                                                            >
+                                                                <span>{subItem.title}</span>
+                                                            </SidebarMenuSubButton>
+                                                        </SidebarMenuSubItem>
+                                                    ))}
+                                                </SidebarMenuSub>
+                                            </CollapsibleContent>
+                                        </SidebarMenuItem>
+                                    </Collapsible>
+                                );
+                            }
+
+                            return (
+                                <SidebarMenuItem key={item.title}>
+                                    <SidebarMenuButton
+                                        isActive={url.startsWith(item.href || '')}
+                                        tooltip={item.title}
+                                        render={<Link href={item.href || '#'} prefetch />}
+                                    >
+                                        {item.icon && <item.icon />}
+                                        <span>{item.title}</span>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            );
+                        })}
+
+                        {/* 
+                          * ==========================================
+                          * COMMENT: ADD MORE NAVIGATION ITEMS HERE 
+                          * ==========================================
+                          * You can add a standard item:
+                          * 
+                          * <SidebarMenuItem>
+                          *     <SidebarMenuButton tooltip="New Item" render={<Link href="#new-link" />}>
+                          *         <IconComponent className="size-4" />
+                          *         <span>New Item</span>
+                          *     </SidebarMenuButton>
+                          * </SidebarMenuItem>
+                          * 
+                          * Or a dropdown/collapsible item:
+                          * 
+                          * <Collapsible asChild className="group/collapsible">
+                          *     <SidebarMenuItem>
+                          *         <CollapsibleTrigger render={<SidebarMenuButton tooltip="New Dropdown" />}>
+                          *             <IconComponent className="size-4" />
+                          *             <span>New Dropdown</span>
+                          *             <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                          *         </CollapsibleTrigger>
+                          *         <CollapsibleContent>
+                          *             <SidebarMenuSub>
+                          *                 <SidebarMenuSubItem>
+                          *                     <SidebarMenuSubButton render={<Link href="#sub-item-link" />}>
+                          *                         <span>Sub Item Label</span>
+                          *                     </SidebarMenuSubButton>
+                          *                 </SidebarMenuSubItem>
+                          *             </SidebarMenuSub>
+                          *         </CollapsibleContent>
+                          *     </SidebarMenuItem>
+                          * </Collapsible>
+                          * ==========================================
+                          */}
+                    </SidebarMenu>
+                </SidebarContent>
+
+                <SidebarFooter>
+                    <SidebarMenu>
+                        {footerNavItems.map((item) => (
+                            <SidebarMenuItem key={item.title}>
+                                <SidebarMenuButton
+                                    tooltip={item.title}
+                                    render={<a href={item.href} target="_blank" rel="noopener noreferrer" />}
+                                >
+                                    {item.icon && <item.icon />}
+                                    <span>{item.title}</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        ))}
+                    </SidebarMenu>
+                    {/* NavUser dropdown goes here if you still want it */}
+                </SidebarFooter>
+            </Sidebar>
+
+            <SidebarInset className="overflow-x-hidden">
+                <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+                    <SidebarTrigger className="-ml-1" />
+                    <Separator orientation="vertical" className="mr-2 h-4" />
+                    {breadcrumbs.length > 0 && (
+                        <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            {breadcrumbs.map((crumb, i) => (
+                                <span key={i} className="flex items-center gap-1.5">
+                                    {i > 0 && <span>/</span>}
+                                    {crumb.href ? (
+                                        <Link href={crumb.href} className="hover:text-foreground">
+                                            {crumb.title}
+                                        </Link>
+                                    ) : (
+                                        <span className="text-foreground">{crumb.title}</span>
+                                    )}
+                                </span>
+                            ))}
+                        </nav>
+                    )}
+                </header>
+                {children}
+            </SidebarInset>
+>>>>>>> origin
         </SidebarProvider>
     );
 }

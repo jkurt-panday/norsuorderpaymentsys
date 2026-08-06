@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminUserController;
+<<<<<<< HEAD
 use App\Http\Controllers\BankAccountInfoController;
 use App\Http\Controllers\FormInputController;
 use App\Http\Controllers\GraduateLedgerController;
@@ -20,6 +21,56 @@ Route::name('public.')->prefix('public')->group(function () {
     Route::get('/form', [FormInputController::class, 'create'])->name('submit');
     Route::post('/form', [FormInputController::class, 'store'])->name('submit.store');
     Route::get('/success/{referenceNumber?}', [FormInputController::class, 'success'])->name('success');
+=======
+use App\Http\Controllers\GraduateLedgerController;
+use App\Http\Controllers\LawSchoolLedgerController;
+use Illuminate\Support\Facades\Route;
+
+// Home / Welcome Page
+Route::inertia('/', 'welcome')->name('home');
+
+// Authenticated Routes
+Route::middleware('auth')->group(function () {
+
+    // Main Dashboard
+    Route::get('/dashboard', fn () => inertia('dashboard'))->name('dashboard');
+    Route::get('/graduate-ledger/print-select', [GraduateLedgerController::class, 'printSelect'])->name('graduate-ledger.print-select');
+    Route::get('/graduate-ledger/pdf', [GraduateLedgerController::class, 'generatePdf'])->name('graduate-ledger.pdf');
+    Route::get('/graduate-ledger/add', [GraduateLedgerController::class, 'create'])->name('graduate-ledger.create');
+    Route::post('/graduate-ledger', [GraduateLedgerController::class, 'store'])->name('graduate-ledger.store');
+    Route::post('/graduate-ledger/import', [GraduateLedgerController::class, 'import'])->name('graduate-ledger.import');
+    // Graduate Ledger: Single definition pointing to your controller
+    Route::get('/graduate-ledger', [GraduateLedgerController::class, 'index'])
+        ->name('graduate-ledger.index');
+    Route::get('/graduate-ledger/{id}/edit', [GraduateLedgerController::class, 'edit'])->name('graduate-ledger.edit');
+    Route::put('/graduate-ledger/{id}', [GraduateLedgerController::class, 'update'])->name('graduate-ledger.update');
+    Route::delete('/graduate-ledger/{id}', [GraduateLedgerController::class, 'destroy'])->name('graduate-ledger.destroy');
+
+    // Law School Ledger Routes
+    Route::get('/law-ledger/print-select', [LawSchoolLedgerController::class, 'printSelect'])->name('law-ledger.print-select');
+    Route::get('/law-ledger/pdf', [LawSchoolLedgerController::class, 'generatePdf'])->name('law-ledger.pdf');
+    Route::get('/law-ledger/add', [LawSchoolLedgerController::class, 'create'])->name('law-ledger.create');
+    Route::post('/law-ledger', [LawSchoolLedgerController::class, 'store'])->name('law-ledger.store');
+    Route::post('/law-ledger/import', [LawSchoolLedgerController::class, 'import'])->name('law-ledger.import');
+    Route::get('/law-ledger', [LawSchoolLedgerController::class, 'index'])
+        ->name('law-ledger.index');
+
+});
+
+// Admin-Only Routes
+Route::middleware(['auth', 'admin'])->group(function () {
+
+    // 1. The page view (Renders the React Component via Inertia)
+    Route::get('/admin/users', function () {
+        return inertia('Admin/UserManagement');
+    })->name('admin.users.index');
+
+    // 2. The form submission endpoint
+    Route::post('/admin/users', [AdminUserController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('admin.users.store');
+
+>>>>>>> origin
 });
 
 // Root redirect → public submission form

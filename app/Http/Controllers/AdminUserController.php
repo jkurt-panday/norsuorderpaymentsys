@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,6 +26,13 @@ class AdminUserController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'],
+        ]);
+
+        ActivityLog::create([
+            'actor_id' => $request->user()->id,
+            'action' => 'user.created',
+            'target_id' => $user->id,
+            'meta' => ['role' => $user->role, 'email' => $user->email],
         ]);
 
         return back()->with('success', 'New system account registered successfully!');
