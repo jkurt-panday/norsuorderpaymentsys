@@ -7,6 +7,8 @@ import {
   AlertTriangle,
   PlusCircle,
   Scale,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -462,12 +464,13 @@ params[key] = value.trim();
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Status</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Remark</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Input By</th>
+                  <th className="py-2 pr-2 text-center font-medium whitespace-nowrap text-[#5C7A9E]">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.length === 0 ? (
                   <tr>
-                    <td colSpan={14} className="text-center text-sm text-[#8AA8CC] py-8">
+                    <td colSpan={15} className="text-center text-sm text-[#8AA8CC] py-8">
                       No transactions found. Upload a CSV/Excel file or add one manually.
                     </td>
                   </tr>
@@ -496,6 +499,31 @@ params[key] = value.trim();
                       </td>
                       <td className="py-2 pr-4 text-[#8AA8CC]">{r.remark}</td>
                       <td className="py-2 pr-4 text-[#8AA8CC]">{r.inputBy}</td>
+                      <td className="py-2 pr-2 text-center whitespace-nowrap">
+                        <button
+                          onClick={() =>
+                            router.get(
+                              `/law-ledger/${r.id}/edit`,
+                            )
+                          }
+                          className="mr-1 inline-flex items-center justify-center rounded p-1.5 text-[#0B62E0] transition-colors hover:bg-[#EAF2FF]"
+                          title="Edit"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleDelete(
+                              r.id,
+                              r.name,
+                            )
+                          }
+                          className="inline-flex items-center justify-center rounded p-1.5 text-red-500 transition-colors hover:bg-red-50"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -592,4 +620,10 @@ router.get(link.url, {}, { preserveState: true, preserveScroll: true });
       </div>
     </div>
   );
+}
+
+function handleDelete(id: string | number, name: string) {
+  if (confirm(`Delete transaction for ${name}?`)) {
+    router.delete(`/law-ledger/${id}`);
+  }
 }
