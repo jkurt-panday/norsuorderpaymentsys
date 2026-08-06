@@ -1,5 +1,8 @@
 import React from 'react';
-import { store, index } from '@/actions/App/Http/Controllers/MembershipController';
+import {
+    store,
+    index,
+} from '@/actions/App/Http/Controllers/MembershipController';
 import ResourceForm, { type FieldDef } from '@/components/ResourceForm';
 
 const fields: FieldDef[] = [
@@ -8,11 +11,13 @@ const fields: FieldDef[] = [
         label: 'Member Code',
         required: true,
         helpText: 'Unique identifier for this membership type',
+        placeholder: 'Enter the membership code',
     },
     {
         name: 'member_desc',
         label: 'Description',
         required: true,
+        placeholder: 'Enter a description for this membership',
     },
 ];
 

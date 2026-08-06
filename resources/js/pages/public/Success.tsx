@@ -28,7 +28,6 @@ import {
 import { Separator } from '@/components/ui/separator';
 import PublicLayout from '@/pages/layouts/PublicLayout';
 
-
 interface SupportingDocument {
     id: number;
     original_filename: string;
@@ -393,14 +392,14 @@ export default function Success({ reference_number, formInput }: Props) {
 
                                 {/* Submission Details */}
                                 <div className="font-lg text-center leading-7 text-slate-600">
-                                    <p className="font-xl mb-1 text-sm tracking-wide text-slate-500 -mt-4">
+                                    <p className="font-xl -mt-4 mb-1 text-sm tracking-wide text-slate-500">
                                         Submitted on:{' '}
                                         {formatDate(formInput.created_at)}
                                     </p>
                                 </div>
                             </CardContent>
 
-                            <CardFooter className="print-hidden flex flex-col gap-4 border-t pt-6 no-print">
+                            <CardFooter className="print-hidden no-print flex flex-col gap-4 border-t pt-6">
                                 {/*<div className="max-w-2xl text-center text-base leading-7 text-slate-600">
                                     <p>
                                         A confirmation email has been sent to

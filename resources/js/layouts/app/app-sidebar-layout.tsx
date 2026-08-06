@@ -1,5 +1,16 @@
 import { Link, usePage, router } from '@inertiajs/react';
-import { HandCoins, Settings, Scale, ChevronRight, LogOut } from 'lucide-react';
+import {
+    Home,
+    FileText,
+    Users,
+    CreditCard,
+    Building,
+    Layers,
+    HandCoins,
+    Scale,
+    ChevronRight,
+    LogOut,
+} from 'lucide-react';
 import React from 'react';
 import AppLogo from '@/components/app-logo';
 import { Separator } from '@/components/ui/separator';
@@ -47,16 +58,16 @@ interface SidebarItem {
 }
 
 const mainNavItems: SidebarItem[] = [
-    { title: 'Dashboard', href: '/staff/staffdashboard', icon: Settings },
-    { title: 'Requests', href: '/staff/requests', icon: HandCoins },
-    { title: 'Bank Accounts', href: '/staff/bank-accounts', icon: Scale },
+    { title: 'Dashboard', href: '/staff/staffdashboard', icon: Home },
+    { title: 'Requests', href: '/staff/requests', icon: FileText },
+    { title: 'Bank Accounts', href: '/staff/bank-accounts', icon: Building },
     {
         title: 'Payment Options',
         href: '/staff/payment-options',
-        icon: HandCoins,
+        icon: CreditCard,
     },
-    { title: 'Memberships', href: '/staff/memberships', icon: HandCoins },
-    { title: 'UACS', href: '/staff/uacs', icon: Scale },
+    { title: 'Memberships', href: '/staff/memberships', icon: Users },
+    { title: 'UACS', href: '/staff/uacs', icon: Layers },
     {
         title: 'Graduate Ledger',
         icon: HandCoins,

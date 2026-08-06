@@ -13,7 +13,7 @@ interface RecentRequest {
     reference_number: string;
     full_name: string;
     created_at: string;
-    staffInput?: {
+    staff_input?: {
         status: string;
     } | null;
 }
@@ -224,9 +224,9 @@ export default function Dashboard() {
                         </div>
                         <div className="p-4">
                             {recentRequests.length > 0 ? (
-                                <div className="overflow-x-auto">
+                                <div className="max-h-96 overflow-y-auto">
                                     <table className="w-full table-fixed text-left text-sm text-slate-700">
-                                        <thead>
+                                        <thead className="sticky top-0 z-10 bg-white">
                                             <tr>
                                                 <th className="w-[25%] pb-3 font-medium text-slate-900">
                                                     Reference
@@ -257,14 +257,14 @@ export default function Dashboard() {
                                                     </td>
                                                     <td className="py-3">
                                                         <span
-                                                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(request.staffInput?.status)}`}
+                                                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(request.staff_input?.status)}`}
                                                         >
-                                                            {request.staffInput
+                                                            {request.staff_input
                                                                 ?.status
-                                                                ? request.staffInput.status
+                                                                ? request.staff_input.status
                                                                       .charAt(0)
                                                                       .toUpperCase() +
-                                                                  request.staffInput.status.slice(
+                                                                  request.staff_input.status.slice(
                                                                       1,
                                                                   )
                                                                 : 'Unprocessed'}
@@ -291,7 +291,8 @@ export default function Dashboard() {
                     <ActivityLogList
                         title="Recent Activity"
                         logs={recentActivity}
-                        limit={8}
+                        limit={20}
+                        maxVisible={10}
                     />
                 </div>
             </div>

@@ -32,9 +32,9 @@ interface StaffInput {
     id: number;
     status: 'pending' | 'approved' | 'cancelled' | 'unprocessed';
     ref_date: string | null;
-    bankAccount: BankAccount | null;
+    bank_account: BankAccount | null;
     uacs: Uacs | null;
-    referenceDocument: ReferenceDocument | null;
+    reference_document: ReferenceDocument | null;
     created_at: string;
 }
 
@@ -62,8 +62,8 @@ interface FormInput {
     amount: number;
     created_at: string;
     membership: Membership | null;
-    paymentDetailOption: PaymentDetailOption | null;
-    staffInput: StaffInput | null;
+    payment_detail_option: PaymentDetailOption | null;
+    staff_input: StaffInput | null;
     supportingDocuments?: SupportingDocument[];
 }
 
@@ -339,7 +339,7 @@ export default function ShowRequest() {
                                                 Payment Option
                                             </th>
                                             <td className="py-2 text-slate-800">
-                                                {formInput.paymentDetailOption
+                                                {formInput.payment_detail_option
                                                     ?.payment_desc ?? 'N/A'}
                                             </td>
                                         </tr>
@@ -366,21 +366,21 @@ export default function ShowRequest() {
                                 <h3 className="text-base font-semibold text-slate-900">
                                     Staff Processing
                                 </h3>
-                                {formInput.staffInput && (
+                                {formInput.staff_input && (
                                     <span
-                                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(formInput.staffInput.status)}`}
+                                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(formInput.staff_input.status)}`}
                                     >
-                                        {formInput.staffInput.status
+                                        {formInput.staff_input.status
                                             .charAt(0)
                                             .toUpperCase() +
-                                            formInput.staffInput.status.slice(
+                                            formInput.staff_input.status.slice(
                                                 1,
                                             )}
                                     </span>
                                 )}
                             </div>
                             <div className="p-6">
-                                {formInput.staffInput ? (
+                                {formInput.staff_input ? (
                                     <table className="w-full text-sm">
                                         <tbody className="divide-y divide-slate-100">
                                             <tr>
@@ -388,8 +388,8 @@ export default function ShowRequest() {
                                                     Bank Account
                                                 </th>
                                                 <td className="py-2 text-slate-800">
-                                                    {formInput.staffInput
-                                                        .bankAccount
+                                                    {formInput.staff_input
+                                                        .bank_account
                                                         ?.account_name ?? 'N/A'}
                                                 </td>
                                             </tr>
@@ -398,8 +398,8 @@ export default function ShowRequest() {
                                                     Bank
                                                 </th>
                                                 <td className="py-2 text-slate-800">
-                                                    {formInput.staffInput
-                                                        .bankAccount
+                                                    {formInput.staff_input
+                                                        .bank_account
                                                         ?.bank_name ?? 'N/A'}
                                                 </td>
                                             </tr>
@@ -408,8 +408,8 @@ export default function ShowRequest() {
                                                     Fund Cluster
                                                 </th>
                                                 <td className="py-2 text-slate-800">
-                                                    {formInput.staffInput
-                                                        .bankAccount
+                                                    {formInput.staff_input
+                                                        .bank_account
                                                         ?.fund_cluster ?? 'N/A'}
                                                 </td>
                                             </tr>
@@ -418,8 +418,8 @@ export default function ShowRequest() {
                                                     Account Number
                                                 </th>
                                                 <td className="py-2 text-slate-800">
-                                                    {formInput.staffInput
-                                                        .bankAccount
+                                                    {formInput.staff_input
+                                                        .bank_account
                                                         ?.account_num ?? 'N/A'}
                                                 </td>
                                             </tr>
@@ -428,11 +428,11 @@ export default function ShowRequest() {
                                                     Reference Date
                                                 </th>
                                                 <td className="py-2 text-slate-800">
-                                                    {formInput.staffInput
+                                                    {formInput.staff_input
                                                         .ref_date
                                                         ? formatDateOnly(
                                                               formInput
-                                                                  .staffInput
+                                                                  .staff_input
                                                                   .ref_date,
                                                           )
                                                         : 'N/A'}
@@ -443,11 +443,11 @@ export default function ShowRequest() {
                                                     UACS
                                                 </th>
                                                 <td className="py-2 text-slate-800">
-                                                    {formInput.staffInput.uacs
+                                                    {formInput.staff_input.uacs
                                                         ?.object_code ??
                                                         'N/A'}{' '}
                                                     -{' '}
-                                                    {formInput.staffInput.uacs
+                                                    {formInput.staff_input.uacs
                                                         ?.account_title ?? ''}
                                                 </td>
                                             </tr>
@@ -456,13 +456,13 @@ export default function ShowRequest() {
                                                     Reference Document
                                                 </th>
                                                 <td className="py-2">
-                                                    {formInput.staffInput
-                                                        .referenceDocument ? (
+                                                    {formInput.staff_input
+                                                        ?.reference_document ? (
                                                         <a
                                                             href={staff.documents.download.url(
                                                                 formInput
-                                                                    .staffInput
-                                                                    .referenceDocument
+                                                                    .staff_input
+                                                                    .reference_document
                                                                     .id,
                                                             )}
                                                             target="_blank"
@@ -484,8 +484,8 @@ export default function ShowRequest() {
                                                             </svg>
                                                             {
                                                                 formInput
-                                                                    .staffInput
-                                                                    .referenceDocument
+                                                                    .staff_input
+                                                                    .reference_document
                                                                     .original_filename
                                                             }
                                                         </a>
@@ -508,7 +508,7 @@ export default function ShowRequest() {
                                                 </th>
                                                 <td className="py-2 text-slate-800">
                                                     {formatDateTime(
-                                                        formInput.staffInput
+                                                        formInput.staff_input
                                                             .created_at,
                                                     )}
                                                 </td>
@@ -637,31 +637,6 @@ export default function ShowRequest() {
                                                             <path d="M12 15V3" />
                                                         </svg>
                                                     </a>
-                                                    <button
-                                                        type="button"
-                                                        title="Delete"
-                                                        onClick={() =>
-                                                            confirmDelete(
-                                                                document.id,
-                                                            )
-                                                        }
-                                                        className="flex h-8 w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition-colors hover:bg-rose-50"
-                                                    >
-                                                        <svg
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                            viewBox="0 0 24 24"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            strokeWidth="2"
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            className="h-4 w-4"
-                                                        >
-                                                            <path d="M3 6h18" />
-                                                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                                                        </svg>
-                                                    </button>
                                                 </div>
                                             </div>
                                         ))}
