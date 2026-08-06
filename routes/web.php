@@ -24,7 +24,7 @@ Route::name('public.')->prefix('public')->group(function () {
 
 // Root redirect → public submission form
 Route::get('/', function () {
-    return redirect()->route('public.submit');
+    return redirect()->route('login');
 })->name('home');
 
 // ─────────────────────────────────────────────────────────────────────────────
