@@ -29,7 +29,8 @@ abstract class BaseResourceController extends Controller
      * e.g. ['member_code', 'member_desc']
      */
     protected array $searchableColumns = [];
-        /**
+
+    /**
      * Extra sort columns applied after the primary orderBy, e.g. for Bank
      * Account's "sort by bank name, then account name" default ordering.
      * [ ['column' => 'account_name', 'direction' => 'asc'] ]
@@ -50,7 +51,9 @@ abstract class BaseResourceController extends Controller
     protected array $with = [];
 
     protected int $perPage = 10;
+
     protected string $orderBy = 'id';
+
     protected string $orderDirection = 'asc';
 
     /**
@@ -76,84 +79,84 @@ abstract class BaseResourceController extends Controller
      * Display a listing of the resource — search, paginate, render, flash.
      * Shared across every controller extending this class.
      */
- /**
+    /**
      * Display a listing of the resource — search, paginate, render, flash.
      * Shared across every controller extending this class.
      */
-        public function index(Request $request): Response
-        {
-            $query = $this->model::query();
+    public function index(Request $request): Response
+    {
+        $query = $this->model::query();
 
-            if (!empty($this->with)) {
-                $query->with($this->with);
-            }
-
-            if ($search = $request->query('search')) {
-                $columns = $this->searchableColumns;
-                $searchLower = strtolower($search);
-                $q->orWhereRaw("LOWER({$column}) LIKE ?", ["%{$searchLower}%"]);
-                $query->where(function (Builder $q) use ($columns, $searchLower) {
-                    foreach ($columns as $column) {
-                        $q->orWhereRaw("LOWER({$column}) LIKE ?", ["%{$searchLower}%"]);
-                    }
-                });
-            }
-
-            // ---- Filters (allowlisted) ----
-            foreach ($this->filterableColumns as $paramKey => $column) {
-                $value = $request->query($paramKey);
-                if ($value !== null && $value !== '') {
-                    $query->where($column, $value);
-                }
-            }
-
-            $query = $this->modifyIndexQuery($query, $request);
-
-            // ---- Sorting (allowlisted — falls back to the default if the
-            // requested column isn't explicitly permitted) ----
-            $orderBy = $this->orderBy;
-            $orderDirection = $this->orderDirection;
-
-            $requestedSort = $request->query('sort');
-            if ($requestedSort && in_array($requestedSort, $this->sortableColumns, true)) {
-                $orderBy = $requestedSort;
-                $orderDirection = $request->query('direction') === 'desc' ? 'desc' : 'asc';
-            }
-
-            $query->orderBy($orderBy, $orderDirection);
-
-            // Tie-break on `id`, matching the primary sort's direction, whenever
-            // the primary sort column isn't already `id` itself. Without this,
-            // rows that share the same value in the sorted column (e.g. several
-            // records created on the same date) have no defined relative order —
-            // the database is free to return them in any order, which looks like
-            // random shuffling to the user every time the page reloads or the
-            // sort direction flips. Matching the tie-break direction to the main
-            // sort keeps same-value groups internally consistent (e.g. under
-            // "Newest", tied same-day records still read newest-created-first).
-            if ($orderBy !== 'id') {
-                $query->orderBy('id', $orderDirection);
-            }
-
-            foreach ($this->secondaryOrderBy as $secondary) {
-                $query->orderBy($secondary['column'], $secondary['direction'] ?? 'asc');
-            }
-
-            $items = $query
-                ->paginate($this->perPage)
-                ->withQueryString(); // keeps ?search=/?sort=/?filters=... attached across pagination links
-
-            return Inertia::render($this->indexView, array_merge(
-                [
-                    $this->resourceKey => $items,
-                    'flash' => [
-                        'success' => session('success'),
-                        'error' => session('error'),
-                    ],
-                ],
-                $this->extraIndexProps($request),
-            ));
+        if (! empty($this->with)) {
+            $query->with($this->with);
         }
+
+        if ($search = $request->query('search')) {
+            $columns = $this->searchableColumns;
+            $searchLower = strtolower($search);
+            $q->orWhereRaw("LOWER({$column}) LIKE ?", ["%{$searchLower}%"]);
+            $query->where(function (Builder $q) use ($columns, $searchLower) {
+                foreach ($columns as $column) {
+                    $q->orWhereRaw("LOWER({$column}) LIKE ?", ["%{$searchLower}%"]);
+                }
+            });
+        }
+
+        // ---- Filters (allowlisted) ----
+        foreach ($this->filterableColumns as $paramKey => $column) {
+            $value = $request->query($paramKey);
+            if ($value !== null && $value !== '') {
+                $query->where($column, $value);
+            }
+        }
+
+        $query = $this->modifyIndexQuery($query, $request);
+
+        // ---- Sorting (allowlisted — falls back to the default if the
+        // requested column isn't explicitly permitted) ----
+        $orderBy = $this->orderBy;
+        $orderDirection = $this->orderDirection;
+
+        $requestedSort = $request->query('sort');
+        if ($requestedSort && in_array($requestedSort, $this->sortableColumns, true)) {
+            $orderBy = $requestedSort;
+            $orderDirection = $request->query('direction') === 'desc' ? 'desc' : 'asc';
+        }
+
+        $query->orderBy($orderBy, $orderDirection);
+
+        // Tie-break on `id`, matching the primary sort's direction, whenever
+        // the primary sort column isn't already `id` itself. Without this,
+        // rows that share the same value in the sorted column (e.g. several
+        // records created on the same date) have no defined relative order —
+        // the database is free to return them in any order, which looks like
+        // random shuffling to the user every time the page reloads or the
+        // sort direction flips. Matching the tie-break direction to the main
+        // sort keeps same-value groups internally consistent (e.g. under
+        // "Newest", tied same-day records still read newest-created-first).
+        if ($orderBy !== 'id') {
+            $query->orderBy('id', $orderDirection);
+        }
+
+        foreach ($this->secondaryOrderBy as $secondary) {
+            $query->orderBy($secondary['column'], $secondary['direction'] ?? 'asc');
+        }
+
+        $items = $query
+            ->paginate($this->perPage)
+            ->withQueryString(); // keeps ?search=/?sort=/?filters=... attached across pagination links
+
+        return Inertia::render($this->indexView, array_merge(
+            [
+                $this->resourceKey => $items,
+                'flash' => [
+                    'success' => session('success'),
+                    'error' => session('error'),
+                ],
+            ],
+            $this->extraIndexProps($request),
+        ));
+    }
 
     /**
      * Hook for subclasses that need extra query constraints beyond search

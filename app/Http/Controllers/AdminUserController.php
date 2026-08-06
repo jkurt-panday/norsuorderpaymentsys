@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,8 +26,6 @@ class AdminUserController extends Controller
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'],
         ]);
-
-    
 
         return back()->with('success', 'New system account registered successfully!');
     }
