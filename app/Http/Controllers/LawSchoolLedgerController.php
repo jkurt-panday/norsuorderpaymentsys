@@ -41,13 +41,21 @@ class LawSchoolLedgerController extends Controller
                 $query->where('school_year', $schoolYear);
             })
             ->when($semester, function ($query, $semester) {
-                $query->where('semester_or_summer', $semester);
+                // Match every stored variant that maps to the selected semester label
+                // (e.g. "1st Sem" also matches "First Semester").
+                $query->where(function ($query) use ($semester) {
+                    foreach ($this->semesterAliases($semester) as $alias) {
+                        $query->orWhereRaw('UPPER(TRIM(semester_or_summer)) = ?', [strtoupper($alias)]);
+                    }
+                });
             })
             ->when($course, function ($query, $course) {
                 $query->where('course', $course);
             })
             ->when($status, function ($query, $status) {
-                $query->where('status', $status);
+                // Trim + case-insensitive match so "DROP" also finds rows stored as
+                // " DROP" (the dropdown shows the deduplicated modal label).
+                $query->whereRaw('UPPER(TRIM(status)) = ?', [strtoupper(trim($status))]);
             })
             ->when($dateFrom, function ($query, $dateFrom) {
                 $query->whereDate('transaction_date', '>=', $dateFrom);
@@ -68,17 +76,18 @@ class LawSchoolLedgerController extends Controller
             )
             ->count();
 
+        // Payments/credits are stored as negative amounts, so compare the transaction
+        // type case-insensitively and accumulate payment magnitudes (positive) to keep
+        // the overview figures readable. Adjustments are treated as credits.
         $totalAssessments = (float) (clone $query)
-            ->where('ar_or_payment', 'AR')
+            ->whereRaw("UPPER(TRIM(ar_or_payment)) IN ('AR', 'ASSESSMENT')")
             ->sum('amount');
 
         $totalPayments = (float) (clone $query)
-            ->where('ar_or_payment', 'Payment')
-            ->sum('amount');
+            ->whereRaw("UPPER(TRIM(ar_or_payment)) IN ('PAYMENT', 'P', 'ADJUSTMENT', 'ADJ')")
+            ->sum(DB::raw('ABS(amount)'));
 
-        $outstandingBalance = (float) (clone $query)
-            ->where('status', '!=', 'Paid')
-            ->sum('amount');
+        $outstandingBalance = $totalAssessments - $totalPayments;
 
         // 2. Fetch paginated records
         $records = $query
@@ -429,7 +438,9 @@ class LawSchoolLedgerController extends Controller
             if ($rawType === 'AR' || $rawType === 'ASSESSMENT') {
                 $totalAssessments += $cleanAmount;
             } else {
-                $totalPayments += $cleanAmount;
+                // Payments and adjustments are stored as negative amounts; accumulate
+                // their magnitudes so the summary shows positive credit figures.
+                $totalPayments += abs($cleanAmount);
             }
         }
 
@@ -462,8 +473,77 @@ class LawSchoolLedgerController extends Controller
         return [
             'courses' => LawSchoolLedger::distinct()->orderBy('course')->pluck('course')->filter()->values()->all(),
             'schoolYears' => $schoolYears,
-            'semesters' => LawSchoolLedger::distinct()->orderBy('semester_or_summer')->pluck('semester_or_summer')->filter()->values()->all(),
-            'statuses' => LawSchoolLedger::distinct()->orderBy('status')->pluck('status')->filter()->values()->all(),
+            // Normalize semester labels to a canonical set ("1st Sem", "2nd Sem",
+            // "Summer") so equivalent values such as "First Semester" do not appear
+            // as separate dropdown options. The canonical labels are always offered
+            // even when no records exist yet for that term (e.g. Summer).
+            'semesters' => collect(['1st Sem', '2nd Sem', 'Summer'])
+                ->merge(
+                    collect($this->deduplicatedOptions('semester_or_summer'))
+                        ->map(fn ($value) => $this->normalizeSemester($value))
+                )
+                ->filter()
+                ->unique()
+                ->sort()
+                ->values()
+                ->all(),
+            // Deduplicate status options case-insensitively (ignoring whitespace) so
+            // variants like " DROP" and "DROP" collapse into a single "DROP" option.
+            'statuses' => $this->deduplicatedOptions('status'),
         ];
+    }
+
+    /**
+     * Returns distinct values for a dropdown column, deduplicated case-insensitively
+     * and ignoring surrounding whitespace. The most frequent stored variant is used
+     * as the display label.
+     */
+    private function deduplicatedOptions(string $column): array
+    {
+        return collect(
+            LawSchoolLedger::query()
+                ->selectRaw("{$column} as value, UPPER(TRIM({$column})) as option_key, COUNT(*) as option_count")
+                ->whereNotNull($column)
+                ->where($column, '!=', '')
+                ->groupBy('value', 'option_key')
+                ->get()
+        )
+            ->groupBy('option_key')
+            ->map(function ($variants) {
+                return $variants->sortByDesc('option_count')->first()->value;
+            })
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Maps any stored semester variant to a canonical dropdown label so equivalent
+     * values ("1st Sem", "First Semester", ...) collapse into a single option.
+     */
+    private function normalizeSemester(string $value): string
+    {
+        $normalized = strtoupper((string) preg_replace('/\s+/', ' ', trim($value)));
+
+        return match ($normalized) {
+            '1ST SEM', 'FIRST SEMESTER', '1ST SEMESTER', 'FIRST SEM', '1ST', '1' => '1st Sem',
+            '2ND SEM', 'SECOND SEMESTER', '2ND SEMESTER', 'SECOND SEM', '2ND', '2' => '2nd Sem',
+            'SUMMER', 'SUMMER TERM', 'SUMMER SEMESTER', '3RD SEM', '3RD SEMESTER' => 'Summer',
+            default => trim($value),
+        };
+    }
+
+    /**
+     * Returns the stored-value aliases that belong to a canonical semester label,
+     * used so the semester filter matches every equivalent stored variant.
+     */
+    private function semesterAliases(string $semester): array
+    {
+        return match ($this->normalizeSemester($semester)) {
+            '1st Sem' => ['1st Sem', 'First Semester', '1st Semester', 'First Sem'],
+            '2nd Sem' => ['2nd Sem', 'Second Semester', '2nd Semester', 'Second Sem'],
+            'Summer' => ['Summer', 'Summer Term', 'Summer Semester'],
+            default => [trim($semester)],
+        };
     }
 }
