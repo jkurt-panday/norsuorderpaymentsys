@@ -8,7 +8,13 @@ import AuthLayout from '@/layouts/auth-layout';
 import { login } from '@/routes';
 import { request as forgotPassword } from '@/routes/password';
 
-export default function Login({ status, canResetPassword }: { status?: string; canResetPassword?: boolean }) {
+export default function Login({
+    status,
+    canResetPassword,
+}: {
+    status?: string;
+    canResetPassword?: boolean;
+}) {
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
         password: '',
@@ -38,7 +44,7 @@ export default function Login({ status, canResetPassword }: { status?: string; c
             <Head title="Payment of Order System - Login" />
 
             {status && (
-                <div className="mb-4 text-sm font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 p-3 rounded-md">
+                <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-600">
                     {status}
                 </div>
             )}
@@ -46,15 +52,18 @@ export default function Login({ status, canResetPassword }: { status?: string; c
             <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Email Address */}
                 <div className="space-y-2">
-                    <Label className="block text-xs font-semibold text-[#091d2e] uppercase tracking-wider" htmlFor="email">
+                    <Label
+                        className="block text-xs font-semibold tracking-wider text-[#091d2e] uppercase"
+                        htmlFor="email"
+                    >
                         Email Address
                     </Label>
                     <div className="relative">
-                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#717786] text-xl">
+                        <span className="material-symbols-outlined absolute top-1/2 left-3 -translate-y-1/2 text-xl text-[#717786]">
                             mail
                         </span>
                         <Input
-                            className="w-full pl-10 pr-4 py-3 bg-white border border-[#c1c6d7] rounded-lg focus:ring-2 focus:ring-[#005ab7] focus:border-[#005ab7] outline-none transition-all text-sm text-[#091d2e] placeholder:text-muted-foreground"
+                            className="w-full rounded-lg border border-[#c1c6d7] bg-white py-3 pr-4 pl-10 text-sm text-[#091d2e] transition-all outline-none placeholder:text-muted-foreground focus:border-[#005ab7] focus:ring-2 focus:ring-[#005ab7]"
                             id="email"
                             type="email"
                             name="email"
@@ -64,39 +73,52 @@ export default function Login({ status, canResetPassword }: { status?: string; c
                             required
                         />
                     </div>
-                    {errors.email && <p className="text-xs font-semibold text-[#ba1a1a]">{errors.email}</p>}
+                    {errors.email && (
+                        <p className="text-xs font-semibold text-[#ba1a1a]">
+                            {errors.email}
+                        </p>
+                    )}
                 </div>
 
                 {/* Password */}
                 <div className="space-y-2">
-                    <Label className="block text-xs font-semibold text-[#091d2e] uppercase tracking-wider" htmlFor="password">
+                    <Label
+                        className="block text-xs font-semibold tracking-wider text-[#091d2e] uppercase"
+                        htmlFor="password"
+                    >
                         Password
                     </Label>
                     <div className="relative">
-                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#717786] text-xl">
+                        <span className="material-symbols-outlined absolute top-1/2 left-3 -translate-y-1/2 text-xl text-[#717786]">
                             lock
                         </span>
                         <Input
-                            className="w-full pl-10 pr-12 py-3 bg-white border border-[#c1c6d7] rounded-lg focus:ring-2 focus:ring-[#005ab7] focus:border-[#005ab7] outline-none transition-all text-sm text-[#091d2e] placeholder:text-muted-foreground"
+                            className="w-full rounded-lg border border-[#c1c6d7] bg-white py-3 pr-12 pl-10 text-sm text-[#091d2e] transition-all outline-none placeholder:text-muted-foreground focus:border-[#005ab7] focus:ring-2 focus:ring-[#005ab7]"
                             id="password"
                             type={showPassword ? 'text' : 'password'}
                             name="password"
                             placeholder="••••••••"
                             value={data.password}
-                            onChange={(e) => setData('password', e.target.value)}
+                            onChange={(e) =>
+                                setData('password', e.target.value)
+                            }
                             required
                         />
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#717786] hover:text-[#005ab7] transition-colors"
+                            className="absolute top-1/2 right-3 -translate-y-1/2 text-[#717786] transition-colors hover:text-[#005ab7]"
                         >
-                            <span className="material-symbols-outlined text-xl">
+                            <span className="material-symbols-outlined p-2 text-xl">
                                 {showPassword ? 'visibility_off' : 'visibility'}
                             </span>
                         </button>
                     </div>
-                    {errors.password && <p className="text-xs font-semibold text-[#ba1a1a]">{errors.password}</p>}
+                    {errors.password && (
+                        <p className="text-xs font-semibold text-[#ba1a1a]">
+                            {errors.password}
+                        </p>
+                    )}
                 </div>
 
                 {/* Remember + Forgot Password */}
@@ -105,10 +127,15 @@ export default function Login({ status, canResetPassword }: { status?: string; c
                         <Checkbox
                             id="remember"
                             checked={data.remember}
-                            onCheckedChange={(checked) => setData('remember', checked === true)}
-                            className="border-[#c1c6d7] data-[state=checked]:bg-[#005ab7] data-[state=checked]:border-[#005ab7] data-[state=checked]:text-white focus-visible:ring-[#005ab7] focus-visible:ring-2 cursor-pointer"
+                            onCheckedChange={(checked) =>
+                                setData('remember', checked === true)
+                            }
+                            className="cursor-pointer border-[#c1c6d7] focus-visible:ring-2 focus-visible:ring-[#005ab7] data-[state=checked]:border-[#005ab7] data-[state=checked]:bg-[#005ab7] data-[state=checked]:text-white"
                         />
-                        <label htmlFor="remember" className="text-xs text-[#414754] font-medium cursor-pointer select-none">
+                        <label
+                            htmlFor="remember"
+                            className="cursor-pointer text-xs font-medium text-[#414754] select-none"
+                        >
                             Remember Me
                         </label>
                     </div>
@@ -116,7 +143,7 @@ export default function Login({ status, canResetPassword }: { status?: string; c
                     {canResetPassword && (
                         <Link
                             href={forgotPassword.url()}
-                            className="text-xs text-[#005ab7] hover:underline font-semibold"
+                            className="text-xs font-semibold text-[#005ab7] hover:underline"
                         >
                             Forgot password?
                         </Link>
@@ -125,12 +152,14 @@ export default function Login({ status, canResetPassword }: { status?: string; c
 
                 {/* Login Button */}
                 <Button
-                    className="w-full bg-[#0072e5] hover:bg-[#005ab7] text-white py-6 rounded-full text-xs font-semibold uppercase tracking-widest hover:shadow-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border-0"
+                    className="flex w-full items-center justify-center gap-2 rounded-full border-0 bg-[#0072e5] py-6 text-xs font-semibold tracking-widest text-white uppercase transition-all duration-200 hover:bg-[#005ab7] hover:shadow-lg active:scale-[0.98]"
                     type="submit"
                     disabled={processing}
                 >
                     <span>{processing ? 'LOGGING IN...' : 'LOG IN'}</span>
-                    <span className="material-symbols-outlined text-sm">login</span>
+                    <span className="material-symbols-outlined text-sm">
+                        login
+                    </span>
                 </Button>
             </form>
         </AuthLayout>
