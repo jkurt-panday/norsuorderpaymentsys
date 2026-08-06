@@ -51,10 +51,10 @@ export default function AuthCardLayout({
                                     lock_person
                                 </span>
                             </div>
-                            <CardTitle className="text-2xl font-bold text-[#091d2e]" style={{ fontFamily: "'Source Serif 4', serif" }}>
+                            <CardTitle className="text-2xl font-bold text-[#091d2e]" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>
                                 {title}
                             </CardTitle>
-                            <CardDescription className="text-[#414754] text-sm mt-1">
+                            <CardDescription className="text-[#414754] text-sm mt-1" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>
                                 {description}
                             </CardDescription>
                         </CardHeader>

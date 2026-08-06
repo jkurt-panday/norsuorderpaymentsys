@@ -9,7 +9,7 @@ use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\PaymentDetailOptionController;
 use App\Http\Controllers\StaffInputController;
 use App\Http\Controllers\SupportingDocumentController;
-use App\Http\Controllers\UacsController;
+use App\Http\Controllers\UACSController;
 use Illuminate\Support\Facades\Route;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -24,7 +24,7 @@ Route::name('public.')->prefix('public')->group(function () {
 
 // Root redirect → public submission form
 Route::get('/', function () {
-    return redirect()->route('public.submit');
+    return redirect()->route('login');
 })->name('home');
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ Route::name('staff.')->prefix('staff')->middleware(['auth'])->group(function () 
         ->except(['show'])
         ->parameters(['bank-accounts' => 'bankAccount']);
 
-    Route::resource('uacs', UacsController::class)
+    Route::resource('uacs', UACSController::class)
         ->except(['show'])
         ->parameters(['uacs' => 'uacs']); // Prevents Laravel from converting singular 'uacs' to 'uac'
 
