@@ -410,7 +410,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                 </div>*/}
                                 <div className="flex gap-4">
                                     <Button className="h-12 rounded-xl bg-blue-700 px-8 text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-800 hover:shadow-lg active:scale-[0.98]">
-                                        <Link href="/public/form">
+                                        <Link href="/public/submit">
                                             Submit Another Request
                                         </Link>
                                     </Button>
