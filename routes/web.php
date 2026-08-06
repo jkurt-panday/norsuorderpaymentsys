@@ -1,15 +1,15 @@
 <?php
 
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\BankAccountInfoController;
+use App\Http\Controllers\FormInputController;
 use App\Http\Controllers\GraduateLedgerController;
 use App\Http\Controllers\LawSchoolLedgerController;
-use App\Http\Controllers\FormInputController;
-use App\Http\Controllers\StaffInputController;
 use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\PaymentDetailOptionController;
-use App\Http\Controllers\BankAccountInfoController;
-use App\Http\Controllers\UacsController;
+use App\Http\Controllers\StaffInputController;
 use App\Http\Controllers\SupportingDocumentController;
+use App\Http\Controllers\UacsController;
 use Illuminate\Support\Facades\Route;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -17,8 +17,8 @@ use Illuminate\Support\Facades\Route;
 // ─────────────────────────────────────────────────────────────────────────────
 
 Route::name('public.')->prefix('public')->group(function () {
-    Route::get('/submit', [FormInputController::class, 'create'])->name('submit');
-    Route::post('/submit', [FormInputController::class, 'store'])->name('submit.store');
+    Route::get('/form', [FormInputController::class, 'create'])->name('submit');
+    Route::post('/form', [FormInputController::class, 'store'])->name('submit.store');
     Route::get('/success/{referenceNumber?}', [FormInputController::class, 'success'])->name('success');
 });
 
@@ -35,7 +35,7 @@ Route::get('/debug-temp', function () {
     return response()->json([
         'temp_dir' => sys_get_temp_dir(),
         'writable' => is_writable(sys_get_temp_dir()),
-        'tmpfile'  => tmpfile() !== false,
+        'tmpfile' => tmpfile() !== false,
     ]);
 });
 
@@ -55,24 +55,24 @@ Route::middleware('auth')->group(function () {
     Route::prefix('graduate-ledger')->name('graduate-ledger.')->group(function () {
         // Specific routes ABOVE wildcard routes
         Route::get('/print-select', [GraduateLedgerController::class, 'printSelect'])->name('print-select');
-        Route::get('/pdf',          [GraduateLedgerController::class, 'generatePdf'])->name('pdf');
-        Route::get('/add',          [GraduateLedgerController::class, 'create'])->name('create');
-        Route::post('/',            [GraduateLedgerController::class, 'store'])->name('store');
-        Route::post('/import',      [GraduateLedgerController::class, 'import'])->name('import');
-        Route::get('/',             [GraduateLedgerController::class, 'index'])->name('index');
-        Route::get('/{id}/edit',    [GraduateLedgerController::class, 'edit'])->name('edit');
-        Route::put('/{id}',         [GraduateLedgerController::class, 'update'])->name('update');
-        Route::delete('/{id}',      [GraduateLedgerController::class, 'destroy'])->name('destroy');
+        Route::get('/pdf', [GraduateLedgerController::class, 'generatePdf'])->name('pdf');
+        Route::get('/add', [GraduateLedgerController::class, 'create'])->name('create');
+        Route::post('/', [GraduateLedgerController::class, 'store'])->name('store');
+        Route::post('/import', [GraduateLedgerController::class, 'import'])->name('import');
+        Route::get('/', [GraduateLedgerController::class, 'index'])->name('index');
+        Route::get('/{id}/edit', [GraduateLedgerController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [GraduateLedgerController::class, 'update'])->name('update');
+        Route::delete('/{id}', [GraduateLedgerController::class, 'destroy'])->name('destroy');
     });
 
     // ── Law School Ledger ────────────────────────────────────────────────────
     Route::prefix('law-ledger')->name('law-ledger.')->group(function () {
         Route::get('/print-select', [LawSchoolLedgerController::class, 'printSelect'])->name('print-select');
-        Route::get('/pdf',          [LawSchoolLedgerController::class, 'generatePdf'])->name('pdf');
-        Route::get('/add',          [LawSchoolLedgerController::class, 'create'])->name('create');
-        Route::post('/',            [LawSchoolLedgerController::class, 'store'])->name('store');
-        Route::post('/import',      [LawSchoolLedgerController::class, 'import'])->name('import');
-        Route::get('/',             [LawSchoolLedgerController::class, 'index'])->name('index');
+        Route::get('/pdf', [LawSchoolLedgerController::class, 'generatePdf'])->name('pdf');
+        Route::get('/add', [LawSchoolLedgerController::class, 'create'])->name('create');
+        Route::post('/', [LawSchoolLedgerController::class, 'store'])->name('store');
+        Route::post('/import', [LawSchoolLedgerController::class, 'import'])->name('import');
+        Route::get('/', [LawSchoolLedgerController::class, 'index'])->name('index');
     });
 
 });
@@ -113,9 +113,9 @@ Route::name('staff.')->prefix('staff')->middleware(['auth'])->group(function () 
         Route::post('/process', [StaffInputController::class, 'store'])->name('store');
 
         Route::get('/{formInput}/process', [StaffInputController::class, 'create'])->name('process');
-        Route::get('/{formInput}',         [StaffInputController::class, 'show'])->name('show');
-        Route::get('/{staffInput}/edit',   [StaffInputController::class, 'edit'])->name('edit');
-        Route::put('/{staffInput}',        [StaffInputController::class, 'update'])->name('update');
+        Route::get('/{formInput}', [StaffInputController::class, 'show'])->name('show');
+        Route::get('/{staffInput}/edit', [StaffInputController::class, 'edit'])->name('edit');
+        Route::put('/{staffInput}', [StaffInputController::class, 'update'])->name('update');
     });
 
     // ── Master Data (Resource Routes) ───────────────────────────────────────
@@ -139,10 +139,10 @@ Route::name('staff.')->prefix('staff')->middleware(['auth'])->group(function () 
 
     // ── Supporting Documents ─────────────────────────────────────────────────
     Route::name('documents.')->prefix('documents')->group(function () {
-        Route::get('/',                                    [SupportingDocumentController::class, 'index'])->name('index');
-        Route::post('/',                                   [SupportingDocumentController::class, 'store'])->name('store');
-        Route::get('/{supportingDocument}/download',       [SupportingDocumentController::class, 'download'])->name('download');
-        Route::delete('/{supportingDocument}',             [SupportingDocumentController::class, 'destroy'])->name('destroy');
+        Route::get('/', [SupportingDocumentController::class, 'index'])->name('index');
+        Route::post('/', [SupportingDocumentController::class, 'store'])->name('store');
+        Route::get('/{supportingDocument}/download', [SupportingDocumentController::class, 'download'])->name('download');
+        Route::delete('/{supportingDocument}', [SupportingDocumentController::class, 'destroy'])->name('destroy');
     });
 
 });

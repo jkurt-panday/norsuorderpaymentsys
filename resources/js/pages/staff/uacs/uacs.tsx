@@ -48,10 +48,12 @@ export default function UacsIndex({ uacs, flash }: UacsIndexProps) {
     const columns: ColumnDef<UacsRecord>[] = [
         {
             header: 'ID',
+            sortable: 'id',
             render: (row) => row.display_number,
         },
         {
             header: 'Object Code',
+            sortable: 'object_code',
             render: (row) => (
                 <Badge
                     variant="secondary"
@@ -63,6 +65,7 @@ export default function UacsIndex({ uacs, flash }: UacsIndexProps) {
         },
         {
             header: 'Account Title',
+            sortable: 'account_title',
             render: (row) => row.account_title,
         },
     ];

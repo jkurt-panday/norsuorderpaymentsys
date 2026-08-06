@@ -8,11 +8,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Models\StaffInput;
 
 class SupportingDocumentController extends Controller
 {
     // Define storage configuration in one place for easy maintenance
     protected string $disk = 'public';
+
     protected string $folder = 'supporting-documents';
 
     /**
@@ -35,7 +37,7 @@ class SupportingDocumentController extends Controller
         // 1. Validate incoming file and related foreign key
         $request->validate([
             'form_input_id' => 'required|exists:form_inputs,id',
-            'document'      => 'required|file|mimes:pdf,jpg,png,docx,zip|max:10240', // Max 10MB
+            'document' => 'required|file|mimes:pdf,jpg,png,docx,zip|max:10240', // Max 10MB
         ]);
 
         if ($request->hasFile('document')) {
@@ -43,29 +45,29 @@ class SupportingDocumentController extends Controller
 
             // 2. Gather metadata
             $originalName = $file->getClientOriginalName();
-            $extension    = $file->getClientOriginalExtension();
-            $mimeType     = $file->getClientMimeType();
-            $fileSize     = $file->getSize();
+            $extension = $file->getClientOriginalExtension();
+            $mimeType = $file->getClientMimeType();
+            $fileSize = $file->getSize();
 
             // 3. Generate a unique stored filename to prevent overwriting existing files
-            $storedFilename = Str::uuid() . '.' . $extension;
+            $storedFilename = Str::uuid().'.'.$extension;
 
             // 4. Save file to storage/app/public/supporting-documents/
             $file->storeAs($this->folder, $storedFilename, $this->disk);
 
             // 5. Generate relative storage URL (e.g., /storage/supporting-documents/...)
-            $fileUrl = Storage::disk($this->disk)->url($this->folder . '/' . $storedFilename);
+            $fileUrl = Storage::disk($this->disk)->url($this->folder.'/'.$storedFilename);
 
             // 6. Save metadata record into database
             SupportingDocument::create([
-                'form_input_id'     => $request->form_input_id,
+                'form_input_id' => $request->form_input_id,
                 'original_filename' => $originalName,
-                'stored_filename'   => $storedFilename,
-                'file_url'          => $fileUrl,
-                'mime_type'         => $mimeType,
-                'file_extension'    => $extension,
-                'file_size'         => $fileSize,
-                'uploaded_at'       => now(),
+                'stored_filename' => $storedFilename,
+                'file_url' => $fileUrl,
+                'mime_type' => $mimeType,
+                'file_extension' => $extension,
+                'file_size' => $fileSize,
+                'uploaded_at' => now(),
             ]);
 
             return back()->with('success', 'Document uploaded successfully!');
@@ -79,9 +81,9 @@ class SupportingDocumentController extends Controller
      */
     public function show(SupportingDocument $supportingDocument)
     {
-        $relativePath = $this->folder . '/' . $supportingDocument->stored_filename;
+        $relativePath = $this->folder.'/'.$supportingDocument->stored_filename;
 
-        if (!Storage::disk($this->disk)->exists($relativePath)) {
+        if (! Storage::disk($this->disk)->exists($relativePath)) {
             abort(404, 'File not found on storage.');
         }
 
@@ -96,41 +98,37 @@ class SupportingDocumentController extends Controller
     /**
      * Remove the specified document safely
      */
-    public function destroy(SupportingDocument $supportingDocument)
-    {
-        try {
-            DB::beginTransaction();
+public function destroy(SupportingDocument $supportingDocument)
+{
+    try {
+        DB::beginTransaction();
 
-            // Safety check: Ensure the document isn't being referenced
-            $hasRelations = $supportingDocument->staffInputs()
-                ->withTrashed() // Safe against soft-deletes
-                ->exists();
+        // If this document is set as the reference document on any
+        // staff_input, clear that reference first so we don't leave
+        // a dangling ref_document_id after the document is gone.
+        StaffInput::where('ref_document_id', $supportingDocument->id)
+            ->update(['ref_document_id' => null]);
 
-            if ($hasRelations) {
-                return back()->with('error', 'Cannot delete document that is currently used as a reference.');
-            }
+        // Delete database record
+        $supportingDocument->delete();
 
-            // 1. Delete database record first
-            $supportingDocument->delete();
+        DB::commit();
 
-            DB::commit();
-
-            // 2. Only delete the physical file AFTER database transaction commits successfully.
-            // This prevents "orphaned" missing files if database execution fails.
-            $relativePath = $this->folder . '/' . $supportingDocument->stored_filename;
-            if (Storage::disk($this->disk)->exists($relativePath)) {
-                Storage::disk($this->disk)->delete($relativePath);
-            }
-
-            return back()->with('success', 'Document deleted successfully.');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error("Failed to delete document ID {$supportingDocument->id}: " . $e->getMessage());
-
-            return back()->with('error', 'Failed to delete document. Please try again.');
+        // Only delete the physical file AFTER database transaction commits successfully.
+        $relativePath = $this->folder . '/' . $supportingDocument->stored_filename;
+        if (Storage::disk($this->disk)->exists($relativePath)) {
+            Storage::disk($this->disk)->delete($relativePath);
         }
+
+        return back()->with('success', 'Document deleted successfully.');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error("Failed to delete document ID {$supportingDocument->id}: " . $e->getMessage());
+
+        return back()->with('error', 'Failed to delete document. Please try again.');
     }
+}
 
     /**
      * Download the specified document (Alias or Explicit Download)

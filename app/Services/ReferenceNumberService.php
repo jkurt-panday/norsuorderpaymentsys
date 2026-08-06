@@ -15,14 +15,14 @@ class ReferenceNumberService
     {
         $date = now()->format('Ymd');
         $random = Str::upper(Str::random(5));
-        $referenceNumber = 'OP-' . $date . '-' . $random;
-        
+        $referenceNumber = 'OP-'.$date.'-'.$random;
+
         // Ensure uniqueness
         while (FormInput::where('reference_number', $referenceNumber)->exists()) {
             $random = Str::upper(Str::random(5));
-            $referenceNumber = 'OP-' . $date . '-' . $random;
+            $referenceNumber = 'OP-'.$date.'-'.$random;
         }
-        
+
         return $referenceNumber;
     }
 
@@ -41,8 +41,10 @@ class ReferenceNumberService
     {
         if ($this->isValidFormat($referenceNumber)) {
             $parts = explode('-', $referenceNumber);
+
             return $parts[1] ?? null;
         }
+
         return null;
     }
-}   
+}
