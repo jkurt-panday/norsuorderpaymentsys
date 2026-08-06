@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { CreditCard } from 'lucide-react';
-import { toast } from 'sonner';
+import { flashToast } from '@/utils/flashToast';
 import {
     create,
     edit,
@@ -47,8 +47,8 @@ export default function PaymentOptionsIndex({
     // payment option is still in use). Without this, a rejected delete silently
     // redirects back with no visible feedback to the user.
     useEffect(() => {
-        if (flash?.success) toast.success(flash.success);
-        if (flash?.error) toast.error(flash.error);
+        if (flash?.success) flashToast('success', flash.success);
+        if (flash?.error) flashToast('error', flash.error);
     }, [flash]);
 
     // ============ COLUMNS ============
@@ -59,14 +59,17 @@ export default function PaymentOptionsIndex({
     const columns: ColumnDef<PaymentOption>[] = [
         {
             header: 'ID',
+            sortable: 'id',
             render: (row) => row.display_number,
         },
         {
             header: 'Payment Description',
+            sortable: 'payment_desc',
             render: (row) => row.payment_desc,
         },
         {
             header: 'Created At',
+            sortable: 'created_at',
             render: (row) => formatDate(row.created_at),
             className: 'px-4 py-3 text-slate-500',
         },

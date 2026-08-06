@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Users } from 'lucide-react';
-import { toast } from 'sonner';
+import { flashToast } from '@/utils/flashToast';
 import ResourceTable, {
     type PaginatedData,
     type ColumnDef,
@@ -48,8 +48,8 @@ export default function MembershipsIndex({
     // membership is still in use). Without this, a rejected delete silently
     // redirects back with no visible feedback to the user.
     useEffect(() => {
-        if (flash?.success) toast.success(flash.success);
-        if (flash?.error) toast.error(flash.error);
+        if (flash?.success) flashToast('success', flash.success);
+        if (flash?.error) flashToast('error', flash.error);
     }, [flash]);
 
     // ============ COLUMNS ============
@@ -64,10 +64,12 @@ export default function MembershipsIndex({
     const columns: ColumnDef<Membership>[] = [
         {
             header: 'ID',
+            sortable: 'id',
             render: (row) => row.display_number,
         },
         {
             header: 'Member Code',
+            sortable: 'member_code',
             render: (row) => (
                 <span className="inline-block rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-900">
                     {row.member_code}
@@ -76,10 +78,12 @@ export default function MembershipsIndex({
         },
         {
             header: 'Description',
+            sortable: 'member_desc',
             render: (row) => row.member_desc,
         },
         {
             header: 'Created At',
+            sortable: 'created_at',
             render: (row) => formatDate(row.created_at),
             className: 'px-4 py-3 text-slate-500',
         },

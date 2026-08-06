@@ -13,7 +13,7 @@ interface RecentRequest {
     reference_number: string;
     full_name: string;
     created_at: string;
-    staffInput?: {
+    staff_input?: {
         status: string;
     } | null;
 }
@@ -257,14 +257,14 @@ export default function Dashboard() {
                                                     </td>
                                                     <td className="py-3">
                                                         <span
-                                                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(request.staffInput?.status)}`}
+                                                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(request.staff_input?.status)}`}
                                                         >
-                                                            {request.staffInput
+                                                            {request.staff_input
                                                                 ?.status
-                                                                ? request.staffInput.status
+                                                                ? request.staff_input.status
                                                                       .charAt(0)
                                                                       .toUpperCase() +
-                                                                  request.staffInput.status.slice(
+                                                                  request.staff_input.status.slice(
                                                                       1,
                                                                   )
                                                                 : 'Unprocessed'}

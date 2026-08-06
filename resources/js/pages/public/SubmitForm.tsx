@@ -46,9 +46,7 @@ interface Props {
 }
 
 export default function SubmitForm({ memberships, paymentOptions }: Props) {
-    // functions
-    const [value, setValue] = useState('');
-
+    
     // ? form handling
     const { data, setData, processing, errors, reset } = useForm({
         email: '',
@@ -95,7 +93,6 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                 console.log('Success!', page);
                 reset();
                 setSupportingDocuments([]);
-                setValue('');
             },
             onError: (errors) => {
                 console.error('Validation errors:', errors);
@@ -104,10 +101,6 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
             preserveState: false,
         });
     };
-
-    // ? file upload
-    // Add state for supporting documents
-    const [supportingDocuments, setSupportingDocuments] = useState<File[]>([]);
 
     // Tracks animated upload progress (0-100) for each file, keyed by a stable file identifier
     const [uploadProgress, setUploadProgress] = useState<
@@ -130,9 +123,16 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                 ...prev,
                 [key]: Math.min(progress, 100),
             }));
-            if (progress >= 100) clearInterval(interval);
+
+            if (progress >= 100) {
+                clearInterval(interval);
+            }
         }, 80);
     };
+
+    // ? file upload
+    // Add state for supporting documents
+    const [supportingDocuments, setSupportingDocuments] = useState<File[]>([]);
 
     // handle file drop
     const handleFileDrop = (files: FileList) => {
@@ -169,7 +169,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 alt="NORSU Logo"
                                 width={500}
                                 height={500}
-                                className="pb-6"
+                                className='pb-6'
                             />
                         </div>
                         <h1 className="text-4xl font-bold tracking-tight text-blue-900">
@@ -687,8 +687,11 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 <Separator className="bg-blue-100" />
                                 <CardTitle className="flex items-center gap-3 text-xl font-semibold text-blue-900">
                                     <File className="h-5 w-5 text-blue-600" />
-                                    Supporting Documents
+                                    Supporting Document(s)
                                 </CardTitle>
+                                <p className="mt-3 text-slate-600 text-sm">
+                                    e.g. (Assessment Form, Billing Statement, Computation Documents, Student ID, Liquidation Form)
+                                </p>
                                 {/* file uploads */}
                                 {/* File Upload Drop Zone */}
                                 <FileUpload.Root>
@@ -818,7 +821,6 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                     onClick={() => {
                                         reset();
                                         setSupportingDocuments([]);
-                                        setValue('');
                                     }}
                                 >
                                     Cancel

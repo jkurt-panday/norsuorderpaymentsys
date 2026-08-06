@@ -1,8 +1,9 @@
 // /home/kurt_/norsuorderpaymentsys/resources/js/pages/public/Success.tsx
 import { Link } from '@inertiajs/react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import {
     CheckCircle,
-    Download,
     FileText,
     Mail,
     Phone,
@@ -10,8 +11,10 @@ import {
     User,
     Receipt,
     IdCard,
+    Printer,
 } from 'lucide-react';
-import React from 'react';
+import React, { useRef } from 'react';
+import { useReactToPrint } from 'react-to-print';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -106,18 +109,27 @@ export default function Success({ reference_number, formInput }: Props) {
     const getRequestBadgeClass = (requestType: string) => {
         switch (requestType) {
             case 'New Request':
-                return 'bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-100';
+                return 'bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-4';
 
             case 'Re-issue Request':
-                return 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-100';
+                return 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-100 px-4';
 
             case 'Other':
-                return 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-100';
+                return 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-100 px-4';
 
             default:
-                return 'bg-slate-100 text-slate-700 border border-slate-200';
+                return 'bg-slate-100 text-slate-700 border border-slate-200 px-4';
         }
     };
+
+    // ? for printing
+    const receiptRef = useRef<HTMLDivElement>(null);
+
+    const handlePrint = useReactToPrint({
+        contentRef: receiptRef,
+
+        documentTitle: `Receipt-${reference_number}`,
+    });
 
     // console.log('formInput:', formInput);
     // console.log('supportingDocuments:', formInput?.supporting_documents);
@@ -127,15 +139,19 @@ export default function Success({ reference_number, formInput }: Props) {
         <>
             <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-100 to-white py-12">
                 <div className="mx-auto max-w-5xl px-6">
-                    <div className="borderborder-red-400 container mx-auto max-w-4xl px-4 py-8">
-                        <Card className="overflow-hidden rounded-3xl bg-white shadow-2xl">
-                            <CardHeader className="-mx-6 -mt-6 rounded-t-3xl rounded-b-3xl bg-linear-to-b from-blue-600 to-blue-400 px-8 py-10 text-center text-white">
+                    <div
+                        className="print-container container mx-auto max-w-4xl rounded-3xl px-4 py-8"
+                        id="print-receipt"
+                        ref={receiptRef}
+                    >
+                        <Card className="print-card overflow-hidden rounded-3xl bg-white shadow-2xl print:shadow-none">
+                            <CardHeader className="print-header -mx-6 -mt-6 rounded-t-3xl rounded-b-3xl bg-linear-to-b from-blue-600 to-blue-400 px-8 py-10 text-center text-white">
                                 <div className="mx-auto flex items-center justify-center">
                                     <img
                                         src="/finance_logo1.png"
                                         alt="NORSU Logo"
-                                        width={200}
-                                        height={200}
+                                        width={500}
+                                        height={500}
                                         className="pb-6"
                                     />
                                 </div>
@@ -151,7 +167,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                 </CardDescription>
                             </CardHeader>
 
-                            <CardContent className="space-y-10 pt-8">
+                            <CardContent className="print-content space-y-10 pt-8">
                                 {/* Reference Number */}
                                 <div className="rounded-2xl border border-blue-100 bg-blue-50 p-8 text-center shadow-sm">
                                     <p className="text-sm text-muted-foreground">
@@ -283,7 +299,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                                 Request Type
                                             </p>
                                             <Badge
-                                                className={`rounded-full px-4 py-1 text-xl font-semibold shadow-sm ${getRequestBadgeClass(
+                                                className={`rounded-full px-4 py-4 text-lg font-semibold shadow-sm ${getRequestBadgeClass(
                                                     formInput.request_type,
                                                 )}`}
                                             >
@@ -344,7 +360,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                                             <div className="flex items-center gap-3">
                                                                 <FileText className="h-5 w-5 text-muted-foreground" />
                                                                 <div>
-                                                                    <p className="text-sm font-medium">
+                                                                    <p className="text-lg font-medium">
                                                                         {
                                                                             doc.original_filename
                                                                         }
@@ -376,21 +392,21 @@ export default function Success({ reference_number, formInput }: Props) {
 
                                 {/* Submission Details */}
                                 <div className="font-lg text-center leading-7 text-slate-600">
-                                    <p className="font-xl mb-1 text-sm tracking-wide text-slate-500">
+                                    <p className="font-xl -mt-4 mb-1 text-sm tracking-wide text-slate-500">
                                         Submitted on:{' '}
                                         {formatDate(formInput.created_at)}
                                     </p>
                                 </div>
                             </CardContent>
 
-                            <CardFooter className="flex flex-col gap-4 border-t pt-6">
-                                <div className="max-w-2xl text-center text-base leading-7 text-slate-600">
+                            <CardFooter className="print-hidden no-print flex flex-col gap-4 border-t pt-6">
+                                {/*<div className="max-w-2xl text-center text-base leading-7 text-slate-600">
                                     <p>
                                         A confirmation email has been sent to
                                         your email address. Our team will review
                                         your request and contact you shortly.
                                     </p>
-                                </div>
+                                </div>*/}
                                 <div className="flex gap-4">
                                     <Button className="h-12 rounded-xl bg-blue-700 px-8 text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-800 hover:shadow-lg active:scale-[0.98]">
                                         <Link href="/public/form">
@@ -399,9 +415,11 @@ export default function Success({ reference_number, formInput }: Props) {
                                     </Button>
                                     <Button
                                         variant="outline"
+                                        onClick={handlePrint}
                                         className="h-12 rounded-xl border-blue-200 px-8 text-base font-semibold text-blue-700 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800"
                                     >
-                                        <Link href="/">Go to Home</Link>
+                                        <Printer className="mr-2 h-5 w-5" />
+                                        Print Receipt
                                     </Button>
                                 </div>
                             </CardFooter>
