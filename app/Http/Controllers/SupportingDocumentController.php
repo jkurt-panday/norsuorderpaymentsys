@@ -114,29 +114,10 @@ public function destroy(SupportingDocument $supportingDocument)
 
         DB::commit();
 
-<<<<<<< HEAD
-            DB::commit();
-
-            // 2. Only delete the physical file AFTER database transaction commits successfully.
-            // This prevents "orphaned" missing files if database execution fails.
-            $relativePath = $this->folder.'/'.$supportingDocument->stored_filename;
-            if (Storage::disk($this->disk)->exists($relativePath)) {
-                Storage::disk($this->disk)->delete($relativePath);
-            }
-
-            return back()->with('success', 'Document deleted successfully.');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error("Failed to delete document ID {$supportingDocument->id}: ".$e->getMessage());
-
-            return back()->with('error', 'Failed to delete document. Please try again.');
-=======
         // Only delete the physical file AFTER database transaction commits successfully.
         $relativePath = $this->folder . '/' . $supportingDocument->stored_filename;
         if (Storage::disk($this->disk)->exists($relativePath)) {
             Storage::disk($this->disk)->delete($relativePath);
->>>>>>> 3b37af8f4bec16f698d27cbe18b808cbbc63ad0c
         }
 
         return back()->with('success', 'Document deleted successfully.');
