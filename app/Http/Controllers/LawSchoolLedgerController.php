@@ -298,7 +298,7 @@ class LawSchoolLedgerController extends Controller
         $selectedStudent = $request->input('student');
         $studentRecords = collect();
         $balanceSummary = [
-            'totalAssessments' => 0,
+            'totalCharges' => 0,
             'totalPayments' => 0,
             'outstandingBalance' => 0,
         ];
@@ -341,7 +341,7 @@ class LawSchoolLedgerController extends Controller
             'studentName' => $studentName,
             'records' => $records,
             'summary' => $summary,
-            'generatedAt' => now()->format('Y-m-d'),
+            'generatedAt' => now()->format('Y-m-d h:i A'),
         ])
             ->setPaper('a4', 'portrait')
             ->setOption('defaultFont', 'DejaVu Sans')
@@ -537,7 +537,7 @@ class LawSchoolLedgerController extends Controller
         }
 
         return [
-            'totalAssessments' => $totalAssessments,
+            'totalCharges' => $totalAssessments,
             'totalPayments' => $totalPayments,
             'outstandingBalance' => $totalAssessments - $totalPayments,
         ];

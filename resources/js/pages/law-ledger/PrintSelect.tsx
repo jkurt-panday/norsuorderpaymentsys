@@ -37,7 +37,7 @@ interface PrintSelectProps {
   selectedStudent: string | null;
   records?: LawLedgerRecord[];
   summary?: {
-    totalAssessments: number;
+    totalCharges: number;
     totalPayments: number;
     outstandingBalance: number;
   };
@@ -261,7 +261,7 @@ export default function PrintSelect({
                 </CardHeader>
                 <CardContent>
                   <div className="text-xl font-bold text-[#0B3D91]">
-                    {currency(summary?.totalAssessments ?? 0)}
+                    {currency(summary?.totalCharges ?? 0)}
                   </div>
                 </CardContent>
               </Card>
