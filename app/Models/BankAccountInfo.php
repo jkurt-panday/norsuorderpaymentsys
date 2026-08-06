@@ -16,7 +16,7 @@ class BankAccountInfo extends Model
         'account_name',
         'bank_name',
         'account_num',
-        'fund_cluster'
+        'fund_cluster',
     ];
 
     public function staffInputs(): HasMany
@@ -27,6 +27,6 @@ class BankAccountInfo extends Model
     // Accessor for formatted account display
     public function getDisplayNameAttribute(): string
     {
-        return $this->account_name . ' - ' . $this->bank_name . ' (' . $this->account_num . ')';
+        return $this->account_name.' - '.$this->bank_name.' ('.$this->account_num.')';
     }
 }

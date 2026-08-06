@@ -52,6 +52,7 @@ class StaffInput extends Model
             'approved' => 'badge-success',
             'cancelled' => 'badge-danger',
         ];
+
         return $badges[$this->status] ?? 'badge-secondary';
     }
 

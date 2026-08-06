@@ -33,8 +33,8 @@ class FileUploadService
             $this->disk
         );
 
-        if (!$path) {
-            throw new \Exception('Failed to upload file: ' . $file->getClientOriginalName());
+        if (! $path) {
+            throw new \Exception('Failed to upload file: '.$file->getClientOriginalName());
         }
 
         // Generate URL
@@ -147,7 +147,8 @@ class FileUploadService
             $bytes /= 1024;
             $i++;
         }
-        return round($bytes, 2) . ' ' . $units[$i];
+
+        return round($bytes, 2).' '.$units[$i];
     }
 
     /**

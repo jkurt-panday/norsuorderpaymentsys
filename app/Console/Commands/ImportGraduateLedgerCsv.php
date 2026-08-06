@@ -19,12 +19,13 @@ class ImportGraduateLedgerCsv extends Command
         $filePath = $this->argument('file');
 
         // Resolve relative paths from the project base path
-        if (!str_starts_with($filePath, '/') && !str_contains($filePath, ':\\')) {
+        if (! str_starts_with($filePath, '/') && ! str_contains($filePath, ':\\')) {
             $filePath = base_path($filePath);
         }
 
-        if (!file_exists($filePath)) {
+        if (! file_exists($filePath)) {
             $this->error("File not found: {$filePath}");
+
             return self::FAILURE;
         }
 
@@ -34,16 +35,17 @@ class ImportGraduateLedgerCsv extends Command
         }
 
         $handle = fopen($filePath, 'r');
-        if (!$handle) {
+        if (! $handle) {
             $this->error('Could not open CSV file.');
+
             return self::FAILURE;
         }
 
         // Skip the header row
         fgetcsv($handle);
 
-        $imported  = 0;
-        $skipped   = 0;
+        $imported = 0;
+        $skipped = 0;
         $rowNumber = 1;
 
         $this->info('Importing records...');
@@ -75,29 +77,30 @@ class ImportGraduateLedgerCsv extends Command
             if (empty($studentName)) {
                 $skipped++;
                 $bar->advance();
+
                 continue;
             }
 
             $transactionDate = $this->parseDate($row[6] ?? '');
-            $amount          = $this->parseAmount($row[11] ?? '0');
-            $tuition         = $this->parseAmount($row[9] ?? '0');
-            $arPayment       = $this->normalizeArPayment($row[10] ?? '');
+            $amount = $this->parseAmount($row[11] ?? '0');
+            $tuition = $this->parseAmount($row[9] ?? '0');
+            $arPayment = $this->normalizeArPayment($row[10] ?? '');
 
             GraduateLedger::create([
-                'student_name'            => $studentName,
-                'course'                  => $this->clean($row[1] ?? ''),
-                'school_year'             => $this->clean($row[2] ?? ''),
-                'semester_short'          => $this->clean($row[3] ?? ''),
-                'semester'                => $this->clean($row[4] ?? ''),
-                'units'                   => is_numeric($row[5] ?? '') ? (int) $row[5] : null,
-                'transaction_date'        => $transactionDate,
+                'student_name' => $studentName,
+                'course' => $this->clean($row[1] ?? ''),
+                'school_year' => $this->clean($row[2] ?? ''),
+                'semester_short' => $this->clean($row[3] ?? ''),
+                'semester' => $this->clean($row[4] ?? ''),
+                'units' => is_numeric($row[5] ?? '') ? (int) $row[5] : null,
+                'transaction_date' => $transactionDate,
                 'reference_or_jev_number' => $this->clean($row[7] ?? ''),
-                'particulars'             => $this->clean($row[8] ?? ''),
-                'tuition_per_unit_or_misc'=> $tuition,
-                'ar_payment'              => $arPayment,
-                'amount'                  => $amount,
-                'remarks'                 => $this->clean($row[12] ?? ''),
-                'input_by'                => $this->clean($row[13] ?? ''),
+                'particulars' => $this->clean($row[8] ?? ''),
+                'tuition_per_unit_or_misc' => $tuition,
+                'ar_payment' => $arPayment,
+                'amount' => $amount,
+                'remarks' => $this->clean($row[12] ?? ''),
+                'input_by' => $this->clean($row[13] ?? ''),
             ]);
 
             $imported++;
@@ -119,6 +122,7 @@ class ImportGraduateLedgerCsv extends Command
     private function clean(?string $value): string
     {
         $value = str_replace(['−', '–', '—'], '-', (string) $value);
+
         return trim($value);
     }
 
@@ -165,7 +169,7 @@ class ImportGraduateLedgerCsv extends Command
         }
 
         $negative = str_contains($value, '(') && str_contains($value, ')');
-        $numeric  = (float) preg_replace('/[^\d.]/', '', $value);
+        $numeric = (float) preg_replace('/[^\d.]/', '', $value);
 
         return $negative ? -$numeric : $numeric;
     }
@@ -178,10 +182,10 @@ class ImportGraduateLedgerCsv extends Command
         $upper = strtoupper(trim((string) $value));
 
         return match (true) {
-            $upper === 'AR'                               => 'AR',
+            $upper === 'AR' => 'AR',
             in_array($upper, ['PAYMENT', 'P', 'PAYMENR']) => 'Payment',
-            in_array($upper, ['ADJUSTMENT', 'ADJ'])       => 'Adjustment',
-            default                                       => $value ?? '',
+            in_array($upper, ['ADJUSTMENT', 'ADJ']) => 'Adjustment',
+            default => $value ?? '',
         };
     }
 }

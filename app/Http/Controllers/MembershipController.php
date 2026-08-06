@@ -4,24 +4,32 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\MembershipRequest;
 use App\Models\Membership;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\Request;
 
 class MembershipController extends BaseResourceController
 {
     // ---- Config consumed by BaseResourceController::index() ----
     protected string $model = Membership::class;
+
     protected array $searchableColumns = ['member_code', 'member_desc'];
+
     protected string $indexView = 'staff/memberships/membership';
+
     protected string $resourceKey = 'memberships';
+
     protected int $perPage = 10;
+
     protected string $orderBy = 'id';
+
     protected string $orderDirection = 'asc';
+
     // Allowlist: only these columns can be sorted on via ?sort=...
     protected array $sortableColumns = ['id', 'member_code', 'member_desc', 'created_at'];
+
     // Membership has no obvious status/type field to filter on today —
     // leave empty. Add entries here (e.g. ['type' => 'member_type']) if
     // one gets added later.
@@ -39,7 +47,8 @@ class MembershipController extends BaseResourceController
      */
     protected function modifyIndexQuery(Builder $query, Request $request): Builder
     {
-            $table = (new $this->model)->getTable();
+        $table = (new $this->model)->getTable();
+
         return $query
             ->select('*')
             ->selectRaw(
@@ -72,8 +81,8 @@ class MembershipController extends BaseResourceController
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to create membership: ' . $e->getMessage(), [
-                'request' => $request->validated()
+            Log::error('Failed to create membership: '.$e->getMessage(), [
+                'request' => $request->validated(),
             ]);
 
             return back()
@@ -92,7 +101,7 @@ class MembershipController extends BaseResourceController
             'flash' => [
                 'success' => session('success'),
                 'error' => session('error'),
-            ]
+            ],
         ]);
     }
 
@@ -113,7 +122,7 @@ class MembershipController extends BaseResourceController
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Failed to update membership ID {$membership->id}: " . $e->getMessage());
+            Log::error("Failed to update membership ID {$membership->id}: ".$e->getMessage());
 
             return back()
                 ->withInput()
@@ -143,7 +152,7 @@ class MembershipController extends BaseResourceController
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Failed to delete membership ID {$membership->id}: " . $e->getMessage());
+            Log::error("Failed to delete membership ID {$membership->id}: ".$e->getMessage());
 
             return back()->with('error', 'Failed to delete membership. Please check if it is still in use.');
         }
