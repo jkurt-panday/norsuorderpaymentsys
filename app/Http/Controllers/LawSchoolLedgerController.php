@@ -32,11 +32,12 @@ class LawSchoolLedgerController extends Controller
 
         $query = LawSchoolLedger::query()
             ->when($request->input('search'), function ($query, $search) {
-                $query->where('first_name', 'like', "%{$search}%")
-                    ->orWhere('last_name', 'like', "%{$search}%")
-                    ->orWhere('middle_initial', 'like', "%{$search}%")
-                    ->orWhere('reference_jev_or_number', 'like', "%{$search}%")
-                    ->orWhere('particulars', 'like', "%{$search}%");
+                $search = strtolower($search);
+                $query->whereRaw('LOWER(first_name) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(middle_initial) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(reference_jev_or_number) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(particulars) LIKE ?', ["%{$search}%"]);
             })
             ->when($schoolYear, function ($query, $schoolYear) {
                 $query->where('school_year', $schoolYear);
