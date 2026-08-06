@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Http\Requests\BankAccountInfoRequest;
 use App\Models\BankAccountInfo;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
-
 
 class BankAccountInfoController extends BaseResourceController
 {
@@ -17,22 +16,32 @@ class BankAccountInfoController extends BaseResourceController
      * Display list of bank accounts
      */
     protected string $model = BankAccountInfo::class;
+
     protected array $searchableColumns = ['bank_name', 'account_name'];
+
     protected string $indexView = 'staff/bankaccounts/bankaccount';
+
     protected string $resourceKey = 'bankAccounts';
+
     protected string $orderBy = 'id';
+
     protected string $orderDirection = 'asc';
+
     protected array $secondaryOrderBy = [
         ['column' => 'account_name', 'direction' => 'asc'],
     ];
+
     protected array $sortableColumns = ['id', 'bank_name', 'account_name', 'created_at'];
+
     protected array $filterableColumns = [];
+
     /**
      * Show create form
      */
     protected function modifyIndexQuery(Builder $query, Request $request): Builder
     {
         $table = (new $this->model)->getTable();
+
         return $query
             ->select('*')
             ->selectRaw(
@@ -62,8 +71,8 @@ class BankAccountInfoController extends BaseResourceController
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to create bank account: ' . $e->getMessage(), [
-                'request' => $request->validated()
+            Log::error('Failed to create bank account: '.$e->getMessage(), [
+                'request' => $request->validated(),
             ]);
 
             return back()
@@ -100,7 +109,7 @@ class BankAccountInfoController extends BaseResourceController
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Failed to update bank account ID {$bankAccount->id}: " . $e->getMessage());
+            Log::error("Failed to update bank account ID {$bankAccount->id}: ".$e->getMessage());
 
             return back()
                 ->withInput()
@@ -111,10 +120,10 @@ class BankAccountInfoController extends BaseResourceController
     /**
      * Delete a bank account safely
      */
-/**
+    /**
      * Delete a bank account safely
      */
-/**
+    /**
      * Delete a bank account safely
      */
     public function destroy(BankAccountInfo $bankAccount)
@@ -138,7 +147,7 @@ class BankAccountInfoController extends BaseResourceController
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Failed to delete bank account ID {$bankAccount->id}: " . $e->getMessage());
+            Log::error("Failed to delete bank account ID {$bankAccount->id}: ".$e->getMessage());
 
             return back()->with('error', 'Failed to delete bank account. Please check if it is still in use.');
         }

@@ -4,7 +4,6 @@ namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class FileUploadService
 {
@@ -17,26 +16,26 @@ class FileUploadService
         $timestamp = now()->format('Ymd_His');
         $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $extension = $file->getClientOriginalExtension();
-        
+
         // Sanitize original filename (remove special characters)
         $safeOriginalName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $originalName);
-        $storedFilename = $timestamp . '_' . $safeOriginalName . '.' . $extension;
-        
+        $storedFilename = $timestamp.'_'.$safeOriginalName.'.'.$extension;
+
         // Ensure unique filename
         $counter = 1;
-        while (Storage::exists('public/' . $directory . '/' . $storedFilename)) {
-            $storedFilename = $timestamp . '_' . $safeOriginalName . '_' . $counter . '.' . $extension;
+        while (Storage::exists('public/'.$directory.'/'.$storedFilename)) {
+            $storedFilename = $timestamp.'_'.$safeOriginalName.'_'.$counter.'.'.$extension;
             $counter++;
         }
 
         // Store the file
         $path = $file->storeAs(
-            'public/' . $directory,
+            'public/'.$directory,
             $storedFilename
         );
 
-        if (!$path) {
-            throw new \Exception('Failed to upload file: ' . $file->getClientOriginalName());
+        if (! $path) {
+            throw new \Exception('Failed to upload file: '.$file->getClientOriginalName());
         }
 
         // Return metadata
@@ -44,7 +43,7 @@ class FileUploadService
             'form_input_id' => $formInputId,
             'original_filename' => $file->getClientOriginalName(),
             'stored_filename' => $storedFilename,
-            'file_url' => '/storage/' . $directory . '/' . $storedFilename,
+            'file_url' => '/storage/'.$directory.'/'.$storedFilename,
             'mime_type' => $file->getMimeType(),
             'file_extension' => $extension,
             'file_size' => $file->getSize(),
@@ -57,10 +56,11 @@ class FileUploadService
      */
     public function delete(string $storedFilename, string $directory = 'supporting-documents'): bool
     {
-        $path = 'public/' . $directory . '/' . $storedFilename;
+        $path = 'public/'.$directory.'/'.$storedFilename;
         if (Storage::exists($path)) {
             return Storage::delete($path);
         }
+
         return false;
     }
 
@@ -70,6 +70,7 @@ class FileUploadService
     public function isValidFileType(UploadedFile $file, array $allowedTypes = ['pdf', 'jpg', 'jpeg', 'png']): bool
     {
         $extension = strtolower($file->getClientOriginalExtension());
+
         return in_array($extension, $allowedTypes);
     }
 
@@ -84,6 +85,7 @@ class FileUploadService
             $bytes /= 1024;
             $i++;
         }
-        return round($bytes, 2) . ' ' . $units[$i];
+
+        return round($bytes, 2).' '.$units[$i];
     }
 }

@@ -23,6 +23,6 @@ class Uacs extends Model
     // Accessor for display
     public function getDisplayNameAttribute(): string
     {
-        return $this->object_code . ' - ' . $this->account_title;
+        return $this->object_code.' - '.$this->account_title;
     }
 }
