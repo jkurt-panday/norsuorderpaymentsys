@@ -150,7 +150,7 @@ export default function RequestTable<T extends { id: number | string }>({
     onPageChange,
     search,
     onSearchChange,
-    searchPlaceholder = 'Search...',
+    searchPlaceholder = '\...',
     status,
     onStatusChange,
     statusOptions,
@@ -505,7 +505,7 @@ export default function RequestTable<T extends { id: number | string }>({
             </Card>
 
             {/* ---- Table ---- */}
-            <Card className="min-w-0 overflow-hidden border-slate-200/70 py-0 shadow-sm">
+            <Card className="min-w-0 gap-0 overflow-hidden border-slate-200/70 p-0 py-0 shadow-sm">
                 {/* Local, table-scoped loading bar — replaces Inertia's global
                     top-progress-bar for sort/page-jump navigations. */}
                 <div className="relative h-0.5 w-full overflow-hidden bg-transparent">
