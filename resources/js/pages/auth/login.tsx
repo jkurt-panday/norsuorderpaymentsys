@@ -109,7 +109,7 @@ export default function Login({
                             onClick={() => setShowPassword(!showPassword)}
                             className="absolute top-1/2 right-3 -translate-y-1/2 text-[#717786] transition-colors hover:text-[#005ab7]"
                         >
-                            <span className="material-symbols-outlined p-2 text-xl">
+                            <span className="material-symbols-outlined pt-2 text-xl">
                                 {showPassword ? 'visibility_off' : 'visibility'}
                             </span>
                         </button>
