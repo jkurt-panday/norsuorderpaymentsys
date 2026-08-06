@@ -4,120 +4,273 @@
     <meta charset="UTF-8">
     <title>Statement of Account - {{ $studentName }}</title>
     <style>
-        body { font-family: 'DejaVu Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10pt; color: #1a1a1a; margin: 15px; }
-        .header { text-align: center; border-bottom: 2px solid #0B3D91; padding-bottom: 8px; margin-bottom: 15px; }
-        .header h1 { margin: 0; font-size: 16pt; color: #0B3D91; text-transform: uppercase; }
-        .header p { margin: 2px 0; font-size: 9pt; color: #555; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'DejaVu Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 8pt;
+            color: #1a1a1a;
+            margin: 10px 12px;
+            background: #fff;
+        }
 
-        .meta-table { width: 100%; margin-bottom: 15px; border-collapse: collapse; }
-        .meta-table td { padding: 4px 0; vertical-align: top; }
+        .receipt-header {
+            text-align: center;
+            border-bottom: 1px dashed #999;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+        }
+        .receipt-header h1 {
+            font-size: 12pt;
+            color: #0B3D91;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0;
+        }
+        .receipt-header .sub {
+            font-size: 7pt;
+            color: #666;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .receipt-header .divider {
+            border-top: 1px dotted #ccc;
+            margin: 4px 0;
+        }
 
-        .ledger-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .ledger-table th { background-color: #F3F8FF; color: #0B3D91; font-size: 8pt; text-transform: uppercase; border: 1px solid #CFE3FF; padding: 6px; }
-        .ledger-table td { border: 1px solid #EAF2FF; padding: 5px; font-size: 9pt; }
-        .text-right { text-align: right; }
-        .text-center { text-align: center; }
+        .meta-grid {
+            display: table;
+            width: 100%;
+            margin-bottom: 6px;
+            font-size: 7.5pt;
+        }
+        .meta-row {
+            display: table-row;
+        }
+        .meta-cell {
+            display: table-cell;
+            padding: 1px 0;
+        }
+        .meta-cell.label {
+            color: #555;
+            width: 18%;
+        }
+        .meta-cell.value {
+            font-weight: 600;
+            width: 32%;
+        }
+        .meta-cell.right {
+            text-align: right;
+        }
 
-        .summary-container { margin-top: 20px; width: 100%; }
-        .summary-box { float: right; width: 45%; border: 1px solid #CFE3FF; background-color: #FAFAF5; padding: 10px; }
-        .summary-box table { width: 100%; border-collapse: collapse; }
-        .summary-box td { padding: 3px 0; font-size: 9pt; }
-        .summary-box .grand-total { border-top: 2px solid #0B3D91; font-weight: bold; font-size: 11pt; color: #0B3D91; }
+        .ledger-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 7pt;
+            margin-top: 4px;
+        }
+        .ledger-table th {
+            background-color: #f0f4f8;
+            color: #0B3D91;
+            font-size: 6.5pt;
+            text-transform: uppercase;
+            border: 1px solid #dde4ec;
+            padding: 3px 4px;
+            letter-spacing: 0.5px;
+        }
+        .ledger-table td {
+            border: 1px solid #e8edf3;
+            padding: 3px 4px;
+        }
+        .ledger-table .text-right { text-align: right; }
+        .ledger-table .text-center { text-align: center; }
+
+        .ledger-table tbody tr:nth-child(even) {
+            background-color: #fafcfe;
+        }
+
+        .ledger-table tbody tr.payment-row {
+            background-color: #fff8f8;
+        }
+        .ledger-table tbody tr.payment-row:nth-child(even) {
+            background-color: #fff5f5;
+        }
+
+        .summary-container {
+            margin-top: 10px;
+            border-top: 1px dashed #999;
+            padding-top: 8px;
+        }
+        .summary-grid {
+            display: table;
+            width: 100%;
+            font-size: 7.5pt;
+        }
+        .summary-row {
+            display: table-row;
+        }
+        .summary-cell {
+            display: table-cell;
+            padding: 1px 0;
+        }
+        .summary-cell.label {
+            color: #555;
+            width: 70%;
+        }
+        .summary-cell.value {
+            text-align: right;
+            font-weight: 500;
+            width: 30%;
+        }
+        .summary-row.total .summary-cell {
+            border-top: 2px solid #0B3D91;
+            padding-top: 4px;
+            font-weight: 700;
+            font-size: 9pt;
+            color: #0B3D91;
+        }
+
+        .footer {
+            margin-top: 12px;
+            font-size: 6pt;
+            color: #aaa;
+            text-align: center;
+            border-top: 1px dotted #ddd;
+            padding-top: 4px;
+        }
 
         .clear { clear: both; }
-        .footer { margin-top: 40px; font-size: 8pt; color: #8AA8CC; text-align: center; }
+        .text-muted { color: #888; }
+        .text-success { color: #2e7d32; }
+        .text-danger { color: #c62828; }
+        .text-bold { font-weight: 700; }
+        .text-negative { color: #c62828; }
+        .text-positive { color: #2e7d32; }
+
+        @media print {
+            body { margin: 8px; }
+            .ledger-table th { background-color: #e8edf3 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .ledger-table tbody tr:nth-child(even) { background-color: #f5f7fa !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .ledger-table tbody tr.payment-row { background-color: #fff8f8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .ledger-table tbody tr.payment-row:nth-child(even) { background-color: #fff5f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
     </style>
 </head>
 <body>
 
     @php
         $normalizeText = static fn ($value) => str_replace(['−', '–', '—'], '-', (string) $value);
+        $firstRecord = $records->first();
+        $cleanAmount = static fn ($val) => abs((float) preg_replace('/[^\d.]/', '', (string) $val));
+
+        $isPayment = static fn ($record) => in_array(strtoupper(trim($record->ar_or_payment ?? '')), ['PAYMENT', 'P', 'PAYMENR', 'SETTLED', 'ADJUSTMENT', 'ADJ']);
+
+        $formatAmount = static function ($record) use ($cleanAmount, $isPayment) {
+            $amount = $cleanAmount($record->amount ?? 0);
+            $type = strtoupper(trim($record->ar_or_payment ?? ''));
+
+            if ($isPayment($record)) {
+                return '-₱' . number_format($amount, 2);
+            }
+
+            return '₱' . number_format($amount, 2);
+        };
+
+        $getAmountClass = static fn ($record) => $isPayment($record) ? 'text-negative' : 'text-positive';
     @endphp
 
-    <div class="header">
+    <div class="receipt-header">
         <h1>Law School Office</h1>
-        <p>OFFICIAL STUDENT STATEMENT OF ACCOUNT</p>
+        <div class="sub">Official Student Statement of Account</div>
+        <div class="divider"></div>
     </div>
 
-    @php
-        $firstRecord = $records->first();
-        // Debug info
-        $debugInfo = [
-            'studentName' => $studentName,
-            'recordsCount' => $records->count(),
-            'hasFirstRecord' => $firstRecord !== null,
-            'firstRecordData' => $firstRecord ? $firstRecord->toArray() : null
-        ];
-    @endphp
-    
-    <table class="meta-table">
-        <tr>
-            <td><strong>Student Name:</strong> {{ $normalizeText($studentName) }}</td>
-            <td class="text-right"><strong>Date Issued:</strong> {{ $generatedAt }}</td>
-        </tr>
-        <tr>
-            <td><strong>Course:</strong> {{ $normalizeText($firstRecord->course ?? 'N/A') }}</td>
-            <td class="text-right"><strong>Status:</strong> {{ $summary['outstandingBalance'] <= 0 ? 'Settled' : 'Outstanding' }}</td>
-        </tr>
-        <tr>
-            <td><strong>School Year:</strong> {{ $normalizeText($firstRecord->school_year ?? 'N/A') }} {{ $firstRecord && $firstRecord->semester_or_summer ? "({$firstRecord->semester_or_summer})" : '' }}</td>
-            <td class="text-right"><strong>Units:</strong> {{ $normalizeText($firstRecord->units ?? 'N/A') }}</td>
-        </tr>
-    </table>
+    <div class="meta-grid">
+        <div class="meta-row">
+            <span class="meta-cell label">Student:</span>
+            <span class="meta-cell value">{{ $normalizeText($studentName) }}</span>
+            <span class="meta-cell label">Date Issued:</span>
+            <span class="meta-cell value right">{{ $generatedAt }}</span>
+        </div>
+        <div class="meta-row">
+            <span class="meta-cell label">Course:</span>
+            <span class="meta-cell value">{{ $normalizeText($firstRecord->course ?? 'N/A') }}</span>
+            <span class="meta-cell label">Status:</span>
+            <span class="meta-cell value right {{ $summary['outstandingBalance'] <= 0 ? 'text-success' : 'text-danger' }}">
+                {{ $summary['outstandingBalance'] <= 0 ? '✓ SETTLED' : 'OUTSTANDING' }}
+            </span>
+        </div>
+        <div class="meta-row">
+            <span class="meta-cell label">School Year:</span>
+            <span class="meta-cell value">{{ $normalizeText($firstRecord->school_year ?? 'N/A') }}</span>
+            <span class="meta-cell label">Units:</span>
+            <span class="meta-cell value right">{{ $normalizeText($firstRecord->units ?? 'N/A') }}</span>
+        </div>
+        @if($firstRecord && $firstRecord->semester_or_summer)
+        <div class="meta-row">
+            <span class="meta-cell label">Semester:</span>
+            <span class="meta-cell value">{{ $normalizeText($firstRecord->semester_or_summer) }}</span>
+            <span class="meta-cell label"></span>
+            <span class="meta-cell value right"></span>
+        </div>
+        @endif
+    </div>
 
     <table class="ledger-table">
         <thead>
             <tr>
-                <th width="12%">Date</th>
-                <th width="15%">Ref / JEV #</th>
-                <th>Particulars</th>
-                <th width="12%">Tuition/Unit or Reg. & Misc. Fee</th>
-                <th width="10%" class="text-center">AR/Payment</th>
-                <th width="12%" class="text-right">Amount</th>
+                <th width="11%">Date</th>
+                <th width="14%">Ref #</th>
+                <th width="28%">Particulars</th>
+                <th width="14%" class="text-right">Rate</th>
+                <th width="10%" class="text-center">Type</th>
+                <th width="13%" class="text-right">Amount</th>
             </tr>
         </thead>
         <tbody>
             @if($records->isNotEmpty())
                 @foreach($records as $r)
-                    <tr>
-                        <td>{{ $normalizeText($r->transaction_date ? \Carbon\Carbon::parse($r->transaction_date)->format('Y-m-d') : '-') }}</td>
+                    <tr class="{{ $isPayment($r) ? 'payment-row' : '' }}">
+                        <td>{{ $normalizeText($r->transaction_date ? \Carbon\Carbon::parse($r->transaction_date)->format('m/d/Y') : '-') }}</td>
                         <td>{{ $normalizeText($r->reference_jev_or_number ?? '-') }}</td>
-                        <td>{{ $normalizeText($r->particulars ?? '-') }}</td>
-                        <td class="text-right">₱{{ number_format(abs((float) preg_replace('/[^\d.]/', '', (string) ($r->tuition_per_unit_or_fee_per_semester ?? 0))), 2) }}</td>
-                        <td class="text-center">{{ $normalizeText(strtoupper($r->ar_or_payment ?? 'AR')) }}</td>
-                        <td class="text-right">₱{{ number_format(abs((float) preg_replace('/[^\d.]/', '', (string) ($r->amount ?? 0))), 2) }}</td>
+                        <td>{{ \Str::limit($normalizeText($r->particulars ?? '-'), 35) }}</td>
+                        <td class="text-right">₱{{ number_format($cleanAmount($r->tuition_per_unit_or_fee_per_semester ?? 0), 2) }}</td>
+                        <td class="text-center">
+                            {{ $isPayment($r) ? 'PAY' : 'AR' }}
+                        </td>
+                        <td class="text-right {{ $getAmountClass($r) }}">
+                            {{ $formatAmount($r) }}
+                        </td>
                     </tr>
                 @endforeach
             @else
                 <tr>
-                    <td colSpan="6" class="text-center">No transactions on record for this student.</td>
+                    <td colspan="6" class="text-center text-muted" style="padding: 8px 0;">No transactions on record.</td>
                 </tr>
             @endif
         </tbody>
     </table>
 
     <div class="summary-container">
-        <div class="summary-box">
-            <table>
-                <tr>
-                    <td>Total Assessments:</td>
-                    <td class="text-right">₱{{ number_format($summary['totalAssessments'], 2) }}</td>
-                </tr>
-                <tr>
-                    <td>Total Payments / Credits:</td>
-                    <td class="text-right">₱{{ number_format($summary['totalPayments'], 2) }}</td>
-                </tr>
-                <tr class="grand-total">
-                    <td>Outstanding Balance:</td>
-                    <td class="text-right">₱{{ number_format($summary['outstandingBalance'], 2) }}</td>
-                </tr>
-            </table>
+        <div class="summary-grid">
+            <div class="summary-row">
+                <span class="summary-cell label">Total Assessments:</span>
+                <span class="summary-cell value text-positive">₱{{ number_format($summary['totalCharges'], 2) }}</span>
+            </div>
+            <div class="summary-row">
+                <span class="summary-cell label">Total Payments / Credits:</span>
+                <span class="summary-cell value text-negative">-₱{{ number_format($summary['totalPayments'], 2) }}</span>
+            </div>
+            <div class="summary-row total">
+                <span class="summary-cell label">OUTSTANDING BALANCE:</span>
+                <span class="summary-cell value {{ $summary['outstandingBalance'] <= 0 ? 'text-success' : 'text-danger' }}">
+                    ₱{{ number_format($summary['outstandingBalance'], 2) }}
+                </span>
+            </div>
         </div>
-        <div class="clear"></div>
     </div>
 
     <div class="footer">
-        <p>This is a computer-generated statement. No signature required.</p>
+        <span>Generated: {{ now()->format('Y-m-d h:i A') }} &bull; This is a computer-generated statement. No signature required.</span>
     </div>
 
 </body>
