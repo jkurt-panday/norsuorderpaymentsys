@@ -14,6 +14,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Imports\HeadingRowFormatter;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class LawSchoolLedgerController extends Controller
 {
@@ -38,16 +40,16 @@ class LawSchoolLedgerController extends Controller
                     ->orWhere('particulars', 'like', "%{$search}%");
             })
             ->when($schoolYear, function ($query, $schoolYear) {
-                $query->where('school_year', $schoolYear);
+                $query->whereRaw('UPPER(TRIM(school_year)) = ?', [strtoupper(trim($schoolYear))]);
             })
             ->when($semester, function ($query, $semester) {
-                $query->where('semester_or_summer', $semester);
+                $query->whereIn(DB::raw('UPPER(TRIM(semester_or_summer))'), $this->semesterRawVariants($semester));
             })
             ->when($course, function ($query, $course) {
-                $query->where('course', $course);
+                $query->whereRaw('UPPER(TRIM(course)) = ?', [strtoupper(trim($course))]);
             })
             ->when($status, function ($query, $status) {
-                $query->where('status', $status);
+                $query->whereRaw('UPPER(TRIM(status)) = ?', [strtoupper(trim($status))]);
             })
             ->when($dateFrom, function ($query, $dateFrom) {
                 $query->whereDate('transaction_date', '>=', $dateFrom);
@@ -68,17 +70,35 @@ class LawSchoolLedgerController extends Controller
             )
             ->count();
 
-        $totalAssessments = (float) (clone $query)
-            ->where('ar_or_payment', 'AR')
+        $totalUnits = (float) (clone $query)->sum('units');
+
+        $statsQuery = clone $query;
+
+        $totalCharges = (float) (clone $statsQuery)
+            ->whereIn(DB::raw('UPPER(TRIM(ar_or_payment))'), ['AR', 'ASSESSMENT'])
             ->sum('amount');
 
-        $totalPayments = (float) (clone $query)
-            ->where('ar_or_payment', 'Payment')
-            ->sum('amount');
+        $totalPayments = (float) (clone $statsQuery)
+            ->whereNotNull('ar_or_payment')
+            ->where('ar_or_payment', '!=', '')
+            ->whereNotIn(DB::raw('UPPER(TRIM(ar_or_payment))'), ['AR', 'ASSESSMENT'])
+            ->sum(DB::raw('ABS(amount)'));
 
-        $outstandingBalance = (float) (clone $query)
-            ->where('status', '!=', 'Paid')
-            ->sum('amount');
+        $outstandingBalance = (float) DB::query()
+            ->fromSub(
+                (clone $query)
+                    ->select([
+                        'last_name',
+                        'first_name',
+                        'middle_initial',
+                        DB::raw('SUM(CASE WHEN UPPER(TRIM(ar_or_payment)) IN (\'AR\', \'ASSESSMENT\') THEN amount ELSE 0 END) as charges'),
+                        DB::raw('SUM(CASE WHEN ar_or_payment IS NOT NULL AND ar_or_payment != \'\' AND UPPER(TRIM(ar_or_payment)) NOT IN (\'AR\', \'ASSESSMENT\') THEN ABS(amount) ELSE 0 END) as payments'),
+                    ])
+                    ->groupBy('last_name', 'first_name', 'middle_initial'),
+                'student_balances'
+            )
+            ->select(DB::raw('SUM(GREATEST(charges - payments, 0)) as outstanding'))
+            ->value('outstanding');
 
         // 2. Fetch paginated records
         $records = $query
@@ -87,16 +107,17 @@ class LawSchoolLedgerController extends Controller
             ->withQueryString();
 
         // Transform each row into the shape Index.tsx expects
-        $records->through(fn ($r) => $this->transformRecord($r));
+        $records = $records->through(fn ($r) => $this->transformRecord($r));
 
         return Inertia::render('law-ledger/Index', [
             'records' => $records,
             'filters' => $request->only([
-                'search', 'school_year', 'semester_or_summer', 'course', 'status', 'date_from', 'date_to',
+                'search', 'school_year', 'semester_or_summer', 'course', 'status', 'date_from', 'date_to'
             ]),
             'stats' => [
                 'totalStudents' => $totalStudents,
-                'totalAssessments' => $totalAssessments,
+                'totalUnits' => $totalUnits,
+                'totalCharges' => $totalCharges,
                 'totalPayments' => $totalPayments,
                 'outstandingBalance' => $outstandingBalance,
             ],
@@ -138,6 +159,8 @@ class LawSchoolLedgerController extends Controller
             'input_by' => ['nullable', 'string', 'max:255'],
         ]);
 
+        $data['semester_or_summer'] = $this->normalizeSemester($data['semester_or_summer'] ?? null);
+
         LawSchoolLedger::create($data);
 
         return redirect()->route('law-ledger.index');
@@ -149,33 +172,335 @@ class LawSchoolLedgerController extends Controller
     public function import(Request $request): RedirectResponse
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,csv,xls'],
+            'file' => ['required', 'file', 'max:51200', 'mimes:xlsx,csv,xls'],
         ]);
 
+        // Large law ledgers (20k+ rows + pivot sheets) need extra headroom.
+        $previousMemoryLimit = ini_get('memory_limit');
+        $previousTimeLimit = (int) ini_get('max_execution_time');
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
+
+        try {
+            $uploadedFile = $request->file('file');
+            $extension = strtolower($uploadedFile->getClientOriginalExtension() ?: $uploadedFile->extension() ?: '');
+
+            if (in_array($extension, ['xlsx', 'xls'], true)) {
+                $result = $this->importFromSpreadsheet($uploadedFile->getRealPath());
+            } else {
+                $result = $this->importFromCsvCollection($uploadedFile);
+            }
+
+            if (! empty($result['error'])) {
+                return redirect()->route('law-ledger.index')->with('error', $result['error']);
+            }
+
+            $importedCount = $result['imported'];
+            $skippedCount = $result['skipped'];
+            $failedRows = $result['failed'];
+
+            if ($importedCount === 0 && empty($failedRows)) {
+                return redirect()->route('law-ledger.index')->with('error', 'No valid data rows found in the uploaded file.');
+            }
+
+            if (! empty($failedRows)) {
+                $sampleFailures = array_slice($failedRows, 0, 10);
+                $message = "Import finished: {$importedCount} imported";
+                if ($skippedCount > 0) {
+                    $message .= ", {$skippedCount} skipped";
+                }
+                $message .= ', '.count($failedRows).' failed. Sample: '.json_encode($sampleFailures);
+
+                return redirect()->route('law-ledger.index')->with('warning', $message);
+            }
+
+            $message = "Import completed successfully. Imported {$importedCount} rows.";
+            if ($skippedCount > 0) {
+                $message .= " Skipped {$skippedCount} empty rows.";
+            }
+
+            return redirect()->route('law-ledger.index')->with('success', $message);
+        } catch (\Throwable $e) {
+            return redirect()->route('law-ledger.index')->with('error', 'Failed to import file: '.$e->getMessage());
+        } finally {
+            if ($previousMemoryLimit !== false) {
+                ini_set('memory_limit', $previousMemoryLimit);
+            }
+            if ($previousTimeLimit > 0) {
+                set_time_limit($previousTimeLimit);
+            }
+        }
+    }
+
+    /**
+     * Stream-friendly import for large .xlsx/.xls law ledgers.
+     *
+     * @return array{imported:int,skipped:int,failed:array<int,array{row:int,error:string}>,error?:string}
+     */
+    private function importFromSpreadsheet(string $path): array
+    {
+        $reader = IOFactory::createReaderForFile($path);
+        $reader->setReadDataOnly(true);
+        $reader->setReadEmptyCells(false);
+
+        if (method_exists($reader, 'setLoadAllSheets')) {
+            // Prefer the main ledger sheet; avoid pivot/extra sheets.
+            $sheetNames = method_exists($reader, 'listWorksheetNames')
+                ? $reader->listWorksheetNames($path)
+                : [];
+
+            $preferred = null;
+            foreach ($sheetNames as $name) {
+                if (stripos($name, 'LAW') !== false || stripos($name, 'LEDGER') !== false) {
+                    $preferred = $name;
+                    break;
+                }
+            }
+
+            if ($preferred !== null && method_exists($reader, 'setLoadSheetsOnly')) {
+                $reader->setLoadSheetsOnly([$preferred]);
+            } elseif (! empty($sheetNames) && method_exists($reader, 'setLoadSheetsOnly')) {
+                $reader->setLoadSheetsOnly([$sheetNames[0]]);
+            }
+        }
+
+        $spreadsheet = $reader->load($path);
+        $sheet = $spreadsheet->getActiveSheet();
+        $highestRow = (int) $sheet->getHighestDataRow();
+        $highestColumn = $sheet->getHighestDataColumn();
+        $highestColumnIndex = Coordinate::columnIndexFromString($highestColumn);
+
+        // Cap to expected ledger columns (A–N) to avoid sparse far-right cells.
+        $highestColumnIndex = min($highestColumnIndex, 20);
+
+        if ($highestRow < 2) {
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
+
+            return ['imported' => 0, 'skipped' => 0, 'failed' => [], 'error' => 'No rows found in the uploaded file.'];
+        }
+
+        $headerRow = [];
+        for ($col = 1; $col <= $highestColumnIndex; $col++) {
+            $columnLetter = Coordinate::stringFromColumnIndex($col);
+            $value = $sheet->getCell($columnLetter . '1')->getValue();
+            $headerRow[] = is_string($value)
+                ? Str::slug(str_replace(["\n", "\r"], ' ', $value), '_')
+                : Str::slug((string) $value, '_');
+        }
+
+        $headerCheck = $this->validateImportHeaders($headerRow);
+        if ($headerCheck !== null) {
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
+
+            return ['imported' => 0, 'skipped' => 0, 'failed' => [], 'error' => $headerCheck];
+        }
+
+        $importedCount = 0;
+        $skippedCount = 0;
+        $failedRows = [];
+        $batch = [];
+        $now = now();
+        $batchSize = 250;
+
+        DB::beginTransaction();
+
+        try {
+            for ($row = 2; $row <= $highestRow; $row++) {
+                $rowValues = [];
+                $hasAnyValue = false;
+
+                for ($col = 1; $col <= $highestColumnIndex; $col++) {
+                    $columnLetter = Coordinate::stringFromColumnIndex($col);
+                    $cell = $sheet->getCell($columnLetter . $row);
+                    $value = $cell->getValue();
+
+                    // Prefer calculated value for formula cells (amount, remarks).
+                    if (is_string($value) && str_starts_with(ltrim($value), '=')) {
+                        try {
+                            $calculated = $cell->getCalculatedValue();
+                            if ($calculated !== null && $calculated !== '') {
+                                $value = $calculated;
+                            }
+                        } catch (\Throwable) {
+                            // Keep formula string; normalizeAmount can recompute units * tuition.
+                        }
+                    }
+
+                    if ($value !== null && $value !== '') {
+                        $hasAnyValue = true;
+                    }
+
+                    $rowValues[$headerRow[$col - 1] ?? 'column_'.($col - 1)] = $value;
+                }
+
+                if (! $hasAnyValue) {
+                    $skippedCount++;
+                    continue;
+                }
+
+                try {
+                    $data = $this->mapImportRow($rowValues);
+
+                    if ($data === null) {
+                        $skippedCount++;
+                        continue;
+                    }
+
+                    $batch[] = array_merge($data, [
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+                    $importedCount++;
+
+                    if (count($batch) >= $batchSize) {
+                        LawSchoolLedger::insert($batch);
+                        $batch = [];
+                    }
+                } catch (\Throwable $e) {
+                    $failedRows[] = ['row' => $row, 'error' => $e->getMessage()];
+                }
+            }
+
+            if (! empty($batch)) {
+                LawSchoolLedger::insert($batch);
+            }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
+            throw $e;
+        }
+
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
+
+        return [
+            'imported' => $importedCount,
+            'skipped' => $skippedCount,
+            'failed' => $failedRows,
+        ];
+    }
+
+    /**
+     * CSV import path (smaller files / simple exports).
+     *
+     * @return array{imported:int,skipped:int,failed:array<int,array{row:int,error:string}>,error?:string}
+     */
+    private function importFromCsvCollection($uploadedFile): array
+    {
         HeadingRowFormatter::default('slug');
 
-        $uploadedFile = $request->file('file');
         $rows = Excel::toCollection(null, $uploadedFile)->first() ?? collect();
 
         if ($rows->isEmpty()) {
-            return redirect()->route('law-ledger.index')->with('success', 'No rows found in the uploaded file.');
+            return ['imported' => 0, 'skipped' => 0, 'failed' => [], 'error' => 'No rows found in the uploaded file.'];
         }
 
-        $headers = collect($rows->first())->map(fn ($header) => Str::slug((string) $header, '_'))->all();
+        $headers = collect($rows->first())
+            ->map(fn ($header) => Str::slug(str_replace(["\n", "\r"], ' ', (string) $header), '_'))
+            ->all();
 
-        $rows->slice(1)->each(function ($row) use ($headers) {
-            $rowData = collect($row)->mapWithKeys(function ($value, $index) use ($headers) {
-                return [$headers[$index] ?? 'column_'.$index => $value];
-            })->all();
+        $headerCheck = $this->validateImportHeaders($headers);
+        if ($headerCheck !== null) {
+            return ['imported' => 0, 'skipped' => 0, 'failed' => [], 'error' => $headerCheck];
+        }
 
-            $data = $this->mapImportRow($rowData);
+        $importedCount = 0;
+        $skippedCount = 0;
+        $failedRows = [];
+        $batch = [];
+        $now = now();
+        $rowIndex = 1;
 
-            if ($data !== null) {
-                LawSchoolLedger::create($data);
+        DB::beginTransaction();
+
+        try {
+            foreach ($rows->slice(1) as $row) {
+                $rowIndex++;
+
+                $rowData = collect($row)->mapWithKeys(function ($value, $index) use ($headers) {
+                    return [$headers[$index] ?? 'column_'.$index => $value];
+                })->all();
+
+                if (collect($rowData)->filter(fn ($v) => $v !== null && $v !== '')->isEmpty()) {
+                    $skippedCount++;
+                    continue;
+                }
+
+                try {
+                    $data = $this->mapImportRow($rowData);
+
+                    if ($data === null) {
+                        $skippedCount++;
+                        continue;
+                    }
+
+                    $batch[] = array_merge($data, [
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+                    $importedCount++;
+
+                    if (count($batch) >= 250) {
+                        LawSchoolLedger::insert($batch);
+                        $batch = [];
+                    }
+                } catch (\Throwable $e) {
+                    $failedRows[] = ['row' => $rowIndex, 'error' => $e->getMessage()];
+                }
             }
-        });
 
-        return redirect()->route('law-ledger.index')->with('success', 'Import completed successfully.');
+            if (! empty($batch)) {
+                LawSchoolLedger::insert($batch);
+            }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
+
+        return [
+            'imported' => $importedCount,
+            'skipped' => $skippedCount,
+            'failed' => $failedRows,
+        ];
+    }
+
+    /**
+     * @param  array<int,string>  $headers
+     */
+    private function validateImportHeaders(array $headers): ?string
+    {
+        if (empty(array_filter($headers))) {
+            return 'No valid headers found in the uploaded file.';
+        }
+
+        $nameHeaders = ['name_last_name_first_name_m_i', 'name_last_name_first_name_mi', 'student_name', 'student', 'name'];
+        $typeHeaders = ['ar_or_payment', 'ar_payment', 'arpayment', 'transaction_type', 'type'];
+        $missingHeaders = [];
+
+        if (! array_intersect($nameHeaders, $headers)) {
+            $missingHeaders[] = 'Name';
+        }
+
+        if (! in_array('amount', $headers, true)) {
+            $missingHeaders[] = 'Amount';
+        }
+
+        if (! array_intersect($typeHeaders, $headers)) {
+            $missingHeaders[] = 'AR/Payment';
+        }
+
+        if (! empty($missingHeaders)) {
+            return 'Missing required headers: '.implode(', ', $missingHeaders);
+        }
+
+        return null;
     }
 
     /**
@@ -190,7 +515,7 @@ class LawSchoolLedgerController extends Controller
             ->orderBy('last_name', 'asc')
             ->get(['last_name', 'first_name', 'middle_initial'])
             ->map(function ($student) {
-                return trim("$student->last_name, $student->first_name ".($student->middle_initial ? "$student->middle_initial" : ''));
+                return trim("$student->last_name, $student->first_name " . ($student->middle_initial ? "$student->middle_initial" : ''));
             })
             ->unique()
             ->values();
@@ -277,7 +602,16 @@ class LawSchoolLedgerController extends Controller
 
         $nameParts = $this->parseStudentName($studentName);
 
-        $amount = (float) (Arr::get($normalized, 'amount', 0) ?? 0);
+        $tuitionPerUnit = (float) (
+            Arr::get($normalized, 'tuition_per_unit_registration_and_misc_fee_per_semester')
+            ?? Arr::get($normalized, 'tuition_per_unit_reg_and_miscellaneous_per_semester')
+            ?? Arr::get($normalized, 'tuition_per_unit_or_fee_per_semester')
+            ?? Arr::get($normalized, 'tuition_per_unit_or_misc', 0)
+            ?? 0
+        );
+
+        $units = (float) (Arr::get($normalized, 'units', 0) ?? 0);
+        $amount = $this->normalizeAmount(Arr::get($normalized, 'amount'), $units, $tuitionPerUnit);
 
         return [
             'last_name' => $nameParts['last_name'] ?? $studentName,
@@ -285,10 +619,13 @@ class LawSchoolLedgerController extends Controller
             'middle_initial' => $nameParts['middle_initial'] ?? null,
             'course' => Arr::get($normalized, 'course') ?? Arr::get($normalized, 'program'),
             'school_year' => Arr::get($normalized, 'school_year') ?? Arr::get($normalized, 'academic_year') ?? Arr::get($normalized, 'sy'),
-            'semester_or_summer' => Arr::get($normalized, 'semester_or_summer')
-                ?? Arr::get($normalized, 'semester')
-                ?? Arr::get($normalized, 'term'),
-            'units' => (float) (Arr::get($normalized, 'units', 0) ?? 0),
+            'semester_or_summer' => $this->normalizeSemester(
+                Arr::get($normalized, 'semester_or_summer')
+                    ?? Arr::get($normalized, 'semester_summer')
+                    ?? Arr::get($normalized, 'semester')
+                    ?? Arr::get($normalized, 'term')
+            ),
+            'units' => $units,
             'transaction_date' => $this->normalizeDate(
                 Arr::get($normalized, 'transaction_date') ?? Arr::get($normalized, 'date')
             ),
@@ -299,21 +636,16 @@ class LawSchoolLedgerController extends Controller
                 ?? Arr::get($normalized, 'or_no')
                 ?? Arr::get($normalized, 'ref_no'),
             'particulars' => Arr::get($normalized, 'particulars'),
-            'tuition_per_unit_or_fee_per_semester' => (float) (
-                Arr::get($normalized, 'tuition_per_unit_registration_and_misc_fee_per_semester')
-                ?? Arr::get($normalized, 'tuition_per_unit_reg_and_miscellaneous_per_semester')
-                ?? Arr::get($normalized, 'tuition_per_unit_or_fee_per_semester')
-                ?? Arr::get($normalized, 'tuition_per_unit_or_misc', 0)
-                ?? 0
-            ),
+            'tuition_per_unit_or_fee_per_semester' => $tuitionPerUnit,
             'ar_or_payment' => Arr::get($normalized, 'ar_or_payment')
                 ?? Arr::get($normalized, 'ar_payment')
+                ?? Arr::get($normalized, 'arpayment')
                 ?? Arr::get($normalized, 'transaction_type')
                 ?? Arr::get($normalized, 'type')
                 ?? 'AR',
             'amount' => $amount,
             'status' => $this->determineStatus($amount, Arr::get($normalized, 'status')),
-            'remarks' => Arr::get($normalized, 'remarks') ?? Arr::get($normalized, 'remark'),
+            'remarks' => $this->cleanFormulaValue(Arr::get($normalized, 'remarks') ?? Arr::get($normalized, 'remark')),
             'input_by' => Arr::get($normalized, 'input_by'),
         ];
     }
@@ -324,8 +656,8 @@ class LawSchoolLedgerController extends Controller
 
         return LawSchoolLedger::query()->where(function ($q) use ($cleanName) {
             $q->whereRaw("TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_initial, ''))) = ?", [$cleanName])
-                ->orWhereRaw("TRIM(CONCAT(last_name, ', ', first_name)) = ?", [$cleanName])
-                ->orWhere('last_name', 'like', "%{$cleanName}%");
+              ->orWhereRaw("TRIM(CONCAT(last_name, ', ', first_name)) = ?", [$cleanName])
+              ->orWhere('last_name', 'like', "%{$cleanName}%");
         });
     }
 
@@ -344,7 +676,6 @@ class LawSchoolLedgerController extends Controller
                 if (strlen($lastPart) <= 2) { // Single letter or letter with dot like "A" or "A."
                     $middleInitial = array_pop($parts);
                     $firstName = implode(' ', $parts);
-
                     return [
                         'last_name' => trim($lastName),
                         'first_name' => trim($firstName),
@@ -363,6 +694,35 @@ class LawSchoolLedgerController extends Controller
         return null;
     }
 
+    private function normalizeAmount($value, float $units, float $tuitionPerUnit): float
+    {
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+
+        $string = trim((string) $value);
+
+        if (str_starts_with($string, '=')) {
+            // Formula cell such as "=E2*I2" or "=I5*E5" (units x tuition per unit)
+            if ($units > 0 && $tuitionPerUnit > 0) {
+                return $units * $tuitionPerUnit;
+            }
+
+            return 0.0;
+        }
+
+        return (float) preg_replace('/[^\d.-]/', '', $string);
+    }
+
+    private function cleanFormulaValue($value)
+    {
+        if (is_string($value) && str_starts_with(trim($value), '=')) {
+            return null;
+        }
+
+        return $value;
+    }
+
     private function normalizeDate($value): ?string
     {
         if (blank($value)) {
@@ -374,12 +734,26 @@ class LawSchoolLedgerController extends Controller
         }
 
         if (is_numeric($value)) {
-            return Carbon::createFromFormat('Ymd', (string) $value)->format('Y-m-d');
+            $numeric = (float) $value;
+
+            if ($numeric >= 19000000 && $numeric <= 21001231) {
+                $date = \Carbon\Carbon::createFromFormat('Ymd', (string) (int) $numeric);
+
+                return $date ? $date->format('Y-m-d') : null;
+            }
+
+            try {
+                return \Carbon\Carbon::instance(
+                    \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($numeric)
+                )->format('Y-m-d');
+            } catch (\Throwable $e) {
+                return null;
+            }
         }
 
         try {
-            return Carbon::parse((string) $value)->format('Y-m-d');
-        } catch (\Exception $e) {
+            return \Carbon\Carbon::parse((string) $value)->format('Y-m-d');
+        } catch (\Throwable $e) {
             return null;
         }
     }
@@ -395,12 +769,16 @@ class LawSchoolLedgerController extends Controller
 
     private function transformRecord(LawSchoolLedger $r): array
     {
+        $studentName = trim("$r->last_name, $r->first_name " . ($r->middle_initial ? "$r->middle_initial" : ''));
+        $studentRecords = $this->queryStudentByName($studentName)->get();
+        $balanceSummary = $this->calculateStudentBalance($studentRecords);
+        
         return [
             'id' => $r->id,
             'lastName' => $r->last_name,
             'firstName' => $r->first_name,
             'middleInitial' => $r->middle_initial,
-            'name' => trim("$r->last_name, $r->first_name ".($r->middle_initial ? "$r->middle_initial" : '')),
+            'name' => $studentName,
             'course' => $r->course,
             'schoolYear' => $r->school_year,
             'semesterOrSummer' => $r->semester_or_summer,
@@ -412,7 +790,7 @@ class LawSchoolLedgerController extends Controller
             'arOrPayment' => $r->ar_or_payment,
             'amount' => (float) $r->amount,
             'status' => $r->status,
-            'remark' => $r->remarks,
+            'remark' => $balanceSummary['outstandingBalance'] <= 0 ? 'Settled' : 'Outstanding',
             'inputBy' => $r->input_by,
         ];
     }
@@ -430,14 +808,14 @@ class LawSchoolLedgerController extends Controller
             if ($rawType === 'AR' || $rawType === 'ASSESSMENT') {
                 $totalAssessments += $cleanAmount;
             } else {
-                $totalPayments += $cleanAmount;
+                $totalPayments += abs($cleanAmount); // Ensure payments are treated as positive
             }
         }
 
         return [
             'totalAssessments' => $totalAssessments,
             'totalPayments' => $totalPayments,
-            'outstandingBalance' => $totalAssessments - $totalPayments,
+            'outstandingBalance' => max(0, $totalAssessments - $totalPayments),
         ];
     }
 
@@ -446,12 +824,14 @@ class LawSchoolLedgerController extends Controller
         $currentYear = (int) date('Y');
         $defaultSchoolYears = [];
         for ($i = $currentYear - 5; $i <= $currentYear + 3; $i++) {
-            $defaultSchoolYears[] = $i.'-'.($i + 1);
+            $defaultSchoolYears[] = $i . '-' . ($i + 1);
         }
 
-        $schoolYears = LawSchoolLedger::distinct()
-            ->orderBy('school_year', 'desc')
-            ->pluck('school_year')
+        $schoolYears = LawSchoolLedger::query()
+            ->selectRaw('UPPER(TRIM(school_year)) as normalized_school_year')
+            ->distinct()
+            ->orderByDesc('normalized_school_year')
+            ->pluck('normalized_school_year')
             ->filter()
             ->values()
             ->all();
@@ -461,10 +841,81 @@ class LawSchoolLedgerController extends Controller
         }
 
         return [
-            'courses' => LawSchoolLedger::distinct()->orderBy('course')->pluck('course')->filter()->values()->all(),
+            'courses' => LawSchoolLedger::query()
+                ->selectRaw('UPPER(TRIM(course)) as normalized_course')
+                ->distinct()
+                ->orderBy('normalized_course')
+                ->pluck('normalized_course')
+                ->filter()
+                ->values()
+                ->all(),
             'schoolYears' => $schoolYears,
-            'semesters' => LawSchoolLedger::distinct()->orderBy('semester_or_summer')->pluck('semester_or_summer')->filter()->values()->all(),
-            'statuses' => LawSchoolLedger::distinct()->orderBy('status')->pluck('status')->filter()->values()->all(),
+            'semesters' => LawSchoolLedger::query()
+                ->selectRaw('UPPER(TRIM(semester_or_summer)) as normalized_semester')
+                ->distinct()
+                ->orderBy('normalized_semester')
+                ->pluck('normalized_semester')
+                ->filter()
+                ->map(fn (string $value) => $this->normalizeSemester($value))
+                ->filter()
+                ->unique()
+                ->values()
+                ->sort()
+                ->values()
+                ->all(),
+            'statuses' => LawSchoolLedger::query()
+                ->selectRaw('UPPER(TRIM(status)) as normalized_status')
+                ->distinct()
+                ->orderBy('normalized_status')
+                ->pluck('normalized_status')
+                ->filter()
+                ->values()
+                ->all(),
         ];
+    }
+
+    /**
+     * Canonical semester/summer names and the accepted raw aliases for each.
+     */
+    private const SEMESTER_ALIASES = [
+        'First Semester' => ['1st', '1st sem', '1st sem.', '1st semester', 'first', 'first sem', 'first sem.', 'first semester', 'sem 1', 'sem i'],
+        'Second Semester' => ['2nd', '2nd sem', '2nd sem.', '2nd semester', 'second', 'second sem', 'second sem.', 'second semester', 'sem 2', 'sem ii'],
+        'Summer' => ['sum', 'summer term', 'midyear', 'mid-year', 'mid year', 'summer class'],
+    ];
+
+    /**
+     * Maps any common semester/summer spelling to its canonical full name.
+     */
+    private function normalizeSemester(?string $semester): ?string
+    {
+        if (blank($semester)) {
+            return null;
+        }
+
+        $clean = strtolower((string) preg_replace('/\s+/', ' ', trim($semester)));
+
+        foreach (self::SEMESTER_ALIASES as $canonical => $aliases) {
+            $candidates = array_merge([strtolower($canonical)], $aliases);
+
+            if (in_array($clean, $candidates, true)) {
+                return $canonical;
+            }
+        }
+
+        // Preserve unknown values rather than dropping them.
+        return trim($semester);
+    }
+
+    /**
+     * Uppercased/trimmed raw column values that represent the given canonical semester.
+     */
+    private function semesterRawVariants(string $canonical): array
+    {
+        $variants = array_merge([strtolower($canonical)], self::SEMESTER_ALIASES[$canonical] ?? []);
+
+        return array_values(array_unique(array_map(
+            fn (string $value) => strtoupper(trim((string) preg_replace('/\s+/', ' ', $value))),
+            $variants
+        )));
     }
 }

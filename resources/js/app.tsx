@@ -32,12 +32,7 @@ createInertiaApp({
         ),
     layout: (name) => {
         switch (true) {
-            case name === 'welcome' ||
-                name === 'auth/login' ||
-                name === 'auth/forgot-password' ||
-                name === 'auth/reset-password':
-                return null;
-            case name === 'SubmitForm':
+            case name === 'welcome' || name === 'auth/login':
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
@@ -74,12 +69,9 @@ createInertiaApp({
         };
 
         return (
-            <TooltipProvider delayDuration={0}>
-                <ConfirmProvider>
-                    <FlashToastBridge />
-                    {app}
-                    <Toaster />
-                </ConfirmProvider>
+            <TooltipProvider>
+                {app}
+                <Toaster />
             </TooltipProvider>
         );
     },

@@ -18,6 +18,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
     return (
         <SidebarGroup className="px-0 py-0">
             <SidebarMenu>
+<<<<<<< HEAD
                 {items.map((item) => {
                     const isActive = isCurrentUrl(item.href);
                     return (
@@ -48,6 +49,22 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                         </div>
                     );
                 })}
+=======
+                {items.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                            isActive={isCurrentUrl(item.href)}
+                            tooltip={{ children: item.title }}
+                            render={
+                                <Link href={item.href} prefetch />
+                            }
+                        >
+                            {item.icon && <item.icon />}
+                            <span>{item.title}</span>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                ))}
+>>>>>>> origin
             </SidebarMenu>
         </SidebarGroup>
     );

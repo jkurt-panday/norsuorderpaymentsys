@@ -3,6 +3,7 @@ import {
   Search,
   DollarSign,
   GraduationCap,
+<<<<<<< HEAD
   Wallet,
   AlertTriangle,
   PlusCircle,
@@ -11,6 +12,15 @@ import {
   XCircle,
 } from 'lucide-react';
 import React, { useState } from 'react';
+=======
+  Layers,
+  Wallet,
+  PlusCircle,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+>>>>>>> origin
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,14 +47,24 @@ export interface LedgerRecord {
   name: string;
   course: string;
   schoolYear: string;
+<<<<<<< HEAD
   semester: string;
+=======
+  term: string;
+>>>>>>> origin
   units: number;
   transactionDate: string;
   referenceNo: string;
   particulars: string;
+<<<<<<< HEAD
   tuitionPerUnitOrFeePerSemester: number;
   arPayment: string;
   amount: number;
+=======
+  ratePerUnit: number;
+  amount: number;
+  arPayment: 'AR' | 'Payment' | 'Adjustment';
+>>>>>>> origin
   remark: string;
   inputBy: string;
 }
@@ -70,12 +90,18 @@ function currency(n: number) {
 
 function formatTransactionDate(value?: string | null) {
   if (!value) {
+<<<<<<< HEAD
     return '-';
   }
+=======
+return '-';
+}
+>>>>>>> origin
 
   const normalized = String(value).trim();
 
   if (!normalized) {
+<<<<<<< HEAD
     return '-';
   }
 
@@ -93,10 +119,21 @@ function formatTransactionDate(value?: string | null) {
     month: 'short',
     day: '2-digit',
   });
+=======
+return '-';
+}
+
+  // Extract YYYY-MM-DD date part to prevent browser timezone shifting
+  const datePart = normalized.includes('T') ? normalized.split('T')[0] : normalized.split(' ')[0];
+  const parsedDate = new Date(`${datePart}T00:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) return datePart;
+  return parsedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' });
+>>>>>>> origin
 }
 
 interface IndexProps {
   records?: LedgerPaginator;
+<<<<<<< HEAD
   filters?: {
     search?: string;
     school_year?: string;
@@ -146,6 +183,51 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
         params[key] = value.trim();
       }
     });
+=======
+  filters?: { search?: string; year?: string; month?: string };
+  availableYears?: number[];
+  stats?: {
+    totalStudents?: number;
+    totalUnits?: number;
+    totalCharges?: number;
+    totalPayments?: number;
+    outstandingBalance?: number;
+  };
+}
+
+export default function Index({ records, filters, availableYears = [], stats }: IndexProps) {
+  const rows: LedgerRecord[] = records?.data ?? [];
+  const [searchQuery, setSearchQuery] = useState(filters?.search ?? '');
+  const [selectedYear, setSelectedYear] = useState(filters?.year ?? '');
+  const [selectedMonth, setSelectedMonth] = useState(filters?.month ?? '');
+  const importForm = useForm<{ file: File | null }>({ file: null });
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced search — fires 300ms after the user stops typing
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      applyFilters(searchQuery, selectedYear, selectedMonth);
+    }, 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
+
+  const applyFilters = (nextSearch = searchQuery, nextYear = selectedYear, nextMonth = selectedMonth) => {
+    const params: Record<string, string> = {};
+
+    if (nextSearch.trim()) {
+params.search = nextSearch.trim();
+}
+
+    if (nextYear) {
+params.year = nextYear;
+}
+
+    if (nextMonth) {
+params.month = nextMonth;
+}
+>>>>>>> origin
 
     router.get('/graduate-ledger', params, {
       preserveState: true,
@@ -155,12 +237,44 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+<<<<<<< HEAD
     applyFilters();
   };
 
   const totalStudents = stats?.totalStudents ?? 0;
   const totalAssessments = stats?.totalAssessments ?? 0;
   const totalPayments = stats?.totalPayments ?? 0;
+=======
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    applyFilters();
+  };
+
+  const handleFilterChange = () => {
+    const params: Record<string, string> = {};
+
+    if (searchQuery.trim()) {
+params.search = searchQuery.trim();
+}
+
+    if (selectedYear) {
+params.year = selectedYear;
+}
+
+    if (selectedMonth) {
+params.month = selectedMonth;
+}
+
+    router.get('/graduate-ledger', params, {
+      preserveState: true,
+      replace: true,
+    });
+  };
+
+  // ---- Server-backed Metric Summary ----
+  const totalStudents = stats?.totalStudents ?? 0;
+  const totalUnits = stats?.totalUnits ?? 0;
+  const totalCharges = stats?.totalCharges ?? 0;
+>>>>>>> origin
   const outstandingBalance = stats?.outstandingBalance ?? 0;
 
   const currentPage = records?.meta?.current_page ?? records?.current_page ?? 1;
@@ -174,15 +288,26 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
 
       <div className="max-w-7xl mx-auto space-y-6">
 
+<<<<<<< HEAD
+=======
+        {/* Top Header / Action Bar */}
+>>>>>>> origin
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#CFE3FF] pb-5">
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold tracking-tight text-[#0B3D91]">Graduate School Ledger</h1>
               <Badge variant="outline" className="bg-[#EAF2FF] text-[#0B62E0] border-[#B9D8FF] font-semibold">
+<<<<<<< HEAD
                 Graduate School
               </Badge>
             </div>
             <p className="text-sm text-[#5C7A9E] mt-0.5">Tuition, fees, and payment transactions for graduate students.</p>
+=======
+                Postgraduate Registry
+              </Badge>
+            </div>
+            <p className="text-sm text-[#5C7A9E] mt-0.5">Tuition, fees, and payment transactions by student.</p>
+>>>>>>> origin
           </div>
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 w-full md:w-auto">
@@ -191,6 +316,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#7FA6D6]" />
                 <Input
                   type="search"
+<<<<<<< HEAD
                   placeholder="Search name, course, or ref #..."
                   className="pl-8 h-9 bg-white border-[#CFE3FF] focus-visible:ring-[#0F6FFF]"
                   value={searchQuery}
@@ -214,10 +340,33 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                 <option value="">All School Years</option>
                 {(filterOptions?.schoolYears ?? []).map((sy) => (
                   <option key={sy} value={sy}>{sy}</option>
+=======
+                  placeholder="Search name, course, or OR/JEV #..."
+                  className="pl-8 h-9 bg-white border-[#CFE3FF] focus-visible:ring-[#0F6FFF]"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+
+              {/* Dynamic year filter from DB */}
+              <select
+                value={selectedYear}
+                onChange={(e) => {
+                  const nextYear = e.target.value;
+                  setSelectedYear(nextYear);
+                  applyFilters(searchQuery, nextYear, selectedMonth);
+                }}
+                className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+              >
+                <option value="">All Years</option>
+                {availableYears.map((yr) => (
+                  <option key={yr} value={String(yr)}>{yr}</option>
+>>>>>>> origin
                 ))}
               </select>
 
               <select
+<<<<<<< HEAD
                 value={semester}
                 onChange={(e) => {
                   const v = e.target.value;
@@ -286,6 +435,30 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                 <XCircle className="h-4 w-4 mr-1.5" />
                 Clear Filters
               </Button>
+=======
+                value={selectedMonth}
+                onChange={(e) => {
+                  const nextMonth = e.target.value;
+                  setSelectedMonth(nextMonth);
+                  applyFilters(searchQuery, selectedYear, nextMonth);
+                }}
+                className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+              >
+                <option value="">All Months</option>
+                <option value="1">Jan</option>
+                <option value="2">Feb</option>
+                <option value="3">Mar</option>
+                <option value="4">Apr</option>
+                <option value="5">May</option>
+                <option value="6">Jun</option>
+                <option value="7">Jul</option>
+                <option value="8">Aug</option>
+                <option value="9">Sep</option>
+                <option value="10">Oct</option>
+                <option value="11">Nov</option>
+                <option value="12">Dec</option>
+              </select>
+>>>>>>> origin
             </form>
 
             <div className="flex flex-wrap items-center justify-end gap-2 ml-auto">
@@ -321,6 +494,10 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
           </div>
         </div>
 
+<<<<<<< HEAD
+=======
+        {/* Metrics Row */}
+>>>>>>> origin
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="shadow-xs border border-[#CFE3FF] bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -329,23 +506,47 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{totalStudents}</div>
+<<<<<<< HEAD
               <p className="text-[10px] text-[#8AA8CC] mt-1">Unique graduate students</p>
+=======
+              <p className="text-[10px] text-[#8AA8CC] mt-1">Unique active students</p>
+>>>>>>> origin
             </CardContent>
           </Card>
 
           <Card className="shadow-xs border border-[#CFE3FF] bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+<<<<<<< HEAD
               <CardTitle className="text-sm font-medium text-[#5C7A9E]">Total Assessments</CardTitle>
               <DollarSign className="h-4 w-4 text-[#0F6FFF]" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{currency(totalAssessments)}</div>
+=======
+              <CardTitle className="text-sm font-medium text-[#5C7A9E]">Total Units</CardTitle>
+              <Layers className="h-4 w-4 text-[#0F6FFF]" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{totalUnits}</div>
+              <p className="text-[10px] text-[#8AA8CC] mt-1">Total units enrolled</p>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-xs border border-[#CFE3FF] bg-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-[#5C7A9E]">Total Charges (AR)</CardTitle>
+              <DollarSign className="h-4 w-4 text-[#0F6FFF]" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{currency(totalCharges)}</div>
+>>>>>>> origin
               <p className="text-[10px] text-[#8AA8CC] mt-1">Total tuition + fees billed</p>
             </CardContent>
           </Card>
 
           <Card className="shadow-xs border border-[#CFE3FF] bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+<<<<<<< HEAD
               <CardTitle className="text-sm font-medium text-[#5C7A9E]">Total Payments</CardTitle>
               <Wallet className="h-4 w-4 text-[#0F6FFF]" />
             </CardHeader>
@@ -359,6 +560,10 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-[#5C7A9E]">Outstanding Balance</CardTitle>
               <AlertTriangle className="h-4 w-4 text-orange-500" />
+=======
+              <CardTitle className="text-sm font-medium text-[#5C7A9E]">Outstanding Balance</CardTitle>
+              <Wallet className="h-4 w-4 text-[#0F6FFF]" />
+>>>>>>> origin
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{currency(outstandingBalance)}</div>
@@ -367,6 +572,10 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
           </Card>
         </div>
 
+<<<<<<< HEAD
+=======
+        {/* Ledger Table */}
+>>>>>>> origin
         <Card className="border border-[#CFE3FF] bg-white">
           <CardHeader className="pb-2">
             <CardTitle className="text-md text-[#0B3D91]">Transaction Ledger</CardTitle>
@@ -380,18 +589,31 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                 <tr className="border-b border-[#CFE3FF] bg-[#F3F8FF]">
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 pl-2 whitespace-nowrap">Name</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Course</th>
+<<<<<<< HEAD
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">School Year</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Semester</th>
+=======
+                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">S.Y.</th>
+                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Term</th>
+>>>>>>> origin
                   <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Units</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Trans. Date</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Ref. (JEV/OR #)</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Particulars</th>
+<<<<<<< HEAD
                   <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Tuition/Unit or Reg. & Misc. Fee</th>
+=======
+                  <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Rate/Unit</th>
+>>>>>>> origin
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">AR/Payment</th>
                   <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Amount</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Remark</th>
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Input By</th>
+<<<<<<< HEAD
                   <th className="py-2 pr-2 text-center font-medium whitespace-nowrap text-[#5C7A9E]">Actions</th>
+=======
+                  <th className="text-center font-medium text-[#5C7A9E] py-2 pr-2 whitespace-nowrap">Actions</th>
+>>>>>>> origin
                 </tr>
               </thead>
               <tbody>
@@ -407,12 +629,20 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                       <td className="py-2 pr-4 pl-2 font-medium whitespace-nowrap text-[#0B3D91]">{r.name}</td>
                       <td className="py-2 pr-4 text-[#334E68]">{r.course}</td>
                       <td className="py-2 pr-4 text-[#334E68]">{r.schoolYear}</td>
+<<<<<<< HEAD
                       <td className="py-2 pr-4 text-[#334E68]">{r.semester}</td>
+=======
+                      <td className="py-2 pr-4 text-[#334E68]">{r.term}</td>
+>>>>>>> origin
                       <td className="py-2 pr-4 text-right text-[#334E68]">{r.units}</td>
                       <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{formatTransactionDate(r.transactionDate)}</td>
                       <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{r.referenceNo}</td>
                       <td className="py-2 pr-4 text-[#334E68]">{r.particulars}</td>
+<<<<<<< HEAD
                       <td className="py-2 pr-4 text-right text-[#334E68]">{currency(r.tuitionPerUnitOrFeePerSemester)}</td>
+=======
+                      <td className="py-2 pr-4 text-right text-[#334E68]">{currency(r.ratePerUnit)}</td>
+>>>>>>> origin
                       <td className="py-2 pr-4">
                         <Badge variant="outline" className="border-[#B9D8FF] text-[#0B62E0] bg-[#EAF2FF]">
                           {r.arPayment}
@@ -423,17 +653,23 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                       <td className="py-2 pr-4 text-[#8AA8CC]">{r.inputBy}</td>
                       <td className="py-2 pr-2 text-center whitespace-nowrap">
                         <button
+<<<<<<< HEAD
                           onClick={() =>
                             router.get(
                               `/graduate-ledger/${r.id}/edit`,
                             )
                           }
                           className="mr-1 inline-flex items-center justify-center rounded p-1.5 text-[#0B62E0] transition-colors hover:bg-[#EAF2FF]"
+=======
+                          onClick={() => router.get(`/graduate-ledger/${r.id}/edit`)}
+                          className="inline-flex items-center justify-center p-1.5 rounded hover:bg-[#EAF2FF] text-[#0B62E0] transition-colors mr-1"
+>>>>>>> origin
                           title="Edit"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
                         <button
+<<<<<<< HEAD
                           onClick={() =>
                             handleDelete(
                               r.id,
@@ -441,6 +677,10 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                             )
                           }
                           className="inline-flex items-center justify-center rounded p-1.5 text-red-500 transition-colors hover:bg-red-50"
+=======
+                          onClick={() => handleDelete(r.id, r.name)}
+                          className="inline-flex items-center justify-center p-1.5 rounded hover:bg-red-50 text-red-500 transition-colors"
+>>>>>>> origin
                           title="Delete"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -453,15 +693,72 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
             </table>
           </CardContent>
 
+<<<<<<< HEAD
           {paginationLinks.length > 3 && (
             <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#CFE3FF] pt-4 pb-4">
+=======
+          {/* Pagination Footer */}
+          {paginationLinks.length > 3 && (
+            <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-[#CFE3FF] pt-4 pb-4 gap-4">
+>>>>>>> origin
               <div className="text-xs text-[#5C7A9E]">
                 Page <span className="font-semibold text-[#0B3D91]">{currentPage}</span> of{' '}
                 <span className="font-semibold text-[#0B3D91]">{lastPage}</span>
               </div>
 
+<<<<<<< HEAD
               <Pagination className="justify-end w-auto mx-0">
                 <PaginationContent className="gap-1">
+=======
+               <Pagination className="justify-end w-auto mx-0">
+                 <PaginationContent className="gap-1">
+                   <PaginationItem>
+                     <div className="flex items-center gap-1">
+                       <Input
+                         type="number"
+                         min="1"
+                         max={lastPage}
+                         value={goToPage}
+                         onChange={(e) => {
+                           setGoToPage(e.target.value);
+                         }}
+                         onKeyDown={(e) => {
+                           if (e.key === 'Enter') {
+                             const page = parseInt(goToPage);
+                             if (!isNaN(page)) {
+                               const validatedPage = Math.min(Math.max(page, 1), lastPage);
+                               router.get(`/graduate-ledger?page=${validatedPage}`, {}, {
+                                 preserveState: true,
+                                 preserveScroll: true,
+                               });
+                               setGoToPage('');
+                             }
+                           }
+                         }}
+                         placeholder={currentPage.toString()}
+                         className="w-16 h-8 text-center border border-[#CFE3FF] rounded-md focus:ring-[#0F6FFF] focus:border-[#0F6FFF]"
+                       />
+                       <Button
+                         variant="outline"
+                         size="sm"
+                         onClick={() => {
+                           const page = parseInt(goToPage);
+                           if (!isNaN(page)) {
+                             const validatedPage = Math.min(Math.max(page, 1), lastPage);
+                             router.get(`/graduate-ledger?page=${validatedPage}`, {}, {
+                               preserveState: true,
+                               preserveScroll: true,
+                             });
+                             setGoToPage('');
+                           }
+                         }}
+                         className="h-8 px-2 text-xs bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
+                       >
+                         Go
+                       </Button>
+                     </div>
+                   </PaginationItem>
+>>>>>>> origin
                   {paginationLinks.map((link, index) => {
                     const isPrev = index === 0;
                     const isNext = index === paginationLinks.length - 1;
@@ -476,8 +773,13 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                               e.preventDefault();
 
                               if (link.url) {
+<<<<<<< HEAD
                                 router.get(link.url, {}, { preserveState: true, preserveScroll: true });
                               }
+=======
+router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+}
+>>>>>>> origin
                             }}
                             className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                           />
@@ -494,8 +796,13 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                               e.preventDefault();
 
                               if (link.url) {
+<<<<<<< HEAD
                                 router.get(link.url, {}, { preserveState: true, preserveScroll: true });
                               }
+=======
+router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+}
+>>>>>>> origin
                             }}
                             className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                           />
@@ -520,8 +827,13 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                             e.preventDefault();
 
                             if (link.url) {
+<<<<<<< HEAD
                               router.get(link.url, {}, { preserveState: true, preserveScroll: true });
                             }
+=======
+router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+}
+>>>>>>> origin
                           }}
                           className={`cursor-pointer ${
                             link.active ? 'bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]' : 'text-[#0B3D91]'
@@ -537,6 +849,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
             </CardFooter>
           )}
         </Card>
+<<<<<<< HEAD
       </div>
     </div>
   );
@@ -547,3 +860,10 @@ function handleDelete(id: string | number, name: string) {
     router.delete(`/graduate-ledger/${id}`);
   }
 }
+=======
+
+      </div>
+    </div>
+  );
+}
+>>>>>>> origin

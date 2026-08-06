@@ -2,21 +2,19 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Membership extends Model
 {
-    use HasFactory;
+    protected $table = 'membership';
 
     protected $fillable = [
         'member_code',
         'member_desc',
     ];
 
-    public function formInputs(): HasMany
+    public function formInput()
     {
-        return $this->hasMany(FormInput::class);
+        return $this->hasOne(FormInput::class);
     }
 }

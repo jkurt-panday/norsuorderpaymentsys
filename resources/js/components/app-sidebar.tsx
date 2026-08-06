@@ -16,13 +16,31 @@ import {
     SidebarHeader,
     useSidebar,
 } from '@/components/ui/sidebar';
+<<<<<<< HEAD
+=======
+
+import { dashboard } from '@/routes';
+>>>>>>> origin
 import type { NavItem } from '@/types';
 import staff from '@/routes/staff';
 
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
+<<<<<<< HEAD
         href: staff.dashboard(),
+=======
+        href: dashboard.url(),
+        icon: LayoutGrid,
+    },
+];
+
+const footerNavItems: NavItem[] = [
+    {
+        title: 'Repository',
+        href: 'https://github.com/laravel/react-starter-kit',
+        icon: FolderGit2,
+>>>>>>> origin
     },
     {
         title: 'Requests',
@@ -53,6 +71,7 @@ export function AppSidebar() {
     const isCollapsed = state === 'collapsed';
 
     return (
+<<<<<<< HEAD
         <Sidebar
             collapsible="icon"
             variant="inset"
@@ -84,6 +103,19 @@ export function AppSidebar() {
                         className="h-8 w-8 rounded-md object-contain"
                     />
                 )}
+=======
+        <Sidebar collapsible="icon" variant="inset">
+            <SidebarHeader>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton size="lg" className="h-auto py-2">
+                            <Link href={dashboard.url()} prefetch>
+                                <AppLogo />
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+>>>>>>> origin
             </SidebarHeader>
 
             <SidebarContent className="mt-0 scrollbar-thin scrollbar-thumb-blue-700 scrollbar-track-transparent bg-transparent">

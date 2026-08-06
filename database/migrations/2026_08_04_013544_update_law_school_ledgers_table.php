@@ -31,13 +31,13 @@ return new class extends Migration
                 'remaining_balance',
                 'status',
                 'remarks',
-                'input_by',
+                'input_by'
             ]);
 
             // Add new columns
             $table->string('last_name')->nullable()->index();
             $table->string('first_name')->nullable()->index();
-            $table->string('middle_initial', 1)->nullable();
+            $table->string('middle_initial', 50)->nullable();
             $table->string('course')->nullable();
             $table->string('school_year', 20)->nullable();
             $table->string('semester_or_summer', 50)->nullable();

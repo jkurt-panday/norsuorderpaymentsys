@@ -3,159 +3,180 @@
 namespace App\Http\Controllers;
 
 use App\Models\FormInput;
-use App\Models\Membership;
-use App\Models\PaymentDetailOption;
-use App\Models\SupportingDocument;
-use App\Services\FileUploadService;
-use App\Services\ReferenceNumberService;
+use App\Models\StaffInput;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Validator;
 
 class FormInputController extends Controller
 {
-    protected FileUploadService $fileUploadService;
-
-    protected ReferenceNumberService $referenceNumberService;
-
-    public function __construct(
-        FileUploadService $fileUploadService,
-        ReferenceNumberService $referenceNumberService
-    ) {
-        $this->fileUploadService = $fileUploadService;
-        $this->referenceNumberService = $referenceNumberService;
-    }
-
     /**
-     * Display the public submission form
+     * Store a new form submission (Client side)
      */
-    public function create()
-    {
-        $memberships = Membership::orderBy('member_desc')->get();
-        $paymentOptions = PaymentDetailOption::orderBy('payment_desc')->get();
-
-        return Inertia::render('public/SubmitForm', [
-            'memberships' => $memberships,
-            'paymentOptions' => $paymentOptions,
-        ]);
-    }
-
     public function store(Request $request)
     {
-        // 1. Validate Form & Files
-        $request->validate([
-            'firstname_or_office'           => 'required|string|max:255',
-            'middlename_or_project'         => 'nullable|string|max:255',
-            'lastname_or_agency'            => 'required|string|max:255',
-            'office_or_college'             => 'required|string|max:255',
-            'position_or_designation'       => 'required|string|max:255',
-            'contact_num'                   => 'required|string|max:50',
-            'email'                         => 'required|email|max:255',
-            'address'                       => 'required|string',
-            'request_type'                  => 'required|string',
-            'amount'                        => 'required|numeric|min:0',
-            'membership_id'                 => 'required|exists:memberships,id',
-            'payment_detail_option_id'      => 'required|exists:payment_detail_options,id',
-
-            'documents' => 'nullable|array',
-            'documents.*' => 'file|mimes:pdf,jpg,jpeg,png,webp,svg|max:10240',
+        // Validate client form inputs only
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'contact_num' => 'required|string|max:13',
+            'firstname_or_office' => 'required|string',
+            'middlename_or_project' => 'nullable|string',
+            'lastname_or_agency' => 'required|string',
+            'office_or_college' => 'required|string',
+            'position_or_designation' => 'required|string',
+            'address' => 'required|string',
+            'amount' => 'required|numeric|min:0',
+            'request_type' => 'required|in:New Request,Re-issue Request',
+            'membership_id' => 'required|exists:memberships,id',
+            'payment_detail_option_id' => 'required|exists:payment_detail_options,id',
+            'supporting_documents.*' => 'file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
         ]);
 
-        try {
-            DB::beginTransaction();
-
-            // 2. Generate Reference Number
-            $referenceNumber = $this->referenceNumberService->generate();
-
-            // 3. Create FormInput Record using your explicit mapping
-            $formInput = FormInput::create([
-                'reference_number'          => $referenceNumber,
-                'email'                     => $request->email,
-                'contact_num'               => $request->contact_num,
-                'firstname_or_office'       => $request->firstname_or_office,
-                'middlename_or_project'     => $request->middlename_or_project,
-                'lastname_or_agency'        => $request->lastname_or_agency,
-                'office_or_college'         => $request->office_or_college,
-                'position_or_designation'   => $request->position_or_designation,
-                'address'                   => $request->address,
-                'amount'                    => $request->amount,
-                'request_type'              => $request->request_type,
-                'membership_id'             => $request->membership_id,
-                'payment_detail_option_id'  => $request->payment_detail_option_id,
-            ]);
-
-            // // 4. Handle Uploaded Documents
-            // if ($request->hasFile('documents')) {
-            //     foreach ($request->file('documents') as $file) {
-            //         $originalName = $file->getClientOriginalName();
-            //         $extension = $file->getClientOriginalExtension();
-            //         $mimeType = $file->getClientMimeType();
-            //         $fileSize = $file->getSize();
-
-            //         $storedFilename = Str::uuid().'.'.$extension;
-
-            //         $file->storeAs('supporting-documents', $storedFilename, 'public');
-
-            //         $fileUrl = Storage::disk('public')->url('supporting-documents/'.$storedFilename);
-
-            //         SupportingDocument::create([
-            //             'form_input_id' => $formInput->id,
-            //             'original_filename' => $originalName,
-            //             'stored_filename' => $storedFilename,
-            //             'file_url' => $fileUrl,
-            //             'mime_type' => $mimeType,
-            //             'file_extension' => $extension,
-            //             'file_size' => $fileSize,
-            //             'uploaded_at' => now(),
-            //         ]);
-            //     }
-            // }
-            //
-            // 4. Handle Uploaded Documents using FileUploadService
-            if ($request->hasFile('documents')) {
-                $this->fileUploadService->uploadDocuments(
-                    $request->file('documents'),
-                    $formInput
-                );
-            }
-
-            DB::commit();
-
-            // Eager-load relations before rendering, so the Success page
-            // receives formInput.membership and formInput.paymentDetailOption
-            // as populated nested objects instead of undefined.
-            $formInput->load(['membership', 'paymentDetailOption', 'supportingDocuments']);
-
-            // Render the success page directly — no separate success() action
-            // or route needed, since we already have everything we need here.
-            return Inertia::render('public/Success', [
-                'reference_number' => $formInput->reference_number,
-                'formInput' => $formInput,
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return back()->withInput()->with('error', 'Failed to submit request: '.$e->getMessage());
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
         }
+
+        // Handle file uploads
+        $documentUrls = [];
+        if ($request->hasFile('supporting_documents')) {
+            foreach ($request->file('supporting_documents') as $file) {
+                $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
+                $path = $file->storeAs('supporting_documents', $filename, 'public');
+                $documentUrls[] = Storage::url($path);
+            }
+        }
+
+        // Create Form Input (Client data only)
+        $formInput = FormInput::create([
+            'email' => $request->email,
+            'contact_num' => $request->contact_num,
+            'firstname_or_office' => $request->firstname_or_office,
+            'middlename_or_project' => $request->middlename_or_project,
+            'lastname_or_agency' => $request->lastname_or_agency,
+            'office_or_college' => $request->office_or_college,
+            'position_or_designation' => $request->position_or_designation,
+            'address' => $request->address,
+            'amount' => $request->amount,
+            'request_type' => $request->request_type,
+            'membership_id' => $request->membership_id,
+            'payment_detail_option_id' => $request->payment_detail_option_id,
+            'supporting_documents' => $documentUrls,
+        ]);
+
+        return response()->json([
+            'message' => 'Form submitted successfully',
+            'data' => $formInput,
+            'reference_id' => $formInput->id, // For staff to reference later
+        ], 201);
     }
 
     /**
-     * Display a specific form input (for staff viewing)
+     * Get a specific form submission
      */
-    public function show(FormInput $formInput)
+    public function show($id)
     {
-        $formInput->load([
-            'membership',
-            'paymentDetailOption',
-            'supportingDocuments',
-            'staffInput.bankAccount',
-            'staffInput.uacs',
-            'staffInput.referenceDocument',
+        $formInput = FormInput::with(['membership', 'paymentDetails', 'staffInput'])->findOrFail($id);
+
+        return response()->json($formInput);
+    }
+
+    /**
+     * Get all form submissions with status
+     */
+    public function index()
+    {
+        $formInputs = FormInput::with(['membership', 'paymentDetails', 'staffInput'])->get();
+
+        return response()->json($formInputs);
+    }
+
+    /**
+     * Update form submission (Client side - limited fields)
+     */
+    public function update(Request $request, $id)
+    {
+        $formInput = FormInput::findOrFail($id);
+
+        // Check if staff already processed this
+        if ($formInput->staffInput) {
+            return response()->json([
+                'message' => 'Cannot update form. Staff has already processed this request.',
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'email' => 'sometimes|email',
+            'contact_num' => 'sometimes|string|max:13',
+            'firstname_or_office' => 'sometimes|string',
+            'middlename_or_project' => 'nullable|string',
+            'lastname_or_agency' => 'sometimes|string',
+            'office_or_college' => 'sometimes|string',
+            'position_or_designation' => 'sometimes|string',
+            'address' => 'sometimes|string',
+            'amount' => 'sometimes|numeric|min:0',
+            'request_type' => 'sometimes|in:New Request,Re-issue Request',
+            'supporting_documents.*' => 'file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
         ]);
 
-        return Inertia::render('staff/requestform/showrequest', compact('formInput'));
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        // Handle new file uploads
+        if ($request->hasFile('supporting_documents')) {
+            // Delete old files
+            if ($formInput->supporting_documents) {
+                foreach ($formInput->supporting_documents as $oldUrl) {
+                    $path = str_replace('/storage/', '', $oldUrl);
+                    if (Storage::disk('public')->exists($path)) {
+                        Storage::disk('public')->delete($path);
+                    }
+                }
+            }
+
+            $documentUrls = [];
+            foreach ($request->file('supporting_documents') as $file) {
+                $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
+                $path = $file->storeAs('supporting_documents', $filename, 'public');
+                $documentUrls[] = Storage::url($path);
+            }
+            $request->merge(['supporting_documents' => $documentUrls]);
+        }
+
+        $formInput->update($request->all());
+
+        return response()->json([
+            'message' => 'Form updated successfully',
+            'data' => $formInput,
+        ]);
     }
+
+    /**
+     * Delete form submission (Client side)
+     */
+    // public function destroy($id)
+    // {
+    //     $formInput = FormInput::findOrFail($id);
+
+    //     // Check if staff already processed this
+    //     if ($formInput->staffInput) {
+    //         return response()->json([
+    //             'message' => 'Cannot delete. Staff has already processed this request.'
+    //         ], 403);
+    //     }
+
+    //     // Delete associated files
+    //     if ($formInput->supporting_documents) {
+    //         foreach ($formInput->supporting_documents as $documentUrl) {
+    //             $path = str_replace('/storage/', '', $documentUrl);
+    //             if (Storage::disk('public')->exists($path)) {
+    //                 Storage::disk('public')->delete($path);
+    //             }
+    //         }
+    //     }
+
+    //     $formInput->delete();
+
+    //     return response()->json(['message' => 'Form deleted successfully']);
+    // }
 }
