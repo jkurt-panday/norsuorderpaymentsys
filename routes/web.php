@@ -1,27 +1,6 @@
 <?php
 
 use App\Http\Controllers\AdminUserController;
-<<<<<<< HEAD
-use App\Http\Controllers\BankAccountInfoController;
-use App\Http\Controllers\FormInputController;
-use App\Http\Controllers\GraduateLedgerController;
-use App\Http\Controllers\LawSchoolLedgerController;
-use App\Http\Controllers\MembershipController;
-use App\Http\Controllers\PaymentDetailOptionController;
-use App\Http\Controllers\StaffInputController;
-use App\Http\Controllers\SupportingDocumentController;
-use App\Http\Controllers\UacsController;
-use Illuminate\Support\Facades\Route;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Public Routes (no auth required)
-// ─────────────────────────────────────────────────────────────────────────────
-
-Route::name('public.')->prefix('public')->group(function () {
-    Route::get('/form', [FormInputController::class, 'create'])->name('submit');
-    Route::post('/form', [FormInputController::class, 'store'])->name('submit.store');
-    Route::get('/success/{referenceNumber?}', [FormInputController::class, 'success'])->name('success');
-=======
 use App\Http\Controllers\GraduateLedgerController;
 use App\Http\Controllers\LawSchoolLedgerController;
 use Illuminate\Support\Facades\Route;
@@ -70,7 +49,6 @@ Route::middleware(['auth', 'admin'])->group(function () {
         ->middleware('throttle:10,1')
         ->name('admin.users.store');
 
->>>>>>> origin
 });
 
 // Root redirect → public submission form

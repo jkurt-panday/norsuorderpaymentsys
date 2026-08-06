@@ -16,20 +16,14 @@ import {
     SidebarHeader,
     useSidebar,
 } from '@/components/ui/sidebar';
-<<<<<<< HEAD
-=======
 
 import { dashboard } from '@/routes';
->>>>>>> origin
 import type { NavItem } from '@/types';
 import staff from '@/routes/staff';
 
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
-<<<<<<< HEAD
-        href: staff.dashboard(),
-=======
         href: dashboard.url(),
         icon: LayoutGrid,
     },
@@ -40,7 +34,6 @@ const footerNavItems: NavItem[] = [
         title: 'Repository',
         href: 'https://github.com/laravel/react-starter-kit',
         icon: FolderGit2,
->>>>>>> origin
     },
     {
         title: 'Requests',
@@ -71,39 +64,6 @@ export function AppSidebar() {
     const isCollapsed = state === 'collapsed';
 
     return (
-<<<<<<< HEAD
-        <Sidebar
-            collapsible="icon"
-            variant="inset"
-            className="border-r border-blue-900/40 bg-[#003f7d] pt-5 text-white [&_[data-sidebar=sidebar]]:bg-transparent"
-        >
-            <SidebarHeader className="mb-2 items-center border-b border-blue-400/20 bg-transparent px-3 pb-4 text-center">
-                {!isCollapsed ? (
-                    <div className="flex flex-col items-center gap-2 py-2">
-                        <img
-                            src="/finance_logo1.png"
-                            alt="NORSU Order of Payment System"
-                            width={250}
-                            height={250}
-                            className="rounded-md object-contain"
-                        />
-                        <div>
-                            <h4 className="m-0 text-base font-semibold text-white">
-                                Order of Payment
-                            </h4>
-                            <p className="text-xs text-slate-400">
-                                NORSU Staff Portal
-                            </p>
-                        </div>
-                    </div>
-                ) : (
-                    <img
-                        src="/norsu.png"
-                        alt="NORSU Order of Payment System"
-                        className="h-8 w-8 rounded-md object-contain"
-                    />
-                )}
-=======
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
                 <SidebarMenu>
@@ -115,7 +75,6 @@ export function AppSidebar() {
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
->>>>>>> origin
             </SidebarHeader>
 
             <SidebarContent className="mt-0 scrollbar-thin scrollbar-thumb-blue-700 scrollbar-track-transparent bg-transparent">

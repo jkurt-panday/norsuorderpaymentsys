@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-"use client"
-
-=======
->>>>>>> origin
 import * as React from "react"
 import { Dialog as SheetPrimitive } from "@base-ui/react/dialog"
 

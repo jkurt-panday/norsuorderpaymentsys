@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import { Head, router, useForm } from '@inertiajs/react';
-=======
 import { Head, router } from '@inertiajs/react';
->>>>>>> origin
 import {
   Search,
   DollarSign,
@@ -138,12 +134,8 @@ interface IndexProps {
   };
   stats?: {
     totalStudents?: number;
-<<<<<<< HEAD
-    totalAssessments?: number;
-=======
     totalUnits?: number;
     totalCharges?: number;
->>>>>>> origin
     totalPayments?: number;
     outstandingBalance?: number;
   };
@@ -162,10 +154,6 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const [semester, setSemester] = useState(filters?.semester_or_summer ?? '');
   const [course, setCourse] = useState(filters?.course ?? '');
   const [status, setStatus] = useState(filters?.status ?? '');
-<<<<<<< HEAD
-  const importForm = useForm<{ file: File | null }>({ file: null });
-=======
->>>>>>> origin
 
   const applyFilters = (overrides: Record<string, string> = {}) => {
     const params: Record<string, string> = {};
@@ -198,12 +186,8 @@ params[key] = value.trim();
 
   // ---- Server-backed Metric Summary ----
   const totalStudents = stats?.totalStudents ?? 0;
-<<<<<<< HEAD
-  const totalAssessments = stats?.totalAssessments ?? 0;
-=======
   const totalUnits = stats?.totalUnits ?? 0;
   const totalCharges = stats?.totalCharges ?? 0;
->>>>>>> origin
   const totalPayments = stats?.totalPayments ?? 0;
   const outstandingBalance = stats?.outstandingBalance ?? 0;
 
@@ -211,11 +195,8 @@ params[key] = value.trim();
   const lastPage = records?.meta?.last_page ?? records?.last_page ?? 1;
   const totalRecordCount = records?.meta?.total ?? records?.total ?? rows.length;
 
-<<<<<<< HEAD
-=======
   const [goToPage, setGoToPage] = React.useState<string>('');
 
->>>>>>> origin
   const paginationLinks = records?.links ?? [];
 
   return (
@@ -324,16 +305,6 @@ params[key] = value.trim();
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0] ?? null;
-<<<<<<< HEAD
-                    importForm.setData('file', file);
-
-                    if (file) {
-                      importForm.post('/law-ledger/import', {
-                        forceFormData: true,
-                        preserveScroll: true,
-                        onSuccess: () => {
-                          importForm.reset('file');
-=======
 
                     if (file) {
                       const form = new FormData();
@@ -344,7 +315,6 @@ params[key] = value.trim();
                         preserveScroll: true,
                         preserveState: false,
                         onSuccess: () => {
->>>>>>> origin
                           e.currentTarget.value = '';
                         },
                       });
@@ -363,11 +333,7 @@ params[key] = value.trim();
         </div>
 
         {/* Metrics Row */}
-<<<<<<< HEAD
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-=======
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
->>>>>>> origin
           <Card className="shadow-xs border border-[#CFE3FF] bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-[#5C7A9E]">Students on Ledger</CardTitle>
@@ -381,14 +347,6 @@ params[key] = value.trim();
 
           <Card className="shadow-xs border border-[#CFE3FF] bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-<<<<<<< HEAD
-              <CardTitle className="text-sm font-medium text-[#5C7A9E]">Total Assessments</CardTitle>
-              <DollarSign className="h-4 w-4 text-[#0F6FFF]" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{currency(totalAssessments)}</div>
-              <p className="text-[10px] text-[#8AA8CC] mt-1">Total tuition + fees billed</p>
-=======
               <CardTitle className="text-sm font-medium text-[#5C7A9E]">Total Units</CardTitle>
               <Scale className="h-4 w-4 text-[#0F6FFF]" />
             </CardHeader>
@@ -406,7 +364,6 @@ params[key] = value.trim();
             <CardContent>
               <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{currency(totalCharges)}</div>
               <p className="text-[10px] text-[#8AA8CC] mt-1">Total charges billed</p>
->>>>>>> origin
             </CardContent>
           </Card>
 
@@ -446,11 +403,7 @@ params[key] = value.trim();
                 <div 
                   className="h-full bg-orange-500 rounded-full transition-all duration-500"
                   style={{ 
-<<<<<<< HEAD
-                    width: `${totalAssessments > 0 ? Math.min((outstandingBalance / totalAssessments) * 100, 100) : 0}%` 
-=======
                     width: `${totalCharges > 0 ? Math.min(Math.max(0, (outstandingBalance / totalCharges) * 100), 100) : 0}%` 
->>>>>>> origin
                   }}
                 />
               </div>
@@ -463,13 +416,8 @@ params[key] = value.trim();
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-600">Collection Rate</span>
                   <span className="text-sm font-medium text-slate-900">
-<<<<<<< HEAD
-                    {totalAssessments > 0 
-                      ? `${((totalPayments / totalAssessments) * 100).toFixed(1)}%` 
-=======
                     {totalCharges > 0 
                       ? `${((totalPayments / totalCharges) * 100).toFixed(1)}%` 
->>>>>>> origin
                       : '0.0%'}
                   </span>
                 </div>
@@ -477,11 +425,7 @@ params[key] = value.trim();
                   <div 
                     className="h-full bg-blue-500 rounded-full transition-all duration-500"
                     style={{ 
-<<<<<<< HEAD
-                      width: `${totalAssessments > 0 ? Math.min((totalPayments / totalAssessments) * 100, 100) : 0}%` 
-=======
                       width: `${totalCharges > 0 ? Math.min((totalPayments / totalCharges) * 100, 100) : 0}%` 
->>>>>>> origin
                     }}
                   />
                 </div>
@@ -492,11 +436,7 @@ params[key] = value.trim();
                   <span className="text-sm text-slate-600">Average Transaction</span>
                   <span className="text-sm font-medium text-slate-900">
                     {totalRecordCount > 0 
-<<<<<<< HEAD
-                      ? currency((totalAssessments + totalPayments) / totalRecordCount)
-=======
                       ? currency((totalCharges + totalPayments) / totalRecordCount)
->>>>>>> origin
                       : '₱0.00'}
                   </span>
                 </div>
@@ -505,17 +445,10 @@ params[key] = value.trim();
 
               <div className="p-4 bg-white rounded-lg border border-slate-200">
                 <div className="flex items-center justify-between">
-<<<<<<< HEAD
-                  <span className="text-sm text-slate-600">Records This Page</span>
-                  <span className="text-sm font-medium text-slate-900">{rows.length}</span>
-                </div>
-                <p className="text-xs text-slate-500 mt-1">of {totalRecordCount.toLocaleString()} total</p>
-=======
                   <span className="text-sm text-slate-600">Total Units Enrolled</span>
                   <span className="text-sm font-medium text-slate-900">{totalUnits.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">Across all records</p>
->>>>>>> origin
               </div>
             </div>
           </CardContent>
@@ -622,10 +555,6 @@ params[key] = value.trim();
                 <span className="font-semibold text-[#0B3D91]">{lastPage}</span>
               </div>
 
-<<<<<<< HEAD
-              <Pagination className="justify-end w-auto mx-0">
-                <PaginationContent className="gap-1">
-=======
                <Pagination className="justify-end w-auto mx-0">
                  <PaginationContent className="gap-1">
                    <PaginationItem>
@@ -676,7 +605,6 @@ params[key] = value.trim();
                        </Button>
                      </div>
                    </PaginationItem>
->>>>>>> origin
                   {paginationLinks.map((link, index) => {
                     const isPrev = index === 0;
                     const isNext = index === paginationLinks.length - 1;

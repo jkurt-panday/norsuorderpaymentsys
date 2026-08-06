@@ -8,10 +8,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
-<<<<<<< HEAD
-      richColors={true}
-=======
->>>>>>> origin
       className="toaster group"
       icons={{
         success: (
@@ -36,33 +32,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
           "--border-radius": "var(--radius)",
-<<<<<<< HEAD
-          "--success-bg": "#003f7d",
-          "--success-border": "#002d5b",
-          "--success-text": "#f8fafc",
-          "--error-bg": "#c2410c",
-          "--error-border": "#9a3412",
-          "--error-text": "#f8fafc",
-          "--warning-bg": "#f59e0b",
-          "--warning-border": "#d97706",
-          "--warning-text": "#0f172a",
-          "--info-bg": "#0f172a",
-          "--info-border": "#334155",
-          "--info-text": "#f8fafc",
-=======
->>>>>>> origin
         } as React.CSSProperties
       }
       toastOptions={{
         classNames: {
           toast: "cn-toast",
-<<<<<<< HEAD
-          success: "cn-toast-success",
-          error: "cn-toast-error",
-          warning: "cn-toast-warning",
-          info: "cn-toast-info",
-=======
->>>>>>> origin
         },
       }}
       {...props}

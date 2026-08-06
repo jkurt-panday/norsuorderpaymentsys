@@ -6,12 +6,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
-<<<<<<< HEAD
-import { dashboard } from '@/routes/index';
-=======
 import { dashboard } from '@/routes';
 import { store as storeAdminUser } from '@/routes/admin/users';
->>>>>>> origin
 
 export default function Dashboard() {
     const { auth } = usePage<{ auth: { user: { role: string } | null } }>().props;
@@ -101,12 +97,8 @@ export default function Dashboard() {
                         <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
                     </div>
                 </div>
-<<<<<<< HEAD
-                <div className="relative min-h-screen flex-1 overflow-hidden rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border">
-=======
 
                 <div className="relative min-h-[100vh] flex-1 overflow-hidden rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border">
->>>>>>> origin
                     <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
                 </div>
 
