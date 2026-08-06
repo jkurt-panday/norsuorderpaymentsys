@@ -210,37 +210,40 @@ class StaffInputController extends Controller
     /**
      * Store staff processing data
      */
-    public function store(StaffProcessingRequest $request)
-    {
-        try {
-            DB::beginTransaction();
+public function store(StaffProcessingRequest $request)
+{
+    try {
+        DB::beginTransaction();
 
-            $formInput = FormInput::findOrFail($request->form_input_id);
+        $formInput = FormInput::findOrFail($request->form_input_id);
 
-            if ($formInput->staffInput()->exists()) {
-                throw new \Exception('This request has already been processed.');
-            }
-
-            // Fixed: Added bank_account_id using validated array data
-            StaffInput::create(array_merge(
-                $request->validated(),
-                ['form_input_id' => $formInput->id]
-            ));
-
-            DB::commit();
-
-            return redirect()->route('staff.requests.index')
-                ->with('success', 'Request processed successfully.');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Staff processing failed: '.$e->getMessage());
-
-            return back()
-                ->withInput()
-                ->with('error', 'Failed to process request: '.$e->getMessage());
+        if ($formInput->staffInput()->exists()) {
+            throw new \Exception('This request has already been processed.');
         }
+
+        StaffInput::create(array_merge(
+            $request->validated(),
+            ['form_input_id' => $formInput->id]
+        ));
+
+        DB::commit();
+
+        // Changed: redirect back to the request's own show page instead of
+        // the index, so processing an inline form lands you right back
+        // where you started, with fresh data.
+        return redirect()->route('staff.requests.show', $formInput)
+            ->with('success', 'Request processed successfully.');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Staff processing failed: '.$e->getMessage());
+
+        return back()
+            ->withInput()
+            ->with('error', 'Failed to process request: '.$e->getMessage());
     }
+}
+
 
     /**
      * Show form for editing staff processing
@@ -304,6 +307,12 @@ class StaffInputController extends Controller
             'staffInput.referenceDocument',
         ]);
 
-        return Inertia::render('staff/requestform/showrequest', compact('formInput'));
+        // Added: bankAccounts + uacsList, so the inline "Process Now" form
+        // on this page has what it needs without a separate navigation.
+        return Inertia::render('staff/requestform/showrequest', [
+            'formInput' => $formInput,
+            'bankAccounts' => BankAccountInfo::orderBy('bank_name')->get(),
+            'uacsList' => Uacs::orderBy('object_code')->get(),
+        ]);
     }
 }
