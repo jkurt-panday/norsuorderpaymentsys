@@ -878,7 +878,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         // setSupportingDocuments([]);
                                     }}
                                 >
-                                    Cancel
+                                    Reset
                                 </Button>
                                 <Button
                                     type="submit"
