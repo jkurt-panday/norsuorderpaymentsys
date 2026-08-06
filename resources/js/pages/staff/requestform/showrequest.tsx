@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, router, usePage } from '@inertiajs/react';
+import React, { useEffect, useState } from 'react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
 import staff from '@/routes/staff';
 
 interface Membership {
@@ -12,6 +12,7 @@ interface PaymentDetailOption {
 }
 
 interface BankAccount {
+    id: number;
     account_name: string;
     bank_name: string;
     account_num: string;
@@ -19,6 +20,7 @@ interface BankAccount {
 }
 
 interface Uacs {
+    id: number;
     object_code: string;
     account_title: string;
 }
@@ -67,8 +69,17 @@ interface FormInput {
     supportingDocuments?: SupportingDocument[];
 }
 
+interface FlashProps {
+    success?: string;
+    error?: string;
+    warning?: string;
+}
+
 interface PageProps {
     formInput: FormInput;
+    bankAccounts: BankAccount[];
+    uacsList: Uacs[];
+    flash?: FlashProps;
 }
 
 const statusBadgeClass = (status: string) => {
@@ -143,8 +154,28 @@ const formatFileSize = (bytes?: number) => {
 };
 
 export default function ShowRequest() {
-    const { formInput } = usePage().props as unknown as PageProps;
+    const { formInput, bankAccounts, uacsList, flash } = usePage()
+        .props as unknown as PageProps;
     const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+
+    // Toggles the inline "Process Now" form on/off in place of the
+    // empty-state block. Automatically closes itself once formInput.staff_input
+    // exists (i.e. after a successful submit + redirect-back-here).
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    useEffect(() => {
+        if (formInput.staff_input) {
+            setIsProcessing(false);
+        }
+    }, [formInput.staff_input]);
+
+    // Basic flash handling — swap in your toast lib here if you have one
+    // (e.g. sonner's toast.success / toast.error) instead of console.log.
+    useEffect(() => {
+        if (flash?.success) console.log(flash.success);
+        if (flash?.error) console.error(flash.error);
+        if (flash?.warning) console.warn(flash.warning);
+    }, [flash]);
 
     const supportingDocuments: SupportingDocument[] =
         formInput.supportingDocuments ??
@@ -163,6 +194,34 @@ export default function ShowRequest() {
         router.delete(staff.documents.destroy.url(deleteTargetId), {
             onFinish: () => setDeleteTargetId(null),
             preserveScroll: true,
+        });
+    };
+
+    // ---- Inline "Process Now" form ----------------------------------------
+    const {
+        data: processData,
+        setData: setProcessData,
+        post: postProcess,
+        processing: isSubmittingProcess,
+        errors: processErrors,
+        reset: resetProcessForm,
+    } = useForm({
+        form_input_id: formInput.id,
+        fundcluster_id: '',
+        ref_document_id: '',
+        ref_date: new Date().toISOString().slice(0, 10),
+        uacs_id: '',
+        status: '',
+    });
+
+    const handleProcessSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        postProcess(staff.requests.store.url(), {
+            preserveScroll: true,
+            onSuccess: () => {
+                resetProcessForm();
+                setIsProcessing(false);
+            },
         });
     };
 
@@ -515,6 +574,256 @@ export default function ShowRequest() {
                                             </tr>
                                         </tbody>
                                     </table>
+                                ) : isProcessing ? (
+                                    /* ---- Inline Process Form ---- */
+                                    <form onSubmit={handleProcessSubmit}>
+                                        <input
+                                            type="hidden"
+                                            name="form_input_id"
+                                            value={processData.form_input_id}
+                                        />
+
+                                        <div className="mb-4">
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                                Bank Account{' '}
+                                                <span className="text-rose-500">
+                                                    *
+                                                </span>
+                                            </label>
+                                            <select
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                    processErrors.fundcluster_id
+                                                        ? 'border-rose-400'
+                                                        : 'border-slate-200'
+                                                }`}
+                                                value={
+                                                    processData.fundcluster_id
+                                                }
+                                                onChange={(e) =>
+                                                    setProcessData(
+                                                        'fundcluster_id',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                required
+                                            >
+                                                <option value="">
+                                                    Select Bank Account
+                                                </option>
+                                                {bankAccounts.map((account) => (
+                                                    <option
+                                                        key={account.id}
+                                                        value={account.id}
+                                                    >
+                                                        {account.fund_cluster} -{' '}
+                                                        {account.account_name} -{' '}
+                                                        {account.bank_name} (
+                                                        {account.account_num})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {processErrors.fundcluster_id && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {
+                                                        processErrors.fundcluster_id
+                                                    }
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="mb-4">
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                                Reference Document
+                                            </label>
+                                            <select
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                    processErrors.ref_document_id
+                                                        ? 'border-rose-400'
+                                                        : 'border-slate-200'
+                                                }`}
+                                                value={
+                                                    processData.ref_document_id
+                                                }
+                                                onChange={(e) =>
+                                                    setProcessData(
+                                                        'ref_document_id',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            >
+                                                <option value="">
+                                                    Select Reference Document
+                                                    (Optional)
+                                                </option>
+                                                {supportingDocuments.map(
+                                                    (document) => (
+                                                        <option
+                                                            key={document.id}
+                                                            value={document.id}
+                                                        >
+                                                            {
+                                                                document.original_filename
+                                                            }
+                                                        </option>
+                                                    ),
+                                                )}
+                                            </select>
+                                            {processErrors.ref_document_id && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {
+                                                        processErrors.ref_document_id
+                                                    }
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="mb-4">
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                                Reference Date{' '}
+                                                <span className="text-rose-500">
+                                                    *
+                                                </span>
+                                            </label>
+                                            <input
+                                                type="date"
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                    processErrors.ref_date
+                                                        ? 'border-rose-400'
+                                                        : 'border-slate-200'
+                                                }`}
+                                                value={processData.ref_date}
+                                                onChange={(e) =>
+                                                    setProcessData(
+                                                        'ref_date',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                required
+                                            />
+                                            {processErrors.ref_date && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {processErrors.ref_date}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="mb-4">
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                                UACS{' '}
+                                                <span className="text-rose-500">
+                                                    *
+                                                </span>
+                                            </label>
+                                            <select
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                    processErrors.uacs_id
+                                                        ? 'border-rose-400'
+                                                        : 'border-slate-200'
+                                                }`}
+                                                value={processData.uacs_id}
+                                                onChange={(e) =>
+                                                    setProcessData(
+                                                        'uacs_id',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                required
+                                            >
+                                                <option value="">
+                                                    Select UACS
+                                                </option>
+                                                {uacsList.map((uacs) => (
+                                                    <option
+                                                        key={uacs.id}
+                                                        value={uacs.id}
+                                                    >
+                                                        {uacs.object_code} -{' '}
+                                                        {uacs.account_title}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {processErrors.uacs_id && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {processErrors.uacs_id}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="mb-6">
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                                Status{' '}
+                                                <span className="text-rose-500">
+                                                    *
+                                                </span>
+                                            </label>
+                                            <select
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                    processErrors.status
+                                                        ? 'border-rose-400'
+                                                        : 'border-slate-200'
+                                                }`}
+                                                value={processData.status}
+                                                onChange={(e) =>
+                                                    setProcessData(
+                                                        'status',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                required
+                                            >
+                                                <option value="">
+                                                    Select Status
+                                                </option>
+                                                <option value="pending">
+                                                    Pending
+                                                </option>
+                                                <option value="approved">
+                                                    Approved
+                                                </option>
+                                                <option value="cancelled">
+                                                    Cancelled
+                                                </option>
+                                            </select>
+                                            {processErrors.status && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {processErrors.status}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="flex justify-end gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setIsProcessing(false)
+                                                }
+                                                className="rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                disabled={isSubmittingProcess}
+                                                className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-60"
+                                            >
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2.5"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    className="h-4 w-4"
+                                                >
+                                                    <path d="M20 6 9 17l-5-5" />
+                                                </svg>
+                                                {isSubmittingProcess
+                                                    ? 'Processing...'
+                                                    : 'Process Request'}
+                                            </button>
+                                        </div>
+                                    </form>
                                 ) : (
                                     <div className="py-6 text-center">
                                         <svg
@@ -534,10 +843,11 @@ export default function ShowRequest() {
                                             This request has not been processed
                                             yet.
                                         </p>
-                                        <Link
-                                            href={staff.requests.process.url(
-                                                formInput.id,
-                                            )}
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setIsProcessing(true)
+                                            }
                                             className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
                                         >
                                             <svg
@@ -553,7 +863,7 @@ export default function ShowRequest() {
                                                 <path d="M20 6 9 17l-5-5" />
                                             </svg>
                                             Process Now
-                                        </Link>
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -637,6 +947,31 @@ export default function ShowRequest() {
                                                             <path d="M12 15V3" />
                                                         </svg>
                                                     </a>
+                                                    <button
+                                                        type="button"
+                                                        title="Delete"
+                                                        onClick={() =>
+                                                            confirmDelete(
+                                                                document.id,
+                                                            )
+                                                        }
+                                                        className="flex h-8 w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition-colors hover:bg-rose-50"
+                                                    >
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="2"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            className="h-4 w-4"
+                                                        >
+                                                            <path d="M3 6h18" />
+                                                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                                        </svg>
+                                                    </button>
                                                 </div>
                                             </div>
                                         ))}
