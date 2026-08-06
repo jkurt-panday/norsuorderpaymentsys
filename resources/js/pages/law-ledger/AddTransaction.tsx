@@ -1,423 +1,388 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
-import React, { useMemo } from 'react';
-import { Badge } from '@/components/ui/badge';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+    CardDescription,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 
-interface AddTransactionProps {
-  filterOptions?: {
-    courses: string[];
-    schoolYears: string[];
-    semesters: string[];
-    statuses: string[];
-  };
+const courseOptions = ['JD', 'LLM', 'JSD'];
+const semesterOptions = ['1st Sem', '2nd Sem', 'Summer'];
+const particularsOptions = ['Registration', 'Tuition', 'Miscellaneous'];
+const typeOptions = ['AR', 'Payment', 'Adjustment'];
+
+interface Props {
+    studentNames: string[];
+    authUserName: string;
 }
 
-export default function AddTransaction({ filterOptions }: AddTransactionProps) {
-  const { data, setData, post, processing, errors, reset } = useForm({
-    last_name: '',
-    first_name: '',
-    middle_initial: '',
-    course: '',
-    school_year: '',
-    semester_or_summer: '',
-    units: '',
-    transaction_date: '',
-    reference_jev_or_number: '',
-    particulars: '',
-    tuition_per_unit_or_fee_per_semester: '',
-    ar_or_payment: 'AR',
-    amount: '',
-    status: 'Pending',
-    remarks: '',
-    input_by: '',
-  });
+function FieldError({ message }: { message?: string }) {
+    if (!message) {
+        return null;
+    }
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    post('/law-ledger', {
-      onSuccess: () => {
-        reset();
-      },
+    return <p className="mt-1 text-xs text-red-500">{message}</p>;
+}
+
+export default function AddTransaction({ studentNames, authUserName }: Props) {
+    const { data, setData, processing, errors } = useForm({
+        student_name: '',
+        course: '',
+        school_year: '',
+        semester_or_summer: '1st Sem',
+        units: '',
+        transaction_date: '',
+        reference_jev_or_number: '',
+        particulars: 'Tuition',
+        tuition_per_unit_or_fee_per_semester: '',
+        ar_or_payment: 'AR',
+        amount: '',
+        remarks: '',
+        input_by: authUserName,
     });
-  };
 
-  const semesterOptions = useMemo(() => {
-    const defaults = ['1st Sem', '2nd Sem', 'Summer'];
-    const fromDb = filterOptions?.semesters ?? [];
-    return [...new Set([...defaults, ...fromDb])];
-  }, [filterOptions?.semesters]);
+    const parsedUnits = Number(data.units || 0);
+    const parsedRate = Number(
+        data.tuition_per_unit_or_fee_per_semester || 0,
+    );
+    const computedAmount = parsedUnits * parsedRate;
+    const shouldAutoComputeAmount =
+        data.ar_or_payment === 'AR' && data.amount === '';
+    const displayedAmount = shouldAutoComputeAmount
+        ? computedAmount.toFixed(2)
+        : data.amount;
 
-  const courseOptions = useMemo(() => {
-    const defaults = ['JD', 'LLM', 'JSD'];
-    const fromDb = filterOptions?.courses ?? [];
-    return [...new Set([...defaults, ...fromDb])];
-  }, [filterOptions?.courses]);
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
 
+        router.post('/law-ledger', {
+            ...data,
+            status: data.ar_or_payment === 'AR' ? 'Pending' : 'Paid',
+            amount: displayedAmount,
+            transaction_date:
+                data.transaction_date || new Date().toISOString().slice(0, 10),
+        });
+    };
 
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 p-4 md:p-6 lg:p-8">
-      <Head title="Add New Transaction - Law School Ledger" />
-
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.get('/law-ledger')}
-            className="h-9"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Ledger
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Add New Transaction</h1>
-            <p className="text-sm text-slate-500 mt-0.5">Enter a new ledger entry for a student</p>
-          </div>
-        </div>
-
-        <form onSubmit={submit}>
-          <div className="space-y-6">
-            {/* Student Information */}
-            <Card className="border-slate-200 shadow-sm bg-white">
-              <CardHeader>
-                <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
-                  Student Information
-                </CardTitle>
-                <CardDescription className="text-slate-500">
-                  Basic student details and academic information
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="last_name" className="text-sm font-medium text-slate-700">
-                    Last Name <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="last_name"
-                    value={data.last_name}
-                    onChange={e => setData('last_name', e.target.value)}
-                    className="h-10 bg-white border-slate-200"
-                    placeholder="e.g., CRUZ"
-                  />
-                  {errors.last_name && (
-                    <p className="text-sm text-red-600">{errors.last_name}</p>
-                  )}
+    return (
+        <div className="min-h-screen bg-[#FAFAF5] p-4 md:p-8">
+            <Head title="Add Transaction - Law School Ledger" />
+            <div className="mx-auto max-w-5xl space-y-6">
+                <div className="flex items-center gap-2 border-b border-[#CFE3FF] pb-4">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.get('/law-ledger')}
+                        className="border-[#CFE3FF] text-[#0B3D91]"
+                    >
+                        <ArrowLeft className="mr-1 h-4 w-4" /> Back
+                    </Button>
+                    <div>
+                        <h1 className="text-2xl font-bold text-[#0B3D91]">
+                            Add New Transaction
+                        </h1>
+                        <p className="mt-1 text-sm text-[#5C7A9E]">
+                            Create a manual ledger transaction entry for a law
+                            school student.
+                        </p>
+                    </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="first_name" className="text-sm font-medium text-slate-700">
-                    First Name <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="first_name"
-                    value={data.first_name}
-                    onChange={e => setData('first_name', e.target.value)}
-                    className="h-10 bg-white border-slate-200"
-                    placeholder="e.g., JUAN"
-                  />
-                  {errors.first_name && (
-                    <p className="text-sm text-red-600">{errors.first_name}</p>
-                  )}
-                </div>
+                <Card className="border-[#CFE3FF] bg-white">
+                    <CardHeader>
+                        <CardTitle className="text-base text-[#0B3D91]">
+                            Transaction Details
+                        </CardTitle>
+                        <CardDescription className="text-[#7FA6D6]">
+                            Fill in the student information and financial
+                            details below.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form
+                            onSubmit={handleSubmit}
+                            className="grid grid-cols-1 gap-4 md:grid-cols-2"
+                        >
+                            {/* Student Name with autocomplete datalist */}
+                            <div className="md:col-span-2">
+                                <label className="text-sm text-[#334E68]">
+                                    Student Name
+                                </label>
+                                <Input
+                                    list="student-names-list"
+                                    value={data.student_name}
+                                    onChange={(e) =>
+                                        setData('student_name', e.target.value)
+                                    }
+                                    placeholder="Type or select a student name..."
+                                    required
+                                    className={
+                                        errors.student_name
+                                            ? 'border-red-400'
+                                            : ''
+                                    }
+                                />
+                                <datalist id="student-names-list">
+                                    {studentNames.map((name) => (
+                                        <option key={name} value={name} />
+                                    ))}
+                                </datalist>
+                                <FieldError message={errors.student_name} />
+                            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="middle_initial" className="text-sm font-medium text-slate-700">
-                    Middle Initial
-                  </Label>
-                  <Input
-                    id="middle_initial"
-                    value={data.middle_initial}
-                    onChange={e => setData('middle_initial', e.target.value)}
-                    className="h-10 bg-white border-slate-200"
-                    placeholder="e.g., D"
-                  />
-                  {errors.middle_initial && (
-                    <p className="text-sm text-red-600">{errors.middle_initial}</p>
-                  )}
-                </div>
+                            <div>
+                                <label className="text-sm text-[#334E68]">
+                                    Course
+                                </label>
+                                <select
+                                    value={data.course}
+                                    onChange={(e) =>
+                                        setData('course', e.target.value)
+                                    }
+                                    className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                >
+                                    <option value="">
+                                        -- Select Course --
+                                    </option>
+                                    {courseOptions.map((course) => (
+                                        <option key={course} value={course}>
+                                            {course}
+                                        </option>
+                                    ))}
+                                </select>
+                                <FieldError message={errors.course} />
+                            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="course" className="text-sm font-medium text-slate-700">
-                    Course
-                  </Label>
-                  <Select value={data.course} onValueChange={value => setData('course', value ?? '')}>
-                    <SelectTrigger className="h-10 bg-white border-slate-200">
-                      <SelectValue placeholder="Select course" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Select course</SelectItem>
-                      {courseOptions.map(course => (
-                        <SelectItem key={course} value={course}>{course}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.course && (
-                    <p className="text-sm text-red-600">{errors.course}</p>
-                  )}
-                </div>
+                            <div>
+                                <label className="text-sm text-[#334E68]">
+                                    School Year
+                                </label>
+                                <Input
+                                    value={data.school_year}
+                                    placeholder="e.g. 2025-2026"
+                                    pattern="\d{4}-\d{4}"
+                                    title="Format: YYYY-YYYY (e.g. 2025-2026)"
+                                    onChange={(e) =>
+                                        setData('school_year', e.target.value)
+                                    }
+                                    className={
+                                        errors.school_year
+                                            ? 'border-red-400'
+                                            : ''
+                                    }
+                                />
+                                <FieldError message={errors.school_year} />
+                            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="school_year" className="text-sm font-medium text-slate-700">
-                    School Year
-                  </Label>
-                  <Select value={data.school_year} onValueChange={value => setData('school_year', value ?? '')}>
-                    <SelectTrigger className="h-10 bg-white border-slate-200">
-                      <SelectValue placeholder="Select school year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Select school year</SelectItem>
-                      {filterOptions?.schoolYears?.map(year => (
-                        <SelectItem key={year} value={year}>{year}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.school_year && (
-                    <p className="text-sm text-red-600">{errors.school_year}</p>
-                  )}
-                </div>
+                            <div>
+                                <label className="text-sm text-[#334E68]">
+                                    Semester / Summer
+                                </label>
+                                <select
+                                    value={data.semester_or_summer}
+                                    onChange={(e) =>
+                                        setData(
+                                            'semester_or_summer',
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                >
+                                    {semesterOptions.map((option) => (
+                                        <option key={option} value={option}>
+                                            {option}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="semester_or_summer" className="text-sm font-medium text-slate-700">
-                    Semester/Summer
-                  </Label>
-                  <Select value={data.semester_or_summer} onValueChange={value => setData('semester_or_summer', value ?? '')}>
-                    <SelectTrigger className="h-10 bg-white border-slate-200">
-                      <SelectValue placeholder="Select semester" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Select semester</SelectItem>
-                      {semesterOptions.map(sem => (
-                        <SelectItem key={sem} value={sem}>{sem}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.semester_or_summer && (
-                    <p className="text-sm text-red-600">{errors.semester_or_summer}</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                            <div>
+                                <label className="text-sm text-[#334E68]">
+                                    Units
+                                </label>
+                                <Input
+                                    type="number"
+                                    min="0"
+                                    value={data.units}
+                                    onChange={(e) =>
+                                        setData('units', e.target.value)
+                                    }
+                                    className={
+                                        errors.units ? 'border-red-400' : ''
+                                    }
+                                />
+                                <FieldError message={errors.units} />
+                            </div>
 
-            {/* Transaction Details */}
-            <Card className="border-slate-200 shadow-sm bg-white">
-              <CardHeader>
-                <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
-                  Transaction Details
-                </CardTitle>
-                <CardDescription className="text-slate-500">
-                  Financial transaction information
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="transaction_date" className="text-sm font-medium text-slate-700">
-                    Transaction Date
-                  </Label>
-                  <Input
-                    id="transaction_date"
-                    type="date"
-                    value={data.transaction_date}
-                    onChange={e => setData('transaction_date', e.target.value)}
-                    className="h-10 bg-white border-slate-200"
-                  />
-                  {errors.transaction_date && (
-                    <p className="text-sm text-red-600">{errors.transaction_date}</p>
-                  )}
-                </div>
+                            <div>
+                                <label className="text-sm text-[#334E68]">
+                                    Transaction Date
+                                </label>
+                                <Input
+                                    type="date"
+                                    value={data.transaction_date}
+                                    onChange={(e) =>
+                                        setData(
+                                            'transaction_date',
+                                            e.target.value,
+                                        )
+                                    }
+                                    className={
+                                        errors.transaction_date
+                                            ? 'border-red-400'
+                                            : ''
+                                    }
+                                />
+                                <FieldError message={errors.transaction_date} />
+                            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="units" className="text-sm font-medium text-slate-700">
-                    Units
-                  </Label>
-                  <Input
-                    id="units"
-                    type="number"
-                    step="0.01"
-                    value={data.units}
-                    onChange={e => setData('units', e.target.value)}
-                    className="h-10 bg-white border-slate-200"
-                    placeholder="e.g., 9.00"
-                  />
-                  {errors.units && (
-                    <p className="text-sm text-red-600">{errors.units}</p>
-                  )}
-                </div>
+                            <div>
+                                <label className="text-sm text-[#334E68]">
+                                    Reference / JEV / OR #
+                                </label>
+                                <Input
+                                    value={data.reference_jev_or_number}
+                                    onChange={(e) =>
+                                        setData(
+                                            'reference_jev_or_number',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="reference_jev_or_number" className="text-sm font-medium text-slate-700">
-                    Reference JEV/O.R. Number
-                  </Label>
-                  <Input
-                    id="reference_jev_or_number"
-                    value={data.reference_jev_or_number}
-                    onChange={e => setData('reference_jev_or_number', e.target.value)}
-                    className="h-10 bg-white border-slate-200"
-                    placeholder="e.g., JEV-2024-001"
-                  />
-                  {errors.reference_jev_or_number && (
-                    <p className="text-sm text-red-600">{errors.reference_jev_or_number}</p>
-                  )}
-                </div>
+                            <div className="md:col-span-2">
+                                <label className="text-sm text-[#334E68]">
+                                    Particulars
+                                </label>
+                                <select
+                                    value={data.particulars}
+                                    onChange={(e) =>
+                                        setData('particulars', e.target.value)
+                                    }
+                                    className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                >
+                                    {particularsOptions.map((option) => (
+                                        <option key={option} value={option}>
+                                            {option}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
 
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="particulars" className="text-sm font-medium text-slate-700">
-                    Particulars
-                  </Label>
-                  <Input
-                    id="particulars"
-                    value={data.particulars}
-                    onChange={e => setData('particulars', e.target.value)}
-                    className="h-10 bg-white border-slate-200"
-                    placeholder="e.g., Tuition Fee, Miscellaneous Fee"
-                  />
-                  {errors.particulars && (
-                    <p className="text-sm text-red-600">{errors.particulars}</p>
-                  )}
-                </div>
+                            <div>
+                                <label className="text-sm text-[#334E68]">
+                                    Tuition / Unit
+                                </label>
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={data.tuition_per_unit_or_fee_per_semester}
+                                    onChange={(e) =>
+                                        setData(
+                                            'tuition_per_unit_or_fee_per_semester',
+                                            e.target.value,
+                                        )
+                                    }
+                                    className={
+                                        errors.tuition_per_unit_or_fee_per_semester
+                                            ? 'border-red-400'
+                                            : ''
+                                    }
+                                />
+                                <FieldError
+                                    message={
+                                        errors.tuition_per_unit_or_fee_per_semester
+                                    }
+                                />
+                            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="tuition_per_unit_or_fee_per_semester" className="text-sm font-medium text-slate-700">
-                    Tuition per Unit / Registration & Misc. Fee per Semester
-                  </Label>
-                  <Input
-                    id="tuition_per_unit_or_fee_per_semester"
-                    type="number"
-                    step="0.01"
-                    value={data.tuition_per_unit_or_fee_per_semester}
-                    onChange={e => setData('tuition_per_unit_or_fee_per_semester', e.target.value)}
-                    className="h-10 bg-white border-slate-200"
-                    placeholder="0.00"
-                  />
-                  {errors.tuition_per_unit_or_fee_per_semester && (
-                    <p className="text-sm text-red-600">{errors.tuition_per_unit_or_fee_per_semester}</p>
-                  )}
-                </div>
+                            <div>
+                                <label className="text-sm text-[#334E68]">
+                                    Type
+                                </label>
+                                <select
+                                    value={data.ar_or_payment}
+                                    onChange={(e) =>
+                                        setData('ar_or_payment', e.target.value)
+                                    }
+                                    className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                >
+                                    {typeOptions.map((option) => (
+                                        <option key={option} value={option}>
+                                            {option}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="ar_or_payment" className="text-sm font-medium text-slate-700">
-                    AR/Payment
-                  </Label>
-                  <Input
-                    id="ar_or_payment"
-                    value={data.ar_or_payment}
-                    onChange={e => setData('ar_or_payment', e.target.value)}
-                    className="h-10 bg-white border-slate-200"
-                    placeholder="e.g., AR, Payment, Adjustment"
-                  />
-                  {errors.ar_or_payment && (
-                    <p className="text-sm text-red-600">{errors.ar_or_payment}</p>
-                  )}
-                </div>
+                            <div>
+                                <label className="text-sm text-[#334E68]">
+                                    Amount
+                                </label>
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={displayedAmount}
+                                    onChange={(e) =>
+                                        setData('amount', e.target.value)
+                                    }
+                                    className={`${errors.amount ? 'border-red-400' : ''}`}
+                                />
+                                <p className="mt-1 text-xs text-slate-500">
+                                    If Type is AR, amount is auto-calculated
+                                    from units × tuition per unit. You may still
+                                    edit it manually.
+                                </p>
+                                <FieldError message={errors.amount} />
+                            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="amount" className="text-sm font-medium text-slate-700">
-                    Amount <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    step="0.01"
-                    value={data.amount}
-                    onChange={e => setData('amount', e.target.value)}
-                    className="h-10 bg-white border-slate-200"
-                    placeholder="0.00"
-                  />
-                  {errors.amount && (
-                    <p className="text-sm text-red-600">{errors.amount}</p>
-                  )}
-                </div>
+                            <div>
+                                <label className="text-sm text-[#334E68]">
+                                    Input By
+                                </label>
+                                <Input
+                                    value={data.input_by}
+                                    onChange={(e) =>
+                                        setData('input_by', e.target.value)
+                                    }
+                                />
+                            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="status" className="text-sm font-medium text-slate-700">
-                    Status
-                  </Label>
-                  <Input
-                    id="status"
-                    value={data.status}
-                    onChange={e => setData('status', e.target.value)}
-                    className="h-10 bg-white border-slate-200"
-                    placeholder="e.g., Pending, Paid, Overdue"
-                  />
-                  {errors.status && (
-                    <p className="text-sm text-red-600">{errors.status}</p>
-                  )}
-                </div>
+                            <div className="md:col-span-2">
+                                <label className="text-sm text-[#334E68]">
+                                    Remarks
+                                </label>
+                                <Input
+                                    value={data.remarks}
+                                    onChange={(e) =>
+                                        setData('remarks', e.target.value)
+                                    }
+                                />
+                            </div>
 
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="remarks" className="text-sm font-medium text-slate-700">
-                    Remarks
-                  </Label>
-                  <Textarea
-                    id="remarks"
-                    value={data.remarks}
-                    onChange={e => setData('remarks', e.target.value)}
-                    className="min-h-[80px] bg-white border-slate-200"
-                    placeholder="Additional notes or comments"
-                  />
-                  {errors.remarks && (
-                    <p className="text-sm text-red-600">{errors.remarks}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="input_by" className="text-sm font-medium text-slate-700">
-                    Input By
-                  </Label>
-                  <Input
-                    id="input_by"
-                    value={data.input_by}
-                    onChange={e => setData('input_by', e.target.value)}
-                    className="h-10 bg-white border-slate-200"
-                    placeholder="Encoder ID / Initials"
-                  />
-                  {errors.input_by && (
-                    <p className="text-sm text-red-600">{errors.input_by}</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Submit Button */}
-            <div className="flex items-center justify-end gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.get('/law-ledger')}
-                className="h-10 border-slate-200 hover:bg-slate-50"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={processing}
-                className="h-10 bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-              >
-                {processing ? 'Saving...' : 'Save Transaction'}
-              </Button>
+                            <div className="flex justify-end md:col-span-2">
+                                <Button
+                                    type="submit"
+                                    disabled={processing}
+                                    className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB] disabled:opacity-60"
+                                >
+                                    {processing
+                                        ? 'Saving...'
+                                        : 'Save Transaction'}
+                                </Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
             </div>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+        </div>
+    );
 }

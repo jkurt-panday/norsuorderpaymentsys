@@ -122,8 +122,21 @@ class LawSchoolLedgerController extends Controller
      */
     public function create(): Response
     {
+        $studentNames = LawSchoolLedger::query()
+            ->whereNotNull('last_name')
+            ->where('last_name', '!=', '')
+            ->distinct()
+            ->orderBy('last_name', 'asc')
+            ->get(['last_name', 'first_name', 'middle_initial'])
+            ->map(function ($student) {
+                return trim("$student->last_name, $student->first_name ".($student->middle_initial ? "$student->middle_initial" : ''));
+            })
+            ->unique()
+            ->values();
+
         return Inertia::render('law-ledger/AddTransaction', [
-            'filterOptions' => $this->getFilterOptions(),
+            'studentNames' => $studentNames,
+            'authUserName' => auth()->user()?->name ?? '',
         ]);
     }
 
@@ -133,8 +146,9 @@ class LawSchoolLedgerController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'last_name' => ['required', 'string', 'max:255'],
-            'first_name' => ['required', 'string', 'max:255'],
+            'student_name' => ['nullable', 'string', 'max:510'],
+            'last_name' => ['nullable', 'string', 'max:255'],
+            'first_name' => ['nullable', 'string', 'max:255'],
             'middle_initial' => ['nullable', 'string', 'max:10'],
             'course' => ['nullable', 'string', 'max:255'],
             'school_year' => ['nullable', 'string', 'max:20'],
@@ -150,6 +164,25 @@ class LawSchoolLedgerController extends Controller
             'remarks' => ['nullable', 'string'],
             'input_by' => ['nullable', 'string', 'max:255'],
         ]);
+
+        if (filled($data['student_name'] ?? null)) {
+            $nameParts = $this->parseStudentName($data['student_name']) ?? [
+                'last_name' => trim($data['student_name']),
+                'first_name' => null,
+                'middle_initial' => null,
+            ];
+
+            $data['last_name'] = $nameParts['last_name'];
+            $data['first_name'] = $nameParts['first_name'];
+            $data['middle_initial'] = $nameParts['middle_initial'];
+        }
+
+        // If Type is AR and no amount was supplied, auto-calculate from units × tuition rate.
+        if (($data['ar_or_payment'] ?? null) === 'AR' && blank($data['amount'] ?? null)) {
+            $data['amount'] = (float) ($data['units'] ?? 0) * (float) ($data['tuition_per_unit_or_fee_per_semester'] ?? 0);
+        }
+
+        $data['status'] = $this->determineStatus((float) ($data['amount'] ?? 0), $data['status'] ?? null);
 
         LawSchoolLedger::create($data);
 
