@@ -250,7 +250,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
               Import Excel/CSV
             </label>
 
-            <Button className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white" onClick={() => router.get('/law-ledger/add')}>
+            <Button className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white" onClick={() => router.get('/law-ledger/new-transaction')}>
               <PlusCircle className="h-4 w-4 mr-1.5" />
               New Transaction
             </Button>

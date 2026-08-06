@@ -81,7 +81,6 @@ const mainNavItems: SidebarItem[] = [
         icon: Scale,
         items: [
             { title: 'Law Overview', href: '/law-ledger' },
-            { title: 'New Transaction', href: '/law-ledger/add' },
             { title: 'Print Statement', href: '/law-ledger/print-select' },
         ],
     },
