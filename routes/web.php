@@ -69,7 +69,8 @@ Route::middleware('auth')->group(function () {
     Route::prefix('law-ledger')->name('law-ledger.')->group(function () {
         Route::get('/print-select', [LawSchoolLedgerController::class, 'printSelect'])->name('print-select');
         Route::get('/pdf', [LawSchoolLedgerController::class, 'generatePdf'])->name('pdf');
-        Route::get('/add', [LawSchoolLedgerController::class, 'create'])->name('create');
+        Route::get('/new-transaction', [LawSchoolLedgerController::class, 'create'])->name('create');
+        Route::redirect('/add', '/law-ledger/new-transaction');
         Route::post('/', [LawSchoolLedgerController::class, 'store'])->name('store');
         Route::post('/import', [LawSchoolLedgerController::class, 'import'])->name('import');
         Route::get('/', [LawSchoolLedgerController::class, 'index'])->name('index');
