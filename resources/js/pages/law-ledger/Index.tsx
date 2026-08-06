@@ -9,6 +9,8 @@ import {
   Scale,
   Pencil,
   Trash2,
+  XCircle,
+  Filter,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -129,6 +131,7 @@ interface IndexProps {
     semester_or_summer?: string;
     course?: string;
     status?: string;
+    ar_or_payment?: string;
     date_from?: string;
     date_to?: string;
   };
@@ -143,6 +146,7 @@ interface IndexProps {
     schoolYears: string[];
     semesters: string[];
     statuses: string[];
+    types?: string[];
   };
 }
 
@@ -153,6 +157,9 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const [semester, setSemester] = useState(filters?.semester_or_summer ?? '');
   const [course, setCourse] = useState(filters?.course ?? '');
   const [status, setStatus] = useState(filters?.status ?? '');
+  const [type, setType] = useState(filters?.ar_or_payment ?? '');
+  const [dateFrom, setDateFrom] = useState(filters?.date_from ?? '');
+  const [dateTo, setDateTo] = useState(filters?.date_to ?? '');
   const importForm = useForm<{ file: File | null }>({ file: null });
 
   const applyFilters = (overrides: Record<string, string> = {}) => {
@@ -164,13 +171,16 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
       semester_or_summer: semester,
       course: course,
       status: status,
+      ar_or_payment: type,
+      date_from: dateFrom,
+      date_to: dateTo,
       ...overrides,
     };
 
     Object.entries(current).forEach(([key, value]) => {
       if (value && value.trim()) {
-params[key] = value.trim();
-}
+        params[key] = value.trim();
+      }
     });
 
     router.get('/law-ledger', params, {
@@ -215,115 +225,35 @@ params[key] = value.trim();
             <p className="text-sm text-[#5C7A9E] mt-0.5">Tuition, fees, and payment transactions for law school students.</p>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 w-full md:w-auto">
-            <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#7FA6D6]" />
-                <Input
-                  type="search"
-                  placeholder="Search name, ID, or ref #..."
-                  className="pl-8 h-9 bg-white border-[#CFE3FF] focus-visible:ring-[#0F6FFF]"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    const nextValue = e.target.value;
-                    setSearchQuery(nextValue);
-                    applyFilters({ search: nextValue });
-                  }}
-                />
-              </div>
-
-              <select
-                value={schoolYear}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <label className="inline-flex cursor-pointer items-center rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm font-medium text-[#0B3D91] hover:bg-[#F3F8FF] transition-colors">
+              <input
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                className="hidden"
                 onChange={(e) => {
-                  const v = e.target.value;
-                  setSchoolYear(v);
-                  applyFilters({ school_year: v });
+                  const file = e.target.files?.[0] ?? null;
+                  importForm.setData('file', file);
+
+                  if (file) {
+                    importForm.post('/law-ledger/import', {
+                      forceFormData: true,
+                      preserveScroll: true,
+                      onSuccess: () => {
+                        importForm.reset('file');
+                        e.currentTarget.value = '';
+                      },
+                    });
+                  }
                 }}
-                className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
-              >
-                <option value="">All School Years</option>
-                {(filterOptions?.schoolYears ?? []).map((sy) => (
-                  <option key={sy} value={sy}>{sy}</option>
-                ))}
-              </select>
+              />
+              Import Excel/CSV
+            </label>
 
-              <select
-                value={semester}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setSemester(v);
-                  applyFilters({ semester_or_summer: v });
-                }}
-                className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
-              >
-                <option value="">All Semesters</option>
-                {(filterOptions?.semesters ?? []).map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-
-              <select
-                value={course}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setCourse(v);
-                  applyFilters({ course: v });
-                }}
-                className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
-              >
-                <option value="">All Courses</option>
-                {(filterOptions?.courses ?? []).map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-
-              <select
-                value={status}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setStatus(v);
-                  applyFilters({ status: v });
-                }}
-                className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
-              >
-                <option value="">All Statuses</option>
-                {(filterOptions?.statuses ?? []).map((st) => (
-                  <option key={st} value={st}>{st}</option>
-                ))}
-              </select>
-
-            </form>
-
-            <div className="flex flex-wrap items-center justify-end gap-2 ml-auto">
-              <label className="inline-flex cursor-pointer items-center rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm font-medium text-[#0B3D91] hover:bg-[#F3F8FF] transition-colors">
-                <input
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] ?? null;
-                    importForm.setData('file', file);
-
-                    if (file) {
-                      importForm.post('/law-ledger/import', {
-                        forceFormData: true,
-                        preserveScroll: true,
-                        onSuccess: () => {
-                          importForm.reset('file');
-                          e.currentTarget.value = '';
-                        },
-                      });
-                    }
-                  }}
-                />
-                Import Excel/CSV
-              </label>
-
-              <Button className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white" onClick={() => router.get('/law-ledger/add')}>
-                <PlusCircle className="h-4 w-4 mr-1.5" />
-                New Transaction
-              </Button>
-            </div>
+            <Button className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white" onClick={() => router.get('/law-ledger/add')}>
+              <PlusCircle className="h-4 w-4 mr-1.5" />
+              New Transaction
+            </Button>
           </div>
         </div>
 
@@ -438,13 +368,156 @@ params[key] = value.trim();
           </CardContent>
         </Card>
 
-        {/* Ledger Table with Pagination */}
+        {/* Ledger Table with Filter Bar and Pagination */}
         <Card className="border border-[#CFE3FF] bg-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-md text-[#0B3D91]">Transaction Ledger</CardTitle>
-            <CardDescription className="text-[#7FA6D6]">
-              Showing {rows.length} of {totalRecordCount} record{totalRecordCount === 1 ? '' : 's'}
-            </CardDescription>
+          <CardHeader className="border-b border-[#CFE3FF] pb-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <CardTitle className="text-md text-[#0B3D91] flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-[#0F6FFF]" />
+                  Transaction Ledger
+                </CardTitle>
+                <CardDescription className="text-[#7FA6D6] mt-0.5">
+                  Showing {rows.length} of {totalRecordCount} record{totalRecordCount === 1 ? '' : 's'}
+                </CardDescription>
+              </div>
+
+              <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center gap-2">
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#7FA6D6]" />
+                  <Input
+                    type="search"
+                    placeholder="Filter by name, ref #, particulars..."
+                    className="pl-8 h-9 bg-white border-[#CFE3FF] focus-visible:ring-[#0F6FFF]"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      const nextValue = e.target.value;
+                      setSearchQuery(nextValue);
+                      applyFilters({ search: nextValue });
+                    }}
+                  />
+                </div>
+
+                <select
+                  value={schoolYear}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setSchoolYear(v);
+                    applyFilters({ school_year: v });
+                  }}
+                  className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                >
+                  <option value="">All School Years</option>
+                  {(filterOptions?.schoolYears ?? []).map((sy) => (
+                    <option key={sy} value={sy}>{sy}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={semester}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setSemester(v);
+                    applyFilters({ semester_or_summer: v });
+                  }}
+                  className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                >
+                  <option value="">All Semesters</option>
+                  {(filterOptions?.semesters ?? []).map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={course}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setCourse(v);
+                    applyFilters({ course: v });
+                  }}
+                  className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                >
+                  <option value="">All Courses</option>
+                  {(filterOptions?.courses ?? []).map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={status}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setStatus(v);
+                    applyFilters({ status: v });
+                  }}
+                  className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                >
+                  <option value="">All Statuses</option>
+                  {(filterOptions?.statuses ?? []).map((st) => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={type}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setType(v);
+                    applyFilters({ ar_or_payment: v });
+                  }}
+                  className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                >
+                  <option value="">All Types (AR/Payment)</option>
+                  {(filterOptions?.types ?? ['AR', 'Payment', 'Adjustment']).map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setDateFrom(v);
+                    applyFilters({ date_from: v });
+                  }}
+                  className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                  placeholder="Date from"
+                />
+
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setDateTo(v);
+                    applyFilters({ date_to: v });
+                  }}
+                  className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                  placeholder="Date to"
+                />
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSchoolYear('');
+                    setSemester('');
+                    setCourse('');
+                    setStatus('');
+                    setType('');
+                    setDateFrom('');
+                    setDateTo('');
+                    router.get('/law-ledger');
+                  }}
+                >
+                  <XCircle className="h-4 w-4 mr-1.5" />
+                  Clear Filters
+                </Button>
+              </form>
+            </div>
           </CardHeader>
           <CardContent className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
