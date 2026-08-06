@@ -29,23 +29,27 @@ export default function EditBankAccount({ bankAccount }: EditBankAccountProps) {
                     name: 'account_name',
                     label: 'Account Name',
                     required: true,
+                    placeholder: 'Enter the account name',
                 },
                 {
                     name: 'bank_name',
                     label: 'Bank Name',
                     required: true,
+                    placeholder: 'Enter the bank name',
                 },
                 {
                     name: 'fund_cluster',
                     label: 'Fund Cluster',
                     required: true,
                     colSpan: 'full',
+                    placeholder: 'Enter the fund cluster',
                 },
                 {
                     name: 'account_num',
                     label: 'Account Number',
                     required: true,
                     colSpan: 'full',
+                    placeholder: 'Enter the account number',
                 },
             ]}
             initialData={{

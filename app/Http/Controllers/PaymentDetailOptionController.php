@@ -16,15 +16,20 @@ class PaymentDetailOptionController extends BaseResourceController
      * Display a listing of the resource.
      */
     protected string $model = PaymentDetailOption::class;
+
     protected array $searchableColumns = ['payment_desc'];
+
     protected string $indexView = 'staff/payment-options/payment';
+
     protected string $resourceKey = 'paymentOptions';
+
     protected string $orderBy = 'id';
+
     protected string $orderDirection = 'asc';
-   protected array $sortableColumns = ['id', 'payment_desc', 'created_at'];
+    protected array $sortableColumns = ['id', 'payment_desc', 'created_at'];
     protected array $filterableColumns = [];
 
-/**
+    /**
      * Adds a `display_number` column via ROW_NUMBER() — a permanent number
      * tied to creation order (id ASC), completely independent of whatever
      * sort the user currently has applied for display. This is what makes
@@ -65,7 +70,6 @@ class PaymentDetailOptionController extends BaseResourceController
             );
     }
 
-
     /**
      * Show the form for creating a new resource.
      */
@@ -91,8 +95,8 @@ class PaymentDetailOptionController extends BaseResourceController
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to create payment option: ' . $e->getMessage(), [
-                'request' => $request->validated()
+            Log::error('Failed to create payment option: '.$e->getMessage(), [
+                'request' => $request->validated(),
             ]);
 
             return back()
@@ -114,7 +118,7 @@ class PaymentDetailOptionController extends BaseResourceController
             'flash' => [
                 'success' => session('success'),
                 'error' => session('error'),
-            ]
+            ],
         ]);
     }
 
@@ -135,7 +139,7 @@ class PaymentDetailOptionController extends BaseResourceController
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Failed to update payment option ID {$paymentOption->id}: " . $e->getMessage());
+            Log::error("Failed to update payment option ID {$paymentOption->id}: ".$e->getMessage());
 
             return back()
                 ->withInput()
@@ -146,30 +150,30 @@ class PaymentDetailOptionController extends BaseResourceController
     /**
      * Remove the specified resource from storage safely.
      */
- /**
+    /**
      * Remove the specified resource from storage safely.
      */
- public function destroy(PaymentDetailOption $paymentOption)
-{
-    if ($paymentOption->formInputs()->exists()) {
-        return back()->with('error', 'Cannot delete payment option that has associated form inputs.');
+    public function destroy(PaymentDetailOption $paymentOption)
+    {
+        if ($paymentOption->formInputs()->exists()) {
+            return back()->with('error', 'Cannot delete payment option that has associated form inputs.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $paymentOption->delete();
+
+            DB::commit();
+
+            return redirect()->route('staff.payment-options.index')
+                ->with('success', 'Payment option deleted successfully.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Failed to delete payment option ID {$paymentOption->id}: ".$e->getMessage());
+
+            return back()->with('error', 'Failed to delete payment option. Please check if it is still in use.');
+        }
     }
-
-    try {
-        DB::beginTransaction();
-
-        $paymentOption->delete();
-
-        DB::commit();
-
-        return redirect()->route('staff.payment-options.index')
-            ->with('success', 'Payment option deleted successfully.');
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error("Failed to delete payment option ID {$paymentOption->id}: " . $e->getMessage());
-
-        return back()->with('error', 'Failed to delete payment option. Please check if it is still in use.');
-    }
-}
 }

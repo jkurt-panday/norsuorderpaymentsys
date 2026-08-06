@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import { Inbox } from 'lucide-react';
-import { toast } from 'sonner';
+import { flashToast } from '@/utils/flashToast';
 import staff from '@/routes/staff';
 import RequestTable, {
     type ColumnDef,
@@ -17,13 +17,17 @@ interface StaffInput {
 interface FormInput {
     id: number;
     reference_number: string;
-    full_name: string;
+    firstname_or_office: string;
+    middlename_or_project: string | null;
+    lastname_or_agency: string;
     email: string;
     amount: number;
     membership: {
         member_code: string;
     } | null;
-    staffInput: StaffInput | null;
+    // Was `staffInput` — this endpoint now returns Laravel/Eloquent's
+    // default snake_case relation key, matching the database directly.
+    staff_input: StaffInput | null;
     created_at: string;
 }
 
@@ -74,14 +78,27 @@ const formatCurrency = (amount: number) => {
     }).format(amount);
 };
 
+// full_name is no longer pre-built by the backend (that was a manual
+// camelCase-transform artifact) — it's just the three name columns joined,
+// so it's cheap to compute here directly from the raw snake_case fields.
+const formatFullName = (row: FormInput) => {
+    return [
+        row.firstname_or_office,
+        row.middlename_or_project,
+        row.lastname_or_agency,
+    ]
+        .filter(Boolean)
+        .join(' ');
+};
+
 const ManageRequests: React.FC = () => {
     const { formInputs, filters, flash } = usePage()
         .props as unknown as PageProps;
 
     useEffect(() => {
-        if (flash?.success) toast.success(flash.success);
-        if (flash?.error) toast.error(flash.error);
-        if (flash?.warning) toast.warning(flash.warning);
+        if (flash?.success) flashToast('success', flash.success);
+        if (flash?.error) flashToast('error', flash.error);
+        if (flash?.warning) flashToast('warning', flash.warning);
     }, [flash]);
 
     const [search, setSearch] = useState(filters.search || '');
@@ -132,6 +149,7 @@ const ManageRequests: React.FC = () => {
     const columns: ColumnDef<FormInput>[] = [
         {
             header: 'Reference #',
+            sortable: 'reference_number',
             width: '160px',
             render: (row) => (
                 <Link
@@ -145,15 +163,18 @@ const ManageRequests: React.FC = () => {
         {
             header: 'Name',
             width: '180px',
-            render: (row) => (
-                <div className="max-w-[180px] truncate" title={row.full_name}>
-                    {row.full_name}
-                </div>
-            ),
+            sortable: 'firstname_or_office',
+            render: (row) => formatFullName(row),
         },
-        { header: 'Email', width: '220px', render: (row) => row.email },
+        {
+            header: 'Email',
+            width: '220px',
+            sortable: 'email',
+            render: (row) => row.email,
+        },
         {
             header: 'Amount',
+            sortable: 'amount',
             width: '110px',
             align: 'right',
             className: 'tabular-nums',
@@ -161,14 +182,16 @@ const ManageRequests: React.FC = () => {
         },
         {
             header: 'Membership',
+            sortable: 'membership_id',
             width: '130px',
             render: (row) => row.membership?.member_code ?? 'N/A',
         },
         {
             header: 'Status',
+            sortable: 'status',
             width: '130px',
             render: (row) => {
-                const currentStatus = row.staffInput?.status ?? 'unprocessed';
+                const currentStatus = row.staff_input?.status ?? 'unprocessed';
                 return (
                     <StatusBadge
                         label={
@@ -182,6 +205,7 @@ const ManageRequests: React.FC = () => {
         },
         {
             header: 'Date Submitted',
+            sortable: 'created_at',
             width: '200px',
             render: (row) => formatDate(row.created_at),
             className: 'whitespace-nowrap text-slate-600',
@@ -209,7 +233,7 @@ const ManageRequests: React.FC = () => {
                     <circle cx="12" cy="12" r="3" />
                 </svg>
             </Link>
-            {!row.staffInput ? (
+            {!row.staff_input ? (
                 <Link
                     href={staff.requests.process.url(row.id)}
                     title="Process"
@@ -230,7 +254,7 @@ const ManageRequests: React.FC = () => {
                 </Link>
             ) : (
                 <Link
-                    href={staff.requests.edit.url(row.staffInput.id)}
+                    href={staff.requests.edit.url(row.staff_input.id)}
                     title="Edit"
                     className="flex h-8 w-8 items-center justify-center border-l border-white/20 bg-amber-500 text-white transition-colors hover:bg-amber-600"
                 >

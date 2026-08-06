@@ -1,5 +1,8 @@
 import React from 'react';
-import { update, index } from '@/actions/App/Http/Controllers/PaymentDetailOptionController';
+import {
+    update,
+    index,
+} from '@/actions/App/Http/Controllers/PaymentDetailOptionController';
 import ResourceForm, { type FieldDef } from '@/components/ResourceForm';
 
 interface PaymentOption {
@@ -17,10 +20,13 @@ const fields: FieldDef[] = [
         label: 'Payment Description',
         required: true,
         colSpan: 'full',
+        placeholder: 'Enter the payment description',
     },
 ];
 
-export default function EditPaymentOption({ paymentOption }: EditPaymentOptionProps) {
+export default function EditPaymentOption({
+    paymentOption,
+}: EditPaymentOptionProps) {
     return (
         <ResourceForm
             title="Edit Payment Details"
