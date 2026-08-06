@@ -149,6 +149,7 @@ const ManageRequests: React.FC = () => {
     const columns: ColumnDef<FormInput>[] = [
         {
             header: 'Reference #',
+            sortable: 'reference_number',
             width: '160px',
             render: (row) => (
                 <Link
@@ -162,11 +163,18 @@ const ManageRequests: React.FC = () => {
         {
             header: 'Name',
             width: '180px',
+            sortable: 'firstname_or_office',
             render: (row) => formatFullName(row),
         },
-        { header: 'Email', width: '220px', render: (row) => row.email },
+        {
+            header: 'Email',
+            width: '220px',
+            sortable: 'email',
+            render: (row) => row.email,
+        },
         {
             header: 'Amount',
+            sortable: 'amount',
             width: '110px',
             align: 'right',
             className: 'tabular-nums',
@@ -174,11 +182,13 @@ const ManageRequests: React.FC = () => {
         },
         {
             header: 'Membership',
+            sortable: 'membership_id',
             width: '130px',
             render: (row) => row.membership?.member_code ?? 'N/A',
         },
         {
             header: 'Status',
+            sortable: 'status',
             width: '130px',
             render: (row) => {
                 const currentStatus = row.staff_input?.status ?? 'unprocessed';
@@ -195,6 +205,7 @@ const ManageRequests: React.FC = () => {
         },
         {
             header: 'Date Submitted',
+            sortable: 'created_at',
             width: '200px',
             render: (row) => formatDate(row.created_at),
             className: 'whitespace-nowrap text-slate-600',

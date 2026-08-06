@@ -1,6 +1,14 @@
 import * as React from 'react';
 import { router, usePoll } from '@inertiajs/react';
-import { Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+    Search,
+    Filter,
+    ChevronLeft,
+    ChevronRight,
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
     Table,
@@ -68,23 +76,10 @@ export interface ColumnDef<T> {
     render: (row: T) => React.ReactNode;
     className?: string;
     align?: 'left' | 'right' | 'center';
-    /**
-     * Hide this column below the `md` breakpoint (< 768px).
-     * Use for lower-priority columns (email, dates, secondary IDs) so the
-     * table stays scannable on phones without needing horizontal scroll
-     * for the columns that actually matter there.
-     */
     hideOnMobile?: boolean;
+    sortable?: string;
 }
 
-/**
- * Preset status dot colors — pass one of these keys as `StatusOption.color`,
- * or fall back to any raw Tailwind bg-* class if you need something custom.
- *   green  -> approved / active / paid
- *   red    -> rejected / inactive / overdue
- *   orange -> pending / in review
- *   grey   -> default / unknown / draft
- */
 export const STATUS_COLORS = {
     green: 'bg-emerald-500',
     red: 'bg-red-500',
@@ -95,7 +90,6 @@ export const STATUS_COLORS = {
 export interface StatusOption {
     value: string;
     label: string;
-    /** "green" | "red" | "orange" | "grey", or a raw Tailwind bg-* class */
     color?: keyof typeof STATUS_COLORS | string;
 }
 
@@ -108,47 +102,26 @@ interface RequestTableProps<T> {
     title?: string;
     columns: ColumnDef<T>[];
     resource: PaginatedData<T>;
-
-    /** Required — this component assumes bespoke per-row actions (View/Process/Edit, etc.) */
     renderActions: (row: T) => React.ReactNode;
     actionsWidth?: string;
-
     emptyIcon?: LucideIcon;
     emptyMessage?: string;
     onPageChange?: (url: string) => void;
-
-    // ---- Filter bar (search + status + date range), all controlled from the page ----
     search: string;
     onSearchChange: (value: string) => void;
     searchPlaceholder?: string;
-
     status: string;
     onStatusChange: (value: string) => void;
     statusOptions: StatusOption[];
     statusPlaceholder?: string;
-
     dateFrom: string;
     onDateFromChange: (value: string) => void;
     dateTo: string;
     onDateToChange: (value: string) => void;
-
     onFilterSubmit: (e: React.FormEvent) => void;
     onFilterReset: () => void;
-
-    /**
-     * Enables live polling for this table. Pass an interval in ms (e.g. 5000).
-     * Omit entirely to leave the table static (no polling, no behavior change).
-     * Requires `resourceKey` to be set.
-     */
     pollInterval?: number;
-    /** The Inertia prop key that `resource` is bound to on this page (e.g. 'requests').
-     *  Required when `pollInterval` is set, so polling can reload *only* this prop
-     *  instead of the whole page payload. */
     resourceKey?: string;
-    /**
-     * How long the highlight animation stays on a new/changed row, in ms.
-     * Defaults to 2000.
-     */
     highlightDuration?: number;
 }
 
@@ -158,8 +131,6 @@ const alignClass: Record<NonNullable<ColumnDef<unknown>['align']>, string> = {
     center: 'text-center',
 };
 
-// Shallow content signature for a row, used to detect "changed" (not just "new").
-// Falls back gracefully for any row shape — doesn't need to know the row's fields.
 function rowSignature(row: unknown): string {
     try {
         return JSON.stringify(row);
@@ -199,9 +170,15 @@ export default function RequestTable<T extends { id: number | string }>({
 
     const selectedStatus = statusOptions.find((opt) => opt.value === status);
 
-    // ---- Live update detection -------------------------------------------
-    // Tracks id -> content signature from the last render, so we can tell
-    // which rows are brand new vs. changed vs. untouched after a poll.
+    // ---- Table-scoped loading indicator ----------------------------------
+    // Drives a subtle loading bar INSIDE the table card (see the <style>
+    // block + bar div below), instead of relying on Inertia's default
+    // global top-progress-bar — that global bar is what made sort clicks
+    // feel like "the whole website is reloading". Every navigation helper
+    // below (sort, page-jump) sets this and passes showProgress: false so
+    // the global bar never fires at all.
+    const [isNavigating, setIsNavigating] = React.useState(false);
+
     const prevSignatures = React.useRef<Map<string | number, string> | null>(
         null,
     );
@@ -222,14 +199,12 @@ export default function RequestTable<T extends { id: number | string }>({
 
             if (prevSignatures.current) {
                 const prevSig = prevSignatures.current.get(row.id);
-                // New row (wasn't present before) or changed content.
                 if (prevSig === undefined || prevSig !== sig) {
                     changed.push(row.id);
                 }
             }
         }
 
-        // Skip highlighting on the very first render — nothing to diff against yet.
         if (prevSignatures.current && changed.length > 0) {
             setHighlightedIds((prev) => {
                 const next = new Set(prev);
@@ -263,11 +238,6 @@ export default function RequestTable<T extends { id: number | string }>({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [rows]);
 
-    // ---- Polling -------------------------------------------------------
-    // `only` scopes the reload to this resource's prop so polling stays cheap —
-    // without it, every tick would re-fetch the entire page's props (including
-    // whatever search/status/date filters are active, which is fine, but no
-    // need to also refetch unrelated page props).
     const { start, stop } = usePoll(
         pollInterval ?? 5000,
         {
@@ -292,19 +262,17 @@ export default function RequestTable<T extends { id: number | string }>({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pollInterval, resourceKey]);
 
-    // ---- Page-jump dropdown (only part changed per this request) ---------
-    // Same fix as ResourceTable: once there are more than 10 pages, the
-    // button row gets replaced with Prev / a searchable "Page X of Y"
-    // dropdown / Next. Deliberately a plain full reload (no preserveState,
-    // no `only`) — that's what fixed the "click page 2, land back on
-    // page 1" bug there, so the same approach is used here from the start.
+    // ---- Page-jump dropdown -----------------------------------------------
+    // Now scoped via `only`/`preserveState` (same as sort below) so it only
+    // re-fetches this table's data instead of the whole page, and shows the
+    // local loading bar instead of Inertia's global one.
     const [pageJumpOpen, setPageJumpOpen] = React.useState(false);
     const [pageJumpInput, setPageJumpInput] = React.useState('');
 
     const navigateToPage = (page: number) => {
         const url = new URL(window.location.href);
 
-        if (page > 3) {
+        if (page > 1) {
             url.searchParams.set('page', String(page));
         } else {
             url.searchParams.delete('page');
@@ -315,8 +283,69 @@ export default function RequestTable<T extends { id: number | string }>({
             {},
             {
                 preserveScroll: true,
+                preserveState: true,
+                replace: true,
+                only: resourceKey ? [resourceKey] : undefined,
+                showProgress: false,
+                onStart: () => setIsNavigating(true),
+                onFinish: () => setIsNavigating(false),
             },
         );
+    };
+
+    // ---- Sortable column headers -------------------------------------
+    const urlParams =
+        typeof window !== 'undefined'
+            ? new URLSearchParams(window.location.search)
+            : new URLSearchParams();
+    const currentSort = urlParams.get('sort') ?? '';
+    const currentDirection =
+        (urlParams.get('direction') as 'asc' | 'desc') || 'asc';
+
+    // Scoped partial reload — only `resourceKey`'s data is re-fetched, the
+    // URL still updates (so refresh/back-button keep working), and
+    // showProgress: false + the local isNavigating bar replace Inertia's
+    // global top-progress-bar so sorting no longer looks like a full
+    // page reload.
+    const navigateWithSort = (
+        overrides: Record<string, string | undefined>,
+    ) => {
+        const url = new URL(window.location.href);
+
+        for (const [key, value] of Object.entries(overrides)) {
+            if (value) {
+                url.searchParams.set(key, value);
+            } else {
+                url.searchParams.delete(key);
+            }
+        }
+        url.searchParams.delete('page');
+
+        router.get(
+            url.pathname + url.search,
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                only: resourceKey ? [resourceKey] : undefined,
+                showProgress: false,
+                onStart: () => setIsNavigating(true),
+                onFinish: () => setIsNavigating(false),
+            },
+        );
+    };
+
+    const handleSortClick = (sortKey: string) => {
+        const isActiveColumn = currentSort === sortKey;
+
+        if (!isActiveColumn) {
+            navigateWithSort({ sort: sortKey, direction: 'asc' });
+        } else if (currentDirection === 'asc') {
+            navigateWithSort({ sort: sortKey, direction: 'desc' });
+        } else {
+            navigateWithSort({ sort: undefined, direction: undefined });
+        }
     };
 
     return (
@@ -344,7 +373,6 @@ export default function RequestTable<T extends { id: number | string }>({
                 <CardContent className="p-4 sm:p-5">
                     <form onSubmit={onFilterSubmit} className="space-y-4">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12">
-                            {/* Search — widest field since it's the primary filter */}
                             <div className="flex flex-col gap-1.5 lg:col-span-4">
                                 <label
                                     htmlFor="rt-search"
@@ -366,7 +394,6 @@ export default function RequestTable<T extends { id: number | string }>({
                                 </div>
                             </div>
 
-                            {/* Status */}
                             <div className="flex flex-col gap-1.5 lg:col-span-2">
                                 <label className="text-xs font-medium text-slate-600">
                                     Status
@@ -424,9 +451,6 @@ export default function RequestTable<T extends { id: number | string }>({
                                 </Select>
                             </div>
 
-                            {/* Date range — grouped into one connected control with a
-                  shared border and a small "to" divider, instead of two
-                  identical floating pill inputs. */}
                             <div className="flex flex-col gap-1.5 lg:col-span-4">
                                 <label className="text-xs font-medium text-slate-600">
                                     Date Range
@@ -458,7 +482,6 @@ export default function RequestTable<T extends { id: number | string }>({
                                 </div>
                             </div>
 
-                            {/* Actions */}
                             <div className="flex items-end gap-2 lg:col-span-2">
                                 <Button
                                     type="submit"
@@ -483,30 +506,81 @@ export default function RequestTable<T extends { id: number | string }>({
 
             {/* ---- Table ---- */}
             <Card className="min-w-0 overflow-hidden border-slate-200/70 py-0 shadow-sm">
+                {/* Local, table-scoped loading bar — replaces Inertia's global
+                    top-progress-bar for sort/page-jump navigations. */}
+                <div className="relative h-0.5 w-full overflow-hidden bg-transparent">
+                    {isNavigating && (
+                        <div className="absolute inset-0 animate-[table-loading-bar_1s_ease-in-out_infinite] bg-blue-500" />
+                    )}
+                </div>
+                <style>{`
+                    @keyframes table-loading-bar {
+                        0% { transform: translateX(-100%); }
+                        100% { transform: translateX(100%); }
+                    }
+                `}</style>
                 <CardContent className="min-w-0 overflow-x-auto p-0">
-                    <Table>
+                    <Table
+                        className={`transition-opacity duration-150 ${
+                            isNavigating ? 'opacity-60' : 'opacity-100'
+                        }`}
+                    >
                         <TableHeader>
                             <TableRow className="border-b border-slate-200 hover:bg-transparent">
-                                {columns.map((col, i) => (
-                                    <TableHead
-                                        key={i}
-                                        style={
-                                            col.width
-                                                ? { width: col.width }
-                                                : undefined
-                                        }
-                                        className={cn(
-                                            'h-11 bg-slate-50/80 text-xs font-semibold tracking-wide whitespace-nowrap text-slate-600 uppercase',
-                                            i === 0 && 'pl-4 sm:pl-6',
-                                            col.align && alignClass[col.align],
-                                            col.hideOnMobile &&
-                                                'hidden md:table-cell',
-                                            col.className,
-                                        )}
-                                    >
-                                        {col.header}
-                                    </TableHead>
-                                ))}
+                                {columns.map((col, i) => {
+                                    const isActiveSort =
+                                        col.sortable &&
+                                        currentSort === col.sortable;
+
+                                    const headerLabel = (
+                                        <span className="inline-flex items-center gap-1.5">
+                                            {col.header}
+                                            {col.sortable &&
+                                                (isActiveSort ? (
+                                                    currentDirection ===
+                                                    'asc' ? (
+                                                        <ArrowUp className="h-3 w-3 text-blue-600" />
+                                                    ) : (
+                                                        <ArrowDown className="h-3 w-3 text-blue-600" />
+                                                    )
+                                                ) : (
+                                                    <ArrowUpDown className="h-3 w-3 text-slate-400" />
+                                                ))}
+                                        </span>
+                                    );
+
+                                    return (
+                                        <TableHead
+                                            key={i}
+                                            style={
+                                                col.width
+                                                    ? { width: col.width }
+                                                    : undefined
+                                            }
+                                            onClick={
+                                                col.sortable
+                                                    ? () =>
+                                                          handleSortClick(
+                                                              col.sortable!,
+                                                          )
+                                                    : undefined
+                                            }
+                                            className={cn(
+                                                'h-11 bg-slate-50/80 text-xs font-semibold tracking-wide whitespace-nowrap text-slate-600 uppercase',
+                                                i === 0 && 'pl-4 sm:pl-6',
+                                                col.align &&
+                                                    alignClass[col.align],
+                                                col.hideOnMobile &&
+                                                    'hidden md:table-cell',
+                                                col.sortable &&
+                                                    'cursor-pointer select-none hover:text-slate-900',
+                                                col.className,
+                                            )}
+                                        >
+                                            {headerLabel}
+                                        </TableHead>
+                                    );
+                                })}
                                 <TableHead
                                     style={{ width: actionsWidth }}
                                     className="h-11 bg-white pr-4 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase sm:pr-6"
@@ -600,13 +674,6 @@ export default function RequestTable<T extends { id: number | string }>({
                         </p>
 
                         {resource.last_page > 5 ? (
-                            // ---- Page-jump dropdown (>1 pages) ----
-                            // Same mechanism as ResourceTable: Prev / a
-                            // popover with a type-to-jump input plus a
-                            // scrollable page list / Next. Picking a page
-                            // does a plain full reload — no preserveState,
-                            // no `only` — since that's what fixed the
-                            // "lands back on page 1" bug in ResourceTable.
                             (() => {
                                 const prevLink = resource.links.find((l) =>
                                     l.label
@@ -667,11 +734,6 @@ export default function RequestTable<T extends { id: number | string }>({
                                                 align="center"
                                                 className="w-48 space-y-2 p-2"
                                             >
-                                                {/* Type-to-jump input — the
-                                                    part that makes a long
-                                                    page list actually usable
-                                                    instead of just scrolling
-                                                    through every page. */}
                                                 <form
                                                     onSubmit={(e) => {
                                                         e.preventDefault();
@@ -719,10 +781,6 @@ export default function RequestTable<T extends { id: number | string }>({
                                                     </button>
                                                 </form>
 
-                                                {/* Scrollable browse list —
-                                                    still available for
-                                                    picking visually instead
-                                                    of typing, if preferred. */}
                                                 <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-slate-100 pt-1.5">
                                                     {Array.from(
                                                         {
@@ -774,7 +832,6 @@ export default function RequestTable<T extends { id: number | string }>({
                                 );
                             })()
                         ) : (
-                            // ---- Standard button row (10 pages or fewer, unchanged) ----
                             <div className="flex flex-nowrap items-center gap-1">
                                 {resource.links.map((link, i) => {
                                     const rawLabel = link.label

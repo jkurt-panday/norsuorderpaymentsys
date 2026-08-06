@@ -4,9 +4,7 @@
 @import 'shadcn/tailwind.css';
 @import '@fontsource-variable/geist';
 @import '@fontsource/instrument-sans';
-@import 'tailwindcss/preflight' 
-
-@tailwind base;
+@import 'tailwindcss/preflight' @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -401,7 +399,6 @@
         --radius: 0.5rem;
     }
 }
-
 
 /* Printable Receipt Styles */
 @media print {

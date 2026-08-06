@@ -50,26 +50,38 @@ export default function BankAccountsIndex({
         if (flash?.error) flashToast('error', flash.error);
     }, [flash]);
 
+    // `sortable` is set on every column here (ID through Account Number) —
+    // each value is the real backend column name, matching
+    // BankAccountInfoController's $sortableColumns allowlist. Note ID's
+    // sortable key is 'id' even though the displayed value is
+    // display_number: sorting by the real `id` column still produces the
+    // same order as display_number, since display_number is derived from
+    // id in creation order — it's just the visible label that differs.
     const columns: ColumnDef<BankAccount>[] = [
         {
             header: 'ID',
+            sortable: 'id',
             render: (row) => row.display_number,
         },
         {
             header: 'Account Name',
+            sortable: 'account_name',
             render: (row) => row.account_name,
         },
         {
             header: 'Fund Cluster',
+            sortable: 'fund_cluster',
             render: (row) =>
                 row.fund_cluster?.trim() ? row.fund_cluster : 'N/A',
         },
         {
             header: 'Bank Name',
+            sortable: 'bank_name',
             render: (row) => <Badge variant="secondary">{row.bank_name}</Badge>,
         },
         {
             header: 'Account Number',
+            sortable: 'account_num',
             render: (row) => (
                 <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700">
                     {row.account_num}

@@ -21,7 +21,7 @@ class PaymentDetailOptionController extends BaseResourceController
     protected string $resourceKey = 'paymentOptions';
     protected string $orderBy = 'id';
     protected string $orderDirection = 'asc';
-   protected array $sortableColumns = ['id', 'payment_desc', 'created_at'];
+    protected array $sortableColumns = ['id', 'payment_desc', 'created_at'];
     protected array $filterableColumns = [];
 
 /**

@@ -105,13 +105,12 @@ class StaffInputController extends Controller
             'recentActivity' => $recentActivity,
         ]);
     }
-    /**
+/**
      * Display list of requests for staff processing
      */
     public function index(Request $request)
     {
-        $query = FormInput::with(['membership', 'staffInput'])
-            ->orderBy('created_at', 'desc');
+        $query = FormInput::with(['membership', 'staffInput']);
 
         // Filter by status (handling 'unprocessed' gracefully)
         if ($request->has('status') && $request->status !== '') {
@@ -146,7 +145,37 @@ class StaffInputController extends Controller
             });
         }
 
-        $formInputs = $query->paginate(10);
+        // Sorting — only columns in this allowlist can be sorted on. Never
+        // pass $request->query('sort') straight into orderBy() unchecked;
+        // that lets a crafted query string reference arbitrary columns.
+        $sortableColumns = [
+            'reference_number',
+            'firstname_or_office',
+            'email',
+            'amount',
+            'membership_id',
+            'created_at',
+        ];
+
+        $sort = $request->query('sort');
+        $direction = $request->query('direction') === 'desc' ? 'desc' : 'asc';
+
+        if ($sort === 'status') {
+            // status lives on the related staff_inputs table, not on
+            // form_inputs itself, so it needs a join rather than a plain
+            // orderBy(). left join (not inner) so "Unprocessed" rows
+            // (no staff_input row at all) still appear, sorted to
+            // whichever end NULLs land on for the given direction.
+            $query->select('form_inputs.*')
+                ->leftJoin('staff_inputs', 'staff_inputs.form_input_id', '=', 'form_inputs.id')
+                ->orderBy('staff_inputs.status', $direction);
+        } elseif ($sort && in_array($sort, $sortableColumns, true)) {
+            $query->orderBy($sort, $direction);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $formInputs = $query->paginate(10)->withQueryString();
         $filters = $request->only(['search', 'status', 'date_from', 'date_to']);
 
         return Inertia::render('staff/requestform/request', compact('formInputs', 'filters'));

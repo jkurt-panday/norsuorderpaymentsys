@@ -25,7 +25,12 @@ class BankAccountInfoController extends BaseResourceController
     protected array $secondaryOrderBy = [
         ['column' => 'account_name', 'direction' => 'asc'],
     ];
-    protected array $sortableColumns = ['id', 'bank_name', 'account_name', 'created_at'];
+    // Added 'fund_cluster' and 'account_num' — the frontend now has sortable
+    // arrows on every column (ID through Account Number), and this allowlist
+    // is what actually lets those two new ones take effect. Without a key
+    // being present here, BaseResourceController silently ignores a
+    // requested ?sort= for it and falls back to the default order.
+    protected array $sortableColumns = ['id', 'bank_name', 'account_name', 'fund_cluster', 'account_num', 'created_at'];
     protected array $filterableColumns = [];
     /**
      * Show create form
@@ -111,7 +116,6 @@ class BankAccountInfoController extends BaseResourceController
     /**
      * Delete a bank account safely
      */
-    
     public function destroy(BankAccountInfo $bankAccount)
     {
         try {
@@ -121,6 +125,7 @@ class BankAccountInfoController extends BaseResourceController
             $hasRelations = $bankAccount->staffInputs()->exists();
 
             if ($hasRelations) {
+                DB::rollBack();
                 return back()->with('error', 'Cannot delete a bank account that is in use by processing records.');
             }
 
@@ -131,7 +136,13 @@ class BankAccountInfoController extends BaseResourceController
             return redirect()->route('staff.bank-accounts.index')
                 ->with('success', 'Bank account deleted successfully.');
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            // \Throwable (not just \Exception) so this also catches a
+            // \Error — e.g. "Call to undefined method staffInputs()" if
+            // that relation is missing/misnamed on the model. Without this,
+            // that kind of error crashes uncaught instead of surfacing as
+            // a flash message, which is why deletes could fail silently
+            // with no toast at all.
             DB::rollBack();
             Log::error("Failed to delete bank account ID {$bankAccount->id}: " . $e->getMessage());
 
