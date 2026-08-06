@@ -31,7 +31,7 @@ return new class extends Migration
                 'remaining_balance',
                 'status',
                 'remarks',
-                'input_by'
+                'input_by',
             ]);
 
             // Add new columns

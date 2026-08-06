@@ -64,10 +64,12 @@ export default function MembershipsIndex({
     const columns: ColumnDef<Membership>[] = [
         {
             header: 'ID',
+            sortable: 'id',
             render: (row) => row.display_number,
         },
         {
             header: 'Member Code',
+            sortable: 'member_code',
             render: (row) => (
                 <span className="inline-block rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-900">
                     {row.member_code}
@@ -76,10 +78,12 @@ export default function MembershipsIndex({
         },
         {
             header: 'Description',
+            sortable: 'member_desc',
             render: (row) => row.member_desc,
         },
         {
             header: 'Created At',
+            sortable: 'created_at',
             render: (row) => formatDate(row.created_at),
             className: 'px-4 py-3 text-slate-500',
         },

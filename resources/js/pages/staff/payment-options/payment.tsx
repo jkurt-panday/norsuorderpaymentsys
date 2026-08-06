@@ -59,14 +59,17 @@ export default function PaymentOptionsIndex({
     const columns: ColumnDef<PaymentOption>[] = [
         {
             header: 'ID',
+            sortable: 'id',
             render: (row) => row.display_number,
         },
         {
             header: 'Payment Description',
+            sortable: 'payment_desc',
             render: (row) => row.payment_desc,
         },
         {
             header: 'Created At',
+            sortable: 'created_at',
             render: (row) => formatDate(row.created_at),
             className: 'px-4 py-3 text-slate-500',
         },

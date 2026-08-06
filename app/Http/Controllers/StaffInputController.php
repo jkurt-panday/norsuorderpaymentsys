@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StaffProcessingRequest;
+use App\Models\BankAccountInfo;
 use App\Models\FormInput;
 use App\Models\StaffInput;
-use App\Models\BankAccountInfo;
 use App\Models\Uacs;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,9 +26,9 @@ class StaffInputController extends Controller
             ->pluck('count', 'status');
 
         $latestByStatus = StaffInput::query()
-        ->selectRaw('status, MAX(created_at) as latest')
-        ->groupBy('status')
-        ->pluck('latest', 'status');
+            ->selectRaw('status, MAX(created_at) as latest')
+            ->groupBy('status')
+            ->pluck('latest', 'status');
 
         // "Unprocessed" isn't a StaffInput.status value — it's a FormInput
         // that has no StaffInput row at all (same definition already used
@@ -51,6 +51,7 @@ class StaffInputController extends Controller
         $requestsOverTime = collect(range(0, 29))
             ->map(function (int $daysAgo) use ($requestsOverTime) {
                 $date = now()->subDays(29 - $daysAgo)->toDateString();
+
                 return $requestsOverTime->get($date, ['date' => $date, 'count' => 0]);
             })
             ->values();
@@ -65,7 +66,7 @@ class StaffInputController extends Controller
             ->map(fn (StaffInput $staffInput) => [
                 'id' => $staffInput->id,
                 'event' => 'processed',
-                'description' => "Request {$staffInput->formInput->reference_number} was processed as " . ucfirst($staffInput->status) . '.',
+                'description' => "Request {$staffInput->formInput->reference_number} was processed as ".ucfirst($staffInput->status).'.',
                 'causerName' => null,
                 'createdAt' => $staffInput->created_at->toISOString(),
             ]);
@@ -84,8 +85,8 @@ class StaffInputController extends Controller
             // Order here (Unprocessed, Pending, Approved, Cancelled) must match
             // the pieColors array on the frontend: ['#94a3b8', '#f59e0b', '#22c55e', '#ef4444']
             'statusBreakdown' => collect([
-                    ['name' => 'Unprocessed', 'count' => $unprocessedCount],
-                ])
+                ['name' => 'Unprocessed', 'count' => $unprocessedCount],
+            ])
                 ->concat(
                     collect(['pending', 'approved', 'cancelled'])
                         ->map(fn (string $status) => [
@@ -105,13 +106,12 @@ class StaffInputController extends Controller
             'recentActivity' => $recentActivity,
         ]);
     }
-    /**
+/**
      * Display list of requests for staff processing
      */
     public function index(Request $request)
     {
-        $query = FormInput::with(['membership', 'staffInput'])
-            ->orderBy('created_at', 'desc');
+        $query = FormInput::with(['membership', 'staffInput']);
 
         // Filter by status (handling 'unprocessed' gracefully)
         if ($request->has('status') && $request->status !== '') {
@@ -126,10 +126,10 @@ class StaffInputController extends Controller
 
         // Fast Date Range Queries (Index Friendly)
         if ($request->filled('date_from')) {
-            $query->where('created_at', '>=', $request->date_from . ' 00:00:00');
+            $query->where('created_at', '>=', $request->date_from.' 00:00:00');
         }
         if ($request->filled('date_to')) {
-            $query->where('created_at', '<=', $request->date_to . ' 23:59:59');
+            $query->where('created_at', '<=', $request->date_to.' 23:59:59');
         }
 
         // Search (grouped to avoid breaking status/date filters)
@@ -140,13 +140,43 @@ class StaffInputController extends Controller
             $search = strtolower($request->search);
             $query->where(function ($q) use ($search) {
                 $q->whereRaw('LOWER(reference_number) LIKE ?', ["%{$search}%"])
-                  ->orWhereRaw('LOWER(firstname_or_office) LIKE ?', ["%{$search}%"])
-                  ->orWhereRaw('LOWER(lastname_or_agency) LIKE ?', ["%{$search}%"])
-                  ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"]);
+                    ->orWhereRaw('LOWER(firstname_or_office) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(lastname_or_agency) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"]);
             });
         }
 
-        $formInputs = $query->paginate(10);
+        // Sorting — only columns in this allowlist can be sorted on. Never
+        // pass $request->query('sort') straight into orderBy() unchecked;
+        // that lets a crafted query string reference arbitrary columns.
+        $sortableColumns = [
+            'reference_number',
+            'firstname_or_office',
+            'email',
+            'amount',
+            'membership_id',
+            'created_at',
+        ];
+
+        $sort = $request->query('sort');
+        $direction = $request->query('direction') === 'desc' ? 'desc' : 'asc';
+
+        if ($sort === 'status') {
+            // status lives on the related staff_inputs table, not on
+            // form_inputs itself, so it needs a join rather than a plain
+            // orderBy(). left join (not inner) so "Unprocessed" rows
+            // (no staff_input row at all) still appear, sorted to
+            // whichever end NULLs land on for the given direction.
+            $query->select('form_inputs.*')
+                ->leftJoin('staff_inputs', 'staff_inputs.form_input_id', '=', 'form_inputs.id')
+                ->orderBy('staff_inputs.status', $direction);
+        } elseif ($sort && in_array($sort, $sortableColumns, true)) {
+            $query->orderBy($sort, $direction);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $formInputs = $query->paginate(10)->withQueryString();
         $filters = $request->only(['search', 'status', 'date_from', 'date_to']);
 
         return Inertia::render('staff/requestform/request', compact('formInputs', 'filters'));
@@ -155,27 +185,27 @@ class StaffInputController extends Controller
     /**
      * Show form for processing a specific request
      */
-   public function create(FormInput $formInput)
-{
-    if ($formInput->staffInput()->exists()) {
-        return redirect()
-            ->route('staff.requests.show', $formInput)
-            ->with('warning', 'This request has already been processed.');
+    public function create(FormInput $formInput)
+    {
+        if ($formInput->staffInput()->exists()) {
+            return redirect()
+                ->route('staff.requests.show', $formInput)
+                ->with('warning', 'This request has already been processed.');
+        }
+
+        $bankAccounts = BankAccountInfo::orderBy('bank_name')->get();
+        $uacsList = Uacs::orderBy('object_code')->get();
+
+        $formInput->loadMissing(['membership', 'paymentDetailOption', 'supportingDocuments']);
+        $documents = $formInput->supportingDocuments()->get();
+
+        return Inertia::render('staff/requestform/processrequest', compact(
+            'formInput',
+            'bankAccounts',
+            'uacsList',
+            'documents'
+        ));
     }
-
-    $bankAccounts = BankAccountInfo::orderBy('bank_name')->get();
-    $uacsList = Uacs::orderBy('object_code')->get();
-
-    $formInput->loadMissing(['membership', 'paymentDetailOption', 'supportingDocuments']);
-    $documents = $formInput->supportingDocuments()->get();
-
-    return Inertia::render('staff/requestform/processrequest', compact(
-        'formInput',
-        'bankAccounts',
-        'uacsList',
-        'documents'
-    ));
-}
 
     /**
      * Store staff processing data
@@ -204,60 +234,62 @@ class StaffInputController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Staff processing failed: ' . $e->getMessage());
+            Log::error('Staff processing failed: '.$e->getMessage());
 
             return back()
                 ->withInput()
-                ->with('error', 'Failed to process request: ' . $e->getMessage());
+                ->with('error', 'Failed to process request: '.$e->getMessage());
         }
     }
 
     /**
      * Show form for editing staff processing
      */
-        public function edit(StaffInput $staffInput)
-        {
-            $staffInput->load(['formInput.membership', 'formInput.paymentDetailOption']);
-            $bankAccounts = BankAccountInfo::orderBy('bank_name')->get();
-            $uacsList = Uacs::orderBy('object_code')->get();
-            $documents = $staffInput->formInput->supportingDocuments;
+    public function edit(StaffInput $staffInput)
+    {
+        $staffInput->load(['formInput.membership', 'formInput.paymentDetailOption']);
+        $bankAccounts = BankAccountInfo::orderBy('bank_name')->get();
+        $uacsList = Uacs::orderBy('object_code')->get();
+        $documents = $staffInput->formInput->supportingDocuments;
 
-            return Inertia::render('staff/requestform/editrequest', compact(
-                'staffInput',
-                'bankAccounts',
-                'uacsList',
-                'documents'
-            ));
-        }
+        return Inertia::render('staff/requestform/editrequest', compact(
+            'staffInput',
+            'bankAccounts',
+            'uacsList',
+            'documents'
+        ));
+    }
 
     // App/Http/Controllers/StaffInputController.php
 
-public function update(StaffProcessingRequest $request, StaffInput $staffInput)
-{
-    // Validates request including status
-    $validated = $request->validated();
+    public function update(StaffProcessingRequest $request, StaffInput $staffInput)
+    {
+        // Validates request including status
+        $validated = $request->validated();
 
-    try {
-        DB::beginTransaction();
+        try {
+            DB::beginTransaction();
 
-        $staffInput->update([
-            'fundcluster_id'  => $validated['fundcluster_id'],
-            'ref_document_id' => $validated['ref_document_id'] ?? null,
-            'ref_date'        => $validated['ref_date'],
-            'uacs_id'         => $validated['uacs_id'],
-            'status'          => $validated['status'],
-        ]);
+            $staffInput->update([
+                'fundcluster_id' => $validated['fundcluster_id'],
+                'ref_document_id' => $validated['ref_document_id'] ?? null,
+                'ref_date' => $validated['ref_date'],
+                'uacs_id' => $validated['uacs_id'],
+                'status' => $validated['status'],
+            ]);
 
-        DB::commit();
+            DB::commit();
 
-        return redirect()->route('staff.requests.index')
-            ->with('success', 'Processing updated successfully! New status: ' . ucfirst($staffInput->status));
+            return redirect()->route('staff.requests.index')
+                ->with('success', 'Processing updated successfully! New status: '.ucfirst($staffInput->status));
 
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return back()->withInput()->with('error', 'Failed to update processing: ' . $e->getMessage());
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return back()->withInput()->with('error', 'Failed to update processing: '.$e->getMessage());
+        }
     }
-}
+
     /**
      * Display staff processing details
      */

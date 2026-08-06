@@ -22,6 +22,8 @@ export interface FieldDef {
     type?: string;
     /** Grid span — 'half' (default, side-by-side on md+) or 'full' (spans both columns) */
     colSpan?: 'half' | 'full';
+    /** Placeholder text shown inside the input */
+    placeholder?: string;
 }
 
 export interface ResourceFormProps {
@@ -57,10 +59,13 @@ export default function ResourceForm({
     processingLabel,
     successMessage,
 }: ResourceFormProps) {
-    const { data, setData, post, put, processing, errors } = useForm<Record<string, string>>(initialData);
+    const { data, setData, post, put, processing, errors } =
+        useForm<Record<string, string>>(initialData);
 
-    const resolvedSubmitLabel = submitLabel ?? (method === 'post' ? 'Create' : 'Update');
-    const resolvedProcessingLabel = processingLabel ?? (method === 'post' ? 'Creating...' : 'Updating...');
+    const resolvedSubmitLabel =
+        submitLabel ?? (method === 'post' ? 'Create' : 'Update');
+    const resolvedProcessingLabel =
+        processingLabel ?? (method === 'post' ? 'Creating...' : 'Updating...');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -83,11 +88,13 @@ export default function ResourceForm({
     };
 
     return (
-        <div className="mx-auto min-w-0 w-full max-w-3xl space-y-4 p-3 sm:p-6">
+        <div className="mx-auto w-full max-w-3xl min-w-0 space-y-4 p-3 sm:p-6">
             <Head title={title} />
 
             <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+                <h2 className="text-lg font-semibold text-slate-900">
+                    {title}
+                </h2>
                 <Link
                     href={backHref}
                     className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
@@ -104,32 +111,49 @@ export default function ResourceForm({
                             {fields.map((field) => (
                                 <div
                                     key={field.name}
-                                    className={field.colSpan === 'full' ? 'md:col-span-2' : undefined}
+                                    className={
+                                        field.colSpan === 'full'
+                                            ? 'md:col-span-2'
+                                            : undefined
+                                    }
                                 >
                                     <Label
                                         htmlFor={field.name}
                                         className="mb-1.5 text-sm font-medium text-slate-800"
                                     >
                                         {field.label}
-                                        {field.required && <span className="text-red-600"> *</span>}
+                                        {field.required && (
+                                            <span className="text-red-600">
+                                                {' '}
+                                                *
+                                            </span>
+                                        )}
                                     </Label>
                                     <Input
                                         id={field.name}
                                         type={field.type ?? 'text'}
                                         name={field.name}
                                         value={data[field.name] ?? ''}
-                                        onChange={(e) => setData(field.name, e.target.value)}
+                                        onChange={(e) =>
+                                            setData(field.name, e.target.value)
+                                        }
                                         required={field.required}
+                                        placeholder={field.placeholder}
                                         className={cn(
-                                            "rounded-md",
-                                            errors[field.name] && "border-red-500 focus-visible:ring-red-500/40"
+                                            'rounded-md',
+                                            errors[field.name] &&
+                                                'border-red-500 focus-visible:ring-red-500/40',
                                         )}
                                     />
                                     {errors[field.name] && (
-                                        <p className="mt-1 text-xs text-red-600">{errors[field.name]}</p>
+                                        <p className="mt-1 text-xs text-red-600">
+                                            {errors[field.name]}
+                                        </p>
                                     )}
                                     {field.helpText && (
-                                        <p className="mt-1 text-xs text-slate-400">{field.helpText}</p>
+                                        <p className="mt-1 text-xs text-slate-400">
+                                            {field.helpText}
+                                        </p>
                                     )}
                                 </div>
                             ))}
@@ -142,7 +166,9 @@ export default function ResourceForm({
                                 className="rounded-md bg-blue-900 text-white hover:bg-blue-950"
                             >
                                 <Save className="h-4 w-4" />
-                                {processing ? resolvedProcessingLabel : resolvedSubmitLabel}
+                                {processing
+                                    ? resolvedProcessingLabel
+                                    : resolvedSubmitLabel}
                             </Button>
                         </div>
                     </form>

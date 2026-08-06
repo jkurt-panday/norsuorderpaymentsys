@@ -224,9 +224,9 @@ export default function Dashboard() {
                         </div>
                         <div className="p-4">
                             {recentRequests.length > 0 ? (
-                                <div className="overflow-x-auto">
+                                <div className="max-h-96 overflow-y-auto">
                                     <table className="w-full table-fixed text-left text-sm text-slate-700">
-                                        <thead>
+                                        <thead className="sticky top-0 z-10 bg-white">
                                             <tr>
                                                 <th className="w-[25%] pb-3 font-medium text-slate-900">
                                                     Reference
@@ -291,7 +291,8 @@ export default function Dashboard() {
                     <ActivityLogList
                         title="Recent Activity"
                         logs={recentActivity}
-                        limit={8}
+                        limit={20}
+                        maxVisible={10}
                     />
                 </div>
             </div>

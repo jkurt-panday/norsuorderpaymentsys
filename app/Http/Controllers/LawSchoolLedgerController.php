@@ -101,7 +101,7 @@ class LawSchoolLedgerController extends Controller
         return Inertia::render('law-ledger/Index', [
             'records' => $records,
             'filters' => $request->only([
-                'search', 'school_year', 'semester_or_summer', 'course', 'status', 'date_from', 'date_to'
+                'search', 'school_year', 'semester_or_summer', 'course', 'status', 'date_from', 'date_to',
             ]),
             'stats' => [
                 'totalStudents' => $totalStudents,
@@ -199,7 +199,7 @@ class LawSchoolLedgerController extends Controller
             ->orderBy('last_name', 'asc')
             ->get(['last_name', 'first_name', 'middle_initial'])
             ->map(function ($student) {
-                return trim("$student->last_name, $student->first_name " . ($student->middle_initial ? "$student->middle_initial" : ''));
+                return trim("$student->last_name, $student->first_name ".($student->middle_initial ? "$student->middle_initial" : ''));
             })
             ->unique()
             ->values();
@@ -333,8 +333,8 @@ class LawSchoolLedgerController extends Controller
 
         return LawSchoolLedger::query()->where(function ($q) use ($cleanName) {
             $q->whereRaw("TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_initial, ''))) = ?", [$cleanName])
-              ->orWhereRaw("TRIM(CONCAT(last_name, ', ', first_name)) = ?", [$cleanName])
-              ->orWhere('last_name', 'like', "%{$cleanName}%");
+                ->orWhereRaw("TRIM(CONCAT(last_name, ', ', first_name)) = ?", [$cleanName])
+                ->orWhere('last_name', 'like', "%{$cleanName}%");
         });
     }
 
@@ -353,6 +353,7 @@ class LawSchoolLedgerController extends Controller
                 if (strlen($lastPart) <= 2) { // Single letter or letter with dot like "A" or "A."
                     $middleInitial = array_pop($parts);
                     $firstName = implode(' ', $parts);
+
                     return [
                         'last_name' => trim($lastName),
                         'first_name' => trim($firstName),
@@ -408,7 +409,7 @@ class LawSchoolLedgerController extends Controller
             'lastName' => $r->last_name,
             'firstName' => $r->first_name,
             'middleInitial' => $r->middle_initial,
-            'name' => trim("$r->last_name, $r->first_name " . ($r->middle_initial ? "$r->middle_initial" : '')),
+            'name' => trim("$r->last_name, $r->first_name ".($r->middle_initial ? "$r->middle_initial" : '')),
             'course' => $r->course,
             'schoolYear' => $r->school_year,
             'semesterOrSummer' => $r->semester_or_summer,
@@ -456,7 +457,7 @@ class LawSchoolLedgerController extends Controller
         $currentYear = (int) date('Y');
         $defaultSchoolYears = [];
         for ($i = $currentYear - 5; $i <= $currentYear + 3; $i++) {
-            $defaultSchoolYears[] = $i . '-' . ($i + 1);
+            $defaultSchoolYears[] = $i.'-'.($i + 1);
         }
 
         $schoolYears = LawSchoolLedger::distinct()
