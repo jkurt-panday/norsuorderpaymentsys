@@ -43,7 +43,7 @@ class LawSchoolLedgerController extends Controller
                 $query->whereRaw('UPPER(TRIM(school_year)) = ?', [strtoupper(trim($schoolYear))]);
             })
             ->when($semester, function ($query, $semester) {
-                $query->whereRaw('UPPER(TRIM(semester_or_summer)) = ?', [strtoupper(trim($semester))]);
+                $query->whereIn(DB::raw('UPPER(TRIM(semester_or_summer))'), $this->semesterRawVariants($semester));
             })
             ->when($course, function ($query, $course) {
                 $query->whereRaw('UPPER(TRIM(course)) = ?', [strtoupper(trim($course))]);
@@ -158,6 +158,8 @@ class LawSchoolLedgerController extends Controller
             'remarks' => ['nullable', 'string'],
             'input_by' => ['nullable', 'string', 'max:255'],
         ]);
+
+        $data['semester_or_summer'] = $this->normalizeSemester($data['semester_or_summer'] ?? null);
 
         LawSchoolLedger::create($data);
 
@@ -617,10 +619,12 @@ class LawSchoolLedgerController extends Controller
             'middle_initial' => $nameParts['middle_initial'] ?? null,
             'course' => Arr::get($normalized, 'course') ?? Arr::get($normalized, 'program'),
             'school_year' => Arr::get($normalized, 'school_year') ?? Arr::get($normalized, 'academic_year') ?? Arr::get($normalized, 'sy'),
-            'semester_or_summer' => Arr::get($normalized, 'semester_or_summer')
-                ?? Arr::get($normalized, 'semester_summer')
-                ?? Arr::get($normalized, 'semester')
-                ?? Arr::get($normalized, 'term'),
+            'semester_or_summer' => $this->normalizeSemester(
+                Arr::get($normalized, 'semester_or_summer')
+                    ?? Arr::get($normalized, 'semester_summer')
+                    ?? Arr::get($normalized, 'semester')
+                    ?? Arr::get($normalized, 'term')
+            ),
             'units' => $units,
             'transaction_date' => $this->normalizeDate(
                 Arr::get($normalized, 'transaction_date') ?? Arr::get($normalized, 'date')
@@ -852,6 +856,11 @@ class LawSchoolLedgerController extends Controller
                 ->orderBy('normalized_semester')
                 ->pluck('normalized_semester')
                 ->filter()
+                ->map(fn (string $value) => $this->normalizeSemester($value))
+                ->filter()
+                ->unique()
+                ->values()
+                ->sort()
                 ->values()
                 ->all(),
             'statuses' => LawSchoolLedger::query()
@@ -863,5 +872,50 @@ class LawSchoolLedgerController extends Controller
                 ->values()
                 ->all(),
         ];
+    }
+
+    /**
+     * Canonical semester/summer names and the accepted raw aliases for each.
+     */
+    private const SEMESTER_ALIASES = [
+        'First Semester' => ['1st', '1st sem', '1st sem.', '1st semester', 'first', 'first sem', 'first sem.', 'first semester', 'sem 1', 'sem i'],
+        'Second Semester' => ['2nd', '2nd sem', '2nd sem.', '2nd semester', 'second', 'second sem', 'second sem.', 'second semester', 'sem 2', 'sem ii'],
+        'Summer' => ['sum', 'summer term', 'midyear', 'mid-year', 'mid year', 'summer class'],
+    ];
+
+    /**
+     * Maps any common semester/summer spelling to its canonical full name.
+     */
+    private function normalizeSemester(?string $semester): ?string
+    {
+        if (blank($semester)) {
+            return null;
+        }
+
+        $clean = strtolower((string) preg_replace('/\s+/', ' ', trim($semester)));
+
+        foreach (self::SEMESTER_ALIASES as $canonical => $aliases) {
+            $candidates = array_merge([strtolower($canonical)], $aliases);
+
+            if (in_array($clean, $candidates, true)) {
+                return $canonical;
+            }
+        }
+
+        // Preserve unknown values rather than dropping them.
+        return trim($semester);
+    }
+
+    /**
+     * Uppercased/trimmed raw column values that represent the given canonical semester.
+     */
+    private function semesterRawVariants(string $canonical): array
+    {
+        $variants = array_merge([strtolower($canonical)], self::SEMESTER_ALIASES[$canonical] ?? []);
+
+        return array_values(array_unique(array_map(
+            fn (string $value) => strtoupper(trim((string) preg_replace('/\s+/', ' ', $value))),
+            $variants
+        )));
     }
 }
