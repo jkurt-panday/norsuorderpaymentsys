@@ -88,7 +88,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
         // }
 
         // Use post with FormData
-        post('/public/submit', formData, {
+        post('/public/form', formData, {
             onSuccess: (page) => {
                 console.log('Success!', page);
                 reset();
@@ -165,6 +165,10 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
             'documents',
             data.documents.filter((_, i) => i !== index),
         );
+
+        if (updatedDocuments.length <= MAX_FILES) {
+            setDocumentError('');
+        }
 
         if (data.documents.length <= 1) {
             setData('documents', []);

@@ -17,8 +17,8 @@ use Illuminate\Support\Facades\Route;
 // ─────────────────────────────────────────────────────────────────────────────
 
 Route::name('public.')->prefix('public')->group(function () {
-    Route::get('/submit', [FormInputController::class, 'create'])->name('submit');
-    Route::post('/submit', [FormInputController::class, 'store'])->name('submit.store');
+    Route::get('/form', [FormInputController::class, 'create'])->name('submit');
+    Route::post('/form', [FormInputController::class, 'store'])->name('submit.store');
     Route::get('/success/{referenceNumber?}', [FormInputController::class, 'success'])->name('success');
 });
 
