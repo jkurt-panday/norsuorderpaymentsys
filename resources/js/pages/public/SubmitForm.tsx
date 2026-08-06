@@ -46,9 +46,8 @@ interface Props {
 }
 
 export default function SubmitForm({ memberships, paymentOptions }: Props) {
-    
     // ? form handling
-    const { data, setData, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
         contact_num: '',
         firstname_or_office: '',
@@ -61,7 +60,8 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
         request_type: '',
         membership_id: '',
         payment_detail_option_id: '',
-        has_documents: false,
+        // has_documents: false,
+        documents: [] as File[],
     });
     // ? form submit
     // Submit handler with file upload
@@ -76,7 +76,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
             }
         });
 
-        supportingDocuments.forEach((file) => {
+        data.documents.forEach((file) => {
             formData.append(`documents[]`, file);
         });
 
@@ -88,19 +88,22 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
         // }
 
         // Use post with FormData
-        router.post('/public/submit', formData, {
+        post('/public/form', formData, {
             onSuccess: (page) => {
                 console.log('Success!', page);
                 reset();
-                setSupportingDocuments([]);
+                // setSupportingDocuments([]);
             },
             onError: (errors) => {
                 console.error('Validation errors:', errors);
             },
             forceFormData: true,
-            preserveState: false,
+            preserveState: true,
         });
     };
+
+    // contact num length
+    const isValidContact = data.contact_num.length === 11;
 
     // Tracks animated upload progress (0-100) for each file, keyed by a stable file identifier
     const [uploadProgress, setUploadProgress] = useState<
@@ -132,29 +135,50 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
 
     // ? file upload
     // Add state for supporting documents
-    const [supportingDocuments, setSupportingDocuments] = useState<File[]>([]);
+    // const [supportingDocuments, setSupportingDocuments] = useState<File[]>([]);
+
+    const [documentError, setDocumentError] = useState('');
+    const MAX_FILES = 5;
 
     // handle file drop
     const handleFileDrop = (files: FileList) => {
         const newFiles = Array.from(files);
-        setSupportingDocuments((prev) => [...prev, ...newFiles]);
-        setData('has_documents', true);
-        newFiles.forEach((file) => animateFileProgress(file));
+        // setSupportingDocuments((prev) => [...prev, ...newFiles]);
+
+        if (data.documents.length + newFiles.length > MAX_FILES) {
+            setDocumentError(
+                `You can upload a maximum of ${MAX_FILES} supporting documents.`,
+            );
+            return;
+        }
+
+        setDocumentError('');
+
+        setData('documents', [...data.documents, ...newFiles]);
+        newFiles.forEach(animateFileProgress);
     };
 
     // Handle file deletion
     const handleFileDelete = (index: number) => {
-        setSupportingDocuments((prev) => prev.filter((_, i) => i !== index));
+        // setSupportingDocuments((prev) => prev.filter((_, i) => i !== index));
+        setData(
+            'documents',
+            data.documents.filter((_, i) => i !== index),
+        );
 
-        if (supportingDocuments.length <= 1) {
-            setData('has_documents', false);
+        if (updatedDocuments.length <= MAX_FILES) {
+            setDocumentError('');
+        }
+
+        if (data.documents.length <= 1) {
+            setData('documents', []);
         }
     };
 
     // Handle file retry (for failed uploads)
     const handleFileRetry = (index: number) => {
         // Re-upload logic if needed
-        console.log('Retry upload for file:', supportingDocuments[index]);
+        console.log('Retry upload for file:', data.documents[index]);
     };
 
     // ? component ui
@@ -169,7 +193,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 alt="NORSU Logo"
                                 width={500}
                                 height={500}
-                                className='pb-6'
+                                className="pb-6"
                             />
                         </div>
                         <h1 className="text-4xl font-bold tracking-tight text-blue-900">
@@ -179,7 +203,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                             Fill out the form below to submit your request.
                         </p>
                     </div>
-                    <form onSubmit={handleSubmit}>
+                    <form noValidate onSubmit={handleSubmit}>
                         <Card className="overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-xl">
                             <CardHeader className="border-b border-slate-100 bg-white pb-6">
                                 <CardTitle className="flex items-center gap-3 text-xl font-semibold text-blue-900">
@@ -189,6 +213,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 <CardDescription>
                                     Fill out the details below
                                 </CardDescription>
+                                {/*<pre>{JSON.stringify(errors, null, 2)}</pre>*/}
                             </CardHeader>
 
                             <CardContent className="space-y-6">
@@ -238,22 +263,42 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                     id="input-field-contact"
                                                     type="tel"
                                                     placeholder="0912 333 4444"
-                                                    maxLength={11}
-                                                    minLength={11}
-                                                    value={data.contact_num}
-                                                    onChange={(e) =>
+                                                    maxLength={13} // 11 digits + 2 spaces
+                                                    value={data.contact_num.replace(
+                                                        /^(\d{0,4})(\d{0,3})(\d{0,4}).*/,
+                                                        (_, a, b, c) =>
+                                                            [a, b, c]
+                                                                .filter(Boolean)
+                                                                .join(' '),
+                                                    )}
+                                                    onChange={(e) => {
+                                                        const digits =
+                                                            e.target.value
+                                                                .replace(
+                                                                    /\D/g,
+                                                                    '',
+                                                                )
+                                                                .slice(0, 11);
+
                                                         setData(
                                                             'contact_num',
-                                                            e.target.value,
-                                                        )
-                                                    }
+                                                            digits,
+                                                        );
+                                                    }}
                                                 />
-
                                                 {errors.contact_num && (
                                                     <p className="mt-1 text-sm text-red-500">
                                                         {errors.contact_num}
                                                     </p>
                                                 )}
+                                                {data.contact_num.length > 0 &&
+                                                    !isValidContact && (
+                                                        <p className="mt-1 text-sm text-red-500">
+                                                            Contact number must
+                                                            contain exactly 11
+                                                            digits.
+                                                        </p>
+                                                    )}
                                             </Field>
                                         </div>
                                     </div>
@@ -505,12 +550,12 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                     }
                                                 }}
                                             />
-                                            {errors.amount && (
-                                                <p className="mt-1 text-sm text-red-500">
-                                                    {errors.amount}
-                                                </p>
-                                            )}
                                         </div>
+                                        {errors.amount && (
+                                            <p className="mt-1 text-sm text-red-500">
+                                                {errors.amount}
+                                            </p>
+                                        )}
                                     </Field>
                                     {/* request type */}
                                     <Field>
@@ -574,7 +619,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                     (m) =>
                                                         String(m.id) ===
                                                         data.membership_id,
-                                                )?.member_code
+                                                )?.member_code || ''
                                             }
                                             onValueChange={(value) => {
                                                 const selected =
@@ -638,7 +683,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                     (p) =>
                                                         String(p.id) ===
                                                         data.payment_detail_option_id,
-                                                )?.payment_desc
+                                                )?.payment_desc || ''
                                             }
                                             onValueChange={(value) => {
                                                 const selected =
@@ -682,6 +727,13 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                 </ComboboxList>
                                             </ComboboxContent>
                                         </Combobox>
+                                        {errors.payment_detail_option_id && (
+                                            <p className="mt-1 text-sm text-red-500">
+                                                {
+                                                    errors.payment_detail_option_id
+                                                }
+                                            </p>
+                                        )}
                                     </Field>
                                 </div>
                                 <Separator className="bg-blue-100" />
@@ -689,9 +741,16 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                     <File className="h-5 w-5 text-blue-600" />
                                     Supporting Document(s)
                                 </CardTitle>
-                                <p className="mt-3 text-slate-600 text-sm">
-                                    e.g. (Assessment Form, Billing Statement, Computation Documents, Student ID, Liquidation Form)
+                                <p className="mt-3 text-sm text-slate-600">
+                                    e.g. (Assessment Form, Billing Statement,
+                                    Computation Documents, Student ID,
+                                    Liquidation Form)
                                 </p>
+                                {documentError && (
+                                    <p className="mt-1 text-sm text-red-500">
+                                        {documentError}
+                                    </p>
+                                )}
                                 {/* file uploads */}
                                 {/* File Upload Drop Zone */}
                                 <FileUpload.Root>
@@ -738,9 +797,9 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                     </div>
 
                                     {/* File List */}
-                                    {supportingDocuments.length > 0 && (
+                                    {data.documents.length > 0 && (
                                         <FileUpload.List>
-                                            {supportingDocuments.map(
+                                            {data.documents.map(
                                                 (file, index) => {
                                                     const fileType =
                                                         file.type.split(
@@ -820,10 +879,10 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                     className="rounded-xl border-slate-300 hover:bg-slate-100"
                                     onClick={() => {
                                         reset();
-                                        setSupportingDocuments([]);
+                                        // setSupportingDocuments([]);
                                     }}
                                 >
-                                    Cancel
+                                    Reset
                                 </Button>
                                 <Button
                                     type="submit"
