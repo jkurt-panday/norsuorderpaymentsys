@@ -60,7 +60,7 @@ export default function AddTransaction({ filterOptions }: AddTransactionProps) {
   };
 
   const semesterOptions = useMemo(() => {
-    const defaults = ['First Semester', 'Second Semester', 'Summer'];
+    const defaults = ['1st Sem', '2nd Sem', 'Summer'];
     const fromDb = filterOptions?.semesters ?? [];
     return [...new Set([...defaults, ...fromDb])];
   }, [filterOptions?.semesters]);

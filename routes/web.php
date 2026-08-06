@@ -73,6 +73,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [LawSchoolLedgerController::class, 'store'])->name('store');
         Route::post('/import', [LawSchoolLedgerController::class, 'import'])->name('import');
         Route::get('/', [LawSchoolLedgerController::class, 'index'])->name('index');
+        Route::get('/{id}/edit', [LawSchoolLedgerController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [LawSchoolLedgerController::class, 'update'])->name('update');
+        Route::delete('/{id}', [LawSchoolLedgerController::class, 'destroy'])->name('destroy');
     });
 
 });

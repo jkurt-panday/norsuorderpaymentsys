@@ -105,7 +105,7 @@
                 </tr>
                 <tr>
                     <td>Total Payments / Credits:</td>
-                    <td class="text-right">(₱{{ number_format($summary['totalPayments'], 2) }})</td>
+                    <td class="text-right">₱{{ number_format($summary['totalPayments'], 2) }}</td>
                 </tr>
                 <tr class="grand-total">
                     <td>Outstanding Balance:</td>
