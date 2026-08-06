@@ -19,8 +19,8 @@ class RequestController extends Controller
             $search = strtolower($request->search);
             $query->where(function ($q) use ($search) {
                 $q->whereRaw('LOWER(reference_number) LIKE ?', ["%{$search}%"])
-                  ->orWhereRaw('LOWER(full_name) LIKE ?', ["%{$search}%"])
-                  ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"]);
+                    ->orWhereRaw('LOWER(full_name) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"]);
             });
         }
 
@@ -43,4 +43,4 @@ class RequestController extends Controller
 
         return response()->json($formInputs);
     }
-} 
+}

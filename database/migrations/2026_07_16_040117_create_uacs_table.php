@@ -13,7 +13,7 @@ return new class extends Migration
             $table->string('account_title', 255);
             $table->string('object_code', 50)->unique();
             $table->timestamps();
-            
+
             $table->index('object_code');
             $table->index('account_title');
         });

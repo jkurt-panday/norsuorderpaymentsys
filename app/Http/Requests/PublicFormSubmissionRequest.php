@@ -24,15 +24,15 @@ class PublicFormSubmissionRequest extends FormRequest
             'office_or_college' => ['required', 'string', 'max:100'],
             'position_or_designation' => ['required', 'string', 'max:100'],
             'address' => ['required', 'string'],
-            
+
             // Payment Information
             'amount' => ['required', 'numeric', 'min:0.01'],
             'request_type' => ['required', Rule::in(['New Request', 'Re-issue Request'])],
-            
+
             // Foreign Keys
             'membership_id' => ['required', 'exists:memberships,id'],
             'payment_detail_option_id' => ['required', 'exists:payment_detail_options,id'],
-            
+
             // File Uploads
             'documents' => ['required', 'array', 'min:1', 'max:5'],
             'documents.*' => [
