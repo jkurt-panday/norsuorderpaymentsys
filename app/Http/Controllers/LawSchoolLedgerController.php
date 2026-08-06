@@ -153,6 +153,60 @@ class LawSchoolLedgerController extends Controller
     }
 
     /**
+     * Renders the form for editing an existing law ledger transaction.
+     */
+    public function edit(int $id): Response
+    {
+        $record = LawSchoolLedger::findOrFail($id);
+
+        return Inertia::render('law-ledger/EditTransaction', [
+            'record' => $record,
+            'filterOptions' => $this->getFilterOptions(),
+        ]);
+    }
+
+    /**
+     * Updates an existing law ledger transaction.
+     */
+    public function update(Request $request, int $id): RedirectResponse
+    {
+        $record = LawSchoolLedger::findOrFail($id);
+
+        $data = $request->validate([
+            'last_name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'middle_initial' => ['nullable', 'string', 'max:10'],
+            'course' => ['nullable', 'string', 'max:255'],
+            'school_year' => ['nullable', 'string', 'max:20'],
+            'semester_or_summer' => ['nullable', 'string', 'max:50'],
+            'units' => ['nullable', 'numeric'],
+            'transaction_date' => ['nullable', 'date'],
+            'reference_jev_or_number' => ['nullable', 'string', 'max:255'],
+            'particulars' => ['nullable', 'string'],
+            'tuition_per_unit_or_fee_per_semester' => ['nullable', 'numeric'],
+            'ar_or_payment' => ['nullable', 'string', 'max:50'],
+            'amount' => ['nullable', 'numeric'],
+            'status' => ['nullable', 'string'],
+            'remarks' => ['nullable', 'string'],
+            'input_by' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $record->update($data);
+
+        return redirect()->route('law-ledger.index')->with('success', 'Transaction updated successfully.');
+    }
+
+    /**
+     * Deletes an existing law ledger transaction.
+     */
+    public function destroy(int $id): RedirectResponse
+    {
+        LawSchoolLedger::findOrFail($id)->delete();
+
+        return redirect()->route('law-ledger.index')->with('success', 'Transaction deleted successfully.');
+    }
+
+    /**
      * Imports a spreadsheet into the law school ledger.
      */
     public function import(Request $request): RedirectResponse
