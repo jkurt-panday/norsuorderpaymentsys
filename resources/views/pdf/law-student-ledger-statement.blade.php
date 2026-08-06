@@ -179,7 +179,7 @@
     @endphp
 
     <div class="receipt-header">
-        <h1>Law School Office</h1>
+        <h1>NORSU Law School Office</h1>
         <div class="sub">Official Student Statement of Account</div>
         <div class="divider"></div>
     </div>
