@@ -275,7 +275,7 @@ export const FileUploadDropZone = ({
                         isInvalid && 'text-error-primary',
                     )}
                 >
-                    {hint || 'SVG, PNG, JPG or PDF (max. 10 Mb, 5 files)'}
+                    {hint || 'SVG, PNG, JPG, WEBP or PDF (max. 10 Mb, 5 files)'}
                 </p>
             </div>
         </div>
