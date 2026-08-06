@@ -26,6 +26,7 @@ class LawSchoolLedgerController extends Controller
         $semester = $request->input('semester_or_summer');
         $course = $request->input('course');
         $status = $request->input('status');
+        $type = $request->input('ar_or_payment');
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
 
@@ -56,6 +57,9 @@ class LawSchoolLedgerController extends Controller
                 // Trim + case-insensitive match so "DROP" also finds rows stored as
                 // " DROP" (the dropdown shows the deduplicated modal label).
                 $query->whereRaw('UPPER(TRIM(status)) = ?', [strtoupper(trim($status))]);
+            })
+            ->when($type, function ($query, $type) {
+                $query->whereRaw('UPPER(TRIM(ar_or_payment)) = ?', [strtoupper(trim($type))]);
             })
             ->when($dateFrom, function ($query, $dateFrom) {
                 $query->whereDate('transaction_date', '>=', $dateFrom);
@@ -101,7 +105,7 @@ class LawSchoolLedgerController extends Controller
         return Inertia::render('law-ledger/Index', [
             'records' => $records,
             'filters' => $request->only([
-                'search', 'school_year', 'semester_or_summer', 'course', 'status', 'date_from', 'date_to',
+                'search', 'school_year', 'semester_or_summer', 'course', 'status', 'ar_or_payment', 'date_from', 'date_to',
             ]),
             'stats' => [
                 'totalStudents' => $totalStudents,
@@ -545,6 +549,7 @@ class LawSchoolLedgerController extends Controller
             // Deduplicate status options case-insensitively (ignoring whitespace) so
             // variants like " DROP" and "DROP" collapse into a single "DROP" option.
             'statuses' => $this->deduplicatedOptions('status'),
+            'types' => $this->deduplicatedOptions('ar_or_payment'),
         ];
     }
 
