@@ -90,8 +90,22 @@ const mainNavItems: SidebarItem[] = [
 function AppSidebar() {
     const { url } = usePage();
 
-    const isActive = (href?: string) =>
-        href ? url === href || url.startsWith(href + '/') : false;
+    const isActive = (href?: string) => {
+        if (!href) return false;
+        const currentPath = url.split('?')[0];
+        if (currentPath === href) return true;
+        if (currentPath.startsWith(href + '/')) {
+            const hasMoreSpecificSibling = mainNavItems.some(item =>
+                item.items?.some(sub =>
+                    sub.href !== href &&
+                    sub.href.startsWith(href + '/') &&
+                    (currentPath === sub.href || currentPath.startsWith(sub.href + '/'))
+                )
+            );
+            return !hasMoreSpecificSibling;
+        }
+        return false;
+    };
 
     return (
         <Sidebar className="border-r border-blue-900/40 bg-[#003f7d] text-white [&_[data-sidebar=sidebar]]:bg-transparent">
@@ -273,9 +287,9 @@ export default function AppSidebarLayout({
         <SidebarProvider>
             <div className="flex h-screen w-full">
                 <AppSidebar />
-                <SidebarInset>
+                <SidebarInset className="bg-[#FAFAF5]">
                     <AppSidebarHeader breadcrumbs={breadcrumbs} />
-                    <main className="flex-1 overflow-auto bg-slate-50 p-6">
+                    <main className="flex-1 overflow-auto bg-[#FAFAF5]">
                         {children}
                     </main>
                 </SidebarInset>
