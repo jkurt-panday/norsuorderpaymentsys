@@ -25,6 +25,8 @@ class LawSchoolLedgerController extends Controller
      */
     public function index(Request $request): Response
     {
+        set_time_limit(300);
+
         $query = $this->buildFilteredQuery($request);
 
         // 1. Calculate overall metrics using a cloned query BEFORE pagination
@@ -74,6 +76,35 @@ class LawSchoolLedgerController extends Controller
             ],
             'filterOptions' => $this->getFilterOptions(),
         ]);
+    }
+
+    public function searchStudents(Request $request)
+    {
+        $search = trim((string) $request->query('q', ''));
+
+        $query = LawSchoolLedger::query()
+            ->whereNotNull('last_name')
+            ->where('last_name', '!=', '');
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->whereRaw('LOWER(last_name) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(first_name) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(middle_initial) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw("LOWER(TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_initial, '')))) LIKE ?", ["%{$search}%"]);
+            });
+        }
+
+        $students = $query
+            ->get(['last_name', 'first_name', 'middle_initial'])
+            ->map(function ($student) {
+                return trim("$student->last_name, $student->first_name ".($student->middle_initial ? "$student->middle_initial" : ''));
+            })
+            ->unique()
+            ->values()
+            ->all();
+
+        return response()->json($students);
     }
 
     /**
@@ -543,12 +574,14 @@ class LawSchoolLedgerController extends Controller
 
         return LawSchoolLedger::query()
             ->when($request->input('search'), function ($query, $search) {
-                $search = strtolower($search);
-                $query->whereRaw('LOWER(first_name) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(middle_initial) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(reference_jev_or_number) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(particulars) LIKE ?', ["%{$search}%"]);
+                $query->where(function ($query) use ($search) {
+                    $query->whereRaw('LOWER(first_name) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(middle_initial) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(reference_jev_or_number) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(particulars) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw("LOWER(TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_initial, '')))) LIKE ?", ["%{$search}%"]);
+                });
             })
             ->when($schoolYear, function ($query, $schoolYear) {
                 $query->where('school_year', $schoolYear);
