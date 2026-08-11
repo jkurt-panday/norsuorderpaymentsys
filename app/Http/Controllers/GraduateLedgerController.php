@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\GraduateLedgerExport;
 use App\Models\AcademicTerm;
 use App\Models\Course;
 use App\Models\GraduateLedger;
@@ -36,6 +37,77 @@ class GraduateLedgerController extends Controller
      * Display the main Graduate Ledger overview index page.
      */
     public function index(Request $request): Response
+    {
+        $query = $this->buildFilteredQuery($request);
+
+        // ── Stats ──────────────────────────────────────────────────────────
+        if ($this->isNormalized) {
+            $totalStudents = (clone $query)
+                ->whereNotNull('student_id')
+                ->distinct('student_id')
+                ->count('student_id');
+
+            $totalAssessments = (float) (clone $query)
+                ->where('entry_type', 'ar')
+                ->sum('amount');
+
+            $totalPayments = (float) (clone $query)
+                ->whereIn('entry_type', ['payment', 'adjustment'])
+                ->sum('amount');
+        } else {
+            $totalStudents = (clone $query)
+                ->whereNotNull('student_name')
+                ->where('student_name', '!=', '')
+                ->distinct('student_name')
+                ->count('student_name');
+
+            $totalAssessments = (float) (clone $query)
+                ->whereRaw("UPPER(TRIM(ar_payment)) = 'AR'")
+                ->sum('amount');
+
+            $totalPayments = (float) (clone $query)
+                ->where(function ($q) {
+                    $q->whereIn(DB::raw('UPPER(TRIM(ar_payment))'), ['PAYMENT', 'P', 'PAYMENR', 'ADJUSTMENT', 'ADJ', 'SETTLED'])
+                      ->orWhere('amount', 'like', '%(%');
+                })
+                ->sum('amount');
+        }
+
+        $outstandingBalance = $totalAssessments - $totalPayments;
+
+        $records = $query->paginate(15)->withQueryString();
+        $records->through(fn ($r) => $this->transformRecord($r));
+
+        return Inertia::render('graduate-ledger/Index', [
+            'records'       => $records,
+            'filters'       => $request->only(['search', 'school_year', 'semester', 'course', 'date_from', 'date_to']),
+            'stats'         => [
+                'totalStudents'      => $totalStudents,
+                'totalAssessments'   => $totalAssessments,
+                'totalPayments'      => $totalPayments,
+                'outstandingBalance' => $outstandingBalance,
+            ],
+            'filterOptions' => $this->getFilterOptions(),
+        ]);
+    }
+
+    /**
+     * Exports filtered records to an Excel file (.xlsx).
+     */
+    public function export(Request $request)
+    {
+        set_time_limit(0);
+        ini_set('memory_limit', '512M');
+
+        $query = $this->buildFilteredQuery($request);
+        $filename = 'graduate_ledger_export_' . now()->format('Ymd_His') . '.xlsx';
+        return Excel::download(new GraduateLedgerExport($query, $this->isNormalized), $filename);
+    }
+
+    /**
+     * Builds the filtered Eloquent query based on request parameters.
+     */
+    private function buildFilteredQuery(Request $request)
     {
         $schoolYear = $request->input('school_year');
         $semester   = $request->input('semester');
@@ -112,55 +184,30 @@ class GraduateLedgerController extends Controller
             ->when($dateFrom, fn ($q, $v) => $q->whereDate('transaction_date', '>=', $v))
             ->when($dateTo,   fn ($q, $v) => $q->whereDate('transaction_date', '<=', $v));
 
-        // ── Stats ──────────────────────────────────────────────────────────
-        if ($this->isNormalized) {
-            $totalStudents = (clone $query)
-                ->whereNotNull('student_id')
-                ->distinct('student_id')
-                ->count('student_id');
-
-            $totalAssessments = (float) (clone $query)
-                ->where('entry_type', 'ar')
-                ->sum('amount');
-
-            $totalPayments = (float) (clone $query)
-                ->whereIn('entry_type', ['payment', 'adjustment'])
-                ->sum('amount');
+        // ── Relevance sort: starts-with results float to top ───────────────
+        if ($search) {
+            $prefix = strtolower($search) . '%';
+            if ($this->isNormalized) {
+                // Join graduate_student so we can ORDER BY its columns
+                $query->orderByRaw(
+                    "CASE WHEN EXISTS (
+                        SELECT 1 FROM graduate_student gs
+                        WHERE gs.id = graduate_ledgers.student_id
+                        AND (LOWER(gs.last_name) LIKE ? OR LOWER(gs.first_name) LIKE ?)
+                    ) THEN 0 ELSE 1 END",
+                    [$prefix, $prefix]
+                );
+            } else {
+                $query->orderByRaw(
+                    'CASE WHEN LOWER(student_name) LIKE ? THEN 0 ELSE 1 END',
+                    [$prefix]
+                );
+            }
         } else {
-            $totalStudents = (clone $query)
-                ->whereNotNull('student_name')
-                ->where('student_name', '!=', '')
-                ->distinct('student_name')
-                ->count('student_name');
-
-            $totalAssessments = (float) (clone $query)
-                ->whereRaw("UPPER(TRIM(ar_payment)) = 'AR'")
-                ->sum('amount');
-
-            $totalPayments = (float) (clone $query)
-                ->where(function ($q) {
-                    $q->whereIn(DB::raw('UPPER(TRIM(ar_payment))'), ['PAYMENT', 'P', 'PAYMENR', 'ADJUSTMENT', 'ADJ', 'SETTLED'])
-                      ->orWhere('amount', 'like', '%(%');
-                })
-                ->sum('amount');
+            $query->latest('id');
         }
 
-        $outstandingBalance = $totalAssessments - $totalPayments;
-
-        $records = $query->latest('id')->paginate(15)->withQueryString();
-        $records->through(fn ($r) => $this->transformRecord($r));
-
-        return Inertia::render('graduate-ledger/Index', [
-            'records'       => $records,
-            'filters'       => $request->only(['search', 'school_year', 'semester', 'course', 'date_from', 'date_to']),
-            'stats'         => [
-                'totalStudents'      => $totalStudents,
-                'totalAssessments'   => $totalAssessments,
-                'totalPayments'      => $totalPayments,
-                'outstandingBalance' => $outstandingBalance,
-            ],
-            'filterOptions' => $this->getFilterOptions(),
-        ]);
+        return $query;
     }
 
     // ─── Create / Store ───────────────────────────────────────────────────────
@@ -646,19 +693,21 @@ class GraduateLedgerController extends Controller
             $studentId = (int) $request->input('student_id');
             $student   = Student::findOrFail($studentId);
 
-            $records = GraduateLedger::with(['student', 'course', 'academicTerm'])
+            $rawRecords = GraduateLedger::with(['student', 'course', 'academicTerm'])
                 ->where('student_id', $studentId)
                 ->orderBy('id', 'asc')
                 ->get();
 
-            $summary     = $this->calculateStudentBalanceNormalized($records);
+            $summary     = $this->calculateStudentBalanceNormalized($rawRecords);
             $studentName = $student->full_name;
+            $records     = $rawRecords->map(fn ($r) => (object) $this->transformRecord($r));
         } else {
             $request->validate(['student' => 'required|string']);
             $studentName = str_replace(['−', '–', '—'], '-', (string) $request->input('student'));
 
-            $records     = GraduateLedger::where('student_name', $studentName)->orderBy('id', 'asc')->get();
-            $summary     = $this->calculateStudentBalance($records);
+            $rawRecords  = GraduateLedger::where('student_name', $studentName)->orderBy('id', 'asc')->get();
+            $summary     = $this->calculateStudentBalance($rawRecords);
+            $records     = $rawRecords->map(fn ($r) => (object) $this->transformRecord($r));
         }
 
         $pdf = Pdf::loadView('pdf.student-ledger-statement', [
