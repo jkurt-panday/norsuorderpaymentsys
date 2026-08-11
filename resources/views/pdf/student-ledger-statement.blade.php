@@ -167,24 +167,71 @@
 <body>
 
     @php
-        $normalizeText = static fn ($value) => str_replace(['−', '–', '—'], '-', (string) $value);
-        $firstRecord = $records->first();
-        $cleanAmount = static fn ($val) => abs((float) preg_replace('/[^\d.]/', '', (string) $val));
+        $normalizeText = static fn ($value) => str_replace(['−', '–', '—'], '-', (string) ($value ?? ''));
+        $firstRecord   = $records->first();
+        $cleanAmount   = static fn ($val) => abs((float) preg_replace('/[^\d.]/', '', (string) ($val ?? 0)));
+        
+        // Universal helper to extract property regardless of legacy/normalized/transformed object shape
+        $getProp = static function ($obj, array $keys) {
+            if (!$obj) return null;
+            foreach ($keys as $key) {
+                if (is_object($obj) && isset($obj->{$key}) && $obj->{$key} !== '') {
+                    return $obj->{$key};
+                }
+                if (is_array($obj) && isset($obj[$key]) && $obj[$key] !== '') {
+                    return $obj[$key];
+                }
+            }
+            return null;
+        };
+
+        // Course code extraction
+        $courseCode = 'N/A';
+        if ($firstRecord) {
+            if (isset($firstRecord->course) && is_object($firstRecord->course)) {
+                $courseCode = $firstRecord->course->code ?? 'N/A';
+            } else {
+                $courseCode = $getProp($firstRecord, ['course', 'course_code', 'code']) ?? 'N/A';
+            }
+        }
+
+        // School year extraction
+        $schoolYear = 'N/A';
+        if ($firstRecord) {
+            if (isset($firstRecord->academicTerm) && is_object($firstRecord->academicTerm)) {
+                $schoolYear = $firstRecord->academicTerm->school_year ?? 'N/A';
+            } else {
+                $schoolYear = $getProp($firstRecord, ['schoolYear', 'school_year']) ?? 'N/A';
+            }
+        }
+
+        // Semester extraction
+        $semesterLabel = 'N/A';
+        if ($firstRecord) {
+            if (isset($firstRecord->academicTerm) && is_object($firstRecord->academicTerm)) {
+                $semesterLabel = $firstRecord->academicTerm->semester_short ?? ($firstRecord->academicTerm->semester ?? 'N/A');
+            } else {
+                $semesterLabel = $getProp($firstRecord, ['semester', 'semester_short']) ?? 'N/A';
+            }
+        }
+
+        $units = $firstRecord ? ($getProp($firstRecord, ['units']) ?? 'N/A') : 'N/A';
         
         // Helper to determine if a record is a payment
-        $isPayment = static fn ($record) => in_array(strtoupper(trim($record->ar_payment ?? '')), ['PAYMENT', 'P', 'PAYMENR', 'SETTLED', 'ADJUSTMENT', 'ADJ']);
+        $isPayment = static function ($record) use ($getProp) {
+            $rawType = $getProp($record, ['arPayment', 'entry_type', 'ar_payment']) ?? '';
+            $type = strtoupper(trim((string) $rawType));
+            return in_array($type, ['PAYMENT', 'P', 'PAYMENR', 'SETTLED', 'ADJUSTMENT', 'ADJ']);
+        };
         
         // Helper to format amount with sign
-        $formatAmount = static function ($record) use ($cleanAmount, $isPayment) {
-            $amount = $cleanAmount($record->amount ?? 0);
-            $type = strtoupper(trim($record->ar_payment ?? ''));
+        $formatAmount = static function ($record) use ($cleanAmount, $isPayment, $getProp) {
+            $amountVal = $getProp($record, ['amount']) ?? 0;
+            $amount = $cleanAmount($amountVal);
             
-            // If it's a payment, show with negative sign
             if ($isPayment($record)) {
                 return '-₱' . number_format($amount, 2);
             }
-            
-            // If it's an assessment (AR), show as positive
             return '₱' . number_format($amount, 2);
         };
         
@@ -209,7 +256,7 @@
         </div>
         <div class="meta-row">
             <span class="meta-cell label">Course:</span>
-            <span class="meta-cell value">{{ $normalizeText($firstRecord->course ?? 'N/A') }}</span>
+            <span class="meta-cell value">{{ $normalizeText($courseCode) }}</span>
             <span class="meta-cell label">Status:</span>
             <span class="meta-cell value right {{ $summary['outstandingBalance'] <= 0 ? 'text-success' : 'text-danger' }}">
                 {{ $summary['outstandingBalance'] <= 0 ? '✓ SETTLED' : 'OUTSTANDING' }}
@@ -217,14 +264,14 @@
         </div>
         <div class="meta-row">
             <span class="meta-cell label">School Year:</span>
-            <span class="meta-cell value">{{ $normalizeText($firstRecord->school_year ?? 'N/A') }}</span>
+            <span class="meta-cell value">{{ $normalizeText($schoolYear) }}</span>
             <span class="meta-cell label">Units:</span>
-            <span class="meta-cell value right">{{ $normalizeText($firstRecord->units ?? 'N/A') }}</span>
+            <span class="meta-cell value right">{{ $normalizeText($units) }}</span>
         </div>
-        @if($firstRecord && ($firstRecord->semester_short || $firstRecord->semester))
+        @if($semesterLabel !== 'N/A')
         <div class="meta-row">
             <span class="meta-cell label">Semester:</span>
-            <span class="meta-cell value">{{ $normalizeText($firstRecord->semester_short ?? $firstRecord->semester) }}</span>
+            <span class="meta-cell value">{{ $normalizeText($semesterLabel) }}</span>
             <span class="meta-cell label"></span>
             <span class="meta-cell value right"></span>
         </div>
@@ -246,11 +293,17 @@
         <tbody>
             @if($records->isNotEmpty())
                 @foreach($records as $r)
+                    @php
+                        $txDate = $getProp($r, ['transactionDate', 'transaction_date']);
+                        $refNo  = $getProp($r, ['referenceNo', 'reference_or_jev_number']) ?? '-';
+                        $part   = $getProp($r, ['particulars']) ?? '-';
+                        $rate   = $getProp($r, ['tuitionPerUnitOrFeePerSemester', 'tuition_per_unit_or_misc']) ?? 0;
+                    @endphp
                     <tr class="{{ $isPayment($r) ? 'payment-row' : '' }}">
-                        <td>{{ $normalizeText($r->transaction_date ? \Carbon\Carbon::parse($r->transaction_date)->format('m/d/Y') : '-') }}</td>
-                        <td>{{ $normalizeText($r->reference_or_jev_number ?? '-') }}</td>
-                        <td>{{ Str::limit($normalizeText($r->particulars ?? '-'), 35) }}</td>
-                        <td class="text-right">₱{{ number_format($cleanAmount($r->tuition_per_unit_or_misc ?? 0), 2) }}</td>
+                        <td>{{ $normalizeText($txDate ? \Carbon\Carbon::parse($txDate)->format('m/d/Y') : '-') }}</td>
+                        <td>{{ $normalizeText($refNo) }}</td>
+                        <td>{{ Str::limit($normalizeText($part), 35) }}</td>
+                        <td class="text-right">₱{{ number_format($cleanAmount($rate), 2) }}</td>
                         <td class="text-center">
                             {{ $isPayment($r) ? 'PAY' : 'AR' }}
                         </td>

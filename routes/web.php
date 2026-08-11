@@ -56,6 +56,7 @@ Route::middleware('auth')->group(function () {
         // Specific routes ABOVE wildcard routes
         Route::get('/print-select', [GraduateLedgerController::class, 'printSelect'])->name('print-select');
         Route::get('/pdf', [GraduateLedgerController::class, 'generatePdf'])->name('pdf');
+        Route::get('/export', [GraduateLedgerController::class, 'export'])->name('export');
         Route::get('/add', [GraduateLedgerController::class, 'create'])->name('create');
         Route::post('/', [GraduateLedgerController::class, 'store'])->name('store');
         Route::post('/import', [GraduateLedgerController::class, 'import'])->name('import');
