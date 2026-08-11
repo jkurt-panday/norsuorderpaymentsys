@@ -120,28 +120,36 @@ interface IndexProps {
 
 export default function Index({ records, filters, stats, filterOptions }: IndexProps) {
   const rows: LedgerRecord[] = records?.data ?? [];
-  const [searchQuery, setSearchQuery] = useState(filters?.search ?? '');
-  const [schoolYear, setSchoolYear] = useState(filters?.school_year ?? '');
-  const [semester, setSemester] = useState(filters?.semester ?? '');
-  const [course, setCourse] = useState(filters?.course ?? '');
-  const [dateFrom, setDateFrom] = useState(filters?.date_from ?? '');
-  const [dateTo, setDateTo] = useState(filters?.date_to ?? '');
   const importForm = useForm<{ file: File | null }>({ file: null });
 
+  // ── Single filter state object to avoid stale-closure bugs ────────────────
+  const [filterState, setFilterState] = useState({
+    search:      filters?.search      ?? '',
+    school_year: filters?.school_year ?? '',
+    semester:    filters?.semester    ?? '',
+    course:      filters?.course      ?? '',
+    date_from:   filters?.date_from   ?? '',
+    date_to:     filters?.date_to     ?? '',
+  });
+
+  // Convenience aliases for the template
+  const searchQuery = filterState.search;
+  const schoolYear  = filterState.school_year;
+  const semester    = filterState.semester;
+  const course      = filterState.course;
+  const dateFrom    = filterState.date_from;
+  const dateTo      = filterState.date_to;
+
+  /**
+   * Merge overrides into the current filter state, then immediately
+   * navigate — uses the merged object directly so there is no stale closure.
+   */
   const applyFilters = (overrides: Record<string, string> = {}) => {
+    const merged = { ...filterState, ...overrides };
+    setFilterState(merged);
+
     const params: Record<string, string> = {};
-
-    const current = {
-      search: searchQuery,
-      school_year: schoolYear,
-      semester: semester,
-      course: course,
-      date_from: dateFrom,
-      date_to: dateTo,
-      ...overrides,
-    };
-
-    Object.entries(current).forEach(([key, value]) => {
+    Object.entries(merged).forEach(([key, value]) => {
       if (value && value.trim()) {
         params[key] = value.trim();
       }
@@ -194,21 +202,23 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                   placeholder="Search name, course, or ref #..."
                   className="pl-8 h-9 bg-white border-[#CFE3FF] focus-visible:ring-[#0F6FFF]"
                   value={searchQuery}
-                  onChange={(e) => {
-                    const nextValue = e.target.value;
-                    setSearchQuery(nextValue);
-                    applyFilters({ search: nextValue });
-                  }}
+                  onChange={(e) =>
+                    setFilterState((prev) => ({ ...prev, search: e.target.value }))
+                  }
                 />
               </div>
 
+              <Button
+                type="submit"
+                size="sm"
+                className="h-9 bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white"
+              >
+                <Search className="h-4 w-4 mr-1.5" /> Search
+              </Button>
+
               <select
                 value={schoolYear}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setSchoolYear(v);
-                  applyFilters({ school_year: v });
-                }}
+                onChange={(e) => applyFilters({ school_year: e.target.value })}
                 className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
               >
                 <option value="">All School Years</option>
@@ -219,11 +229,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
 
               <select
                 value={semester}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setSemester(v);
-                  applyFilters({ semester: v });
-                }}
+                onChange={(e) => applyFilters({ semester: e.target.value })}
                 className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
               >
                 <option value="">All Semesters</option>
@@ -234,11 +240,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
 
               <select
                 value={course}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setCourse(v);
-                  applyFilters({ course: v });
-                }}
+                onChange={(e) => applyFilters({ course: e.target.value })}
                 className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
               >
                 <option value="">All Courses</option>
@@ -250,10 +252,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
               <input
                 type="date"
                 value={dateFrom}
-                onChange={(e) => {
-                  setDateFrom(e.target.value);
-                  applyFilters({ date_from: e.target.value });
-                }}
+                onChange={(e) => applyFilters({ date_from: e.target.value })}
                 className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
                 placeholder="Date from"
               />
@@ -261,10 +260,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
               <input
                 type="date"
                 value={dateTo}
-                onChange={(e) => {
-                  setDateTo(e.target.value);
-                  applyFilters({ date_to: e.target.value });
-                }}
+                onChange={(e) => applyFilters({ date_to: e.target.value })}
                 className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
                 placeholder="Date to"
               />
@@ -274,12 +270,14 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                 variant="outline"
                 className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
                 onClick={() => {
-                  setSearchQuery('');
-                  setSchoolYear('');
-                  setSemester('');
-                  setCourse('');
-                  setDateFrom('');
-                  setDateTo('');
+                  setFilterState({
+                    search: '',
+                    school_year: '',
+                    semester: '',
+                    course: '',
+                    date_from: '',
+                    date_to: '',
+                  });
                   router.get('/graduate-ledger');
                 }}
               >

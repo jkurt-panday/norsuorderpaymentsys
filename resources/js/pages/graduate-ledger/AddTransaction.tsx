@@ -1,6 +1,6 @@
-import { Head, useForm } from '@inertiajs/react';
-import { ArrowLeft, Plus, X } from 'lucide-react';
-import { useState } from 'react';
+import { Head, useForm, router } from '@inertiajs/react';
+import { ArrowLeft, Plus, X, Search, Check, ChevronsUpDown } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -10,35 +10,8 @@ import {
     CardDescription,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { router } from '@inertiajs/react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const courseOptions = [
-    'PhD Educational Management',
-    'PhD Mathematics Education',
-    'EdD Educational Management',
-    'EdD Instruction',
-    'EdD Science Education',
-    'EdD Filipino',
-    'EdD Technology Management',
-    'DM HRM',
-    'DM Public Administration',
-    'MBA',
-    'MPH',
-    'MA Education',
-    'MA English',
-    'MA Filipino',
-    'MA History',
-    'MA Psychology',
-    'MA Mathematics',
-    'MAECE',
-    'MS Agriculture',
-    'MSIT',
-    'MTE',
-    'MPM HRM',
-    'MPM LGA',
-];
 
 const semesterOptions = [
     { short: '1st Sem.', full: 'First Semester' },
@@ -76,22 +49,10 @@ interface AcademicTermOption {
 }
 
 interface Props {
-    /** New: structured student list */
     students: StudentOption[];
-    /** New: structured course list */
     courses: CourseOption[];
-    /** New: structured academic term list (empty when not yet migrated) */
     academicTerms: AcademicTermOption[];
     authUserName: string;
-    /** Legacy fallback — may be present when not yet migrated */
-    studentNames?: string[];
-}
-
-// ─── Field Error ──────────────────────────────────────────────────────────────
-
-function FieldError({ message }: { message?: string }) {
-    if (!message) return null;
-    return <p className="mt-1 text-xs text-red-500">{message}</p>;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -102,7 +63,106 @@ function formatStudentLabel(s: StudentOption): string {
     return `${s.last_name}, ${s.first_name}${mi}`;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+function FieldError({ message }: { message?: string }) {
+    if (!message) return null;
+    return <p className="mt-1 text-xs text-red-500">{message}</p>;
+}
+
+// ─── Searchable Student Select Component ──────────────────────────────────────
+
+function SearchableStudentSelect({
+    students,
+    value,
+    onChange,
+}: {
+    students: StudentOption[];
+    value: string | number;
+    onChange: (id: string | number) => void;
+}) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [search, setSearch] = useState('');
+
+    const selectedStudent = students.find(s => String(s.id) === String(value));
+
+    const filteredStudents = useMemo(() => {
+        const query = search.toLowerCase().trim();
+        if (!query) return students.slice(0, 80);
+        return students
+            .filter(s => {
+                const label = formatStudentLabel(s).toLowerCase();
+                return label.includes(query);
+            })
+            .slice(0, 80);
+    }, [students, search]);
+
+    return (
+        <div className="relative w-full">
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex items-center justify-between rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+            >
+                <span className={selectedStudent ? 'text-[#0B3D91] font-medium' : 'text-[#7FA6D6]'}>
+                    {selectedStudent ? formatStudentLabel(selectedStudent) : '-- Select / Search Student --'}
+                </span>
+                <ChevronsUpDown className="h-4 w-4 text-[#7FA6D6]" />
+            </button>
+
+            {isOpen && (
+                <div className="absolute z-50 mt-1 w-full rounded-md border border-[#CFE3FF] bg-white shadow-lg p-2 space-y-2">
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#8AA8CC]" />
+                        <Input
+                            type="text"
+                            placeholder="Type student name to filter list..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            className="pl-8 h-9 text-xs border-[#CFE3FF]"
+                            autoFocus
+                        />
+                        {search && (
+                            <button
+                                type="button"
+                                onClick={() => setSearch('')}
+                                className="absolute right-2.5 top-2.5 text-xs text-[#8AA8CC] hover:text-[#0B3D91]"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="max-h-60 overflow-y-auto divide-y divide-[#EAF2FF] rounded-md border border-[#EAF2FF]">
+                        {filteredStudents.length === 0 ? (
+                            <p className="p-3 text-center text-xs text-[#8AA8CC]">No students found.</p>
+                        ) : (
+                            filteredStudents.map(s => {
+                                const isSelected = String(s.id) === String(value);
+                                return (
+                                    <button
+                                        key={s.id}
+                                        type="button"
+                                        onClick={() => {
+                                            onChange(s.id);
+                                            setIsOpen(false);
+                                        }}
+                                        className={`w-full flex items-center justify-between px-3 py-2 text-xs text-left transition-colors hover:bg-[#F3F8FF] ${
+                                            isSelected ? 'bg-[#EAF2FF] font-semibold text-[#0B3D91]' : 'text-[#334E68]'
+                                        }`}
+                                    >
+                                        <span>{formatStudentLabel(s)}</span>
+                                        {isSelected && <Check className="h-3.5 w-3.5 text-[#0F6FFF]" />}
+                                    </button>
+                                );
+                            })
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Main Add Transaction Component ──────────────────────────────────────────
 
 export default function AddTransaction({ students, courses, academicTerms, authUserName }: Props) {
     const [showNewStudent, setShowNewStudent] = useState(false);
@@ -141,14 +201,12 @@ export default function AddTransaction({ students, courses, academicTerms, authU
         input_by:                 authUserName,
     });
 
-    // Auto-compute amount when entry_type is 'ar'
     const parsedUnits  = Number(data.units || 0);
     const parsedRate   = Number(data.tuition_per_unit_or_misc || 0);
     const computedAmt  = parsedUnits * parsedRate;
     const autoAmount   = data.entry_type === 'ar' && data.amount === '';
     const displayedAmt = autoAmount ? computedAmt.toFixed(2) : data.amount;
 
-    // Sync academic_term_id whenever school_year + semester_short change
     function syncTerm(sy: string, sem: string) {
         if (academicTerms.length > 0) {
             const match = academicTerms.find(
@@ -256,19 +314,11 @@ export default function AddTransaction({ students, courses, academicTerms, authU
                                         </div>
                                     </div>
                                 ) : (
-                                    <select
-                                        value={String(data.student_id)}
-                                        onChange={e => setData('student_id', e.target.value)}
-                                        className={selectClass}
-                                        required
-                                    >
-                                        <option value="">-- Select Student --</option>
-                                        {students.map(s => (
-                                            <option key={s.id} value={String(s.id)}>
-                                                {formatStudentLabel(s)}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <SearchableStudentSelect
+                                        students={students}
+                                        value={data.student_id}
+                                        onChange={id => setData('student_id', id)}
+                                    />
                                 )}
                                 <FieldError message={(errors as any).student_id || (errors as any).student_name} />
                             </div>

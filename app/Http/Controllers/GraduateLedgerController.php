@@ -50,13 +50,17 @@ class GraduateLedgerController extends Controller
             $query->with(['student', 'course', 'academicTerm']);
 
             if ($search) {
-                $query->where(function ($q) use ($search) {
+                $term = '%' . strtolower($search) . '%';
+                $query->where(function ($q) use ($term) {
                     $q->whereHas('student', fn ($sq) => $sq
-                        ->where('last_name', 'like', "%{$search}%")
-                        ->orWhere('first_name', 'like', "%{$search}%"))
+                        ->whereRaw('LOWER(last_name) LIKE ?', [$term])
+                        ->orWhereRaw('LOWER(first_name) LIKE ?', [$term])
+                        ->orWhereRaw('LOWER(raw_name_from_csv) LIKE ?', [$term])
+                        ->orWhereRaw("LOWER(CONCAT(last_name, ', ', first_name)) LIKE ?", [$term])
+                        ->orWhereRaw("LOWER(CONCAT(first_name, ' ', last_name)) LIKE ?", [$term]))
                       ->orWhereHas('course', fn ($sq) => $sq
-                        ->where('code', 'like', "%{$search}%"))
-                      ->orWhere('reference_or_jev_number', 'like', "%{$search}%");
+                        ->whereRaw('LOWER(code) LIKE ?', [$term]))
+                      ->orWhereRaw('LOWER(reference_or_jev_number) LIKE ?', [$term]);
                 });
             }
 
@@ -65,21 +69,24 @@ class GraduateLedgerController extends Controller
             }
 
             if ($semester) {
+                $semLower = strtolower($semester);
                 $query->whereHas('academicTerm', fn ($q) => $q
-                    ->where('semester_short', $semester)
-                    ->orWhere('semester', $semester));
+                    ->whereRaw('LOWER(semester_short) = ?', [$semLower])
+                    ->orWhereRaw('LOWER(semester) = ?', [$semLower]));
             }
 
             if ($course) {
-                $query->whereHas('course', fn ($q) => $q->where('code', $course));
+                $courseLower = strtolower($course);
+                $query->whereHas('course', fn ($q) => $q->whereRaw('LOWER(code) = ?', [$courseLower]));
             }
         } else {
             // Legacy string-column path
             if ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('student_name', 'like', "%{$search}%")
-                      ->orWhere('course', 'like', "%{$search}%")
-                      ->orWhere('reference_or_jev_number', 'like', "%{$search}%");
+                $term = '%' . strtolower($search) . '%';
+                $query->where(function ($q) use ($term) {
+                    $q->whereRaw('LOWER(student_name) LIKE ?', [$term])
+                      ->orWhereRaw('LOWER(course) LIKE ?', [$term])
+                      ->orWhereRaw('LOWER(reference_or_jev_number) LIKE ?', [$term]);
                 });
             }
 
@@ -88,13 +95,16 @@ class GraduateLedgerController extends Controller
             }
 
             if ($semester) {
-                $query->where(function ($q) use ($semester) {
-                    $q->where('semester_short', $semester)->orWhere('semester', $semester);
+                $semLower = strtolower($semester);
+                $query->where(function ($q) use ($semLower) {
+                    $q->whereRaw('LOWER(semester_short) = ?', [$semLower])
+                      ->orWhereRaw('LOWER(semester) = ?', [$semLower]);
                 });
             }
 
             if ($course) {
-                $query->where('course', $course);
+                $courseLower = strtolower($course);
+                $query->whereRaw('LOWER(course) = ?', [$courseLower]);
             }
         }
 
@@ -379,44 +389,66 @@ class GraduateLedgerController extends Controller
 
         $uploadedFile = $request->file('file');
         $extension    = strtolower($uploadedFile->getClientOriginalExtension());
-
-        $imported   = 0;
-        $skipped    = 0;
-        $insertData = [];
-        $now        = now();
-
-        // Pre-build lookup maps for normalized mode to avoid N+1 per row
-        $studentMap  = [];
-        $courseMap   = [];
-        $termMap     = [];
+        $imported     = 0;
+        $skipped      = 0;
+        $now          = now();
 
         if ($extension === 'csv') {
-            $path   = $uploadedFile->getRealPath();
-            $handle = fopen($path, 'r');
-            if (!$handle) {
-                return redirect()->route('graduate-ledger.index')
-                    ->with('error', 'Could not open the uploaded CSV file.');
-            }
-
-            fgetcsv($handle); // skip header
-
-            $rawRows = [];
-            while (($row = fgetcsv($handle)) !== false) {
-                $rawRows[] = $row;
-            }
-            fclose($handle);
-        } else {
-            HeadingRowFormatter::default('none');
-            $rows    = Excel::toCollection(null, $uploadedFile)->first() ?? collect();
-            $rawRows = $rows->slice(1)->map(fn ($r) => $r->values()->all())->all();
+            return $this->importCsv($uploadedFile->getRealPath(), $imported, $skipped, $now);
         }
 
-        if ($this->isNormalized) {
-            // Build in-memory lookup maps (one pass)
-            [$studentMap, $courseMap, $termMap] = $this->buildImportLookupMaps($rawRows);
+        return $this->importExcel($uploadedFile, $imported, $skipped, $now);
+    }
+
+    /**
+     * Memory-efficient two-pass CSV importer.
+     * Pass 1: stream once to collect distinct students/courses/terms, then bulk-resolve lookup maps.
+     * Pass 2: stream again row-by-row, map to FK IDs, bulk insert in 1000-row chunks.
+     */
+    private function importCsv(string $path, int &$imported, int &$skipped, $now): RedirectResponse
+    {
+        // Pass 1: collect distinct values without holding rows in memory
+        $handle = fopen($path, 'r');
+        if (!$handle) {
+            return redirect()->route('graduate-ledger.index')
+                ->with('error', 'Could not open the uploaded CSV file.');
         }
 
-        foreach ($rawRows as $row) {
+        fgetcsv($handle); // skip header
+
+        $distinctStudents = [];
+        $distinctCourses  = [];
+        $distinctTerms    = [];
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $name = trim(str_replace(['\u{2212}', '\u{2013}', '\u{2014}'], '-', (string) ($row[0] ?? '')));
+            if ($name !== '') {
+                $distinctStudents[$name] = true;
+            }
+            $code = trim((string) ($row[1] ?? ''));
+            if ($code !== '') {
+                $distinctCourses[$code] = true;
+            }
+            $sy  = trim((string) ($row[2] ?? ''));
+            $sem = trim((string) ($row[3] ?? ''));
+            if ($sy !== '' && $sem !== '') {
+                $distinctTerms["{$sy}|||{$sem}"] = ['school_year' => $sy, 'semester_short' => $sem];
+            }
+        }
+        fclose($handle);
+
+        // Resolve lookup maps from the distinct sets
+        [$studentMap, $courseMap, $termMap] = $this->isNormalized
+            ? $this->buildImportLookupMaps($distinctStudents, $distinctCourses, $distinctTerms, $now)
+            : [[], [], []];
+
+        // Pass 2: stream rows again, map to insert array, chunk-insert
+        $handle = fopen($path, 'r');
+        fgetcsv($handle); // skip header
+
+        $insertData = [];
+
+        while (($row = fgetcsv($handle)) !== false) {
             $data = $this->isNormalized
                 ? $this->mapImportRowNormalized($row, $studentMap, $courseMap, $termMap)
                 : $this->mapImportRow($row);
@@ -434,7 +466,91 @@ class GraduateLedgerController extends Controller
                 DB::transaction(function () use ($insertData) {
                     GraduateLedger::insert($insertData);
                 });
-                $imported += count($insertData);
+                $imported  += count($insertData);
+                $insertData = [];
+            }
+        }
+
+        if (!empty($insertData)) {
+            DB::transaction(function () use ($insertData) {
+                GraduateLedger::insert($insertData);
+            });
+            $imported += count($insertData);
+        }
+        fclose($handle);
+
+        return redirect()->route('graduate-ledger.index')
+            ->with('success', "Import complete: {$imported} records imported, {$skipped} blank rows skipped.");
+    }
+
+    /**
+     * Excel importer (xlsx/xls). Uses two passes over the in-memory collection.
+     */
+    private function importExcel($uploadedFile, int &$imported, int &$skipped, $now): RedirectResponse
+    {
+        HeadingRowFormatter::default('none');
+        $rows = Excel::toCollection(null, $uploadedFile)->first() ?? collect();
+
+        if ($rows->isEmpty()) {
+            return redirect()->route('graduate-ledger.index')
+                ->with('success', 'No rows found in the uploaded file.');
+        }
+
+        $dataRows = $rows->slice(1);
+
+        $studentMap = [];
+        $courseMap  = [];
+        $termMap    = [];
+
+        if ($this->isNormalized) {
+            $distinctStudents = [];
+            $distinctCourses  = [];
+            $distinctTerms    = [];
+
+            foreach ($dataRows as $rowObj) {
+                $row  = $rowObj->values()->all();
+                $name = trim(str_replace(['\u{2212}', '\u{2013}', '\u{2014}'], '-', (string) ($row[0] ?? '')));
+                if ($name !== '') {
+                    $distinctStudents[$name] = true;
+                }
+                $code = trim((string) ($row[1] ?? ''));
+                if ($code !== '') {
+                    $distinctCourses[$code] = true;
+                }
+                $sy  = trim((string) ($row[2] ?? ''));
+                $sem = trim((string) ($row[3] ?? ''));
+                if ($sy !== '' && $sem !== '') {
+                    $distinctTerms["{$sy}|||{$sem}"] = ['school_year' => $sy, 'semester_short' => $sem];
+                }
+            }
+
+            [$studentMap, $courseMap, $termMap] = $this->buildImportLookupMaps(
+                $distinctStudents, $distinctCourses, $distinctTerms, $now
+            );
+        }
+
+        $insertData = [];
+
+        foreach ($dataRows as $rowObj) {
+            $row  = $rowObj->values()->all();
+            $data = $this->isNormalized
+                ? $this->mapImportRowNormalized($row, $studentMap, $courseMap, $termMap)
+                : $this->mapImportRow($row);
+
+            if ($data === null) {
+                $skipped++;
+                continue;
+            }
+
+            $data['created_at'] = $now;
+            $data['updated_at'] = $now;
+            $insertData[]       = $data;
+
+            if (count($insertData) >= 1000) {
+                DB::transaction(function () use ($insertData) {
+                    GraduateLedger::insert($insertData);
+                });
+                $imported  += count($insertData);
                 $insertData = [];
             }
         }
@@ -704,60 +820,82 @@ class GraduateLedgerController extends Controller
     }
 
     /**
-     * Pre-build student/course/term lookup maps from raw import rows.
-     * This avoids one DB query per row on large imports.
+     * Pre-build student/course/term lookup maps from pre-collected distinct value arrays.
+     * Accepts the already-collected distinct names/codes/terms to avoid re-iterating raw rows.
      */
-    private function buildImportLookupMaps(array $rawRows): array
-    {
-        $distinctStudents = [];
-        $distinctCourses  = [];
-        $distinctTerms    = [];
-
-        foreach ($rawRows as $row) {
-            $name = trim(str_replace(['−', '–', '—'], '-', (string) ($row[0] ?? '')));
-            if ($name !== '') {
-                $distinctStudents[$name] = true;
-            }
-            $code = trim((string) ($row[1] ?? ''));
-            if ($code !== '') {
-                $distinctCourses[$code] = true;
-            }
-            $sy  = trim((string) ($row[2] ?? ''));
-            $sem = trim((string) ($row[3] ?? ''));
-            if ($sy !== '' && $sem !== '') {
-                $distinctTerms["{$sy}|||{$sem}"] = ['school_year' => $sy, 'semester_short' => $sem];
-            }
-        }
-
-        // Bulk resolve students
-        $studentMap = [];
+    private function buildImportLookupMaps(
+        array $distinctStudents,
+        array $distinctCourses,
+        array $distinctTerms,
+        $now
+    ): array {
+        // 1. Bulk resolve students (2 queries total instead of N+1)
+        $studentMap  = Student::pluck('id', 'raw_name_from_csv')->toArray();
+        $newStudents = [];
         foreach (array_keys($distinctStudents) as $rawName) {
-            $parsed  = Student::parseRawName($rawName);
-            $student = Student::firstOrCreate(
-                ['raw_name_from_csv' => $rawName],
-                $parsed
-            );
-            $studentMap[$rawName] = $student->id;
+            if (!isset($studentMap[$rawName])) {
+                $parsed        = Student::parseRawName($rawName);
+                $newStudents[] = array_merge($parsed, [
+                    'raw_name_from_csv' => $rawName,
+                    'created_at'        => $now,
+                    'updated_at'        => $now,
+                ]);
+            }
+        }
+        if (!empty($newStudents)) {
+            foreach (array_chunk($newStudents, 500) as $chunk) {
+                Student::insert($chunk);
+            }
+            $studentMap = Student::pluck('id', 'raw_name_from_csv')->toArray();
         }
 
-        // Bulk resolve courses
-        $courseMap = [];
+        // 2. Bulk resolve courses (2 queries total instead of N+1)
+        $courseMap  = Course::pluck('id', 'code')->toArray();
+        $newCourses = [];
         foreach (array_keys($distinctCourses) as $code) {
-            $course = Course::firstOrCreate(['code' => $code]);
-            $courseMap[$code] = $course->id;
+            if (!isset($courseMap[$code])) {
+                $newCourses[] = [
+                    'code'       => $code,
+                    'title'      => null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+        }
+        if (!empty($newCourses)) {
+            foreach (array_chunk($newCourses, 500) as $chunk) {
+                Course::insert($chunk);
+            }
+            $courseMap = Course::pluck('id', 'code')->toArray();
         }
 
-        // Bulk resolve terms
-        $termMap = [];
+        // 3. Bulk resolve terms (2 queries total instead of N+1)
+        $termsInDb = AcademicTerm::get(['id', 'school_year', 'semester_short'])->toArray();
+        $termMap   = [];
+        foreach ($termsInDb as $t) {
+            $termMap["{$t['school_year']}|||{$t['semester_short']}"] = $t['id'];
+        }
+
+        $newTerms = [];
         foreach ($distinctTerms as $key => $pair) {
-            $term = AcademicTerm::firstOrCreate(
-                ['school_year' => $pair['school_year'], 'semester_short' => $pair['semester_short']],
-                [
-                    'semester'   => AcademicTerm::semesterLabel($pair['semester_short']),
-                    'sort_order' => AcademicTerm::sortOrder($pair['semester_short']),
-                ]
-            );
-            $termMap[$key] = $term->id;
+            if (!isset($termMap[$key])) {
+                $newTerms[] = [
+                    'school_year'    => $pair['school_year'],
+                    'semester_short' => $pair['semester_short'],
+                    'semester'       => AcademicTerm::semesterLabel($pair['semester_short']),
+                    'sort_order'     => AcademicTerm::sortOrder($pair['semester_short']),
+                    'created_at'     => $now,
+                    'updated_at'     => $now,
+                ];
+            }
+        }
+        if (!empty($newTerms)) {
+            AcademicTerm::insert($newTerms);
+            $termsInDb = AcademicTerm::get(['id', 'school_year', 'semester_short'])->toArray();
+            $termMap   = [];
+            foreach ($termsInDb as $t) {
+                $termMap["{$t['school_year']}|||{$t['semester_short']}"] = $t['id'];
+            }
         }
 
         return [$studentMap, $courseMap, $termMap];

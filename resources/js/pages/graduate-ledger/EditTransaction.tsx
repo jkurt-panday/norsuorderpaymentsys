@@ -1,5 +1,6 @@
 import { Head, useForm, router } from '@inertiajs/react';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { ArrowLeft, Trash2, Search, Check, ChevronsUpDown, X } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -90,7 +91,101 @@ function FieldError({ message }: { message?: string }) {
     return <p className="mt-1 text-xs text-red-500">{message}</p>;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Searchable Student Select Component ──────────────────────────────────────
+
+function SearchableStudentSelect({
+    students,
+    value,
+    onChange,
+}: {
+    students: StudentOption[];
+    value: string | number;
+    onChange: (id: string | number) => void;
+}) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [search, setSearch] = useState('');
+
+    const selectedStudent = students.find(s => String(s.id) === String(value));
+
+    const filteredStudents = useMemo(() => {
+        const query = search.toLowerCase().trim();
+        if (!query) return students.slice(0, 80);
+        return students
+            .filter(s => {
+                const label = formatStudentLabel(s).toLowerCase();
+                return label.includes(query);
+            })
+            .slice(0, 80);
+    }, [students, search]);
+
+    return (
+        <div className="relative w-full">
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex items-center justify-between rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+            >
+                <span className={selectedStudent ? 'text-[#0B3D91] font-medium' : 'text-[#7FA6D6]'}>
+                    {selectedStudent ? formatStudentLabel(selectedStudent) : '-- Select / Search Student --'}
+                </span>
+                <ChevronsUpDown className="h-4 w-4 text-[#7FA6D6]" />
+            </button>
+
+            {isOpen && (
+                <div className="absolute z-50 mt-1 w-full rounded-md border border-[#CFE3FF] bg-white shadow-lg p-2 space-y-2">
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#8AA8CC]" />
+                        <Input
+                            type="text"
+                            placeholder="Type student name to filter list..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            className="pl-8 h-9 text-xs border-[#CFE3FF]"
+                            autoFocus
+                        />
+                        {search && (
+                            <button
+                                type="button"
+                                onClick={() => setSearch('')}
+                                className="absolute right-2.5 top-2.5 text-xs text-[#8AA8CC] hover:text-[#0B3D91]"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="max-h-60 overflow-y-auto divide-y divide-[#EAF2FF] rounded-md border border-[#EAF2FF]">
+                        {filteredStudents.length === 0 ? (
+                            <p className="p-3 text-center text-xs text-[#8AA8CC]">No students found.</p>
+                        ) : (
+                            filteredStudents.map(s => {
+                                const isSelected = String(s.id) === String(value);
+                                return (
+                                    <button
+                                        key={s.id}
+                                        type="button"
+                                        onClick={() => {
+                                            onChange(s.id);
+                                            setIsOpen(false);
+                                        }}
+                                        className={`w-full flex items-center justify-between px-3 py-2 text-xs text-left transition-colors hover:bg-[#F3F8FF] ${
+                                            isSelected ? 'bg-[#EAF2FF] font-semibold text-[#0B3D91]' : 'text-[#334E68]'
+                                        }`}
+                                    >
+                                        <span>{formatStudentLabel(s)}</span>
+                                        {isSelected && <Check className="h-3.5 w-3.5 text-[#0F6FFF]" />}
+                                    </button>
+                                );
+                            })
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Main Edit Transaction Component ─────────────────────────────────────────
 
 export default function EditTransaction({
     record,
@@ -127,15 +222,13 @@ export default function EditTransaction({
     const parsedUnits = Number(data.units || 0);
     const parsedRate = Number(data.tuition_per_unit_or_misc || 0);
     const computedAmount = parsedUnits * parsedRate;
-    
-    // Auto compute logic
+
     const isAR = isNormalized ? data.entry_type === 'ar' : data.ar_payment === 'AR';
     const shouldAutoComputeAmount = isAR && data.amount === '';
     const displayedAmount = shouldAutoComputeAmount
         ? computedAmount.toFixed(2)
         : data.amount;
 
-    // Sync academic term helper
     function syncTerm(sy: string, sem: string) {
         if (academicTerms.length > 0) {
             const match = academicTerms.find(
@@ -232,23 +325,15 @@ export default function EditTransaction({
                         >
                             {/* Student Picker */}
                             <div className="md:col-span-2">
-                                <label className="text-sm text-[#334E68]">
+                                <label className="text-sm text-[#334E68] mb-1 block">
                                     Student
                                 </label>
                                 {isNormalized ? (
-                                    <select
-                                        value={String(data.student_id)}
-                                        onChange={(e) => setData('student_id', e.target.value)}
-                                        className={selectClass}
-                                        required
-                                    >
-                                        <option value="">-- Select Student --</option>
-                                        {students.map(s => (
-                                            <option key={s.id} value={String(s.id)}>
-                                                {formatStudentLabel(s)}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <SearchableStudentSelect
+                                        students={students}
+                                        value={data.student_id}
+                                        onChange={id => setData('student_id', id)}
+                                    />
                                 ) : (
                                     <Input
                                         value={data.student_name}

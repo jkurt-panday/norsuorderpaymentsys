@@ -22,6 +22,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['last_name', 'first_name']);
+            $table->index('raw_name_from_csv');
         });
 
         // 2. Create graduate_course table
@@ -44,12 +45,17 @@ return new class extends Migration
             $table->unique(['school_year', 'semester_short']);
         });
 
-        // 4. Add nullable foreign keys & entry_type to graduate_ledgers
+        // 4. Add nullable foreign keys, entry_type & performance indexes to graduate_ledgers
         Schema::table('graduate_ledgers', function (Blueprint $table) {
             $table->foreignId('student_id')->nullable()->after('id')->constrained('graduate_student')->cascadeOnDelete();
             $table->foreignId('course_id')->nullable()->after('student_id')->constrained('graduate_course')->nullOnDelete();
             $table->foreignId('academic_term_id')->nullable()->after('course_id')->constrained('graduate_academic_term')->nullOnDelete();
             $table->enum('entry_type', ['ar', 'payment', 'adjustment'])->nullable()->after('particulars');
+
+            $table->index('transaction_date');
+            $table->index('reference_or_jev_number');
+            $table->index('entry_type');
+            $table->index(['student_id', 'entry_type']);
         });
     }
 
