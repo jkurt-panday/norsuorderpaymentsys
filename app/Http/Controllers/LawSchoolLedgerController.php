@@ -219,33 +219,103 @@ class LawSchoolLedgerController extends Controller
     public function import(Request $request): RedirectResponse
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,csv,xls'],
+            'file' => [
+                'required',
+                'file',
+                function ($attribute, $value, $fail) {
+                    $extension = strtolower($value->getClientOriginalExtension());
+                    if (!in_array($extension, ['csv', 'xlsx', 'xls'])) {
+                        $fail('The file must be a file of type: csv, xlsx, xls.');
+                    }
+                }
+            ],
         ]);
 
-        HeadingRowFormatter::default('slug');
+        set_time_limit(300);
+        ini_set('memory_limit', '512M');
 
         $uploadedFile = $request->file('file');
-        $rows = Excel::toCollection(null, $uploadedFile)->first() ?? collect();
+        $extension = strtolower($uploadedFile->getClientOriginalExtension());
 
-        if ($rows->isEmpty()) {
-            return redirect()->route('law-ledger.index')->with('success', 'No rows found in the uploaded file.');
+        $imported = 0;
+        $skipped  = 0;
+        $insertData = [];
+        $now = now();
+
+        if ($extension === 'csv') {
+            $path = $uploadedFile->getRealPath();
+            $handle = fopen($path, 'r');
+            if (!$handle) {
+                return redirect()->route('law-ledger.index')
+                    ->with('error', 'Could not open the uploaded CSV file.');
+            }
+
+            fgetcsv($handle);
+
+            while (($row = fgetcsv($handle)) !== false) {
+                $data = $this->mapImportRow($row);
+
+                if ($data === null) {
+                    $skipped++;
+                    continue;
+                }
+
+                $data['created_at'] = $now;
+                $data['updated_at'] = $now;
+                $insertData[] = $data;
+
+                if (count($insertData) >= 1000) {
+                    DB::transaction(function () use ($insertData) {
+                        LawSchoolLedger::insert($insertData);
+                    });
+                    $imported += count($insertData);
+                    $insertData = [];
+                }
+            }
+
+            if (!empty($insertData)) {
+                DB::transaction(function () use ($insertData) {
+                    LawSchoolLedger::insert($insertData);
+                });
+                $imported += count($insertData);
+            }
+
+            fclose($handle);
+        } else {
+            HeadingRowFormatter::default('none');
+            $rows = Excel::toCollection(null, $uploadedFile)->first() ?? collect();
+
+            if ($rows->isEmpty()) {
+                return redirect()->route('law-ledger.index')
+                    ->with('success', 'No rows found in the uploaded file.');
+            }
+
+            $rows->slice(1)->each(function ($row) use (&$insertData, &$skipped, $now) {
+                $r = $row->values()->all();
+                $data = $this->mapImportRow($r);
+
+                if ($data === null) {
+                    $skipped++;
+                    return;
+                }
+
+                $data['created_at'] = $now;
+                $data['updated_at'] = $now;
+                $insertData[] = $data;
+            });
+
+            if (!empty($insertData)) {
+                DB::transaction(function () use ($insertData, &$imported) {
+                    foreach (array_chunk($insertData, 1000) as $chunk) {
+                        LawSchoolLedger::insert($chunk);
+                        $imported += count($chunk);
+                    }
+                });
+            }
         }
 
-        $headers = collect($rows->first())->map(fn ($header) => Str::slug((string) $header, '_'))->all();
-
-        $rows->slice(1)->each(function ($row) use ($headers) {
-            $rowData = collect($row)->mapWithKeys(function ($value, $index) use ($headers) {
-                return [$headers[$index] ?? 'column_'.$index => $value];
-            })->all();
-
-            $data = $this->mapImportRow($rowData);
-
-            if ($data !== null) {
-                LawSchoolLedger::create($data);
-            }
-        });
-
-        return redirect()->route('law-ledger.index')->with('success', 'Import completed successfully.');
+        return redirect()->route('law-ledger.index')
+            ->with('success', "Import complete: {$imported} records imported, {$skipped} blank rows skipped.");
     }
 
     /**
