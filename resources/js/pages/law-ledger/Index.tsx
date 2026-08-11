@@ -225,36 +225,64 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
             <p className="text-sm text-[#5C7A9E] mt-0.5">Tuition, fees, and payment transactions for law school students.</p>
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <label className="inline-flex cursor-pointer items-center rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm font-medium text-[#0B3D91] hover:bg-[#F3F8FF] transition-colors">
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0] ?? null;
-                  importForm.setData('file', file);
+           <div className="flex flex-wrap items-center justify-end gap-2">
+             <label className="inline-flex cursor-pointer items-center rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm font-medium text-[#0B3D91] hover:bg-[#F3F8FF] transition-colors">
+               <input
+                 type="file"
+                 accept=".csv,.xlsx,.xls"
+                 className="hidden"
+                 onChange={(e) => {
+                   const file = e.target.files?.[0] ?? null;
+                   importForm.setData('file', file);
 
-                  if (file) {
-                    importForm.post('/law-ledger/import', {
-                      forceFormData: true,
-                      preserveScroll: true,
-                      onSuccess: () => {
-                        importForm.reset('file');
-                        e.currentTarget.value = '';
-                      },
-                    });
-                  }
-                }}
-              />
-              Import Excel/CSV
-            </label>
+                   if (file) {
+                     importForm.post('/law-ledger/import', {
+                       forceFormData: true,
+                       preserveScroll: true,
+                       onSuccess: () => {
+                         importForm.reset('file');
+                         e.currentTarget.value = '';
+                       },
+                     });
+                   }
+                 }}
+               />
+               Import Excel/CSV
+             </label>
 
-            <Button className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white" onClick={() => router.get('/law-ledger/new-transaction')}>
-              <PlusCircle className="h-4 w-4 mr-1.5" />
-              New Transaction
-            </Button>
-          </div>
+             <Button
+               variant="outline"
+               className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
+               onClick={() => {
+                 const params = new URLSearchParams();
+                 const current = {
+                   search: searchQuery,
+                   school_year: schoolYear,
+                   semester_or_summer: semester,
+                   course: course,
+                   status: status,
+                   ar_or_payment: type,
+                   date_from: dateFrom,
+                   date_to: dateTo,
+                 };
+
+                 Object.entries(current).forEach(([key, value]) => {
+                   if (value && value.trim()) {
+                     params.append(key, value.trim());
+                   }
+                 });
+
+                 window.open(`/law-ledger/export?${params.toString()}`, '_blank');
+               }}
+             >
+               Export Excel/CSV
+             </Button>
+
+             <Button className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white" onClick={() => router.get('/law-ledger/new-transaction')}>
+               <PlusCircle className="h-4 w-4 mr-1.5" />
+               New Transaction
+             </Button>
+           </div>
         </div>
 
         {/* Metrics Row */}
