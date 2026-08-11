@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -250,10 +251,21 @@ class LawSchoolLedgerController extends Controller
                     ->with('error', 'Could not open the uploaded CSV file.');
             }
 
-            fgetcsv($handle);
+            $headers = fgetcsv($handle);
+            if ($headers === false) {
+                fclose($handle);
+                return redirect()->route('law-ledger.index')
+                    ->with('error', 'Could not read the CSV header row.');
+            }
 
             while (($row = fgetcsv($handle)) !== false) {
-                $data = $this->mapImportRow($row);
+                $rowData = array_combine($headers, array_slice($row, 0, count($headers)));
+                if ($rowData === false) {
+                    $skipped++;
+                    continue;
+                }
+
+                $data = $this->mapImportRow($rowData);
 
                 if ($data === null) {
                     $skipped++;
@@ -265,19 +277,41 @@ class LawSchoolLedgerController extends Controller
                 $insertData[] = $data;
 
                 if (count($insertData) >= 1000) {
-                    DB::transaction(function () use ($insertData) {
-                        LawSchoolLedger::insert($insertData);
-                    });
-                    $imported += count($insertData);
+                    try {
+                        DB::transaction(function () use ($insertData) {
+                            LawSchoolLedger::insert($insertData);
+                        });
+                        $imported += count($insertData);
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::error('Law Ledger CSV import batch failed', [
+                            'message' => $e->getMessage(),
+                            'trace' => $e->getTraceAsString(),
+                            'batch_size' => count($insertData),
+                        ]);
+
+                        return redirect()->route('law-ledger.index')
+                            ->with('error', 'Import failed: '.$e->getMessage());
+                    }
                     $insertData = [];
                 }
             }
 
             if (!empty($insertData)) {
-                DB::transaction(function () use ($insertData) {
-                    LawSchoolLedger::insert($insertData);
-                });
-                $imported += count($insertData);
+                try {
+                    DB::transaction(function () use ($insertData) {
+                        LawSchoolLedger::insert($insertData);
+                    });
+                    $imported += count($insertData);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error('Law Ledger CSV import final batch failed', [
+                        'message' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                        'batch_size' => count($insertData),
+                    ]);
+
+                    return redirect()->route('law-ledger.index')
+                        ->with('error', 'Import failed: '.$e->getMessage());
+                }
             }
 
             fclose($handle);
@@ -290,9 +324,16 @@ class LawSchoolLedgerController extends Controller
                     ->with('success', 'No rows found in the uploaded file.');
             }
 
-            $rows->slice(1)->each(function ($row) use (&$insertData, &$skipped, $now) {
-                $r = $row->values()->all();
-                $data = $this->mapImportRow($r);
+            $headers = $rows->first()?->values()->all() ?? [];
+            $rows->slice(1)->each(function ($row) use ($headers, &$insertData, &$skipped, $now) {
+                $values = $row->values()->all();
+                $rowData = array_combine($headers, array_slice($values, 0, count($headers)));
+                if ($rowData === false) {
+                    $skipped++;
+                    return;
+                }
+
+                $data = $this->mapImportRow($rowData);
 
                 if ($data === null) {
                     $skipped++;
@@ -305,12 +346,23 @@ class LawSchoolLedgerController extends Controller
             });
 
             if (!empty($insertData)) {
-                DB::transaction(function () use ($insertData, &$imported) {
-                    foreach (array_chunk($insertData, 1000) as $chunk) {
-                        LawSchoolLedger::insert($chunk);
-                        $imported += count($chunk);
-                    }
-                });
+                try {
+                    DB::transaction(function () use ($insertData, &$imported) {
+                        foreach (array_chunk($insertData, 1000) as $chunk) {
+                            LawSchoolLedger::insert($chunk);
+                            $imported += count($chunk);
+                        }
+                    });
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error('Law Ledger Excel import failed', [
+                        'message' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                        'total_rows' => count($insertData),
+                    ]);
+
+                    return redirect()->route('law-ledger.index')
+                        ->with('error', 'Import failed: '.$e->getMessage());
+                }
             }
         }
 
