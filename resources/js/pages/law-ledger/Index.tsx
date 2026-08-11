@@ -12,7 +12,7 @@ import {
   XCircle,
   Filter,
 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -161,6 +161,13 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const [dateFrom, setDateFrom] = useState(filters?.date_from ?? '');
   const [dateTo, setDateTo] = useState(filters?.date_to ?? '');
   const importForm = useForm<{ file: File | null }>({ file: null });
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   const applyFilters = (overrides: Record<string, string> = {}) => {
     const params: Record<string, string> = {};
@@ -421,7 +428,10 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                     onChange={(e) => {
                       const nextValue = e.target.value;
                       setSearchQuery(nextValue);
-                      applyFilters({ search: nextValue });
+                      if (debounceRef.current) clearTimeout(debounceRef.current);
+                      debounceRef.current = setTimeout(() => {
+                        applyFilters({ search: nextValue });
+                      }, 300);
                     }}
                   />
                 </div>
