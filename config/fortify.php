@@ -162,7 +162,7 @@ return [
 
     'features' => [
         //
-        // Features::registration(),
+        Features::registration(),
         //
         Features::resetPasswords(),
         //

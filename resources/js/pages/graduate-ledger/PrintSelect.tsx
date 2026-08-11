@@ -11,20 +11,24 @@ import {
     CardDescription,
 } from '@/components/ui/card';
 
+interface StudentItem {
+    id: string | number;
+    full_name: string;
+}
+
 interface Props {
-    students: string[];
-    selectedStudent: string | null;
+    students: StudentItem[];
+    selectedStudent: string | number | null;
     records: {
         id: number;
-        student_name: string;
+        name: string;
         course: string | null;
-        school_year: string | null;
-        semester_short: string | null;
+        schoolYear: string | null;
         semester: string | null;
-        transaction_date: string | null;
-        reference_or_jev_number: string | null;
+        transactionDate: string | null;
+        referenceNo: string | null;
         particulars: string | null;
-        ar_payment: string | null;
+        arPayment: string | null;
         amount: number | string | null;
     }[];
     summary: {
@@ -68,39 +72,52 @@ function formatTransactionDate(value?: string | null) {
 }
 
 export default function PrintSelect({
-    students,
+    students = [],
     selectedStudent,
     records = [],
     summary,
 }: Props) {
-    const [selected, setSelected] = useState(selectedStudent || '');
+    const [selected, setSelected] = useState<string | number>(selectedStudent || '');
     const [search, setSearch] = useState('');
+
+    const isNumericId = typeof selected === 'number' || (typeof selected === 'string' && /^\d+$/.test(selected));
 
     const filteredStudents = useMemo(() => {
         const term = search.trim().toLowerCase();
         if (!term) {
             return students;
         }
-        return students.filter((name) => name.toLowerCase().includes(term));
+        return students.filter((s) => s.full_name.toLowerCase().includes(term));
     }, [students, search]);
 
-    const handleSelect = (name: string) => {
-        setSelected(name);
+    const handleSelect = (idOrName: string | number) => {
+        setSelected(idOrName);
+        
+        const params: Record<string, any> = {};
+        if (typeof idOrName === 'number' || /^\d+$/.test(String(idOrName))) {
+            params.student_id = idOrName;
+        } else {
+            params.student = idOrName;
+        }
+
         router.get(
             '/graduate-ledger/print-select',
-            { student: name },
+            params,
             { preserveState: true },
         );
     };
 
     const handleStudentSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        handleSelect(e.target.value);
+        const val = e.target.value;
+        const numVal = Number(val);
+        handleSelect(isNaN(numVal) || !val ? val : numVal);
     };
 
     const handleOpenPdf = () => {
         if (!selected) return;
+        const queryKey = isNumericId ? 'student_id' : 'student';
         window.open(
-            `/graduate-ledger/pdf?student=${encodeURIComponent(selected)}`,
+            `/graduate-ledger/pdf?${queryKey}=${encodeURIComponent(selected)}`,
             '_blank',
         );
     };
@@ -127,243 +144,211 @@ export default function PrintSelect({
                             </h1>
                         </div>
                         <p className="mt-1 text-sm text-[#5C7A9E]">
-                            Select a graduate student to review their
-                            transaction breakdown and print a formal SOA PDF.
+                            Select a graduate student to review their transaction breakdown and print a formal SOA PDF.
                         </p>
                     </div>
                 </div>
 
-                {/* Selection Card with Searchable Combobox */}
-                <Card className="overflow-visible border-[#CFE3FF] bg-white">
-                    <CardHeader>
-                        <CardTitle className="text-base text-[#0B3D91]">
-                            Select Graduate Student
-                        </CardTitle>
-                        <CardDescription className="text-[#7FA6D6]">
-                            Type to search — {students.length} student
-                            {students.length === 1 ? '' : 's'} on record.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-3">
-                            {/* Search box */}
-                            <div className="relative w-full sm:w-2/3">
-                                <Search className="absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-[#7FA6D6]" />
-                                <input
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                    {/* Left: Interactive List Search */}
+                    <Card className="border-[#CFE3FF] bg-white md:col-span-1">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-semibold text-[#0B3D91]">
+                                Search Student
+                            </CardTitle>
+                            <CardDescription className="text-xs text-[#7FA6D6]">
+                                Click a name to preview records
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="relative">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#8AA8CC]" />
+                                <Input
                                     type="text"
+                                    placeholder="Type to filter list..."
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
-                                    placeholder="Type a name to filter the list below..."
-                                    className="w-full rounded-md border border-[#CFE3FF] bg-white py-2 pr-8 pl-8 text-sm focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                    className="pl-9 pr-8"
                                 />
                                 {search && (
                                     <button
-                                        type="button"
                                         onClick={() => setSearch('')}
-                                        className="absolute top-1/2 right-2.5 -translate-y-1/2 text-[#7FA6D6] hover:text-[#0B3D91]"
-                                        aria-label="Clear search"
+                                        className="absolute right-2.5 top-2.5 text-[#8AA8CC] hover:text-[#0B3D91]"
                                     >
                                         <X className="h-4 w-4" />
                                     </button>
                                 )}
                             </div>
 
-                            <div className="flex flex-col items-center gap-4 sm:flex-row">
+                            {/* Dropdown for Mobile */}
+                            <div className="block md:hidden">
                                 <select
-                                    className="w-full rounded-md border border-[#CFE3FF] bg-white p-2.5 text-sm focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none sm:w-2/3"
-                                    value={selected}
+                                    value={String(selected)}
                                     onChange={handleStudentSelect}
-                                    size={
-                                        search
-                                            ? Math.min(
-                                                  Math.max(
-                                                      filteredStudents.length,
-                                                      1,
-                                                  ) + 1,
-                                                  8,
-                                              )
-                                            : 1
-                                    }
+                                    className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
                                 >
-                                    <option value="">
-                                        -- Select Student Name --
-                                    </option>
-                                    {filteredStudents.map((name) => (
-                                        <option key={name} value={name}>
-                                            {name}
+                                    <option value="">-- Choose Student --</option>
+                                    {filteredStudents.map((s) => (
+                                        <option key={s.id} value={String(s.id)}>
+                                            {s.full_name}
                                         </option>
                                     ))}
-                                    {search &&
-                                        filteredStudents.length === 0 && (
-                                            <option value="" disabled>
-                                                No students match "{search}"
-                                            </option>
-                                        )}
                                 </select>
-
-                                <Button
-                                    disabled={!selected}
-                                    onClick={handleOpenPdf}
-                                    className="w-full bg-[#0F6FFF] text-white hover:bg-[#0B5DDB] sm:w-auto"
-                                >
-                                    <Printer className="mr-2 h-4 w-4" />
-                                    Print PDF Statement
-                                </Button>
                             </div>
 
-                            {search && (
-                                <p className="text-xs text-[#7FA6D6]">
-                                    {filteredStudents.length} of{' '}
-                                    {students.length} student
-                                    {students.length === 1 ? '' : 's'} match "
-                                    {search}"
-                                </p>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Student Breakdown */}
-                {selected && (
-                    <div className="space-y-6">
-                        {/* Metric Overview */}
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                            <Card className="border-[#CFE3FF] bg-white">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-xs font-medium text-[#5C7A9E]">
-                                        Total Billed Charges (AR)
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-xl font-bold text-[#0B3D91]">
-                                        {currency(summary.totalCharges)}
+                            {/* List for Desktop */}
+                            <div className="hidden max-h-[380px] overflow-y-auto border border-[#EAF2FF] rounded-md md:block">
+                                {filteredStudents.length === 0 ? (
+                                    <p className="p-4 text-center text-xs text-[#8AA8CC]">
+                                        No students found.
+                                    </p>
+                                ) : (
+                                    <div className="divide-y divide-[#EAF2FF]">
+                                        {filteredStudents.map((s) => {
+                                            const isActive = String(selected) === String(s.id);
+                                            return (
+                                                <button
+                                                    key={s.id}
+                                                    type="button"
+                                                    onClick={() => handleSelect(s.id)}
+                                                    className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[#F3F8FF] ${
+                                                        isActive
+                                                            ? 'bg-[#EAF2FF] font-medium text-[#0B3D91]'
+                                                            : 'text-[#334E68]'
+                                                    }`}
+                                                >
+                                                    {s.full_name}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
-                                </CardContent>
-                            </Card>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
 
-                            <Card className="border-[#CFE3FF] bg-white">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-xs font-medium text-[#5C7A9E]">
-                                        Total Payments Received
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-xl font-bold text-emerald-600">
-                                        {currency(summary.totalPayments)}
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="border-[#CFE3FF] bg-white">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-xs font-medium text-[#5C7A9E]">
-                                        Current Outstanding Balance
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div
-                                        className={`text-xl font-bold ${summary.outstandingBalance > 0 ? 'text-amber-600' : 'text-[#0B3D91]'}`}
-                                    >
-                                        {currency(summary.outstandingBalance)}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        {/* Preview Table */}
-                        <Card className="border-[#CFE3FF] bg-white">
-                            <CardHeader className="border-b border-[#EAF2FF] pb-3">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <CardTitle className="text-base text-[#0B3D91]">
-                                            {selected}
-                                        </CardTitle>
-                                        <CardDescription className="text-xs text-[#7FA6D6]">
-                                            {records.length} total ledger
-                                            entry/entries found
-                                        </CardDescription>
-                                    </div>
-                                    <Badge
-                                        variant="outline"
-                                        className="border-[#B9D8FF] bg-[#EAF2FF] text-[#0B62E0]"
-                                    >
-                                        {records[0]?.course ||
-                                            'Graduate Program'}
-                                    </Badge>
+                    {/* Right: Detailed SOA preview */}
+                    <div className="md:col-span-2 space-y-6">
+                        {selected ? (
+                            <div className="space-y-6">
+                                {/* Stats Row */}
+                                <div className="grid grid-cols-3 gap-4">
+                                    <Card className="border-[#CFE3FF] bg-white p-4">
+                                        <p className="text-xs text-[#5C7A9E]">
+                                            Total Billed Charges (AR)
+                                        </p>
+                                        <h3 className="mt-1 text-base font-bold text-[#0B3D91]">
+                                            {currency(summary.totalCharges)}
+                                        </h3>
+                                    </Card>
+                                    <Card className="border-[#CFE3FF] bg-white p-4">
+                                        <p className="text-xs text-[#5C7A9E]">
+                                            Total Payments Received
+                                        </p>
+                                        <h3 className="mt-1 text-base font-bold text-emerald-600">
+                                            {currency(summary.totalPayments)}
+                                        </h3>
+                                    </Card>
+                                    <Card className="border-[#CFE3FF] bg-white p-4">
+                                        <p className="text-xs text-[#5C7A9E]">
+                                            Outstanding Balance
+                                        </p>
+                                        <h3 className="mt-1 text-base font-bold text-[#0B3D91]">
+                                            {currency(summary.outstandingBalance)}
+                                        </h3>
+                                    </Card>
                                 </div>
-                            </CardHeader>
-                            <CardContent className="overflow-x-auto pt-4">
-                                <table className="w-full border-collapse text-sm">
-                                    <thead>
-                                        <tr className="border-b border-[#CFE3FF] bg-[#F3F8FF] text-left text-[#5C7A9E]">
-                                            <th className="px-3 py-2">Date</th>
-                                            <th className="px-3 py-2">
-                                                S.Y. / Term
-                                            </th>
-                                            <th className="px-3 py-2">
-                                                Ref / OR #
-                                            </th>
-                                            <th className="px-3 py-2">
-                                                Particulars
-                                            </th>
-                                            <th className="px-3 py-2">Type</th>
-                                            <th className="px-3 py-2 text-right">
-                                                Amount
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {records.length === 0 ? (
-                                            <tr>
-                                                <td
-                                                    colSpan={6}
-                                                    className="py-6 text-center text-[#8AA8CC]"
-                                                >
-                                                    No records found for this
-                                                    student.
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            records.map((r) => (
-                                                <tr
-                                                    key={r.id}
-                                                    className="border-b border-[#EAF2FF] hover:bg-[#F3F8FF]"
-                                                >
-                                                    <td className="px-3 py-2 text-[#334E68]">
-                                                        {formatTransactionDate(
-                                                            r.transaction_date,
-                                                        )}
-                                                    </td>
-                                                    <td className="px-3 py-2 text-[#334E68]">
-                                                        {r.school_year} (
-                                                        {r.semester_short ||
-                                                            r.semester}
-                                                        )
-                                                    </td>
-                                                    <td className="px-3 py-2 text-[#334E68]">
-                                                        {r.reference_or_jev_number ||
-                                                            '-'}
-                                                    </td>
-                                                    <td className="px-3 py-2 text-[#334E68]">
-                                                        {r.particulars || '-'}
-                                                    </td>
-                                                    <td className="px-3 py-2 font-medium text-[#0B3D91]">
-                                                        {r.ar_payment}
-                                                    </td>
-                                                    <td className="px-3 py-2 text-right font-medium text-[#0B3D91]">
-                                                        {currency(
-                                                            absAmount(r.amount),
-                                                        )}
-                                                    </td>
+
+                                <Card className="border-[#CFE3FF] bg-white">
+                                    <CardHeader className="flex flex-row items-center justify-between pb-3">
+                                        <div>
+                                            <CardTitle className="text-lg font-bold text-[#0B3D91]">
+                                                {records[0]?.name || 'Student Record'}
+                                            </CardTitle>
+                                            <CardDescription className="text-xs text-[#7FA6D6]">
+                                                {records.length} transactions on ledger
+                                            </CardDescription>
+                                        </div>
+                                        <Button
+                                            onClick={handleOpenPdf}
+                                            className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white"
+                                            size="sm"
+                                        >
+                                            <Printer className="mr-1.5 h-4 w-4" /> Print Statement
+                                        </Button>
+                                    </CardHeader>
+                                    <CardContent className="overflow-x-auto">
+                                        <table className="w-full border-collapse text-left text-xs">
+                                            <thead>
+                                                <tr className="border-b border-[#CFE3FF] bg-[#F7FAFE] text-[#0B3D91] font-semibold">
+                                                    <th className="py-3 px-3">Date</th>
+                                                    <th className="py-3 px-3">S.Y. / Term</th>
+                                                    <th className="py-3 px-3">Ref / OR #</th>
+                                                    <th className="py-3 px-3">Particulars</th>
+                                                    <th className="py-3 px-3">Type</th>
+                                                    <th className="py-3 px-3 text-right">Amount</th>
                                                 </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </CardContent>
-                        </Card>
+                                            </thead>
+                                            <tbody>
+                                                {records.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan={6} className="text-center py-6 text-[#8AA8CC]">
+                                                            No records found for this student.
+                                                        </td>
+                                                    </tr>
+                                                ) : (
+                                                    records.map((r) => (
+                                                        <tr key={r.id} className="border-b border-[#EAF2FF] hover:bg-[#F3F8FF]">
+                                                            <td className="py-2 px-3 text-[#334E68]">
+                                                                {formatTransactionDate(r.transactionDate)}
+                                                            </td>
+                                                            <td className="py-2 px-3 text-[#334E68]">
+                                                                {r.schoolYear} ({r.semester})
+                                                            </td>
+                                                            <td className="py-2 px-3 text-[#334E68]">
+                                                                {r.referenceNo || '-'}
+                                                            </td>
+                                                            <td className="py-2 px-3 text-[#334E68]">
+                                                                {r.particulars || '-'}
+                                                            </td>
+                                                            <td className="py-2 px-3">
+                                                                <Badge
+                                                                    variant={
+                                                                        r.arPayment === 'AR'
+                                                                            ? 'outline'
+                                                                            : r.arPayment === 'Payment'
+                                                                              ? 'secondary'
+                                                                              : 'destructive'
+                                                                    }
+                                                                    className="text-[10px]"
+                                                                >
+                                                                    {r.arPayment}
+                                                                </Badge>
+                                                            </td>
+                                                            <td className="py-2 px-3 text-right font-medium text-[#0B3D91]">
+                                                                {currency(absAmount(r.amount))}
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        ) : (
+                            <Card className="border-dashed border-[#CFE3FF] bg-white flex flex-col items-center justify-center p-12 text-center">
+                                <Printer className="h-12 w-12 text-[#8AA8CC] mb-4" />
+                                <h3 className="text-lg font-semibold text-[#0B3D91]">
+                                    No Student Selected
+                                </h3>
+                                <p className="text-sm text-[#7FA6D6] mt-1 max-w-sm">
+                                    Choose a graduate student from the left panel to preview their statement and generate a print-ready SOA PDF.
+                                </p>
+                            </Card>
+                        )}
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );
