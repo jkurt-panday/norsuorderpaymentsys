@@ -55,20 +55,40 @@ class Student extends Model
     {
         $rawName = trim($rawName);
 
-        // Pattern: "LAST, FIRST M." or "LAST, FIRST MIDDLE" or "LAST, FIRST"
+        // Pattern: "LAST, FIRST MIDDLE" or "LAST, FIRST"
         if (str_contains($rawName, ',')) {
             [$last, $rest] = explode(',', $rawName, 2);
             $rest = trim($rest);
 
-            // Try to extract middle initial/name as last word
             $parts = preg_split('/\s+/', $rest);
-            $first = $parts[0] ?? $rest;
-            $middle = count($parts) > 1 ? implode(' ', array_slice($parts, 1)) : null;
+            $count = count($parts);
+
+            if ($count === 1) {
+                $first = $parts[0];
+                $middle = null;
+            } elseif ($count === 2) {
+                // If there are exactly two words, check if the last word is a middle initial
+                $lastWord = trim($parts[1]);
+                $cleanLastWord = rtrim($lastWord, '.');
+
+                // Single character is a middle initial, otherwise it is a double first name
+                if (strlen($cleanLastWord) === 1) {
+                    $first = $parts[0];
+                    $middle = $cleanLastWord;
+                } else {
+                    $first = $parts[0] . ' ' . $parts[1];
+                    $middle = null;
+                }
+            } else {
+                // 3 or more words: last word is the middle name, all previous words are first name
+                $middle = rtrim(trim($parts[$count - 1]), '.');
+                $first = implode(' ', array_slice($parts, 0, $count - 1));
+            }
 
             return [
                 'last_name'   => trim($last),
                 'first_name'  => trim($first),
-                'middle_name' => $middle ? trim(rtrim($middle, '.')) : null,
+                'middle_name' => $middle,
             ];
         }
 
