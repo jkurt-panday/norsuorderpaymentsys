@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\LawSchoolLedgerExport;
 use App\Models\LawSchoolLedger;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -22,52 +24,7 @@ class LawSchoolLedgerController extends Controller
      */
     public function index(Request $request): Response
     {
-        $schoolYear = $request->input('school_year');
-        $semester = $request->input('semester_or_summer');
-        $course = $request->input('course');
-        $status = $request->input('status');
-        $type = $request->input('ar_or_payment');
-        $dateFrom = $request->input('date_from');
-        $dateTo = $request->input('date_to');
-
-        $query = LawSchoolLedger::query()
-            ->when($request->input('search'), function ($query, $search) {
-                $search = strtolower($search);
-                $query->whereRaw('LOWER(first_name) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(middle_initial) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(reference_jev_or_number) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(particulars) LIKE ?', ["%{$search}%"]);
-            })
-            ->when($schoolYear, function ($query, $schoolYear) {
-                $query->where('school_year', $schoolYear);
-            })
-            ->when($semester, function ($query, $semester) {
-                // Match every stored variant that maps to the selected semester label
-                // (e.g. "1st Sem" also matches "First Semester").
-                $query->where(function ($query) use ($semester) {
-                    foreach ($this->semesterAliases($semester) as $alias) {
-                        $query->orWhereRaw('UPPER(TRIM(semester_or_summer)) = ?', [strtoupper($alias)]);
-                    }
-                });
-            })
-            ->when($course, function ($query, $course) {
-                $query->where('course', $course);
-            })
-            ->when($status, function ($query, $status) {
-                // Trim + case-insensitive match so "DROP" also finds rows stored as
-                // " DROP" (the dropdown shows the deduplicated modal label).
-                $query->whereRaw('UPPER(TRIM(status)) = ?', [strtoupper(trim($status))]);
-            })
-            ->when($type, function ($query, $type) {
-                $query->whereRaw('UPPER(TRIM(ar_or_payment)) = ?', [strtoupper(trim($type))]);
-            })
-            ->when($dateFrom, function ($query, $dateFrom) {
-                $query->whereDate('transaction_date', '>=', $dateFrom);
-            })
-            ->when($dateTo, function ($query, $dateTo) {
-                $query->whereDate('transaction_date', '<=', $dateTo);
-            });
+        $query = $this->buildFilteredQuery($request);
 
         // 1. Calculate overall metrics using a cloned query BEFORE pagination
         $totalStudents = DB::query()
@@ -116,6 +73,18 @@ class LawSchoolLedgerController extends Controller
             ],
             'filterOptions' => $this->getFilterOptions(),
         ]);
+    }
+
+    /**
+     * Exports the filtered Law School Ledger records to an Excel file.
+     */
+    public function export(Request $request)
+    {
+        $query = $this->buildFilteredQuery($request);
+
+        $filename = 'law_ledger_export_'.now()->format('Ymd_His').'.xlsx';
+
+        return Excel::download(new LawSchoolLedgerExport($query), $filename);
     }
 
     /**
@@ -417,6 +386,60 @@ class LawSchoolLedgerController extends Controller
             'remarks' => Arr::get($normalized, 'remarks') ?? Arr::get($normalized, 'remark'),
             'input_by' => Arr::get($normalized, 'input_by'),
         ];
+    }
+
+    /**
+     * Builds the Law School Ledger query with the filters shared by the index
+     * and export methods.
+     */
+    private function buildFilteredQuery(Request $request): Builder
+    {
+        $schoolYear = $request->input('school_year');
+        $semester = $request->input('semester_or_summer');
+        $course = $request->input('course');
+        $status = $request->input('status');
+        $type = $request->input('ar_or_payment');
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+
+        return LawSchoolLedger::query()
+            ->when($request->input('search'), function ($query, $search) {
+                $search = strtolower($search);
+                $query->whereRaw('LOWER(first_name) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(middle_initial) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(reference_jev_or_number) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(particulars) LIKE ?', ["%{$search}%"]);
+            })
+            ->when($schoolYear, function ($query, $schoolYear) {
+                $query->where('school_year', $schoolYear);
+            })
+            ->when($semester, function ($query, $semester) {
+                // Match every stored variant that maps to the selected semester label
+                // (e.g. "1st Sem" also matches "First Semester").
+                $query->where(function ($query) use ($semester) {
+                    foreach ($this->semesterAliases($semester) as $alias) {
+                        $query->orWhereRaw('UPPER(TRIM(semester_or_summer)) = ?', [strtoupper($alias)]);
+                    }
+                });
+            })
+            ->when($course, function ($query, $course) {
+                $query->where('course', $course);
+            })
+            ->when($status, function ($query, $status) {
+                // Trim + case-insensitive match so "DROP" also finds rows stored as
+                // " DROP" (the dropdown shows the deduplicated modal label).
+                $query->whereRaw('UPPER(TRIM(status)) = ?', [strtoupper(trim($status))]);
+            })
+            ->when($type, function ($query, $type) {
+                $query->whereRaw('UPPER(TRIM(ar_or_payment)) = ?', [strtoupper(trim($type))]);
+            })
+            ->when($dateFrom, function ($query, $dateFrom) {
+                $query->whereDate('transaction_date', '>=', $dateFrom);
+            })
+            ->when($dateTo, function ($query, $dateTo) {
+                $query->whereDate('transaction_date', '<=', $dateTo);
+            });
     }
 
     private function queryStudentByName(string $studentName)
