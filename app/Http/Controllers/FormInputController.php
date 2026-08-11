@@ -8,12 +8,13 @@ use App\Models\PaymentDetailOption;
 // use App\Models\SupportingDocument;
 use App\Services\FileUploadService;
 use App\Services\ReferenceNumberService;
-use Illuminate\Http\Request;
+// use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 // use Illuminate\Support\Facades\Storage;
 // use Illuminate\Support\Str;
 use Inertia\Inertia;
 use App\Http\Requests\PublicFormSubmissionRequest;
+use Inertia\Response;
 
 class FormInputController extends Controller
 {
@@ -32,7 +33,7 @@ class FormInputController extends Controller
     /**
      * Display the public submission form
      */
-    public function create()
+    public function create(): Response
     {
         $memberships = Membership::orderBy('member_desc')->get();
         $paymentOptions = PaymentDetailOption::orderBy('payment_desc')->get();
@@ -103,17 +104,17 @@ class FormInputController extends Controller
     /**
      * Display a specific form input (for staff viewing)
      */
-    public function show(FormInput $formInput)
-    {
-        $formInput->load([
-            'membership',
-            'paymentDetailOption',
-            'supportingDocuments',
-            'staffInput.bankAccount',
-            'staffInput.uacs',
-            'staffInput.referenceDocument',
-        ]);
+    // public function show(FormInput $formInput): Response
+    // {
+    //     $formInput->load([
+    //         'membership',
+    //         'paymentDetailOption',
+    //         'supportingDocuments',
+    //         'staffInput.bankAccount',
+    //         'staffInput.uacs',
+    //         'staffInput.referenceDocument',
+    //     ]);
 
-        return Inertia::render('staff/requestform/showrequest', compact('formInput'));
+    //     return Inertia::render('staff/requestform/showrequest', compact('formInput'));
     }
 }
