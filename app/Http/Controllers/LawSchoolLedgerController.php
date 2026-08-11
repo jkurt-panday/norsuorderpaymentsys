@@ -332,27 +332,44 @@ class LawSchoolLedgerController extends Controller
             $normalized[Str::slug((string) $key, '_')] = $value;
         }
 
-        // Handles "NAME\n(Last Name, First Name, M.I.)" and standard variations
-        $studentName = Arr::get($normalized, 'name_last_name_first_name_m_i')
-            ?? Arr::get($normalized, 'name_last_name_first_name_mi')
-            ?? Arr::get($normalized, 'student_name')
-            ?? Arr::get($normalized, 'student')
-            ?? Arr::get($normalized, 'name');
+        // LAW_SCHOOL_Ledger.csv uses separate name columns; older exports may use
+        // a combined name field. Handle both formats.
+        $lastName = Arr::get($normalized, 'last_name');
+        $firstName = Arr::get($normalized, 'first_name');
+        $middleInitial = Arr::get($normalized, 'middle_initial');
 
-        $studentName = is_string($studentName) ? trim($studentName) : null;
+        if ($lastName || $firstName) {
+            $nameParts = [
+                'last_name' => is_string($lastName) ? trim($lastName) : null,
+                'first_name' => is_string($firstName) ? trim($firstName) : null,
+                'middle_initial' => is_string($middleInitial) ? rtrim(trim($middleInitial), '.') : null,
+            ];
+        } else {
+            $studentName = Arr::get($normalized, 'name_last_name_first_name_m_i')
+                ?? Arr::get($normalized, 'name_last_name_first_name_mi')
+                ?? Arr::get($normalized, 'student_name')
+                ?? Arr::get($normalized, 'student')
+                ?? Arr::get($normalized, 'name');
 
-        if (blank($studentName)) {
-            return null;
+            $studentName = is_string($studentName) ? trim($studentName) : null;
+
+            if (blank($studentName)) {
+                return null;
+            }
+
+            $nameParts = $this->parseStudentName($studentName) ?? [
+                'last_name' => $studentName,
+                'first_name' => null,
+                'middle_initial' => null,
+            ];
         }
-
-        $nameParts = $this->parseStudentName($studentName);
 
         $amount = (float) (Arr::get($normalized, 'amount', 0) ?? 0);
 
         return [
-            'last_name' => $nameParts['last_name'] ?? $studentName,
-            'first_name' => $nameParts['first_name'] ?? null,
-            'middle_initial' => $nameParts['middle_initial'] ?? null,
+            'last_name' => $nameParts['last_name'],
+            'first_name' => $nameParts['first_name'],
+            'middle_initial' => $nameParts['middle_initial'],
             'course' => Arr::get($normalized, 'course') ?? Arr::get($normalized, 'program'),
             'school_year' => Arr::get($normalized, 'school_year') ?? Arr::get($normalized, 'academic_year') ?? Arr::get($normalized, 'sy'),
             'semester_or_summer' => Arr::get($normalized, 'semester_or_summer')
