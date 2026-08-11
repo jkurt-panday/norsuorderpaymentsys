@@ -9,6 +9,9 @@ import {
   Pencil,
   Trash2,
   XCircle,
+  Download,
+  Loader2,
+  CheckCircle2,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -132,6 +135,66 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
     date_to:     filters?.date_to     ?? '',
   });
 
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [exportSuccess, setExportSuccess] = useState(false);
+
+  const handleExport = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    setExportProgress(10);
+    setExportSuccess(false);
+
+    // Smoothly increment progress while waiting for the server
+    const interval = setInterval(() => {
+      setExportProgress((prev) => {
+        if (prev >= 90) return 90;
+        return prev + Math.floor(Math.random() * 8) + 5;
+      });
+    }, 250);
+
+    try {
+      const params = new URLSearchParams();
+      if (filterState.search)      params.set('search',      filterState.search);
+      if (filterState.school_year) params.set('school_year', filterState.school_year);
+      if (filterState.semester)    params.set('semester',    filterState.semester);
+      if (filterState.course)      params.set('course',      filterState.course);
+      if (filterState.date_from)   params.set('date_from',   filterState.date_from);
+      if (filterState.date_to)     params.set('date_to',     filterState.date_to);
+
+      const qs = params.toString();
+      const url = '/graduate-ledger/export' + (qs ? '?' + qs : '');
+
+      const response = await fetch(url, { method: 'GET' });
+      if (!response.ok) throw new Error('Export failed');
+
+      const blob = await response.blob();
+      clearInterval(interval);
+      setExportProgress(100);
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      a.download = `graduate_ledger_export_${timestamp}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      setTimeout(() => {
+        setIsExporting(false);
+        setExportSuccess(true);
+        setTimeout(() => setExportSuccess(false), 4000);
+      }, 300);
+    } catch (error) {
+      clearInterval(interval);
+      console.error('Export error:', error);
+      setIsExporting(false);
+      setExportProgress(0);
+    }
+  };
+
   // Convenience aliases for the template
   const searchQuery = filterState.search;
   const schoolYear  = filterState.school_year;
@@ -177,7 +240,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const paginationLinks = records?.links ?? [];
 
   return (
-    <div className="min-h-screen bg-[#FAFAF5] p-4 md:p-8">
+    <div className="min-h-full bg-[#FAFAF5] p-4 md:p-8">
       <Head title="Graduate School Ledger" />
 
       <div className="max-w-7xl mx-auto space-y-6">
@@ -310,6 +373,20 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                 />
                 Import Excel/CSV
               </label>
+
+              <Button
+                variant="outline"
+                disabled={isExporting}
+                className="border-[#0F6FFF] text-[#0F6FFF] hover:bg-[#E8F0FE]"
+                onClick={handleExport}
+              >
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin text-[#0F6FFF]" />
+                ) : (
+                  <Download className="h-4 w-4 mr-1.5" />
+                )}
+                {isExporting ? 'Exporting...' : 'Export Excel'}
+              </Button>
 
               <Button className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white" onClick={() => router.get('/graduate-ledger/add')}>
                 <PlusCircle className="h-4 w-4 mr-1.5" />
@@ -536,6 +613,45 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
           )}
         </Card>
       </div>
+
+      {/* Floating Bottom-Right Export Progress Bar & Toast */}
+      {(isExporting || exportSuccess) && (
+        <div className="fixed bottom-6 right-6 z-50 flex min-w-[320px] flex-col gap-2.5 rounded-xl border border-[#CFE3FF] bg-white p-4 shadow-xl transition-all duration-300">
+          {isExporting ? (
+            <>
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-[#E8F0FE] p-2 text-[#0F6FFF]">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-[#0B3D91]">Generating Excel Export...</p>
+                  <p className="text-xs text-[#5C7A9E]">Processing dataset rows ({exportProgress}%)</p>
+                </div>
+              </div>
+
+              {/* Animated Progress Bar */}
+              <div className="mt-1 w-full">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-[#E8F0FE]">
+                  <div
+                    className="h-full rounded-full bg-[#0F6FFF] transition-all duration-300 ease-out"
+                    style={{ width: `${exportProgress}%` }}
+                  />
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-emerald-100 p-2 text-emerald-600">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-emerald-900">Export Complete!</p>
+                <p className="text-xs text-emerald-700">Your Excel file has been downloaded.</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
