@@ -12,7 +12,7 @@ import {
   XCircle,
   Filter,
 } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -77,16 +77,15 @@ function currency(n: number) {
 
 function formatTransactionDate(value?: string | null) {
   if (!value) {
-return '-';
-}
+    return '-';
+  }
 
   const normalized = String(value).trim();
 
   if (!normalized) {
-return '-';
-}
+    return '-';
+  }
 
-  // Extract YYYY-MM-DD date part to prevent browser timezone shifting
   const datePart = normalized.includes('T') ? normalized.split('T')[0] : normalized.split(' ')[0];
   const parsedDate = new Date(`${datePart}T00:00:00`);
 
@@ -105,20 +104,20 @@ function statusBadgeVariant(status: string | null | undefined) {
   const s = (status ?? '').toLowerCase();
 
   if (s === 'paid' || s === 'settled') {
-return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-}
+    return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  }
 
   if (s === 'pending') {
-return 'bg-amber-50 text-amber-700 border-amber-200';
-}
+    return 'bg-amber-50 text-amber-700 border-amber-200';
+  }
 
   if (s === 'overdue') {
-return 'bg-red-50 text-red-700 border-red-200';
-}
+    return 'bg-red-50 text-red-700 border-red-200';
+  }
 
   if (s === 'partial payment') {
-return 'bg-blue-50 text-blue-700 border-blue-200';
-}
+    return 'bg-blue-50 text-blue-700 border-blue-200';
+  }
 
   return 'bg-slate-50 text-slate-700 border-slate-200';
 }
@@ -152,39 +151,34 @@ interface IndexProps {
 
 export default function Index({ records, filters, stats, filterOptions }: IndexProps) {
   const rows: LawLedgerRecord[] = records?.data ?? [];
-  const [searchQuery, setSearchQuery] = useState(filters?.search ?? '');
-  const [schoolYear, setSchoolYear] = useState(filters?.school_year ?? '');
-  const [semester, setSemester] = useState(filters?.semester_or_summer ?? '');
-  const [course, setCourse] = useState(filters?.course ?? '');
-  const [status, setStatus] = useState(filters?.status ?? '');
-  const [type, setType] = useState(filters?.ar_or_payment ?? '');
-  const [dateFrom, setDateFrom] = useState(filters?.date_from ?? '');
-  const [dateTo, setDateTo] = useState(filters?.date_to ?? '');
   const importForm = useForm<{ file: File | null }>({ file: null });
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, []);
+  const [filterState, setFilterState] = useState({
+    search:      filters?.search      ?? '',
+    school_year: filters?.school_year ?? '',
+    semester_or_summer: filters?.semester_or_summer ?? '',
+    course:      filters?.course      ?? '',
+    status:      filters?.status      ?? '',
+    ar_or_payment: filters?.ar_or_payment ?? '',
+    date_from:   filters?.date_from   ?? '',
+    date_to:     filters?.date_to     ?? '',
+  });
+
+  const searchQuery      = filterState.search;
+  const schoolYear       = filterState.school_year;
+  const semester         = filterState.semester_or_summer;
+  const course           = filterState.course;
+  const status           = filterState.status;
+  const type             = filterState.ar_or_payment;
+  const dateFrom         = filterState.date_from;
+  const dateTo           = filterState.date_to;
 
   const applyFilters = (overrides: Record<string, string> = {}) => {
+    const merged = { ...filterState, ...overrides };
+    setFilterState(merged);
+
     const params: Record<string, string> = {};
-
-    const current = {
-      search: searchQuery,
-      school_year: schoolYear,
-      semester_or_summer: semester,
-      course: course,
-      status: status,
-      ar_or_payment: type,
-      date_from: dateFrom,
-      date_to: dateTo,
-      ...overrides,
-    };
-
-    Object.entries(current).forEach(([key, value]) => {
+    Object.entries(merged).forEach(([key, value]) => {
       if (value && value.trim()) {
         params[key] = value.trim();
       }
@@ -201,7 +195,6 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
     applyFilters();
   };
 
-  // ---- Server-backed Metric Summary ----
   const totalStudents = stats?.totalStudents ?? 0;
   const totalAssessments = stats?.totalAssessments ?? 0;
   const totalPayments = stats?.totalPayments ?? 0;
@@ -349,10 +342,10 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
               </div>
               <p className="text-xl font-bold text-slate-900">{currency(outstandingBalance)}</p>
               <div className="h-2 bg-orange-100 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-orange-500 rounded-full transition-all duration-500"
-                  style={{ 
-                    width: `${totalAssessments > 0 ? Math.min((outstandingBalance / totalAssessments) * 100, 100) : 0}%` 
+                  style={{
+                    width: `${totalAssessments > 0 ? Math.min((outstandingBalance / totalAssessments) * 100, 100) : 0}%`
                   }}
                 />
               </div>
@@ -365,16 +358,16 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-600">Collection Rate</span>
                   <span className="text-sm font-medium text-slate-900">
-                    {totalAssessments > 0 
-                      ? `${((totalPayments / totalAssessments) * 100).toFixed(1)}%` 
+                    {totalAssessments > 0
+                      ? `${((totalPayments / totalAssessments) * 100).toFixed(1)}%`
                       : '0.0%'}
                   </span>
                 </div>
                 <div className="mt-2 h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                    style={{ 
-                      width: `${totalAssessments > 0 ? Math.min((totalPayments / totalAssessments) * 100, 100) : 0}%` 
+                    style={{
+                      width: `${totalAssessments > 0 ? Math.min((totalPayments / totalAssessments) * 100, 100) : 0}%`
                     }}
                   />
                 </div>
@@ -384,7 +377,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-600">Average Transaction</span>
                   <span className="text-sm font-medium text-slate-900">
-                    {totalRecordCount > 0 
+                    {totalRecordCount > 0
                       ? currency((totalAssessments + totalPayments) / totalRecordCount)
                       : '₱0.00'}
                   </span>
@@ -425,24 +418,23 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                     placeholder="Filter by name, ref #, particulars..."
                     className="pl-8 h-9 bg-white border-[#CFE3FF] focus-visible:ring-[#0F6FFF]"
                     value={searchQuery}
-                    onChange={(e) => {
-                      const nextValue = e.target.value;
-                      setSearchQuery(nextValue);
-                      if (debounceRef.current) clearTimeout(debounceRef.current);
-                      debounceRef.current = setTimeout(() => {
-                        applyFilters({ search: nextValue });
-                      }, 300);
-                    }}
+                    onChange={(e) =>
+                      setFilterState((prev) => ({ ...prev, search: e.target.value }))
+                    }
                   />
                 </div>
 
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="h-9 bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white"
+                >
+                  <Search className="h-4 w-4 mr-1.5" /> Search
+                </Button>
+
                 <select
                   value={schoolYear}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setSchoolYear(v);
-                    applyFilters({ school_year: v });
-                  }}
+                  onChange={(e) => applyFilters({ school_year: e.target.value })}
                   className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
                 >
                   <option value="">All School Years</option>
@@ -453,11 +445,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
 
                 <select
                   value={semester}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setSemester(v);
-                    applyFilters({ semester_or_summer: v });
-                  }}
+                  onChange={(e) => applyFilters({ semester_or_summer: e.target.value })}
                   className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
                 >
                   <option value="">All Semesters</option>
@@ -468,11 +456,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
 
                 <select
                   value={course}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setCourse(v);
-                    applyFilters({ course: v });
-                  }}
+                  onChange={(e) => applyFilters({ course: e.target.value })}
                   className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
                 >
                   <option value="">All Courses</option>
@@ -483,11 +467,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
 
                 <select
                   value={status}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setStatus(v);
-                    applyFilters({ status: v });
-                  }}
+                  onChange={(e) => applyFilters({ status: e.target.value })}
                   className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
                 >
                   <option value="">All Statuses</option>
@@ -498,11 +478,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
 
                 <select
                   value={type}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setType(v);
-                    applyFilters({ ar_or_payment: v });
-                  }}
+                  onChange={(e) => applyFilters({ ar_or_payment: e.target.value })}
                   className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
                 >
                   <option value="">All Types (AR/Payment)</option>
@@ -514,11 +490,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                 <input
                   type="date"
                   value={dateFrom}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setDateFrom(v);
-                    applyFilters({ date_from: v });
-                  }}
+                  onChange={(e) => applyFilters({ date_from: e.target.value })}
                   className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
                   placeholder="Date from"
                 />
@@ -526,11 +498,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                 <input
                   type="date"
                   value={dateTo}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setDateTo(v);
-                    applyFilters({ date_to: v });
-                  }}
+                  onChange={(e) => applyFilters({ date_to: e.target.value })}
                   className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
                   placeholder="Date to"
                 />
@@ -540,14 +508,16 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                   variant="outline"
                   className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
                   onClick={() => {
-                    setSearchQuery('');
-                    setSchoolYear('');
-                    setSemester('');
-                    setCourse('');
-                    setStatus('');
-                    setType('');
-                    setDateFrom('');
-                    setDateTo('');
+                    setFilterState({
+                      search: '',
+                      school_year: '',
+                      semester_or_summer: '',
+                      course: '',
+                      status: '',
+                      ar_or_payment: '',
+                      date_from: '',
+                      date_to: '',
+                    });
                     router.get('/law-ledger');
                   }}
                 >
@@ -666,8 +636,8 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                               e.preventDefault();
 
                               if (link.url) {
-router.get(link.url, {}, { preserveState: true, preserveScroll: true });
-}
+                                router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+                              }
                             }}
                             className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                           />
@@ -684,8 +654,8 @@ router.get(link.url, {}, { preserveState: true, preserveScroll: true });
                               e.preventDefault();
 
                               if (link.url) {
-router.get(link.url, {}, { preserveState: true, preserveScroll: true });
-}
+                                router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+                              }
                             }}
                             className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                           />
@@ -710,8 +680,8 @@ router.get(link.url, {}, { preserveState: true, preserveScroll: true });
                             e.preventDefault();
 
                             if (link.url) {
-router.get(link.url, {}, { preserveState: true, preserveScroll: true });
-}
+                              router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+                            }
                           }}
                           className={`cursor-pointer ${
                             link.active ? 'bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]' : 'text-[#0B3D91]'
