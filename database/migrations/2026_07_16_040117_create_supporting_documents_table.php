@@ -17,11 +17,10 @@ return new class extends Migration
             $table->string('mime_type', 100);
             $table->string('file_extension', 10);
             $table->unsignedBigInteger('file_size');
-            $table->timestamp('uploaded_at');
             $table->timestamps();
 
             $table->index('form_input_id');
-            $table->index('uploaded_at');
+            $table->index('created_at');
             $table->index('stored_filename');
         });
     }
