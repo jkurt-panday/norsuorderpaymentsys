@@ -77,32 +77,54 @@
                     Identity Details
                 </h3>
                 <div class="grid grid-cols-2 gap-y-3 gap-x-4 text-xs">
-                    <div>
+                
+                    <!-- Full Name -->
+                    <div class="col-span-2">
                         <span class="block text-[10px] font-bold text-gray-400 uppercase">
-                            Full Name / Agency / Project / Office
+                            Full Name / Agency / Office / Project
                         </span>
-                    
+                
                         <span class="font-bold text-gray-800">
                             {{ $formInput->lastname_or_agency }},
                             {{ $formInput->firstname_or_office }}
                             {{ $formInput->middlename_or_project }}
                         </span>
                     </div>
+                
+                    <!-- Office -->
                     <div>
-                        <span class="block text-[10px] font-bold text-gray-400 uppercase">Office / College</span>
-                        <span class="font-bold text-gray-800">{{ $formInput->office_or_college }}</span>
+                        <span class="block text-[10px] font-bold text-gray-400 uppercase">
+                            Office / College
+                        </span>
+                
+                        <span class="font-bold text-gray-800">
+                            {{ $formInput->office_or_college }}
+                        </span>
                     </div>
+                
+                    <!-- Position -->
                     <div>
-                        <span class="block text-[10px] font-bold text-gray-400 uppercase">Position / Designation</span>
-                        <span class="font-bold text-gray-800">{{ $formInput->position_or_designation }}</span>
+                        <span class="block text-[10px] font-bold text-gray-400 uppercase">
+                            Position / Designation
+                        </span>
+                
+                        <span class="font-bold text-gray-800">
+                            {{ $formInput->position_or_designation }}
+                        </span>
                     </div>
+                
+                    <!-- Address -->
                     <div class="col-span-2">
                         <span class="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase">
                             <x-lucide-map-pin class="w-3 h-3 text-gray-400" />
                             Address
                         </span>
-                        <span class="font-bold text-gray-800">{{ $formInput->address }}</span>
+                
+                        <span class="font-bold text-gray-800">
+                            {{ $formInput->address }}
+                        </span>
                     </div>
+                
                 </div>
             </div>
 
@@ -117,8 +139,8 @@
                         <span class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Request Type</span>
                         @php
                             $requestBadgeClass = match ($formInput->request_type) {
-                                'New Request' => 'bg-emerald-100 text-emerald-700 border border-emerald-200 px-4 rounded-full font-bold',
-                                'Re-issue Request' => 'bg-blue-100 text-blue-700 border border-blue-200 px-4 rounded-full font-bold',
+                                'New Request' => 'bg-emerald-100 text-emerald-700 border border-emerald-200 px-4 rounded-full font-bold p-1',
+                                'Re-issue Request' => 'bg-blue-100 text-blue-700 border border-blue-200 px-4 rounded-full font-bold p-1',
                             };
                         @endphp
                         
@@ -164,7 +186,8 @@
             <!-- Timestamp Footer -->
             <div class="text-center border-t border-gray-100 pt-2">
                 <p class="text-[11px] text-gray-400">
-                    Submitted on: {{ $formInput->created_at?->format('F d, Y \a\t h:i A') }}
+                    Submitted on:
+                        {{ $formInput->created_at?->setTimezone('Asia/Manila')->format('F d, Y \a\t h:i A') }}
                 </p>
             </div>
 
