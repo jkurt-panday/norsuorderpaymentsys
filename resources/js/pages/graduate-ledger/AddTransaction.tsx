@@ -1,4 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,7 +10,6 @@ import {
     CardDescription,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { router } from '@inertiajs/react';
 
 const courseOptions = [
     'PhD Educational Management',
@@ -47,7 +47,10 @@ interface Props {
 }
 
 function FieldError({ message }: { message?: string }) {
-    if (!message) return null;
+    if (!message) {
+return null;
+}
+
     return <p className="mt-1 text-xs text-red-500">{message}</p>;
 }
 

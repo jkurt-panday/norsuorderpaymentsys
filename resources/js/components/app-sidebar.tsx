@@ -1,3 +1,4 @@
+import { Link } from '@inertiajs/react';
 import {
     Home,
     FileText,
@@ -7,7 +8,6 @@ import {
     ListTree,
     LogOut,
 } from 'lucide-react';
-import { Link } from '@inertiajs/react';
 import { NavMain } from '@/components/nav-main';
 import {
     Sidebar,
@@ -16,8 +16,8 @@ import {
     SidebarHeader,
     useSidebar,
 } from '@/components/ui/sidebar';
-import type { NavItem } from '@/types';
 import staff from '@/routes/staff';
+import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
     {

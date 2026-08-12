@@ -3,7 +3,8 @@ import {
     store,
     index,
 } from '@/actions/App/Http/Controllers/MembershipController';
-import ResourceForm, { type FieldDef } from '@/components/ResourceForm';
+import ResourceForm from '@/components/ResourceForm';
+import type {FieldDef} from '@/components/ResourceForm';
 
 const fields: FieldDef[] = [
     {

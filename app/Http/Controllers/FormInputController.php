@@ -2,18 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\PublicFormSubmissionRequest;
 use App\Models\FormInput;
 use App\Models\Membership;
-use App\Models\PaymentDetailOption;
 // use App\Models\SupportingDocument;
+use App\Models\PaymentDetailOption;
 use App\Services\FileUploadService;
 use App\Services\ReferenceNumberService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 // use Illuminate\Support\Facades\Storage;
 // use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
-use App\Http\Requests\PublicFormSubmissionRequest;
 
 class FormInputController extends Controller
 {
@@ -64,7 +63,7 @@ class FormInputController extends Controller
         //     'documents' => 'nullable|array',
         //     'documents.*' => 'file|mimes:pdf,jpg,jpeg,png,webp,svg|max:10240',
         // ]);
-        // 
+        //
         $validated = $request->validated();
 
         try {
@@ -89,21 +88,21 @@ class FormInputController extends Controller
             //     'membership_id'             => $request->membership_id,
             //     'payment_detail_option_id'  => $request->payment_detail_option_id,
             // ]);
-            // 
+            //
             $formInput = FormInput::create([
-                'reference_number'              => $referenceNumber,
-                'email'                         => $validated['email'],
-                'contact_num'                   => $validated['contact_num'],
-                'firstname_or_office'           => $validated['firstname_or_office'],
-                'middlename_or_project'         => $validated['middlename_or_project'] ?? null,
-                'lastname_or_agency'            => $validated['lastname_or_agency'],
-                'office_or_college'             => $validated['office_or_college'],
-                'position_or_designation'       => $validated['position_or_designation'],
-                'address'                       => $validated['address'],
-                'amount'                        => $validated['amount'],
-                'request_type'                  => $validated['request_type'],
-                'membership_id'                 => $validated['membership_id'],
-                'payment_detail_option_id'      => $validated['payment_detail_option_id'],
+                'reference_number' => $referenceNumber,
+                'email' => $validated['email'],
+                'contact_num' => $validated['contact_num'],
+                'firstname_or_office' => $validated['firstname_or_office'],
+                'middlename_or_project' => $validated['middlename_or_project'] ?? null,
+                'lastname_or_agency' => $validated['lastname_or_agency'],
+                'office_or_college' => $validated['office_or_college'],
+                'position_or_designation' => $validated['position_or_designation'],
+                'address' => $validated['address'],
+                'amount' => $validated['amount'],
+                'request_type' => $validated['request_type'],
+                'membership_id' => $validated['membership_id'],
+                'payment_detail_option_id' => $validated['payment_detail_option_id'],
             ]);
 
             // // 4. Handle Uploaded Documents
@@ -132,7 +131,7 @@ class FormInputController extends Controller
             //         ]);
             //     }
             // }
-            
+
             // 4. Handle Uploaded Documents using FileUploadService
             if ($request->hasFile('documents')) {
                 $this->fileUploadService->uploadDocuments(
