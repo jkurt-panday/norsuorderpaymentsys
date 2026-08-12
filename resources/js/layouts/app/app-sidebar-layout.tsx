@@ -6,10 +6,11 @@ import {
     CreditCard,
     Building,
     Layers,
-    HandCoins,
     Scale,
     ChevronRight,
     LogOut,
+    GraduationCap,
+    Logs
 } from 'lucide-react';
 import React from 'react';
 import AppLogo from '@/components/app-logo';
@@ -67,10 +68,10 @@ const mainNavItems: SidebarItem[] = [
         icon: CreditCard,
     },
     { title: 'Memberships', href: '/staff/memberships', icon: Users },
-    { title: 'UACS', href: '/staff/uacs', icon: Layers },
+    { title: 'UACS', href: '/staff/uacs', icon: Logs },
     {
         title: 'Graduate Ledger',
-        icon: HandCoins,
+        icon: GraduationCap,
         items: [
             { title: 'Ledger Overview', href: '/graduate-ledger' },
             { title: 'Print Statement', href: '/graduate-ledger/print-select' },
