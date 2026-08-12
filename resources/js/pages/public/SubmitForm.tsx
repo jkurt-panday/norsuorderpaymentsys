@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { useForm } from '@inertiajs/react';
 import { UploadCloud02 } from '@untitledui/icons';
-import { Mail, User, ClipboardList, File } from 'lucide-react';
+import { Mail, User, ClipboardList, FileText } from 'lucide-react';
 import { useState } from 'react';
 import { FileUpload } from '@/components/application/file-upload/file-upload-base';
 import { Button } from '@/components/ui/button';
@@ -738,7 +738,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 </div>
                                 <Separator className="bg-blue-100" />
                                 <CardTitle className="flex items-center gap-3 text-xl font-semibold text-blue-900">
-                                    <File className="h-5 w-5 text-blue-600" />
+                                    <FileText className="h-5 w-5 text-blue-600" />
                                     Supporting Document(s)
                                 </CardTitle>
                                 <p className="mt-3 text-sm text-slate-600">
