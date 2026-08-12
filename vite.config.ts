@@ -19,6 +19,8 @@ export default defineConfig({
             fonts: [
                 bunny('Instrument Sans', {
                     weights: [400, 500, 600],
+                    // Add specific font display strategy
+                    fontDisplay: 'swap',
                 }),
             ],
         }),
@@ -33,4 +35,29 @@ export default defineConfig({
             formVariants: true,
         }),
     ],
+    // Add build configuration for better font handling
+    build: {
+        rollupOptions: {
+            output: {
+                assetFileNames: (assetInfo) => {
+                    // Ensure fonts go to correct directory
+                    if (assetInfo.name?.match(/\.(woff2?|ttf|eot|otf)$/)) {
+                        return 'fonts/[name].[hash][extname]';
+                    }
+                    return 'assets/[name].[hash][extname]';
+                }
+            }
+        },
+        // Improve chunk splitting
+        chunkSizeWarningLimit: 1000,
+    },
+    // Optimize dependencies
+    optimizeDeps: {
+        include: [
+            'react',
+            'react-dom',
+            '@inertiajs/react',
+            // Add any other dependencies that might cause issues
+        ],
+    },
 });

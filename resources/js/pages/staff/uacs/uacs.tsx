@@ -5,7 +5,7 @@ import {
     create,
     edit,
     destroy,
-} from '@/actions/App/Http/Controllers/UacsController';
+} from '@/actions/App/Http/Controllers/UACSController';
 import ResourceTable, {
     type PaginatedData,
     type ColumnDef,

@@ -120,8 +120,10 @@ Route::name('staff.')->prefix('staff')->middleware(['auth'])->group(function () 
 
         Route::get('/{formInput}/process', [StaffInputController::class, 'create'])->name('process');
         Route::get('/{formInput}', [StaffInputController::class, 'show'])->name('show');
+        Route::put('/{formInput}/details', [StaffInputController::class, 'updateDetails'])->name('updateDetails');
         Route::get('/{staffInput}/edit', [StaffInputController::class, 'edit'])->name('edit');
         Route::put('/{staffInput}', [StaffInputController::class, 'update'])->name('update');
+        
     });
 
     // ── Master Data (Resource Routes) ───────────────────────────────────────
