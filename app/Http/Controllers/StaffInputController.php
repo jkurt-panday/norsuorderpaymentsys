@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use App\Models\PaymentDetailOption;
 
 class StaffInputController extends Controller
 {
@@ -210,37 +211,40 @@ class StaffInputController extends Controller
     /**
      * Store staff processing data
      */
-    public function store(StaffProcessingRequest $request)
-    {
-        try {
-            DB::beginTransaction();
+public function store(StaffProcessingRequest $request)
+{
+    try {
+        DB::beginTransaction();
 
-            $formInput = FormInput::findOrFail($request->form_input_id);
+        $formInput = FormInput::findOrFail($request->form_input_id);
 
-            if ($formInput->staffInput()->exists()) {
-                throw new \Exception('This request has already been processed.');
-            }
-
-            // Fixed: Added bank_account_id using validated array data
-            StaffInput::create(array_merge(
-                $request->validated(),
-                ['form_input_id' => $formInput->id]
-            ));
-
-            DB::commit();
-
-            return redirect()->route('staff.requests.index')
-                ->with('success', 'Request processed successfully.');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Staff processing failed: '.$e->getMessage());
-
-            return back()
-                ->withInput()
-                ->with('error', 'Failed to process request: '.$e->getMessage());
+        if ($formInput->staffInput()->exists()) {
+            throw new \Exception('This request has already been processed.');
         }
+
+        StaffInput::create(array_merge(
+            $request->validated(),
+            ['form_input_id' => $formInput->id]
+        ));
+
+        DB::commit();
+
+        // Changed: redirect back to the request's own show page instead of
+        // the index, so processing an inline form lands you right back
+        // where you started, with fresh data.
+        return redirect()->route('staff.requests.show', $formInput)
+            ->with('success', 'Request processed successfully.');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Staff processing failed: '.$e->getMessage());
+
+        return back()
+            ->withInput()
+            ->with('error', 'Failed to process request: '.$e->getMessage());
     }
+}
+
 
     /**
      * Show form for editing staff processing
@@ -280,13 +284,70 @@ class StaffInputController extends Controller
 
             DB::commit();
 
-            return redirect()->route('staff.requests.index')
+            return redirect()->route('staff.requests.show', $staffInput->formInput)
                 ->with('success', 'Processing updated successfully! New status: '.ucfirst($staffInput->status));
 
         } catch (\Exception $e) {
             DB::rollBack();
 
             return back()->withInput()->with('error', 'Failed to update processing: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Update FormInput's own fields (name, amount, payment option) — separate
+     * from update() above, which only touches StaffInput (bank/UACS/status).
+     * Available regardless of processing status, since these fields belong
+     * to the original submission, not to staff processing.
+     */
+    public function updateDetails(Request $request, FormInput $formInput)
+    {
+        $validated = $request->validate([
+            'firstname_or_office' => 'required|string|max:100',
+            'middlename_or_project' => 'nullable|string|max:100',
+            'lastname_or_agency' => 'required|string|max:100',
+            'amount' => 'required|numeric|min:0',
+            'payment_detail_option_id' => ['nullable', 'exists:payment_detail_options,id'],
+            'new_payment_option' => 'nullable|string|max:255',
+        ]);
+
+        $customOption = trim((string) ($validated['new_payment_option'] ?? ''));
+
+        if ($customOption !== '') {
+            $paymentOption = PaymentDetailOption::query()
+                ->whereRaw('LOWER(payment_desc) = ?', [mb_strtolower($customOption)])
+                ->first();
+
+            if (! $paymentOption) {
+                $paymentOption = PaymentDetailOption::create([
+                    'payment_desc' => $customOption,
+                ]);
+            }
+
+            $validated['payment_detail_option_id'] = $paymentOption->id;
+        }
+
+        if (empty($validated['payment_detail_option_id'])) {
+            return back()->withInput()->with('error', 'Please select or add a payment option.');
+        }
+
+        unset($validated['new_payment_option']);
+
+        try {
+            DB::beginTransaction();
+
+            $formInput->update($validated);
+
+            DB::commit();
+
+            return redirect()->route('staff.requests.show', $formInput)
+                ->with('success', 'Request details updated successfully.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Failed to update FormInput details ID {$formInput->id}: ".$e->getMessage());
+
+            return back()->withInput()->with('error', 'Failed to update request details: '.$e->getMessage());
         }
     }
 
@@ -303,7 +364,19 @@ class StaffInputController extends Controller
             'staffInput.uacs',
             'staffInput.referenceDocument',
         ]);
-
-        return Inertia::render('staff/requestform/showrequest', compact('formInput'));
+ 
+        // Added: bankAccounts + uacsList, so the inline "Process Now" form
+        // on this page has what it needs without a separate navigation.
+        // Added: paymentOptions, so the new "Edit Processed Request" form
+        // (which also edits the FormInput's name/amount/payment option
+        // fields, not just the StaffInput fields) has what it needs too.
+        return Inertia::render('staff/requestform/showrequest', [
+            'formInput' => $formInput,
+            'bankAccounts' => BankAccountInfo::orderBy('bank_name')->get(),
+            'uacsList' => Uacs::orderBy('object_code')->get(),
+            'paymentOptions' => PaymentDetailOption::orderBy('payment_desc')->get(),
+        ]);
     }
+ 
+
 }
