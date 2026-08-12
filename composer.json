@@ -19,6 +19,8 @@
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
         "maatwebsite/excel": "*",
+        "spatie/browsershot": "^5.4",
+        "spatie/laravel-pdf": "^2.12",
         "symfony/brevo-mailer": "*",
         "symfony/http-client": "*"
     },
