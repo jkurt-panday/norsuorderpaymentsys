@@ -19,6 +19,7 @@
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
         "maatwebsite/excel": "*",
+        "mallardduck/blade-lucide-icons": "^2.0",
         "spatie/browsershot": "^5.4",
         "spatie/laravel-pdf": "^2.12",
         "symfony/brevo-mailer": "*",
