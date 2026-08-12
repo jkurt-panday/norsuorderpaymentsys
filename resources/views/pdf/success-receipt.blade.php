@@ -12,24 +12,25 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 p-6">
+<body class="bg-gray-100">
 
     <div class="page-container bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
 
         <!-- Header Banner -->
         <div class="bg-gradient-to-b from-blue-500 to-blue-600 text-white text-center p-6 relative">
             <div class="flex items-center justify-center gap-2 mb-4">
-                <div class="w-8 h-8 rounded-full bg-yellow-500 border-2 border-white flex items-center justify-center text-xs font-bold text-gray-900 overflow-hidden">
-                    <x-lucide-shield-check class="w-5 h-5 text-yellow-900" />
-                </div>
-                <h1 class="text-2xl font-black tracking-wider uppercase">FINANCE</h1>
+                <img
+                    src="data:image/png;base64,{{ base64_encode(file_get_contents(public_path('finance_logo1.png'))) }}"
+                    alt="NORSU Logo"
+                    style="width: 300px; height: 60px;"
+                />
             </div>
 
-            <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-2 backdrop-blur-sm border border-white/30">
+            {{-- <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-2 backdrop-blur-sm border border-white/30">
                 <x-lucide-check class="w-7 h-7 text-white" />
-            </div>
+            </div> --}}
 
-            <h2 class="text-xl font-bold">Submission Successful!</h2>
+            <h2 class="text-xl font-bold text-green-300">Submission Successful!</h2>
             <p class="text-xs text-blue-100 mt-1">Your request has been submitted successfully.</p>
         </div>
 
@@ -62,7 +63,9 @@
                             <x-lucide-phone class="w-3 h-3 text-gray-400" />
                             Contact Number
                         </span>
-                        <span class="font-bold text-gray-800">{{ $formInput->contact_num }}</span>
+                        <span class="font-bold text-gray-800">
+                            {{ substr($formInput->contact_num, 0, 4) }} {{ substr($formInput->contact_num, 4, 3) }} {{ substr($formInput->contact_num, 7, 4) }}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -75,16 +78,15 @@
                 </h3>
                 <div class="grid grid-cols-2 gap-y-3 gap-x-4 text-xs">
                     <div>
-                        <span class="block text-[10px] font-bold text-gray-400 uppercase">First Name / Office</span>
-                        <span class="font-bold text-gray-800">{{ $formInput->firstname_or_office }}</span>
-                    </div>
-                    <div>
-                        <span class="block text-[10px] font-bold text-gray-400 uppercase">Middle Name / Project</span>
-                        <span class="font-bold text-gray-800">{{ $formInput->middlename_or_project }}</span>
-                    </div>
-                    <div>
-                        <span class="block text-[10px] font-bold text-gray-400 uppercase">Last Name / Agency</span>
-                        <span class="font-bold text-gray-800">{{ $formInput->lastname_or_agency }}</span>
+                        <span class="block text-[10px] font-bold text-gray-400 uppercase">
+                            Full Name / Agency / Project / Office
+                        </span>
+                    
+                        <span class="font-bold text-gray-800">
+                            {{ $formInput->lastname_or_agency }},
+                            {{ $formInput->firstname_or_office }}
+                            {{ $formInput->middlename_or_project }}
+                        </span>
                     </div>
                     <div>
                         <span class="block text-[10px] font-bold text-gray-400 uppercase">Office / College</span>
@@ -113,7 +115,14 @@
                 <div class="grid grid-cols-2 gap-y-3 gap-x-4 text-xs">
                     <div>
                         <span class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Request Type</span>
-                        <span class="inline-block bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full font-bold text-[11px]">
+                        @php
+                            $requestBadgeClass = match ($formInput->request_type) {
+                                'New Request' => 'bg-emerald-100 text-emerald-700 border border-emerald-200 px-4 rounded-full font-bold',
+                                'Re-issue Request' => 'bg-blue-100 text-blue-700 border border-blue-200 px-4 rounded-full font-bold',
+                            };
+                        @endphp
+                        
+                        <span class="{{ $requestBadgeClass }}">
                             {{ $formInput->request_type }}
                         </span>
                     </div>
@@ -140,11 +149,11 @@
                 </h3>
 
                 @forelse($formInput->supportingDocuments as $document)
-                    <div class="bg-blue-50/70 border border-blue-100 rounded-lg p-3 flex items-center gap-3 mb-2">
+                    <div class="bg-blue-50/70 border border-blue-100 rounded-lg p-2 flex items-center gap-3 mb-2">
                         <x-lucide-file class="w-5 h-5 text-gray-500 shrink-0" />
                         <div>
                             <p class="text-xs font-bold text-gray-800">{{ $document->original_filename ?? $document->file_path }}</p>
-                            <p class="text-[10px] text-gray-400">Uploaded: {{ $document->created_at?->format('M d, Y') }}</p>
+                            {{-- <p class="text-[10px] text-gray-400">Uploaded: {{ $document->created_at?->format('M d, Y') }}</p> --}}
                         </div>
                     </div>
                 @empty
@@ -153,7 +162,7 @@
             </div>
 
             <!-- Timestamp Footer -->
-            <div class="text-center pt-2 border-t border-gray-100">
+            <div class="text-center border-t border-gray-100 pt-2">
                 <p class="text-[11px] text-gray-400">
                     Submitted on: {{ $formInput->created_at?->format('F d, Y \a\t h:i A') }}
                 </p>
