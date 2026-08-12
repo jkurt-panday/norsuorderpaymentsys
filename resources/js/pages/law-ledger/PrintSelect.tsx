@@ -121,8 +121,8 @@ export default function PrintSelect({
       setLoading(true);
       try {
         const url = term
-          ? `/api/law-ledger/students/search?q=${encodeURIComponent(term)}`
-          : '/api/law-ledger/students/search';
+          ? `/law-ledger/students/search?q=${encodeURIComponent(term)}`
+          : '/law-ledger/students/search';
         const response = await fetch(url);
         const data = await response.json();
         setFetchedStudents(Array.isArray(data) ? data : []);
