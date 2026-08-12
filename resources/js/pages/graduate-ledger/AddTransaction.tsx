@@ -230,7 +230,7 @@ export default function AddTransaction({ students, courses, academicTerms, authU
     const selectClass = 'w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none';
 
     return (
-        <div className="min-h-screen bg-[#FAFAF5] p-4 md:p-8">
+        <div className="min-h-full bg-[#FAFAF5] p-4 md:p-8">
             <Head title="Add Transaction" />
             <div className="mx-auto max-w-5xl space-y-6">
                 <div className="flex items-center gap-2 border-b border-[#CFE3FF] pb-4">

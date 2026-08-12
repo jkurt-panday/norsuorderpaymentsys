@@ -10,6 +10,7 @@ import {
     CardTitle,
     CardDescription,
 } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 
 interface StudentItem {
     id: string | number;
@@ -87,7 +88,13 @@ export default function PrintSelect({
         if (!term) {
             return students;
         }
-        return students.filter((s) => s.full_name.toLowerCase().includes(term));
+        const matched = students.filter((s) => s.full_name.toLowerCase().includes(term));
+        // starts-with results float to top, contains-only results follow
+        return matched.sort((a, b) => {
+            const aStarts = a.full_name.toLowerCase().startsWith(term) ? 0 : 1;
+            const bStarts = b.full_name.toLowerCase().startsWith(term) ? 0 : 1;
+            return aStarts - bStarts;
+        });
     }, [students, search]);
 
     const handleSelect = (idOrName: string | number) => {
@@ -123,7 +130,7 @@ export default function PrintSelect({
     };
 
     return (
-        <div className="min-h-screen bg-[#FAFAF5] p-4 md:p-8">
+        <div className="min-h-full bg-[#FAFAF5] p-4 md:p-8">
             <Head title="Print Student Statement" />
 
             <div className="mx-auto max-w-5xl space-y-6">

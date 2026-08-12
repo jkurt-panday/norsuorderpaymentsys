@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\FormInputController;
+use App\Http\Controllers\LawSchoolLedgerController;
 use App\Http\Controllers\StaffInputController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,4 +34,7 @@ Route::prefix('staff')->middleware(['auth:sanctum'])->group(function () {
     Route::get('/pending-forms', [StaffInputController::class, 'pendingForms']);
     Route::get('/processed-forms', [StaffInputController::class, 'processedForms']);
     Route::get('/dashboard/stats', [StaffInputController::class, 'dashboardStats']);
+
+    // Student search for PrintSelect pages
+    Route::get('/law-ledger/students/search', [LawSchoolLedgerController::class, 'searchStudents']);
 });

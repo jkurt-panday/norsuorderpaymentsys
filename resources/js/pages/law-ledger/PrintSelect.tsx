@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { Printer, ArrowLeft, Search, X } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -106,14 +106,44 @@ export default function PrintSelect({
 }: PrintSelectProps) {
   const [selected, setSelected] = useState(selectedStudent || '');
   const [search, setSearch] = useState('');
+  const [fetchedStudents, setFetchedStudents] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const filteredStudents = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) {
-      return students;
-    }
-    return students.filter((name) => name.toLowerCase().includes(term));
-  }, [students, search]);
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const loadStudents = async (term: string) => {
+      setLoading(true);
+      try {
+        const url = term
+          ? `/api/law-ledger/students/search?q=${encodeURIComponent(term)}`
+          : '/api/law-ledger/students/search';
+        const response = await fetch(url);
+        const data = await response.json();
+        setFetchedStudents(Array.isArray(data) ? data : []);
+      } catch {
+        setFetchedStudents([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      loadStudents(search);
+    }, 300);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [search]);
+
+  const displayStudents = search ? fetchedStudents : (fetchedStudents.length > 0 ? fetchedStudents : students);
 
   const handleSelect = (name: string) => {
     setSelected(name);
@@ -199,34 +229,40 @@ export default function PrintSelect({
                 )}
               </div>
 
-              <div className="flex flex-col items-center gap-4 sm:flex-row">
-                <select
-                  className="w-full rounded-md border border-[#CFE3FF] bg-white p-2.5 text-sm focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none sm:w-2/3"
-                  value={selected}
-                  onChange={handleStudentSelect}
-                  size={
-                    search
-                      ? Math.min(
-                          Math.max(filteredStudents.length, 1) + 1,
-                          8,
-                        )
-                      : 1
-                  }
-                >
-                  <option value="">
-                    -- Select Student Name --
-                  </option>
-                  {filteredStudents.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                  {search && filteredStudents.length === 0 && (
-                    <option value="" disabled>
-                      No students match "{search}"
-                    </option>
-                  )}
-                </select>
+               <div className="flex flex-col items-center gap-4 sm:flex-row">
+                 <select
+                   className="w-full rounded-md border border-[#CFE3FF] bg-white p-2.5 text-sm focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none sm:w-2/3"
+                   value={selected}
+                   onChange={handleStudentSelect}
+                   size={
+                     search
+                       ? Math.min(
+                           Math.max(displayStudents.length, 1) + 1,
+                           8,
+                         )
+                       : 1
+                   }
+                   disabled={loading}
+                 >
+                   <option value="">
+                     -- Select Student Name --
+                   </option>
+                   {displayStudents.map((name) => (
+                     <option key={name} value={name}>
+                       {name}
+                     </option>
+                   ))}
+                   {loading && (
+                     <option value="" disabled>
+                       Searching...
+                     </option>
+                   )}
+                   {search && !loading && displayStudents.length === 0 && (
+                     <option value="" disabled>
+                       No students match "{search}"
+                     </option>
+                   )}
+                 </select>
 
                 <Button
                   disabled={!selected}
@@ -240,7 +276,7 @@ export default function PrintSelect({
 
               {search && (
                 <p className="text-xs text-[#7FA6D6]">
-                  {filteredStudents.length} of {students.length} student
+                  {displayStudents.length} of {students.length} student
                   {students.length === 1 ? '' : 's'} match "{search}"
                 </p>
               )}
