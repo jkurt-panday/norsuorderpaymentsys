@@ -19,7 +19,9 @@ use Illuminate\Support\Facades\Route;
 Route::name('public.')->prefix('public')->group(function () {
     Route::get('/form', [FormInputController::class, 'create'])->name('submit');
     Route::post('/form', [FormInputController::class, 'store'])->name('submit.store');
-    Route::get('/success/{referenceNumber?}', [FormInputController::class, 'success'])->name('success');
+    
+    Route::get('/success/{reference_number}', [FormInputController::class, 'success'])->name('success');
+    Route::get('/success/{reference_number}/print', [FormInputController::class, 'printReceipt'])->name('print');
 });
 
 // Root redirect → public submission form
@@ -123,7 +125,7 @@ Route::name('staff.')->prefix('staff')->middleware(['auth'])->group(function () 
         Route::put('/{formInput}/details', [StaffInputController::class, 'updateDetails'])->name('updateDetails');
         Route::get('/{staffInput}/edit', [StaffInputController::class, 'edit'])->name('edit');
         Route::put('/{staffInput}', [StaffInputController::class, 'update'])->name('update');
-        
+
     });
 
     // ── Master Data (Resource Routes) ───────────────────────────────────────
