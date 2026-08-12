@@ -19,6 +19,16 @@
             padding-bottom: 6px;
             margin-bottom: 8px;
         }
+        .receipt-header .logo-wrap {
+            margin-bottom: 4px;
+        }
+        .header-logo {
+            display: block;
+            margin: 0 auto;
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+        }
         .receipt-header h1 {
             font-size: 12pt;
             color: #0B3D91;
@@ -179,6 +189,11 @@
     @endphp
 
     <div class="receipt-header">
+        @if($logoDataUri)
+        <div class="logo-wrap">
+            <img class="header-logo" src="{{ $logoDataUri }}" alt="NORSU Logo">
+        </div>
+        @endif
         <h1>NORSU Law School Office</h1>
         <div class="sub">Official Student Statement of Account</div>
         <div class="divider"></div>
