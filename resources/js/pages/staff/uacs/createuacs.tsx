@@ -1,5 +1,5 @@
 import React from 'react';
-import { store, index } from '@/actions/App/Http/Controllers/UacsController';
+import { store, index } from '@/actions/App/Http/Controllers/UACSController';
 import ResourceForm from '@/components/ResourceForm';
 
 // ============ COMPONENT ============

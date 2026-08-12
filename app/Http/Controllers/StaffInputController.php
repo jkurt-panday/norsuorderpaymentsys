@@ -6,7 +6,7 @@ use App\Http\Requests\StaffProcessingRequest;
 use App\Models\BankAccountInfo;
 use App\Models\FormInput;
 use App\Models\StaffInput;
-use App\Models\Uacs;
+use App\Models\UACS;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
