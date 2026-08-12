@@ -87,11 +87,12 @@ class LawSchoolLedgerController extends Controller
             ->where('last_name', '!=', '');
 
         if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->whereRaw('LOWER(last_name) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(first_name) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(middle_initial) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw("LOWER(TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_initial, '')))) LIKE ?", ["%{$search}%"]);
+            $searchLower = strtolower($search);
+            $query->where(function ($q) use ($searchLower) {
+                $q->whereRaw('LOWER(last_name) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw('LOWER(first_name) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw('LOWER(middle_initial) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw("LOWER(TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_initial, '')))) LIKE ?", ["%{$searchLower}%"]);
             });
         }
 
