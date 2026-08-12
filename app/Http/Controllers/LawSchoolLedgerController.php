@@ -448,6 +448,8 @@ class LawSchoolLedgerController extends Controller
      */
     public function generatePdf(Request $request)
     {
+        set_time_limit(300);
+
         $request->validate([
             'student' => 'required|string',
         ]);
@@ -460,11 +462,17 @@ class LawSchoolLedgerController extends Controller
 
         $summary = $this->calculateStudentBalance($records);
 
+        $logoPath = public_path('norsu.png');
+        $logoDataUri = file_exists($logoPath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+            : null;
+
         $pdf = Pdf::loadView('pdf.law-student-ledger-statement', [
             'studentName' => $studentName,
             'records' => $records,
             'summary' => $summary,
             'generatedAt' => now()->format('Y-m-d h:i A'),
+            'logoDataUri' => $logoDataUri,
         ])
             ->setPaper('a4', 'portrait')
             ->setOption('defaultFont', 'DejaVu Sans')
