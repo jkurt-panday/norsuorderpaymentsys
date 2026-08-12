@@ -9,13 +9,12 @@ use Maatwebsite\Excel\Concerns\WithCustomChunkSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 
-class GraduateLedgerExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSize, WithCustomChunkSize
+class GraduateLedgerExport implements FromQuery, ShouldAutoSize, WithCustomChunkSize, WithHeadings, WithMapping
 {
     public function __construct(
         private readonly Builder $query,
         private readonly bool $isNormalized
-    ) {
-    }
+    ) {}
 
     public function chunkSize(): int
     {
@@ -52,11 +51,11 @@ class GraduateLedgerExport implements FromQuery, WithHeadings, WithMapping, Shou
     public function map($row): array
     {
         if ($this->isNormalized) {
-            $student    = $row->student;
+            $student = $row->student;
             $courseCode = $row->course?->code ?? '';
             $schoolYear = $row->academicTerm?->school_year ?? '';
-            $semester   = $row->academicTerm?->semester_short ?? ($row->academicTerm?->semester ?? '');
-            $type       = strtoupper($row->entry_type ?? 'AR');
+            $semester = $row->academicTerm?->semester_short ?? ($row->academicTerm?->semester ?? '');
+            $type = strtoupper($row->entry_type ?? 'AR');
 
             return [
                 $student?->full_name ?? '',

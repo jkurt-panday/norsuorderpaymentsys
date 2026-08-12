@@ -4,8 +4,8 @@ namespace App\Services;
 
 // use App\Models\FormInput;
 // use Illuminate\Support\Str;
-use Illuminate\Support\Facades\DB;
 use App\Models\YearSequence;
+use Illuminate\Support\Facades\DB;
 
 class ReferenceNumberService
 {
@@ -26,47 +26,47 @@ class ReferenceNumberService
         // }
 
         // return $referenceNumber;
-        // 
+        //
         // $year = now()->year;
         // $month = now()->format('m');
-    
+
         // // Count records created this year
         // $count = FormInput::whereYear('created_at', $year)->count() + 1;
-    
+
         // // Pad the count to 5 digits
         // $sequence = str_pad($count, 5, '0', STR_PAD_LEFT);
-    
+
         // return "{$year}-{$month}-{$sequence}";
-        // 
+        //
         return DB::transaction(function () {
-        
-                    $now = now();
-        
-                    $year = $now->year;
-                    $month = $now->month;
-        
-                    $sequence = YearSequence::lockForUpdate()
-                        ->firstOrCreate(
-                            ['year' => $year],
-                            [
-                                'month' => $month,
-                                'current_number' => 0,
-                            ]
-                        );
-        
-                    $sequence->increment('current_number');
-        
-                    $sequence->update([
+
+            $now = now();
+
+            $year = $now->year;
+            $month = $now->month;
+
+            $sequence = YearSequence::lockForUpdate()
+                ->firstOrCreate(
+                    ['year' => $year],
+                    [
                         'month' => $month,
-                    ]);
-        
-                    return sprintf(
-                        '%d-%02d-%05d',
-                        $year,
-                        $month,
-                        $sequence->current_number
-                    );
-                });
+                        'current_number' => 0,
+                    ]
+                );
+
+            $sequence->increment('current_number');
+
+            $sequence->update([
+                'month' => $month,
+            ]);
+
+            return sprintf(
+                '%d-%02d-%05d',
+                $year,
+                $month,
+                $sequence->current_number
+            );
+        });
     }
 
     /**

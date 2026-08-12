@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\StaffInput;
 use App\Models\SupportingDocument;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use App\Models\StaffInput;
 
 class SupportingDocumentController extends Controller
 {
@@ -98,37 +98,37 @@ class SupportingDocumentController extends Controller
     /**
      * Remove the specified document safely
      */
-public function destroy(SupportingDocument $supportingDocument)
-{
-    try {
-        DB::beginTransaction();
+    public function destroy(SupportingDocument $supportingDocument)
+    {
+        try {
+            DB::beginTransaction();
 
-        // If this document is set as the reference document on any
-        // staff_input, clear that reference first so we don't leave
-        // a dangling ref_document_id after the document is gone.
-        StaffInput::where('ref_document_id', $supportingDocument->id)
-            ->update(['ref_document_id' => null]);
+            // If this document is set as the reference document on any
+            // staff_input, clear that reference first so we don't leave
+            // a dangling ref_document_id after the document is gone.
+            StaffInput::where('ref_document_id', $supportingDocument->id)
+                ->update(['ref_document_id' => null]);
 
-        // Delete database record
-        $supportingDocument->delete();
+            // Delete database record
+            $supportingDocument->delete();
 
-        DB::commit();
+            DB::commit();
 
-        // Only delete the physical file AFTER database transaction commits successfully.
-        $relativePath = $this->folder . '/' . $supportingDocument->stored_filename;
-        if (Storage::disk($this->disk)->exists($relativePath)) {
-            Storage::disk($this->disk)->delete($relativePath);
+            // Only delete the physical file AFTER database transaction commits successfully.
+            $relativePath = $this->folder.'/'.$supportingDocument->stored_filename;
+            if (Storage::disk($this->disk)->exists($relativePath)) {
+                Storage::disk($this->disk)->delete($relativePath);
+            }
+
+            return back()->with('success', 'Document deleted successfully.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Failed to delete document ID {$supportingDocument->id}: ".$e->getMessage());
+
+            return back()->with('error', 'Failed to delete document. Please try again.');
         }
-
-        return back()->with('success', 'Document deleted successfully.');
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error("Failed to delete document ID {$supportingDocument->id}: " . $e->getMessage());
-
-        return back()->with('error', 'Failed to delete document. Please try again.');
     }
-}
 
     /**
      * Download the specified document (Alias or Explicit Download)

@@ -46,6 +46,7 @@ class BackfillGraduateLedger extends Command
                 // Skip if already normalized
                 if ($record->student_id) {
                     $bar->advance();
+
                     continue;
                 }
 
@@ -74,7 +75,7 @@ class BackfillGraduateLedger extends Command
                     $term = AcademicTerm::firstOrCreate(
                         ['school_year' => $sy, 'semester_short' => $semShort],
                         [
-                            'semester'   => AcademicTerm::semesterLabel($semShort),
+                            'semester' => AcademicTerm::semesterLabel($semShort),
                             'sort_order' => AcademicTerm::sortOrder($semShort),
                         ]
                     );
@@ -102,6 +103,7 @@ class BackfillGraduateLedger extends Command
         $bar->finish();
         $this->newLine();
         $this->info('Graduate Ledger normalization backfill completed successfully!');
+
         return 0;
     }
 }
