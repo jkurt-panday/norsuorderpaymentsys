@@ -125,11 +125,12 @@ export default function Success({ reference_number, formInput }: Props) {
     // ? for printing
     const receiptRef = useRef<HTMLDivElement>(null);
 
-    const handlePrint = useReactToPrint({
-        contentRef: receiptRef,
-
-        documentTitle: `Receipt-${reference_number}`,
-    });
+    const handlePrint = () => {
+        window.open(
+            `/public/success/${formInput.reference_number}/print`,
+            '_blank',
+        );
+    };
 
     // console.log('formInput:', formInput);
     // console.log('supportingDocuments:', formInput?.supporting_documents);
