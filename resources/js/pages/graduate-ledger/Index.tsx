@@ -240,10 +240,9 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const paginationLinks = records?.links ?? [];
 
   return (
-    <div className="min-h-full bg-[#FAFAF5] p-4 md:p-8">
-      <Head title="Graduate School Ledger" />
-
+    <>
       <div className="max-w-7xl mx-auto space-y-6">
+      <Head title="Graduate School Ledger" />
 
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#CFE3FF] pb-5">
           <div>
@@ -652,7 +651,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
           )}
         </div>
       )}
-    </div>
+    </>
   );
 }
 

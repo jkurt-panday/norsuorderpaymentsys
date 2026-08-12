@@ -2,6 +2,7 @@ packages:
   - '.'
 
 allowBuilds:
+  core-js: set this to true or false
   unrs-resolver: false
 
 publicHoistPattern:

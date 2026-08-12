@@ -12,7 +12,6 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
@@ -20,17 +19,6 @@ use Maatwebsite\Excel\Imports\HeadingRowFormatter;
 
 class GraduateLedgerController extends Controller
 {
-    /**
-     * Whether the database has been migrated to the normalized schema.
-     * Checked once per request using Schema::hasColumn().
-     */
-    private bool $isNormalized;
-
-    public function __construct()
-    {
-        $this->isNormalized = Schema::hasColumn('graduate_ledgers', 'student_id');
-    }
-
     // ─── Index ────────────────────────────────────────────────────────────────
 
     /**
@@ -41,37 +29,18 @@ class GraduateLedgerController extends Controller
         $query = $this->buildFilteredQuery($request);
 
         // ── Stats ──────────────────────────────────────────────────────────
-        if ($this->isNormalized) {
-            $totalStudents = (clone $query)
-                ->whereNotNull('student_id')
-                ->distinct('student_id')
-                ->count('student_id');
+        $totalStudents = (clone $query)
+            ->whereNotNull('student_id')
+            ->distinct('student_id')
+            ->count('student_id');
 
-            $totalAssessments = (float) (clone $query)
-                ->where('entry_type', 'ar')
-                ->sum('amount');
+        $totalAssessments = (float) (clone $query)
+            ->where('entry_type', 'ar')
+            ->sum('amount');
 
-            $totalPayments = (float) (clone $query)
-                ->whereIn('entry_type', ['payment', 'adjustment'])
-                ->sum('amount');
-        } else {
-            $totalStudents = (clone $query)
-                ->whereNotNull('student_name')
-                ->where('student_name', '!=', '')
-                ->distinct('student_name')
-                ->count('student_name');
-
-            $totalAssessments = (float) (clone $query)
-                ->whereRaw("UPPER(TRIM(ar_payment)) = 'AR'")
-                ->sum('amount');
-
-            $totalPayments = (float) (clone $query)
-                ->where(function ($q) {
-                    $q->whereIn(DB::raw('UPPER(TRIM(ar_payment))'), ['PAYMENT', 'P', 'PAYMENR', 'ADJUSTMENT', 'ADJ', 'SETTLED'])
-                      ->orWhere('amount', 'like', '%(%');
-                })
-                ->sum('amount');
-        }
+        $totalPayments = (float) (clone $query)
+            ->whereIn('entry_type', ['payment', 'adjustment'])
+            ->sum('amount');
 
         $outstandingBalance = $totalAssessments - $totalPayments;
 
@@ -101,7 +70,7 @@ class GraduateLedgerController extends Controller
 
         $query = $this->buildFilteredQuery($request);
         $filename = 'graduate_ledger_export_' . now()->format('Ymd_His') . '.xlsx';
-        return Excel::download(new GraduateLedgerExport($query, $this->isNormalized), $filename);
+        return Excel::download(new GraduateLedgerExport($query), $filename);
     }
 
     /**
@@ -118,66 +87,37 @@ class GraduateLedgerController extends Controller
 
         $query = GraduateLedger::query();
 
-        if ($this->isNormalized) {
-            $query->with(['student', 'course', 'academicTerm']);
+        $query->with(['student', 'course', 'academicTerm']);
 
-            if ($search) {
-                $term = '%' . strtolower($search) . '%';
-                $query->where(function ($q) use ($term) {
-                    $q->whereHas('student', fn ($sq) => $sq
-                        ->whereRaw('LOWER(last_name) LIKE ?', [$term])
-                        ->orWhereRaw('LOWER(first_name) LIKE ?', [$term])
-                        ->orWhereRaw('LOWER(raw_name_from_csv) LIKE ?', [$term])
-                        ->orWhereRaw("LOWER(CONCAT(last_name, ', ', first_name)) LIKE ?", [$term])
-                        ->orWhereRaw("LOWER(CONCAT(first_name, ' ', last_name)) LIKE ?", [$term]))
-                      ->orWhereHas('course', fn ($sq) => $sq
-                        ->whereRaw('LOWER(code) LIKE ?', [$term]))
-                      ->orWhereRaw('LOWER(reference_or_jev_number) LIKE ?', [$term]);
-                });
-            }
+        if ($search) {
+            $term = '%' . strtolower($search) . '%';
+            $query->where(function ($q) use ($term) {
+                $q->whereHas('student', fn ($sq) => $sq
+                    ->whereRaw('LOWER(last_name) LIKE ?', [$term])
+                    ->orWhereRaw('LOWER(first_name) LIKE ?', [$term])
+                    ->orWhereRaw('LOWER(raw_name_from_csv) LIKE ?', [$term])
+                    ->orWhereRaw("LOWER(CONCAT(last_name, ', ', first_name)) LIKE ?", [$term])
+                    ->orWhereRaw("LOWER(CONCAT(first_name, ' ', last_name)) LIKE ?", [$term]))
+                  ->orWhereHas('course', fn ($sq) => $sq
+                    ->whereRaw('LOWER(code) LIKE ?', [$term]))
+                  ->orWhereRaw('LOWER(reference_or_jev_number) LIKE ?', [$term]);
+            });
+        }
 
-            if ($schoolYear) {
-                $query->whereHas('academicTerm', fn ($q) => $q->where('school_year', $schoolYear));
-            }
+        if ($schoolYear) {
+            $query->whereHas('academicTerm', fn ($q) => $q->where('school_year', $schoolYear));
+        }
 
-            if ($semester) {
-                $semLower = strtolower($semester);
-                $query->whereHas('academicTerm', fn ($q) => $q
-                    ->whereRaw('LOWER(semester_short) = ?', [$semLower])
-                    ->orWhereRaw('LOWER(semester) = ?', [$semLower]));
-            }
+        if ($semester) {
+            $semLower = strtolower($semester);
+            $query->whereHas('academicTerm', fn ($q) => $q
+                ->whereRaw('LOWER(semester_short) = ?', [$semLower])
+                ->orWhereRaw('LOWER(semester) = ?', [$semLower]));
+        }
 
-            if ($course) {
-                $courseLower = strtolower($course);
-                $query->whereHas('course', fn ($q) => $q->whereRaw('LOWER(code) = ?', [$courseLower]));
-            }
-        } else {
-            // Legacy string-column path
-            if ($search) {
-                $term = '%' . strtolower($search) . '%';
-                $query->where(function ($q) use ($term) {
-                    $q->whereRaw('LOWER(student_name) LIKE ?', [$term])
-                      ->orWhereRaw('LOWER(course) LIKE ?', [$term])
-                      ->orWhereRaw('LOWER(reference_or_jev_number) LIKE ?', [$term]);
-                });
-            }
-
-            if ($schoolYear) {
-                $query->where('school_year', $schoolYear);
-            }
-
-            if ($semester) {
-                $semLower = strtolower($semester);
-                $query->where(function ($q) use ($semLower) {
-                    $q->whereRaw('LOWER(semester_short) = ?', [$semLower])
-                      ->orWhereRaw('LOWER(semester) = ?', [$semLower]);
-                });
-            }
-
-            if ($course) {
-                $courseLower = strtolower($course);
-                $query->whereRaw('LOWER(course) = ?', [$courseLower]);
-            }
+        if ($course) {
+            $courseLower = strtolower($course);
+            $query->whereHas('course', fn ($q) => $q->whereRaw('LOWER(code) = ?', [$courseLower]));
         }
 
         $query
@@ -187,22 +127,15 @@ class GraduateLedgerController extends Controller
         // ── Relevance sort: starts-with results float to top ───────────────
         if ($search) {
             $prefix = strtolower($search) . '%';
-            if ($this->isNormalized) {
-                // Join graduate_student so we can ORDER BY its columns
-                $query->orderByRaw(
-                    "CASE WHEN EXISTS (
-                        SELECT 1 FROM graduate_student gs
-                        WHERE gs.id = graduate_ledgers.student_id
-                        AND (LOWER(gs.last_name) LIKE ? OR LOWER(gs.first_name) LIKE ?)
-                    ) THEN 0 ELSE 1 END",
-                    [$prefix, $prefix]
-                );
-            } else {
-                $query->orderByRaw(
-                    'CASE WHEN LOWER(student_name) LIKE ? THEN 0 ELSE 1 END',
-                    [$prefix]
-                );
-            }
+            // Join graduate_student so we can ORDER BY its columns
+            $query->orderByRaw(
+                "CASE WHEN EXISTS (
+                    SELECT 1 FROM graduate_student gs
+                    WHERE gs.id = graduate_ledgers.student_id
+                    AND (LOWER(gs.last_name) LIKE ? OR LOWER(gs.first_name) LIKE ?)
+                ) THEN 0 ELSE 1 END",
+                [$prefix, $prefix]
+            );
         } else {
             $query->latest('id');
         }
@@ -230,81 +163,55 @@ class GraduateLedgerController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        if ($this->isNormalized) {
-            $data = $request->validate([
-                'student_id'               => ['required', 'exists:graduate_student,id'],
-                'new_student'              => ['nullable', 'array'],
-                'new_student.last_name'    => ['required_with:new_student', 'string', 'max:255'],
-                'new_student.first_name'   => ['required_with:new_student', 'string', 'max:255'],
-                'new_student.middle_name'  => ['nullable', 'string', 'max:255'],
-                'course_id'                => ['nullable', 'exists:graduate_course,id'],
-                'academic_term_id'         => ['nullable', 'exists:graduate_academic_term,id'],
-                'school_year'              => ['nullable', 'string', 'max:20'],
-                'semester_short'           => ['nullable', 'string', 'max:20'],
-                'entry_type'               => ['nullable', 'in:ar,payment,adjustment'],
-                'units'                    => ['nullable', 'numeric', 'min:0'],
-                'transaction_date'         => ['nullable', 'date'],
-                'reference_or_jev_number'  => ['nullable', 'string', 'max:255'],
-                'particulars'              => ['nullable', 'string'],
-                'tuition_per_unit_or_misc' => ['nullable', 'numeric', 'min:0'],
-                'amount'                   => ['nullable', 'numeric', 'min:0'],
-                'remarks'                  => ['nullable', 'string'],
-                'input_by'                 => ['nullable', 'string', 'max:255'],
-            ]);
+        $data = $request->validate([
+            'student_id'               => ['required', 'exists:graduate_student,id'],
+            'new_student'              => ['nullable', 'array'],
+            'new_student.last_name'    => ['required_with:new_student', 'string', 'max:255'],
+            'new_student.first_name'   => ['required_with:new_student', 'string', 'max:255'],
+            'new_student.middle_name'  => ['nullable', 'string', 'max:255'],
+            'course_id'                => ['nullable', 'exists:graduate_course,id'],
+            'academic_term_id'         => ['nullable', 'exists:graduate_academic_term,id'],
+            'school_year'              => ['nullable', 'string', 'max:20'],
+            'semester_short'           => ['nullable', 'string', 'max:20'],
+            'entry_type'               => ['nullable', 'in:ar,payment,adjustment'],
+            'units'                    => ['nullable', 'numeric', 'min:0'],
+            'transaction_date'         => ['nullable', 'date'],
+            'reference_or_jev_number'  => ['nullable', 'string', 'max:255'],
+            'particulars'              => ['nullable', 'string'],
+            'tuition_per_unit_or_misc' => ['nullable', 'numeric', 'min:0'],
+            'amount'                   => ['nullable', 'numeric', 'min:0'],
+            'remarks'                  => ['nullable', 'string'],
+            'input_by'                 => ['nullable', 'string', 'max:255'],
+        ]);
 
-            // Inline new-student creation
-            if (empty($data['student_id']) && !empty($data['new_student'])) {
-                $ns = $data['new_student'];
-                $student = Student::firstOrCreate(
-                    ['last_name' => $ns['last_name'], 'first_name' => $ns['first_name']],
-                    ['middle_name' => $ns['middle_name'] ?? null, 'raw_name_from_csv' => "{$ns['last_name']}, {$ns['first_name']}"]
-                );
-                $data['student_id'] = $student->id;
-            }
-
-            // Resolve academic_term_id from school_year + semester_short if not provided directly
-            if (empty($data['academic_term_id']) && !empty($data['school_year']) && !empty($data['semester_short'])) {
-                $term = AcademicTerm::firstOrCreate(
-                    ['school_year' => $data['school_year'], 'semester_short' => $data['semester_short']],
-                    [
-                        'semester'   => AcademicTerm::semesterLabel($data['semester_short']),
-                        'sort_order' => AcademicTerm::sortOrder($data['semester_short']),
-                    ]
-                );
-                $data['academic_term_id'] = $term->id;
-            }
-
-            if (($data['entry_type'] ?? null) === 'ar' && ($data['amount'] === null || $data['amount'] === '')) {
-                $data['amount'] = ($data['units'] ?? 0) * ($data['tuition_per_unit_or_misc'] ?? 0);
-            }
-
-            unset($data['new_student'], $data['school_year'], $data['semester_short']);
-            GraduateLedger::create($data);
-        } else {
-            // Legacy path — keep writing to string columns
-            $data = $request->validate([
-                'student_name'             => ['required', 'string', 'max:255'],
-                'course'                   => ['nullable', 'string', 'max:255'],
-                'school_year'              => ['nullable', 'string', 'max:50'],
-                'semester_short'           => ['nullable', 'string', 'max:50'],
-                'semester'                 => ['nullable', 'string', 'max:100'],
-                'units'                    => ['nullable', 'integer'],
-                'transaction_date'         => ['nullable', 'date'],
-                'reference_or_jev_number'  => ['nullable', 'string', 'max:255'],
-                'particulars'              => ['nullable', 'string'],
-                'tuition_per_unit_or_misc' => ['nullable', 'numeric'],
-                'ar_payment'               => ['nullable', 'string', 'max:50'],
-                'amount'                   => ['nullable', 'numeric'],
-                'remarks'                  => ['nullable', 'string'],
-                'input_by'                 => ['nullable', 'string', 'max:255'],
-            ]);
-
-            if (($data['ar_payment'] ?? null) === 'AR' && ($data['amount'] === null || $data['amount'] === '')) {
-                $data['amount'] = ($data['units'] ?? 0) * ($data['tuition_per_unit_or_misc'] ?? 0);
-            }
-
-            GraduateLedger::create($data);
+        // Inline new-student creation
+        if (empty($data['student_id']) && !empty($data['new_student'])) {
+            $ns = $data['new_student'];
+            $student = Student::firstOrCreate(
+                ['last_name' => $ns['last_name'], 'first_name' => $ns['first_name']],
+                ['middle_name' => $ns['middle_name'] ?? null, 'raw_name_from_csv' => "{$ns['last_name']}, {$ns['first_name']}"]
+            );
+            $data['student_id'] = $student->id;
         }
+
+        // Resolve academic_term_id from school_year + semester_short if not provided directly
+        if (empty($data['academic_term_id']) && !empty($data['school_year']) && !empty($data['semester_short'])) {
+            $term = AcademicTerm::firstOrCreate(
+                ['school_year' => $data['school_year'], 'semester_short' => $data['semester_short']],
+                [
+                    'semester'   => AcademicTerm::semesterLabel($data['semester_short']),
+                    'sort_order' => AcademicTerm::sortOrder($data['semester_short']),
+                ]
+            );
+            $data['academic_term_id'] = $term->id;
+        }
+
+        if (($data['entry_type'] ?? null) === 'ar' && ($data['amount'] === null || $data['amount'] === '')) {
+            $data['amount'] = ($data['units'] ?? 0) * ($data['tuition_per_unit_or_misc'] ?? 0);
+        }
+
+        unset($data['new_student'], $data['school_year'], $data['semester_short']);
+        GraduateLedger::create($data);
 
         return redirect()->route('graduate-ledger.index');
     }
@@ -316,9 +223,7 @@ class GraduateLedgerController extends Controller
      */
     public function edit(int $id): Response
     {
-        $record = $this->isNormalized
-            ? GraduateLedger::with(['student', 'course', 'academicTerm'])->findOrFail($id)
-            : GraduateLedger::findOrFail($id);
+        $record = GraduateLedger::with(['student', 'course', 'academicTerm'])->findOrFail($id);
 
         return Inertia::render('graduate-ledger/EditTransaction', [
             'record'        => $this->recordForForm($record),
@@ -336,63 +241,40 @@ class GraduateLedgerController extends Controller
     {
         $record = GraduateLedger::findOrFail($id);
 
-        if ($this->isNormalized) {
-            $data = $request->validate([
-                'student_id'               => ['required', 'exists:graduate_student,id'],
-                'course_id'                => ['nullable', 'exists:graduate_course,id'],
-                'academic_term_id'         => ['nullable', 'exists:graduate_academic_term,id'],
-                'school_year'              => ['nullable', 'string', 'max:20'],
-                'semester_short'           => ['nullable', 'string', 'max:20'],
-                'entry_type'               => ['nullable', 'in:ar,payment,adjustment'],
-                'units'                    => ['nullable', 'numeric', 'min:0'],
-                'transaction_date'         => ['nullable', 'date'],
-                'reference_or_jev_number'  => ['nullable', 'string', 'max:255'],
-                'particulars'              => ['nullable', 'string'],
-                'tuition_per_unit_or_misc' => ['nullable', 'numeric', 'min:0'],
-                'amount'                   => ['nullable', 'numeric', 'min:0'],
-                'remarks'                  => ['nullable', 'string'],
-                'input_by'                 => ['nullable', 'string', 'max:255'],
-            ]);
+        $data = $request->validate([
+            'student_id'               => ['required', 'exists:graduate_student,id'],
+            'course_id'                => ['nullable', 'exists:graduate_course,id'],
+            'academic_term_id'         => ['nullable', 'exists:graduate_academic_term,id'],
+            'school_year'              => ['nullable', 'string', 'max:20'],
+            'semester_short'           => ['nullable', 'string', 'max:20'],
+            'entry_type'               => ['nullable', 'in:ar,payment,adjustment'],
+            'units'                    => ['nullable', 'numeric', 'min:0'],
+            'transaction_date'         => ['nullable', 'date'],
+            'reference_or_jev_number'  => ['nullable', 'string', 'max:255'],
+            'particulars'              => ['nullable', 'string'],
+            'tuition_per_unit_or_misc' => ['nullable', 'numeric', 'min:0'],
+            'amount'                   => ['nullable', 'numeric', 'min:0'],
+            'remarks'                  => ['nullable', 'string'],
+            'input_by'                 => ['nullable', 'string', 'max:255'],
+        ]);
 
-            // Resolve academic_term_id from school_year + semester_short if not provided directly
-            if (empty($data['academic_term_id']) && !empty($data['school_year']) && !empty($data['semester_short'])) {
-                $term = AcademicTerm::firstOrCreate(
-                    ['school_year' => $data['school_year'], 'semester_short' => $data['semester_short']],
-                    [
-                        'semester'   => AcademicTerm::semesterLabel($data['semester_short']),
-                        'sort_order' => AcademicTerm::sortOrder($data['semester_short']),
-                    ]
-                );
-                $data['academic_term_id'] = $term->id;
-            }
-
-            if (($data['entry_type'] ?? null) === 'ar' && ($data['amount'] === null || $data['amount'] === '')) {
-                $data['amount'] = ($data['units'] ?? 0) * ($data['tuition_per_unit_or_misc'] ?? 0);
-            }
-
-            unset($data['school_year'], $data['semester_short']);
-        } else {
-            $data = $request->validate([
-                'student_name'             => ['required', 'string', 'max:255'],
-                'course'                   => ['nullable', 'string', 'max:255'],
-                'school_year'              => ['nullable', 'string', 'max:50'],
-                'semester'                 => ['nullable', 'string', 'max:100'],
-                'semester_short'           => ['nullable', 'string', 'max:50'],
-                'units'                    => ['nullable', 'integer', 'min:0'],
-                'transaction_date'         => ['nullable', 'date'],
-                'reference_or_jev_number'  => ['nullable', 'string', 'max:255'],
-                'particulars'              => ['nullable', 'string'],
-                'tuition_per_unit_or_misc' => ['nullable', 'numeric', 'min:0'],
-                'ar_payment'               => ['nullable', 'string', 'max:50'],
-                'amount'                   => ['nullable', 'numeric', 'min:0'],
-                'remarks'                  => ['nullable', 'string'],
-                'input_by'                 => ['nullable', 'string', 'max:255'],
-            ]);
-
-            if (($data['ar_payment'] ?? null) === 'AR' && ($data['amount'] === null || $data['amount'] === '')) {
-                $data['amount'] = ($data['units'] ?? 0) * ($data['tuition_per_unit_or_misc'] ?? 0);
-            }
+        // Resolve academic_term_id from school_year + semester_short if not provided directly
+        if (empty($data['academic_term_id']) && !empty($data['school_year']) && !empty($data['semester_short'])) {
+            $term = AcademicTerm::firstOrCreate(
+                ['school_year' => $data['school_year'], 'semester_short' => $data['semester_short']],
+                [
+                    'semester'   => AcademicTerm::semesterLabel($data['semester_short']),
+                    'sort_order' => AcademicTerm::sortOrder($data['semester_short']),
+                ]
+            );
+            $data['academic_term_id'] = $term->id;
         }
+
+        if (($data['entry_type'] ?? null) === 'ar' && ($data['amount'] === null || $data['amount'] === '')) {
+            $data['amount'] = ($data['units'] ?? 0) * ($data['tuition_per_unit_or_misc'] ?? 0);
+        }
+
+        unset($data['school_year'], $data['semester_short']);
 
         $record->update($data);
 
@@ -485,9 +367,7 @@ class GraduateLedgerController extends Controller
         fclose($handle);
 
         // Resolve lookup maps from the distinct sets
-        [$studentMap, $courseMap, $termMap] = $this->isNormalized
-            ? $this->buildImportLookupMaps($distinctStudents, $distinctCourses, $distinctTerms, $now)
-            : [[], [], []];
+        [$studentMap, $courseMap, $termMap] = $this->buildImportLookupMaps($distinctStudents, $distinctCourses, $distinctTerms, $now);
 
         // Pass 2: stream rows again, map to insert array, chunk-insert
         $handle = fopen($path, 'r');
@@ -496,9 +376,7 @@ class GraduateLedgerController extends Controller
         $insertData = [];
 
         while (($row = fgetcsv($handle)) !== false) {
-            $data = $this->isNormalized
-                ? $this->mapImportRowNormalized($row, $studentMap, $courseMap, $termMap)
-                : $this->mapImportRow($row);
+            $data = $this->mapImportRowNormalized($row, $studentMap, $courseMap, $termMap);
 
             if ($data === null) {
                 $skipped++;
@@ -545,44 +423,36 @@ class GraduateLedgerController extends Controller
 
         $dataRows = $rows->slice(1);
 
-        $studentMap = [];
-        $courseMap  = [];
-        $termMap    = [];
+        $distinctStudents = [];
+        $distinctCourses  = [];
+        $distinctTerms    = [];
 
-        if ($this->isNormalized) {
-            $distinctStudents = [];
-            $distinctCourses  = [];
-            $distinctTerms    = [];
-
-            foreach ($dataRows as $rowObj) {
-                $row  = $rowObj->values()->all();
-                $name = trim(str_replace(['\u{2212}', '\u{2013}', '\u{2014}'], '-', (string) ($row[0] ?? '')));
-                if ($name !== '') {
-                    $distinctStudents[$name] = true;
-                }
-                $code = trim((string) ($row[1] ?? ''));
-                if ($code !== '') {
-                    $distinctCourses[$code] = true;
-                }
-                $sy  = trim((string) ($row[2] ?? ''));
-                $sem = trim((string) ($row[3] ?? ''));
-                if ($sy !== '' && $sem !== '') {
-                    $distinctTerms["{$sy}|||{$sem}"] = ['school_year' => $sy, 'semester_short' => $sem];
-                }
+        foreach ($dataRows as $rowObj) {
+            $row  = $rowObj->values()->all();
+            $name = trim(str_replace(['\u{2212}', '\u{2013}', '\u{2014}'], '-', (string) ($row[0] ?? '')));
+            if ($name !== '') {
+                $distinctStudents[$name] = true;
             }
-
-            [$studentMap, $courseMap, $termMap] = $this->buildImportLookupMaps(
-                $distinctStudents, $distinctCourses, $distinctTerms, $now
-            );
+            $code = trim((string) ($row[1] ?? ''));
+            if ($code !== '') {
+                $distinctCourses[$code] = true;
+            }
+            $sy  = trim((string) ($row[2] ?? ''));
+            $sem = trim((string) ($row[3] ?? ''));
+            if ($sy !== '' && $sem !== '') {
+                $distinctTerms["{$sy}|||{$sem}"] = ['school_year' => $sy, 'semester_short' => $sem];
+            }
         }
+
+        [$studentMap, $courseMap, $termMap] = $this->buildImportLookupMaps(
+            $distinctStudents, $distinctCourses, $distinctTerms, $now
+        );
 
         $insertData = [];
 
         foreach ($dataRows as $rowObj) {
             $row  = $rowObj->values()->all();
-            $data = $this->isNormalized
-                ? $this->mapImportRowNormalized($row, $studentMap, $courseMap, $termMap)
-                : $this->mapImportRow($row);
+            $data = $this->mapImportRowNormalized($row, $studentMap, $courseMap, $termMap);
 
             if ($data === null) {
                 $skipped++;
@@ -620,64 +490,33 @@ class GraduateLedgerController extends Controller
      */
     public function printSelect(Request $request): Response
     {
-        if ($this->isNormalized) {
-            $students = Student::orderBy('last_name')
-                ->get(['id', 'last_name', 'first_name', 'middle_name'])
-                ->map(fn ($s) => ['id' => $s->id, 'full_name' => $s->full_name]);
+        $students = Student::orderBy('last_name')
+            ->get(['id', 'last_name', 'first_name', 'middle_name'])
+            ->map(fn ($s) => ['id' => $s->id, 'full_name' => $s->full_name]);
 
-            $selectedStudentId = $request->input('student_id') ? (int) $request->input('student_id') : null;
+        $selectedStudentId = $request->input('student_id') ? (int) $request->input('student_id') : null;
 
-            // Fallback: if a legacy name string was passed instead, resolve to ID
-            if (!$selectedStudentId && $request->input('student')) {
-                $raw = $request->input('student');
-                $selectedStudentId = Student::where('raw_name_from_csv', $raw)->value('id');
-            }
-
-            $studentRecords = collect();
-            $balanceSummary = ['totalCharges' => 0, 'totalPayments' => 0, 'outstandingBalance' => 0];
-
-            if ($selectedStudentId) {
-                $studentRecords = GraduateLedger::with(['student', 'course', 'academicTerm'])
-                    ->where('student_id', $selectedStudentId)
-                    ->orderBy('id', 'asc')
-                    ->get();
-
-                $balanceSummary = $this->calculateStudentBalanceNormalized($studentRecords);
-            }
-
-            return Inertia::render('graduate-ledger/PrintSelect', [
-                'students'        => $students,
-                'selectedStudent' => $selectedStudentId,
-                'records'         => $studentRecords->map(fn ($r) => $this->transformRecord($r)),
-                'summary'         => $balanceSummary,
-            ]);
+            // Fallback: if a name string was passed instead, resolve to ID
+        if (!$selectedStudentId && $request->input('student')) {
+            $raw = $request->input('student');
+            $selectedStudentId = Student::where('raw_name_from_csv', $raw)->value('id');
         }
 
-        // Legacy path
-        $students = GraduateLedger::query()
-            ->whereNotNull('student_name')
-            ->where('student_name', '!=', '')
-            ->distinct()
-            ->orderBy('student_name', 'asc')
-            ->pluck('student_name')
-            ->map(fn ($name) => ['id' => $name, 'full_name' => $name]);
+        $studentRecords = collect();
+        $balanceSummary = ['totalCharges' => 0, 'totalPayments' => 0, 'outstandingBalance' => 0];
 
-        $selectedStudent = $request->input('student');
-        $studentRecords  = collect();
-        $balanceSummary  = ['totalCharges' => 0, 'totalPayments' => 0, 'outstandingBalance' => 0];
-
-        if ($selectedStudent) {
-            $studentRecords = GraduateLedger::query()
-                ->where('student_name', $selectedStudent)
+        if ($selectedStudentId) {
+            $studentRecords = GraduateLedger::with(['student', 'course', 'academicTerm'])
+                ->where('student_id', $selectedStudentId)
                 ->orderBy('id', 'asc')
                 ->get();
 
-            $balanceSummary = $this->calculateStudentBalance($studentRecords);
+            $balanceSummary = $this->calculateStudentBalanceNormalized($studentRecords);
         }
 
         return Inertia::render('graduate-ledger/PrintSelect', [
             'students'        => $students,
-            'selectedStudent' => $selectedStudent,
+            'selectedStudent' => $selectedStudentId,
             'records'         => $studentRecords->map(fn ($r) => $this->transformRecord($r)),
             'summary'         => $balanceSummary,
         ]);
@@ -688,27 +527,18 @@ class GraduateLedgerController extends Controller
      */
     public function generatePdf(Request $request)
     {
-        if ($this->isNormalized) {
-            $request->validate(['student_id' => 'required|integer|exists:graduate_student,id']);
-            $studentId = (int) $request->input('student_id');
-            $student   = Student::findOrFail($studentId);
+        $request->validate(['student_id' => 'required|integer|exists:graduate_student,id']);
+        $studentId = (int) $request->input('student_id');
+        $student   = Student::findOrFail($studentId);
 
-            $rawRecords = GraduateLedger::with(['student', 'course', 'academicTerm'])
-                ->where('student_id', $studentId)
-                ->orderBy('id', 'asc')
-                ->get();
+        $rawRecords = GraduateLedger::with(['student', 'course', 'academicTerm'])
+            ->where('student_id', $studentId)
+            ->orderBy('id', 'asc')
+            ->get();
 
-            $summary     = $this->calculateStudentBalanceNormalized($rawRecords);
-            $studentName = $student->full_name;
-            $records     = $rawRecords->map(fn ($r) => (object) $this->transformRecord($r));
-        } else {
-            $request->validate(['student' => 'required|string']);
-            $studentName = str_replace(['−', '–', '—'], '-', (string) $request->input('student'));
-
-            $rawRecords  = GraduateLedger::where('student_name', $studentName)->orderBy('id', 'asc')->get();
-            $summary     = $this->calculateStudentBalance($rawRecords);
-            $records     = $rawRecords->map(fn ($r) => (object) $this->transformRecord($r));
-        }
+        $summary     = $this->calculateStudentBalanceNormalized($rawRecords);
+        $studentName = $student->full_name;
+        $records     = $rawRecords->map(fn ($r) => (object) $this->transformRecord($r));
 
         $pdf = Pdf::loadView('pdf.student-ledger-statement', [
             'studentName' => $studentName,
@@ -730,25 +560,15 @@ class GraduateLedgerController extends Controller
 
     /**
      * Transforms a GraduateLedger row to the frontend LedgerRecord shape.
-     * Works in both legacy and normalized modes — Index.tsx sees the same shape.
+     * Index.tsx consumes this shape.
      */
     private function transformRecord(GraduateLedger $r): array
     {
-        if ($this->isNormalized && $r->relationLoaded('student')) {
-            $name       = $r->student?->full_name ?? '';
-            $courseCode = $r->course?->code ?? '';
-            $schoolYear = $r->academicTerm?->school_year ?? '';
-            $semester   = $r->academicTerm?->semester_short ?? $r->academicTerm?->semester ?? '';
-            $arPayment  = $this->entryTypeToLabel($r->entry_type);
-        } else {
-            $rawAmount  = (string) $r->amount;
-            $isParens   = str_contains($rawAmount, '(') && str_contains($rawAmount, ')');
-            $name       = $r->student_name ?? '';
-            $courseCode = $r->course ?? '';
-            $schoolYear = $r->school_year ?? '';
-            $semester   = $r->semester_short ?: ($r->semester ?? '');
-            $arPayment  = $this->normalizeArPaymentType($r->ar_payment, $isParens);
-        }
+        $name       = $r->student?->full_name ?? '';
+        $courseCode = $r->course?->code ?? '';
+        $schoolYear = $r->academicTerm?->school_year ?? '';
+        $semester   = $r->academicTerm?->semester_short ?? $r->academicTerm?->semester ?? '';
+        $arPayment  = $this->entryTypeToLabel($r->entry_type);
 
         return [
             'id'                            => $r->id,
@@ -773,35 +593,14 @@ class GraduateLedgerController extends Controller
      */
     private function recordForForm(GraduateLedger $r): array
     {
-        if ($this->isNormalized) {
-            return [
-                'id'                       => $r->id,
-                'student_id'               => $r->student_id,
-                'course_id'                => $r->course_id,
-                'academic_term_id'         => $r->academic_term_id,
-                'school_year'              => $r->academicTerm?->school_year ?? '',
-                'semester_short'           => $r->academicTerm?->semester_short ?? '1st Sem.',
-                'entry_type'               => $r->entry_type ?? 'ar',
-                'units'                    => $r->units,
-                'transaction_date'         => $r->transaction_date ? (string) $r->transaction_date : '',
-                'reference_or_jev_number'  => $r->reference_or_jev_number ?? '',
-                'particulars'              => $r->particulars ?? 'Tuition',
-                'tuition_per_unit_or_misc' => $r->tuition_per_unit_or_misc,
-                'amount'                   => $r->amount,
-                'remarks'                  => $r->remarks ?? '',
-                'input_by'                 => $r->input_by ?? '',
-            ];
-        }
-
         return [
             'id'                       => $r->id,
-            'student_name'             => $r->student_name ?? '',
-            'course'                   => $r->course ?? '',
-            'school_year'              => $r->school_year ?? '',
-            'semester_short'           => $r->semester_short ?? '1st Sem.',
-            'semester'                 => $r->semester ?? 'First Semester',
-            'entry_type'               => $this->arPaymentToEntryType($r->ar_payment),
-            'ar_payment'               => $r->ar_payment ?? 'AR',
+            'student_id'               => $r->student_id,
+            'course_id'                => $r->course_id,
+            'academic_term_id'         => $r->academic_term_id,
+            'school_year'              => $r->academicTerm?->school_year ?? '',
+            'semester_short'           => $r->academicTerm?->semester_short ?? '1st Sem.',
+            'entry_type'               => $r->entry_type ?? 'ar',
             'units'                    => $r->units,
             'transaction_date'         => $r->transaction_date ? (string) $r->transaction_date : '',
             'reference_or_jev_number'  => $r->reference_or_jev_number ?? '',
@@ -815,25 +614,28 @@ class GraduateLedgerController extends Controller
 
     /**
      * List of students for the form picker.
-     * Returns [{id, last_name, first_name, middle_name}] when normalized,
-     * or [{id: name, last_name: name, first_name: '', middle_name: null}] in legacy mode.
+     * Returns [{id, last_name, first_name, middle_name}].
      */
     private function studentList(): array
     {
-        if ($this->isNormalized) {
-            return Student::orderBy('last_name')
-                ->get(['id', 'last_name', 'first_name', 'middle_name'])
-                ->toArray();
-        }
+        $latestCourses = DB::table('graduate_ledgers')
+            ->select('student_id', DB::raw('MAX(course_id) as last_course_id'))
+            ->whereNotNull('student_id')
+            ->whereNotNull('course_id')
+            ->groupBy('student_id')
+            ->pluck('last_course_id', 'student_id')
+            ->toArray();
 
-        return GraduateLedger::query()
-            ->whereNotNull('student_name')
-            ->where('student_name', '!=', '')
-            ->distinct()
-            ->orderBy('student_name')
-            ->pluck('student_name')
-            ->map(fn ($n) => ['id' => $n, 'last_name' => $n, 'first_name' => '', 'middle_name' => null])
-            ->all();
+        return Student::orderBy('last_name')
+            ->get(['id', 'last_name', 'first_name', 'middle_name'])
+            ->map(fn ($s) => [
+                'id'             => $s->id,
+                'last_name'      => $s->last_name,
+                'first_name'     => $s->first_name,
+                'middle_name'    => $s->middle_name,
+                'last_course_id' => $latestCourses[$s->id] ?? null,
+            ])
+            ->toArray();
     }
 
     /**
@@ -842,15 +644,7 @@ class GraduateLedgerController extends Controller
      */
     private function courseList(): array
     {
-        if ($this->isNormalized && Course::exists()) {
-            return Course::orderBy('code')->get(['id', 'code'])->toArray();
-        }
-
-        // Fallback to hardcoded list
-        return collect(Course::allCodes())
-            ->map(fn ($code, $i) => ['id' => $code, 'code' => $code])
-            ->values()
-            ->all();
+        return Course::orderBy('code')->get(['id', 'code'])->toArray();
     }
 
     /**
@@ -858,14 +652,10 @@ class GraduateLedgerController extends Controller
      */
     private function academicTermList(): array
     {
-        if ($this->isNormalized && AcademicTerm::exists()) {
-            return AcademicTerm::orderBy('school_year', 'desc')
-                ->orderBy('sort_order')
-                ->get(['id', 'school_year', 'semester_short', 'semester'])
-                ->toArray();
-        }
-
-        return [];
+        return AcademicTerm::orderBy('school_year', 'desc')
+            ->orderBy('sort_order')
+            ->get(['id', 'school_year', 'semester_short', 'semester'])
+            ->toArray();
     }
 
     /**
@@ -985,40 +775,6 @@ class GraduateLedgerController extends Controller
         ];
     }
 
-    /**
-     * Maps a positional CSV/Excel row array to legacy string DB columns.
-     */
-    private function mapImportRow(array $row): ?array
-    {
-        $studentName = trim(str_replace(['−', '–', '—'], '-', (string) ($row[0] ?? '')));
-        if ($studentName === '') {
-            return null;
-        }
-
-        $rawAmount  = (string) ($row[11] ?? '0');
-        $rawTuition = (string) ($row[9] ?? '0');
-
-        return [
-            'student_name'             => $studentName,
-            'course'                   => trim((string) ($row[1] ?? '')),
-            'school_year'              => trim((string) ($row[2] ?? '')),
-            'semester_short'           => trim((string) ($row[3] ?? '')),
-            'semester'                 => trim((string) ($row[4] ?? '')),
-            'units'                    => is_numeric($row[5] ?? null) ? (int) $row[5] : null,
-            'transaction_date'         => $this->normalizeDate($row[6] ?? null),
-            'reference_or_jev_number'  => trim((string) ($row[7] ?? '')),
-            'particulars'              => trim((string) ($row[8] ?? '')),
-            'tuition_per_unit_or_misc' => $this->cleanAmount($rawTuition),
-            'ar_payment'               => $this->normalizeArPaymentType(
-                (string) ($row[10] ?? ''),
-                str_contains($rawAmount, '(') && str_contains($rawAmount, ')')
-            ),
-            'amount'   => $this->cleanAmount($rawAmount),
-            'remarks'  => trim((string) ($row[12] ?? '')),
-            'input_by' => trim((string) ($row[13] ?? '')),
-        ];
-    }
-
     private function getFilterOptions(): array
     {
         $currentYear       = (int) date('Y');
@@ -1027,26 +783,7 @@ class GraduateLedgerController extends Controller
             $defaultSchoolYears[] = $i . '-' . ($i + 1);
         }
 
-        if ($this->isNormalized) {
-            $schoolYears = AcademicTerm::distinct()
-                ->orderBy('school_year', 'desc')
-                ->pluck('school_year')
-                ->filter()
-                ->values()
-                ->all();
-
-            return [
-                'courses'     => Course::orderBy('code')->pluck('code')->filter()->values()->all(),
-                'schoolYears' => $schoolYears ?: $defaultSchoolYears,
-                'semesters'   => AcademicTerm::distinct()->pluck('semester_short')->filter()->values()->all(),
-            ];
-        }
-
-        // Legacy
-        $schoolYears = GraduateLedger::query()
-            ->whereNotNull('school_year')
-            ->where('school_year', '!=', '')
-            ->distinct()
+        $schoolYears = AcademicTerm::distinct()
             ->orderBy('school_year', 'desc')
             ->pluck('school_year')
             ->filter()
@@ -1054,9 +791,9 @@ class GraduateLedgerController extends Controller
             ->all();
 
         return [
-            'courses'     => GraduateLedger::query()->whereNotNull('course')->where('course', '!=', '')->distinct()->orderBy('course')->pluck('course')->filter()->values()->all(),
+            'courses'     => Course::orderBy('code')->pluck('code')->filter()->values()->all(),
             'schoolYears' => $schoolYears ?: $defaultSchoolYears,
-            'semesters'   => GraduateLedger::query()->whereNotNull('semester_short')->where('semester_short', '!=', '')->distinct()->orderBy('semester_short')->pluck('semester_short')->filter()->values()->all(),
+            'semesters'   => AcademicTerm::distinct()->pluck('semester_short')->filter()->values()->all(),
         ];
     }
 
@@ -1082,24 +819,6 @@ class GraduateLedgerController extends Controller
         } catch (\Exception $e) {
             return null;
         }
-    }
-
-    /** Normalizes raw import type string → legacy display label ('AR'/'Payment'/'Adjustment') */
-    private function normalizeArPaymentType(?string $rawType, bool $isParenthesesNegative): string
-    {
-        $type = strtoupper(trim($rawType ?? ''));
-
-        if ($type === 'AR') {
-            return 'AR';
-        }
-        if ($type === 'ADJUSTMENT' || $type === 'ADJ') {
-            return 'Adjustment';
-        }
-        if (in_array($type, ['PAYMENT', 'P', 'PAYMENR', 'SETTLED']) || $isParenthesesNegative) {
-            return 'Payment';
-        }
-
-        return 'Payment';
     }
 
     /** Normalizes raw import type string → new enum value ('ar'/'payment'/'adjustment') */
@@ -1130,42 +849,9 @@ class GraduateLedgerController extends Controller
         };
     }
 
-    /** Converts legacy ar_payment string → entry_type enum value */
-    private function arPaymentToEntryType(?string $arPayment): string
-    {
-        return match (strtoupper(trim($arPayment ?? ''))) {
-            'AR'                            => 'ar',
-            'ADJUSTMENT', 'ADJ'             => 'adjustment',
-            default                         => 'payment',
-        };
-    }
-
     private function cleanAmount($rawAmount): float
     {
         return abs((float) preg_replace('/[^\d.]/', '', (string) $rawAmount));
-    }
-
-    private function calculateStudentBalance($records): array
-    {
-        $totalCharges  = 0;
-        $totalPayments = 0;
-
-        foreach ($records as $record) {
-            $rawType     = strtoupper(trim($record->ar_payment ?? ''));
-            $cleanAmount = $this->cleanAmount($record->amount);
-
-            if ($rawType === 'AR') {
-                $totalCharges += $cleanAmount;
-            } else {
-                $totalPayments += $cleanAmount;
-            }
-        }
-
-        return [
-            'totalCharges'      => $totalCharges,
-            'totalPayments'     => $totalPayments,
-            'outstandingBalance' => $totalCharges - $totalPayments,
-        ];
     }
 
     private function calculateStudentBalanceNormalized($records): array

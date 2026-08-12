@@ -137,7 +137,7 @@ export default function PrintSelect({
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAF5] p-4 md:p-8">
+    <div className="min-h-full bg-[#FAFAF5] p-4 md:p-8">
       <Head title="Print Student Statement" />
 
       <div className="mx-auto max-w-5xl space-y-6">
