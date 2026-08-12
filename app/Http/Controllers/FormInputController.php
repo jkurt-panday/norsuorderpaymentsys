@@ -8,6 +8,7 @@ use App\Models\PaymentDetailOption;
 // use App\Models\SupportingDocument;
 use App\Services\FileUploadService;
 use App\Services\ReferenceNumberService;
+use App\Services\ReceiptPDFService;
 // use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 // use Illuminate\Support\Facades\Storage;
@@ -19,15 +20,17 @@ use Inertia\Response;
 class FormInputController extends Controller
 {
     protected FileUploadService $fileUploadService;
-
     protected ReferenceNumberService $referenceNumberService;
+    protected ReceiptPDFService $receiptPDFService;
 
     public function __construct(
         FileUploadService $fileUploadService,
-        ReferenceNumberService $referenceNumberService
+        ReferenceNumberService $referenceNumberService,
+        ReceiptPDFService $receiptPDFService
     ) {
         $this->fileUploadService = $fileUploadService;
         $this->referenceNumberService = $referenceNumberService;
+        $this->receiptPDFService = $receiptPDFService;
     }
 
     /**
@@ -85,13 +88,17 @@ class FormInputController extends Controller
             // Eager-load relations before rendering, so the Success page
             // receives formInput.membership and formInput.paymentDetailOption
             // as populated nested objects instead of undefined.
-            $formInput->load(['membership', 'paymentDetailOption', 'supportingDocuments']);
+            // $formInput->load(['membership', 'paymentDetailOption', 'supportingDocuments']);
 
             // Render the success page directly — no separate success() action
             // or route needed, since we already have everything we need here.
-            return Inertia::render('public/Success', [
-                'reference_number' => $formInput->reference_number,
-                'formInput' => $formInput,
+            // return Inertia::render('public/Success', [
+            //     'reference_number' => $formInput->reference_number,
+            //     'formInput' => $formInput,
+            // ]);
+            // 
+            return redirect()->route('public.success', [
+                'reference_number' => $formInput->reference_number
             ]);
 
         } catch (\Exception $e) {
@@ -99,6 +106,44 @@ class FormInputController extends Controller
 
             return back()->withInput()->with('error', 'Failed to submit request: '.$e->getMessage());
         }
+    }
+
+    public function success(string $referenceNumber)
+    {
+        $formInput = FormInput::where('reference_number', $referenceNumber)->firstOrFail();
+        $formInput->load(['membership', 'paymentDetailOption', 'supportingDocuments']);
+        
+        return Inertia::render('public/Success', [
+            'reference_number' => $formInput->reference_number,
+            'formInput' => $formInput,
+        ]);
+    }
+
+    /**
+    * Stream the PDF receipt in the browser window.
+    */
+    public function printReceipt(string $referenceNumber)
+    {
+        $formInput = FormInput::where(
+            'reference_number',
+            $referenceNumber
+        )->firstOrFail();
+
+        // dd($formInput);
+    
+        return $this->receiptPDFService
+            ->make($formInput)
+            ->inline();
+    }
+
+    /**
+    * Download the PDF receipt file.
+    */
+    public function downloadReceipt(FormInput $formInput)
+    {
+        return $this->receiptPDFService
+            ->make($formInput)
+            ->name("receipt-{$formInput->reference_number}.pdf");
     }
 
     /**
