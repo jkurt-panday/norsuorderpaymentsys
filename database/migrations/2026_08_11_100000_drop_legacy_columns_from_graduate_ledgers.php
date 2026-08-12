@@ -14,6 +14,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('graduate_ledgers', function (Blueprint $table) {
+            // Drop the index on the legacy column before dropping it (SQLite can't drop an indexed column)
+            $table->dropIndex(['student_name']);
+
             $table->dropColumn([
                 'student_name',   // → student_id FK
                 'course',         // → course_id FK

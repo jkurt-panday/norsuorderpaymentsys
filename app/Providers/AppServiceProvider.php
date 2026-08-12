@@ -2,8 +2,6 @@
 
 namespace App\Providers;
 
-use App\Models\GraduateLedger;
-use App\Observers\GraduateLedgerObserver;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -28,8 +26,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        GraduateLedger::observe(GraduateLedgerObserver::class);
-
         $this->configureDefaults();
 
         Mail::extend('brevo', function () {

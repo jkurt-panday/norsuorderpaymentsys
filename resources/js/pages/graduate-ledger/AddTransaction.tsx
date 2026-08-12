@@ -34,6 +34,7 @@ interface StudentOption {
     last_name: string;
     first_name: string;
     middle_name?: string | null;
+    last_course_id?: number | string | null;
 }
 
 interface CourseOption {
@@ -167,6 +168,10 @@ function SearchableStudentSelect({
 export default function AddTransaction({ students, courses, academicTerms, authUserName }: Props) {
     const [showNewStudent, setShowNewStudent] = useState(false);
 
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const currentYear = new Date().getFullYear();
+    const defaultSy = `${currentYear}-${currentYear + 1}`;
+
     const { data, setData, post, processing, errors } = useForm<{
         student_id:               string | number;
         new_student:              { last_name: string; first_name: string; middle_name: string } | null;
@@ -188,11 +193,11 @@ export default function AddTransaction({ students, courses, academicTerms, authU
         new_student:              null,
         course_id:                '',
         academic_term_id:         '',
-        school_year:              '',
+        school_year:              defaultSy,
         semester_short:           '1st Sem.',
         entry_type:               'ar',
         units:                    '',
-        transaction_date:         '',
+        transaction_date:         todayStr,
         reference_or_jev_number:  '',
         particulars:              'Tuition',
         tuition_per_unit_or_misc: '',
@@ -230,9 +235,8 @@ export default function AddTransaction({ students, courses, academicTerms, authU
     const selectClass = 'w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none';
 
     return (
-        <div className="min-h-full bg-[#FAFAF5] p-4 md:p-8">
+        <div className="mx-auto max-w-5xl space-y-6">
             <Head title="Add Transaction" />
-            <div className="mx-auto max-w-5xl space-y-6">
                 <div className="flex items-center gap-2 border-b border-[#CFE3FF] pb-4">
                     <Button
                         variant="outline"
@@ -317,7 +321,18 @@ export default function AddTransaction({ students, courses, academicTerms, authU
                                     <SearchableStudentSelect
                                         students={students}
                                         value={data.student_id}
-                                        onChange={id => setData('student_id', id)}
+                                        onChange={id => {
+                                            const selected = students.find(s => String(s.id) === String(id));
+                                            if (selected?.last_course_id) {
+                                                setData(prev => ({
+                                                    ...prev,
+                                                    student_id: id,
+                                                    course_id: String(selected.last_course_id),
+                                                }));
+                                            } else {
+                                                setData('student_id', id);
+                                            }
+                                        }}
                                     />
                                 )}
                                 <FieldError message={(errors as any).student_id || (errors as any).student_name} />
@@ -397,7 +412,16 @@ export default function AddTransaction({ students, courses, academicTerms, authU
 
                             {/* ── Transaction Date ────────────────────────────── */}
                             <div>
-                                <label className="text-sm text-[#334E68]">Transaction Date</label>
+                                <div className="flex items-center justify-between">
+                                    <label className="text-sm text-[#334E68]">Transaction Date</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setData('transaction_date', todayStr)}
+                                        className="text-xs font-medium text-[#0F6FFF] hover:underline"
+                                    >
+                                        Today
+                                    </button>
+                                </div>
                                 <Input
                                     type="date"
                                     value={data.transaction_date}
@@ -492,7 +516,6 @@ export default function AddTransaction({ students, courses, academicTerms, authU
                         </form>
                     </CardContent>
                 </Card>
-            </div>
         </div>
     );
 }

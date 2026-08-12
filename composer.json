@@ -16,6 +16,7 @@
         "laravel/fortify": "*",
         "laravel/framework": "^13.17",
         "laravel/sanctum": "*",
+        "laravel/socialite": "*",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
         "maatwebsite/excel": "*",
