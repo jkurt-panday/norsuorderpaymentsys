@@ -1,5 +1,5 @@
 import React from 'react';
-import { store, index } from '@/actions/App/Http/Controllers/UacsController';
+import { store, index } from '@/actions/App/Http/Controllers/UACSController';
 import ResourceForm from '@/components/ResourceForm';
 
 // ============ COMPONENT ============
@@ -13,11 +13,14 @@ export default function CreateUacs() {
                     name: 'object_code',
                     label: 'Object Code',
                     required: true,
+                    placeholder: 'Enter the object code (e.g. 10101010)',
                 },
                 {
                     name: 'account_title',
                     label: 'Account Title',
                     required: true,
+                    placeholder:
+                        'Enter the account title (e.g. Salaries and Wages)',
                 },
             ]}
             initialData={{
