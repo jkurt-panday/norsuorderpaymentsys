@@ -97,6 +97,47 @@ const statusBadgeClass = (status: string) => {
     }
 };
 
+const ReadOnlyRow = ({
+    label,
+    value,
+    valueClass = 'text-slate-900',
+}: {
+    label: string;
+    value: string | number | null;
+    valueClass?: string;
+}) => (
+    <div className="flex items-start gap-6 border-b border-slate-100 py-0 last:border-0">
+        <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
+            {label}
+        </label>
+        <p
+            className={`min-w-0 flex-1 text-sm ${valueClass} break-words whitespace-pre-wrap`}
+        >
+            {value}
+        </p>
+    </div>
+);
+
+const FormField = ({
+    label,
+    required,
+    error,
+    children,
+}: {
+    label: string;
+    required?: boolean;
+    error?: string;
+    children: React.ReactNode;
+}) => (
+    <div className="mb-4">
+        <label className="mb-1 block text-sm font-medium text-slate-700">
+            {label} {required && <span className="text-rose-500">*</span>}
+        </label>
+        {children}
+        {error && <p className="mt-1 text-xs text-rose-500">{error}</p>}
+    </div>
+);
+
 const formatDateTime = (value: string, withSeconds = true) => {
     const date = new Date(value);
 
@@ -508,102 +549,69 @@ export default function ShowRequest() {
                                 ) : (
                                     <div className="space-y-3">
                                         <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
-                                            <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
-                                                First Name / Office
-                                            </label>
-                                            <input
-                                                type="text"
+                                            <ReadOnlyRow
+                                                label="First Name  / Office"
                                                 value={
                                                     formInput.firstname_or_office
                                                 }
-                                                disabled
-                                                className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                                valueClass="text-black-400"
                                             />
                                         </div>
                                         <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
-                                            <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
-                                                Middle Name / Project
-                                            </label>
-                                            <input
-                                                type="text"
+                                            <ReadOnlyRow
+                                                label="Middlename / Project"
                                                 value={
-                                                    formInput.middlename_or_project ??
-                                                    'N/A'
+                                                    formInput.middlename_or_project
                                                 }
-                                                disabled
-                                                className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                                valueClass="text-black-400"
                                             />
                                         </div>
                                         <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
-                                            <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
-                                                Last Name / Agency
-                                            </label>
-                                            <input
-                                                type="text"
+                                            <ReadOnlyRow
+                                                label="Last Name / Agency"
                                                 value={
                                                     formInput.lastname_or_agency
                                                 }
-                                                disabled
-                                                className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                                valueClass="text-black-400"
                                             />
                                         </div>
                                         <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
-                                            <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
-                                                Office / College
-                                            </label>
-                                            <input
-                                                type="text"
+                                            <ReadOnlyRow
+                                                label="Office / College"
                                                 value={
                                                     formInput.office_or_college
                                                 }
-                                                disabled
-                                                className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                                valueClass="text-black-400"
                                             />
                                         </div>
                                         <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
-                                            <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
-                                                Position / Designation
-                                            </label>
-                                            <input
-                                                type="text"
+                                            <ReadOnlyRow
+                                                label="Position / Desgination"
                                                 value={
                                                     formInput.position_or_designation
                                                 }
-                                                disabled
-                                                className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                                valueClass="text-black-400"
                                             />
                                         </div>
                                         <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
-                                            <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
-                                                Email
-                                            </label>
-                                            <input
-                                                type="text"
+                                            <ReadOnlyRow
+                                                label="Email"
                                                 value={formInput.email}
-                                                disabled
-                                                className="flex-1 border-0 bg-transparent p-0 text-sm text-blue-400 outline-none disabled:opacity-100"
+                                                valueClass="text-blue-400"
                                             />
                                         </div>
                                         <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
-                                            <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
-                                                Contact Number
-                                            </label>
-                                            <input
-                                                type="text"
+                                            <ReadOnlyRow
+                                                label="Contact Number"
                                                 value={formInput.contact_num}
-                                                disabled
-                                                className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                                valueClass="text-blue-400"
                                             />
                                         </div>
                                         <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
-                                            <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
-                                                Address
-                                            </label>
-                                            <input
-                                                type="text"
+                                            <ReadOnlyRow
+                                                label="Address"
                                                 value={formInput.address}
-                                                disabled
-                                                className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                                valueClass="text-black-400"
                                             />
                                         </div>
                                     </div>
@@ -820,46 +828,34 @@ export default function ShowRequest() {
                                             />
                                         </div>
                                         <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
-                                            <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
-                                                Membership
-                                            </label>
-                                            <input
-                                                type="text"
+                                            <ReadOnlyRow
+                                                label="Membership"
                                                 value={
                                                     formInput.membership
                                                         ? `${formInput.membership.member_code} - ${formInput.membership.member_desc}`
                                                         : 'N/A'
                                                 }
-                                                disabled
-                                                className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                                valueClass="text-black-400"
                                             />
                                         </div>
                                         <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
-                                            <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
-                                                Payment Option
-                                            </label>
-                                            <input
-                                                type="text"
+                                            <ReadOnlyRow
+                                                label="Payment Option"
                                                 value={
                                                     formInput
                                                         .payment_detail_option
                                                         ?.payment_desc ?? 'N/A'
                                                 }
-                                                disabled
-                                                className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                                valueClass="text-black-400"
                                             />
                                         </div>
                                         <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
-                                            <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
-                                                Date Submitted
-                                            </label>
-                                            <input
-                                                type="text"
+                                            <ReadOnlyRow
+                                                label="Submission Date"
                                                 value={formatDateTime(
                                                     formInput.created_at,
                                                 )}
-                                                disabled
-                                                className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                                valueClass="text-black-400"
                                             />
                                         </div>
                                     </div>
@@ -990,13 +986,13 @@ export default function ShowRequest() {
                                     isEditingStaffInput ? (
                                         <form onSubmit={handleStaffInputSubmit}>
                                             <div className="space-y-4">
-                                                <div>
-                                                    <label className="mb-1 block text-sm font-medium text-slate-700">
-                                                        Bank Account{' '}
-                                                        <span className="text-rose-500">
-                                                            *
-                                                        </span>
-                                                    </label>
+                                                <FormField
+                                                    label="Bank Account"
+                                                    required
+                                                    error={
+                                                        staffInputErrors.fundcluster_id
+                                                    }
+                                                >
                                                     <select
                                                         className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
                                                             staffInputErrors.fundcluster_id
@@ -1047,19 +1043,14 @@ export default function ShowRequest() {
                                                             ),
                                                         )}
                                                     </select>
-                                                    {staffInputErrors.fundcluster_id && (
-                                                        <p className="mt-1 text-xs text-rose-500">
-                                                            {
-                                                                staffInputErrors.fundcluster_id
-                                                            }
-                                                        </p>
-                                                    )}
-                                                </div>
+                                                </FormField>
 
-                                                <div>
-                                                    <label className="mb-1 block text-sm font-medium text-slate-700">
-                                                        Reference Document
-                                                    </label>
+                                                <FormField
+                                                    label="Reference Document"
+                                                    error={
+                                                        staffInputErrors.ref_document_id
+                                                    }
+                                                >
                                                     <select
                                                         className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
                                                             staffInputErrors.ref_document_id
@@ -1097,22 +1088,14 @@ export default function ShowRequest() {
                                                             ),
                                                         )}
                                                     </select>
-                                                    {staffInputErrors.ref_document_id && (
-                                                        <p className="mt-1 text-xs text-rose-500">
-                                                            {
-                                                                staffInputErrors.ref_document_id
-                                                            }
-                                                        </p>
-                                                    )}
-                                                </div>
-
-                                                <div>
-                                                    <label className="mb-1 block text-sm font-medium text-slate-700">
-                                                        Reference Date{' '}
-                                                        <span className="text-rose-500">
-                                                            *
-                                                        </span>
-                                                    </label>
+                                                </FormField>
+                                                <FormField
+                                                    label="Reference Date"
+                                                    required
+                                                    error={
+                                                        staffInputErrors.ref_date
+                                                    }
+                                                >
                                                     <input
                                                         type="date"
                                                         className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
@@ -1131,22 +1114,15 @@ export default function ShowRequest() {
                                                         }
                                                         required
                                                     />
-                                                    {staffInputErrors.ref_date && (
-                                                        <p className="mt-1 text-xs text-rose-500">
-                                                            {
-                                                                staffInputErrors.ref_date
-                                                            }
-                                                        </p>
-                                                    )}
-                                                </div>
+                                                </FormField>
 
-                                                <div>
-                                                    <label className="mb-1 block text-sm font-medium text-slate-700">
-                                                        UACS{' '}
-                                                        <span className="text-rose-500">
-                                                            *
-                                                        </span>
-                                                    </label>
+                                                <FormField
+                                                    label="UACS"
+                                                    required
+                                                    error={
+                                                        staffInputErrors.uacs_id
+                                                    }
+                                                >
                                                     <select
                                                         className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
                                                             staffInputErrors.uacs_id
@@ -1188,22 +1164,14 @@ export default function ShowRequest() {
                                                             ),
                                                         )}
                                                     </select>
-                                                    {staffInputErrors.uacs_id && (
-                                                        <p className="mt-1 text-xs text-rose-500">
-                                                            {
-                                                                staffInputErrors.uacs_id
-                                                            }
-                                                        </p>
-                                                    )}
-                                                </div>
-
-                                                <div>
-                                                    <label className="mb-1 block text-sm font-medium text-slate-700">
-                                                        Status{' '}
-                                                        <span className="text-rose-500">
-                                                            *
-                                                        </span>
-                                                    </label>
+                                                </FormField>
+                                                <FormField
+                                                    label="Status"
+                                                    required
+                                                    error={
+                                                        staffInputErrors.status
+                                                    }
+                                                >
                                                     <select
                                                         className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
                                                             staffInputErrors.status
@@ -1231,15 +1199,7 @@ export default function ShowRequest() {
                                                             Cancelled
                                                         </option>
                                                     </select>
-                                                    {staffInputErrors.status && (
-                                                        <p className="mt-1 text-xs text-rose-500">
-                                                            {
-                                                                staffInputErrors.status
-                                                            }
-                                                        </p>
-                                                    )}
-                                                </div>
-
+                                                </FormField>
                                                 <div className="flex justify-end gap-2 pt-2">
                                                     <button
                                                         type="button"
@@ -1278,75 +1238,56 @@ export default function ShowRequest() {
                                         </form>
                                     ) : (
                                         <div className="space-y-3">
-                                            <div>
-                                                <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
-                                                    Bank Account
-                                                </label>
-                                                <input
-                                                    type="text"
+                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                                <ReadOnlyRow
+                                                    label="Bank Account"
                                                     value={
                                                         formInput.staff_input
-                                                            .bank_account
+                                                            ?.bank_account
                                                             ?.account_name ??
                                                         'N/A'
                                                     }
-                                                    disabled
-                                                    className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                                    valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
-                                                    Bank
-                                                </label>
-                                                <input
-                                                    type="text"
+                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                                <ReadOnlyRow
+                                                    label="Bank"
                                                     value={
                                                         formInput.staff_input
                                                             .bank_account
                                                             ?.bank_name ?? 'N/A'
                                                     }
-                                                    disabled
-                                                    className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                                    valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
-                                                    Fund Cluster
-                                                </label>
-                                                <input
-                                                    type="text"
+                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                                <ReadOnlyRow
+                                                    label="Fund Cluster"
                                                     value={
                                                         formInput.staff_input
                                                             .bank_account
                                                             ?.fund_cluster ??
                                                         'N/A'
                                                     }
-                                                    disabled
-                                                    className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                                    valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
-                                                    Account Number
-                                                </label>
-                                                <input
-                                                    type="text"
+                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                                <ReadOnlyRow
+                                                    label="Account Number"
                                                     value={
                                                         formInput.staff_input
                                                             .bank_account
                                                             ?.account_num ??
                                                         'N/A'
                                                     }
-                                                    disabled
-                                                    className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                                    valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
-                                                    Reference Date
-                                                </label>
-                                                <input
-                                                    type="text"
+                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                                <ReadOnlyRow
+                                                    label="Reference Date"
                                                     value={
                                                         formInput.staff_input
                                                             .ref_date
@@ -1357,65 +1298,48 @@ export default function ShowRequest() {
                                                               )
                                                             : 'N/A'
                                                     }
-                                                    disabled
-                                                    className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                                    valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
-                                                    UACS
-                                                </label>
-                                                <input
-                                                    type="text"
+                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                                <ReadOnlyRow
+                                                    label="UACS"
                                                     value={
                                                         formInput.staff_input
                                                             .uacs
                                                             ? `${formInput.staff_input.uacs.object_code} - ${formInput.staff_input.uacs.account_title}`
                                                             : 'N/A'
                                                     }
-                                                    disabled
-                                                    className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                                    valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
-                                                    Reference Document
-                                                </label>
-                                                <input
-                                                    type="text"
+                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                                <ReadOnlyRow
+                                                    label="Reference Document"
                                                     value={
                                                         formInput.staff_input
                                                             .reference_document
                                                             ?.original_filename ??
                                                         'N/A'
                                                     }
-                                                    disabled
-                                                    className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                                    valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
-                                                    Processed By
-                                                </label>
-                                                <input
-                                                    type="text"
+                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                                <ReadOnlyRow
+                                                    label="Processed By"
                                                     value="Staff User"
-                                                    disabled
-                                                    className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                                    valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
-                                                    Processed Date
-                                                </label>
-                                                <input
-                                                    type="text"
+                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                                <ReadOnlyRow
+                                                    label="Processed Date"
                                                     value={formatDateTime(
                                                         formInput.staff_input
                                                             .created_at,
                                                     )}
-                                                    disabled
-                                                    className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                                    valueClass="text-black-400"
                                                 />
                                             </div>
                                         </div>
