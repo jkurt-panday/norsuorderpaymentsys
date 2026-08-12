@@ -256,10 +256,10 @@ class LawSchoolLedgerController extends Controller
                 'file',
                 function ($attribute, $value, $fail) {
                     $extension = strtolower($value->getClientOriginalExtension());
-                    if (!in_array($extension, ['csv', 'xlsx', 'xls'])) {
+                    if (! in_array($extension, ['csv', 'xlsx', 'xls'])) {
                         $fail('The file must be a file of type: csv, xlsx, xls.');
                     }
-                }
+                },
             ],
         ]);
 
@@ -270,14 +270,14 @@ class LawSchoolLedgerController extends Controller
         $extension = strtolower($uploadedFile->getClientOriginalExtension());
 
         $imported = 0;
-        $skipped  = 0;
+        $skipped = 0;
         $insertData = [];
         $now = now();
 
         if ($extension === 'csv') {
             $path = $uploadedFile->getRealPath();
             $handle = fopen($path, 'r');
-            if (!$handle) {
+            if (! $handle) {
                 return redirect()->route('law-ledger.index')
                     ->with('error', 'Could not open the uploaded CSV file.');
             }
@@ -285,6 +285,7 @@ class LawSchoolLedgerController extends Controller
             $headers = fgetcsv($handle);
             if ($headers === false) {
                 fclose($handle);
+
                 return redirect()->route('law-ledger.index')
                     ->with('error', 'Could not read the CSV header row.');
             }
@@ -293,6 +294,7 @@ class LawSchoolLedgerController extends Controller
                 $rowData = array_combine($headers, array_slice($row, 0, count($headers)));
                 if ($rowData === false) {
                     $skipped++;
+
                     continue;
                 }
 
@@ -300,6 +302,7 @@ class LawSchoolLedgerController extends Controller
 
                 if ($data === null) {
                     $skipped++;
+
                     continue;
                 }
 
@@ -314,7 +317,7 @@ class LawSchoolLedgerController extends Controller
                         });
                         $imported += count($insertData);
                     } catch (\Throwable $e) {
-                        \Illuminate\Support\Facades\Log::error('Law Ledger CSV import batch failed', [
+                        Log::error('Law Ledger CSV import batch failed', [
                             'message' => $e->getMessage(),
                             'trace' => $e->getTraceAsString(),
                             'batch_size' => count($insertData),
@@ -327,14 +330,14 @@ class LawSchoolLedgerController extends Controller
                 }
             }
 
-            if (!empty($insertData)) {
+            if (! empty($insertData)) {
                 try {
                     DB::transaction(function () use ($insertData) {
                         LawSchoolLedger::insert($insertData);
                     });
                     $imported += count($insertData);
                 } catch (\Throwable $e) {
-                    \Illuminate\Support\Facades\Log::error('Law Ledger CSV import final batch failed', [
+                    Log::error('Law Ledger CSV import final batch failed', [
                         'message' => $e->getMessage(),
                         'trace' => $e->getTraceAsString(),
                         'batch_size' => count($insertData),
@@ -361,6 +364,7 @@ class LawSchoolLedgerController extends Controller
                 $rowData = array_combine($headers, array_slice($values, 0, count($headers)));
                 if ($rowData === false) {
                     $skipped++;
+
                     return;
                 }
 
@@ -368,6 +372,7 @@ class LawSchoolLedgerController extends Controller
 
                 if ($data === null) {
                     $skipped++;
+
                     return;
                 }
 
@@ -376,7 +381,7 @@ class LawSchoolLedgerController extends Controller
                 $insertData[] = $data;
             });
 
-            if (!empty($insertData)) {
+            if (! empty($insertData)) {
                 try {
                     DB::transaction(function () use ($insertData, &$imported) {
                         foreach (array_chunk($insertData, 1000) as $chunk) {
@@ -385,7 +390,7 @@ class LawSchoolLedgerController extends Controller
                         }
                     });
                 } catch (\Throwable $e) {
-                    \Illuminate\Support\Facades\Log::error('Law Ledger Excel import failed', [
+                    Log::error('Law Ledger Excel import failed', [
                         'message' => $e->getMessage(),
                         'trace' => $e->getTraceAsString(),
                         'total_rows' => count($insertData),
@@ -464,7 +469,7 @@ class LawSchoolLedgerController extends Controller
 
         $logoPath = public_path('norsu.png');
         $logoDataUri = file_exists($logoPath)
-            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+            ? 'data:image/png;base64,'.base64_encode(file_get_contents($logoPath))
             : null;
 
         $pdf = Pdf::loadView('pdf.law-student-ledger-statement', [

@@ -5,13 +5,13 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StaffProcessingRequest;
 use App\Models\BankAccountInfo;
 use App\Models\FormInput;
+use App\Models\PaymentDetailOption;
 use App\Models\StaffInput;
 use App\Models\UACS;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
-use App\Models\PaymentDetailOption;
 
 class StaffInputController extends Controller
 {
@@ -107,7 +107,8 @@ class StaffInputController extends Controller
             'recentActivity' => $recentActivity,
         ]);
     }
-/**
+
+    /**
      * Display list of requests for staff processing
      */
     public function index(Request $request)
@@ -195,7 +196,7 @@ class StaffInputController extends Controller
         }
 
         $bankAccounts = BankAccountInfo::orderBy('bank_name')->get();
-        $uacsList = Uacs::orderBy('object_code')->get();
+        $uacsList = UACS::orderBy('object_code')->get();
 
         $formInput->loadMissing(['membership', 'paymentDetailOption', 'supportingDocuments']);
         $documents = $formInput->supportingDocuments()->get();
@@ -211,40 +212,39 @@ class StaffInputController extends Controller
     /**
      * Store staff processing data
      */
-public function store(StaffProcessingRequest $request)
-{
-    try {
-        DB::beginTransaction();
+    public function store(StaffProcessingRequest $request)
+    {
+        try {
+            DB::beginTransaction();
 
-        $formInput = FormInput::findOrFail($request->form_input_id);
+            $formInput = FormInput::findOrFail($request->form_input_id);
 
-        if ($formInput->staffInput()->exists()) {
-            throw new \Exception('This request has already been processed.');
+            if ($formInput->staffInput()->exists()) {
+                throw new \Exception('This request has already been processed.');
+            }
+
+            StaffInput::create(array_merge(
+                $request->validated(),
+                ['form_input_id' => $formInput->id]
+            ));
+
+            DB::commit();
+
+            // Changed: redirect back to the request's own show page instead of
+            // the index, so processing an inline form lands you right back
+            // where you started, with fresh data.
+            return redirect()->route('staff.requests.show', $formInput)
+                ->with('success', 'Request processed successfully.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Staff processing failed: '.$e->getMessage());
+
+            return back()
+                ->withInput()
+                ->with('error', 'Failed to process request: '.$e->getMessage());
         }
-
-        StaffInput::create(array_merge(
-            $request->validated(),
-            ['form_input_id' => $formInput->id]
-        ));
-
-        DB::commit();
-
-        // Changed: redirect back to the request's own show page instead of
-        // the index, so processing an inline form lands you right back
-        // where you started, with fresh data.
-        return redirect()->route('staff.requests.show', $formInput)
-            ->with('success', 'Request processed successfully.');
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Staff processing failed: '.$e->getMessage());
-
-        return back()
-            ->withInput()
-            ->with('error', 'Failed to process request: '.$e->getMessage());
     }
-}
-
 
     /**
      * Show form for editing staff processing
@@ -253,7 +253,7 @@ public function store(StaffProcessingRequest $request)
     {
         $staffInput->load(['formInput.membership', 'formInput.paymentDetailOption']);
         $bankAccounts = BankAccountInfo::orderBy('bank_name')->get();
-        $uacsList = Uacs::orderBy('object_code')->get();
+        $uacsList = UACS::orderBy('object_code')->get();
         $documents = $staffInput->formInput->supportingDocuments;
 
         return Inertia::render('staff/requestform/editrequest', compact(
@@ -364,7 +364,7 @@ public function store(StaffProcessingRequest $request)
             'staffInput.uacs',
             'staffInput.referenceDocument',
         ]);
- 
+
         // Added: bankAccounts + uacsList, so the inline "Process Now" form
         // on this page has what it needs without a separate navigation.
         // Added: paymentOptions, so the new "Edit Processed Request" form
@@ -373,10 +373,8 @@ public function store(StaffProcessingRequest $request)
         return Inertia::render('staff/requestform/showrequest', [
             'formInput' => $formInput,
             'bankAccounts' => BankAccountInfo::orderBy('bank_name')->get(),
-            'uacsList' => Uacs::orderBy('object_code')->get(),
+            'uacsList' => UACS::orderBy('object_code')->get(),
             'paymentOptions' => PaymentDetailOption::orderBy('payment_desc')->get(),
         ]);
     }
- 
-
 }
