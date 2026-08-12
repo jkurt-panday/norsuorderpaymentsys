@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 use App\Models\Membership;
 use App\Models\PaymentDetailOption;
 use App\Models\BankAccountInfo;
-use App\Models\Uacs;
+use App\Models\UACS;
 
 class DatabaseSeeder extends Seeder
 {
@@ -123,7 +123,7 @@ class DatabaseSeeder extends Seeder
         foreach ($bankaccount as $option) {
             BankAccountInfo::updateOrCreate(
                 ['account_name' => $option['account_name']],
-                ['func_cluster' => $option['func_cluster']],
+                ['fund_cluster' => $option['fund_cluster']],
                 ['bank_name' => $option['bank_name']],
                 ['account_num' => $option['account_num']],
             );
