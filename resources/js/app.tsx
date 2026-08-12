@@ -1,15 +1,15 @@
 import { createInertiaApp, router } from '@inertiajs/react';
-import { useEffect } from 'react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import { useEffect } from 'react';
+import { ConfirmProvider } from '@/components/confirm-dialog';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
-import { flashToast } from '@/utils/flashToast';
-
 import AppLayout from '@/layouts/app-layout';
+
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import { ConfirmProvider } from '@/components/confirm-dialog';
+import { flashToast } from '@/utils/flashToast';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -55,10 +55,18 @@ createInertiaApp({
                     const page = (window as any).__inertia?.page;
                     const flash = page?.props?.flash as
                         { success?: string; error?: string } | undefined;
-                    if (!flash) return;
 
-                    if (flash.success) flashToast('success', flash.success);
-                    if (flash.error) flashToast('error', flash.error);
+                    if (!flash) {
+return;
+}
+
+                    if (flash.success) {
+flashToast('success', flash.success);
+}
+
+                    if (flash.error) {
+flashToast('error', flash.error);
+}
                 };
 
                 // Show any flash present on initial load

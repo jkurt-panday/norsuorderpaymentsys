@@ -42,37 +42,37 @@ class PublicFormSubmissionRequest extends FormRequest
         //         'max:10240', // 10MB max per file
         //     ],
         // ];
-        // 
+        //
         return [
-                // Personal/Office Information
-                'email' => ['required', 'email', 'max:255'],
-                'contact_num' => ['required', 'string', 'max:11', 'regex:/^[0-9+\-\s()]+$/'],
-                'firstname_or_office' => ['required', 'string', 'max:255'],
-                'middlename_or_project' => ['nullable', 'string', 'max:255'],
-                'lastname_or_agency' => ['required', 'string', 'max:255'],
-                'office_or_college' => ['required', 'string', 'max:255'],
-                'position_or_designation' => ['required', 'string', 'max:255'],
-                'address' => ['required', 'string'],
-        
-                // Payment Information
-                'amount' => ['required', 'numeric', 'min:0.01'],
-                'request_type' => [
-                    'required',
-                    Rule::in(['New Request', 'Re-issue Request']),
-                ],
-        
-                // Foreign Keys
-                'membership_id' => ['required', 'exists:memberships,id'],
-                'payment_detail_option_id' => ['required', 'exists:payment_detail_options,id'],
-        
-                // File Uploads (Optional)
-                'documents' => ['nullable', 'array', 'max:5'],
-                'documents.*' => [
-                    'file',
-                    'mimes:pdf,jpg,jpeg,png,webp,svg',
-                    'max:10240', // 10 MB per file
-                ],
-            ];
+            // Personal/Office Information
+            'email' => ['required', 'email', 'max:255'],
+            'contact_num' => ['required', 'string', 'max:11', 'regex:/^[0-9+\-\s()]+$/'],
+            'firstname_or_office' => ['required', 'string', 'max:255'],
+            'middlename_or_project' => ['nullable', 'string', 'max:255'],
+            'lastname_or_agency' => ['required', 'string', 'max:255'],
+            'office_or_college' => ['required', 'string', 'max:255'],
+            'position_or_designation' => ['required', 'string', 'max:255'],
+            'address' => ['required', 'string'],
+
+            // Payment Information
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'request_type' => [
+                'required',
+                Rule::in(['New Request', 'Re-issue Request']),
+            ],
+
+            // Foreign Keys
+            'membership_id' => ['required', 'exists:memberships,id'],
+            'payment_detail_option_id' => ['required', 'exists:payment_detail_options,id'],
+
+            // File Uploads (Optional)
+            'documents' => ['nullable', 'array', 'max:5'],
+            'documents.*' => [
+                'file',
+                'mimes:pdf,jpg,jpeg,png,webp,svg',
+                'max:10240', // 10 MB per file
+            ],
+        ];
     }
 
     public function messages(): array
@@ -92,19 +92,19 @@ class PublicFormSubmissionRequest extends FormRequest
         //     'payment_detail_option_id.exists' => 'Selected payment option is invalid.',
         // ];
         return [
-                'firstname_or_office.required' => 'Please enter your first name or office.',
-                'lastname_or_agency.required' => 'Please enter your last name or agency.',
-                'office_or_college.required' => 'Please enter your office or college.',
-                'position_or_designation.required' => 'Please enter your position or designation.',
-                'contact_num.required' => 'Please enter your contact number.',
-                'email.required' => 'Please enter your email address.',
-                'email.email' => 'Please enter a valid email address.',
-                'address.required' => 'Please enter your address.',
-                'request_type.required' => 'Please select a request type.',
-                'amount.required' => 'Please enter the amount.',
-                'amount.numeric' => 'Amount must be a valid number.',
-                'membership_id.required' => 'Please select a membership type.',
-                'payment_detail_option_id.required' => 'Please select a payment detail.',
+            'firstname_or_office.required' => 'Please enter your first name or office.',
+            'lastname_or_agency.required' => 'Please enter your last name or agency.',
+            'office_or_college.required' => 'Please enter your office or college.',
+            'position_or_designation.required' => 'Please enter your position or designation.',
+            'contact_num.required' => 'Please enter your contact number.',
+            'email.required' => 'Please enter your email address.',
+            'email.email' => 'Please enter a valid email address.',
+            'address.required' => 'Please enter your address.',
+            'request_type.required' => 'Please select a request type.',
+            'amount.required' => 'Please enter the amount.',
+            'amount.numeric' => 'Amount must be a valid number.',
+            'membership_id.required' => 'Please select a membership type.',
+            'payment_detail_option_id.required' => 'Please select a payment detail.',
         ];
     }
 

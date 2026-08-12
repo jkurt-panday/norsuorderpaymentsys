@@ -38,7 +38,7 @@ class GraduateLedgerController extends Controller
             ->when($semester, function ($query, $semester) {
                 $query->where(function ($q) use ($semester) {
                     $q->where('semester_short', $semester)
-                      ->orWhere('semester', $semester);
+                        ->orWhere('semester', $semester);
                 });
             })
             ->when($course, function ($query, $course) {
@@ -137,20 +137,20 @@ class GraduateLedgerController extends Controller
         $record = GraduateLedger::findOrFail($id);
 
         $data = $request->validate([
-            'student_name'            => ['required', 'string', 'max:255'],
-            'course'                  => ['nullable', 'string', 'max:255'],
-            'school_year'             => ['nullable', 'string', 'max:50'],
-            'semester'                => ['nullable', 'string', 'max:100'],
-            'semester_short'          => ['nullable', 'string', 'max:50'],
-            'units'                   => ['nullable', 'integer', 'min:0'],
-            'transaction_date'        => ['nullable', 'date'],
+            'student_name' => ['required', 'string', 'max:255'],
+            'course' => ['nullable', 'string', 'max:255'],
+            'school_year' => ['nullable', 'string', 'max:50'],
+            'semester' => ['nullable', 'string', 'max:100'],
+            'semester_short' => ['nullable', 'string', 'max:50'],
+            'units' => ['nullable', 'integer', 'min:0'],
+            'transaction_date' => ['nullable', 'date'],
             'reference_or_jev_number' => ['nullable', 'string', 'max:255'],
-            'particulars'             => ['nullable', 'string'],
-            'tuition_per_unit_or_misc'=> ['nullable', 'numeric', 'min:0'],
-            'ar_payment'              => ['nullable', 'string', 'max:50'],
-            'amount'                  => ['nullable', 'numeric', 'min:0'],
-            'remarks'                 => ['nullable', 'string'],
-            'input_by'                => ['nullable', 'string', 'max:255'],
+            'particulars' => ['nullable', 'string'],
+            'tuition_per_unit_or_misc' => ['nullable', 'numeric', 'min:0'],
+            'ar_payment' => ['nullable', 'string', 'max:50'],
+            'amount' => ['nullable', 'numeric', 'min:0'],
+            'remarks' => ['nullable', 'string'],
+            'input_by' => ['nullable', 'string', 'max:255'],
         ]);
 
         if (($data['ar_payment'] ?? null) === 'AR' && ($data['amount'] === null || $data['amount'] === '')) {
@@ -218,10 +218,10 @@ class GraduateLedgerController extends Controller
                 'file',
                 function ($attribute, $value, $fail) {
                     $extension = strtolower($value->getClientOriginalExtension());
-                    if (!in_array($extension, ['csv', 'xlsx', 'xls'])) {
+                    if (! in_array($extension, ['csv', 'xlsx', 'xls'])) {
                         $fail('The file must be a file of type: csv, xlsx, xls.');
                     }
-                }
+                },
             ],
         ]);
 
@@ -232,14 +232,14 @@ class GraduateLedgerController extends Controller
         $extension = strtolower($uploadedFile->getClientOriginalExtension());
 
         $imported = 0;
-        $skipped  = 0;
+        $skipped = 0;
         $insertData = [];
         $now = now();
 
         if ($extension === 'csv') {
             $path = $uploadedFile->getRealPath();
             $handle = fopen($path, 'r');
-            if (!$handle) {
+            if (! $handle) {
                 return redirect()->route('graduate-ledger.index')
                     ->with('error', 'Could not open the uploaded CSV file.');
             }
@@ -251,6 +251,7 @@ class GraduateLedgerController extends Controller
 
                 if ($data === null) {
                     $skipped++;
+
                     continue;
                 }
 
@@ -267,7 +268,7 @@ class GraduateLedgerController extends Controller
                 }
             }
 
-            if (!empty($insertData)) {
+            if (! empty($insertData)) {
                 DB::transaction(function () use ($insertData) {
                     GraduateLedger::insert($insertData);
                 });
@@ -290,6 +291,7 @@ class GraduateLedgerController extends Controller
 
                 if ($data === null) {
                     $skipped++;
+
                     return;
                 }
 
@@ -298,7 +300,7 @@ class GraduateLedgerController extends Controller
                 $insertData[] = $data;
             });
 
-            if (!empty($insertData)) {
+            if (! empty($insertData)) {
                 DB::transaction(function ($insertData, &$imported) {
                     foreach (array_chunk($insertData, 1000) as $chunk) {
                         GraduateLedger::insert($chunk);
@@ -392,27 +394,27 @@ class GraduateLedgerController extends Controller
             return null;
         }
 
-        $rawAmount  = (string) ($row[11] ?? '0');
-        $rawTuition = (string) ($row[9]  ?? '0');
+        $rawAmount = (string) ($row[11] ?? '0');
+        $rawTuition = (string) ($row[9] ?? '0');
 
         return [
-            'student_name'             => $studentName,
-            'course'                   => trim((string) ($row[1] ?? '')),
-            'school_year'              => trim((string) ($row[2] ?? '')),
-            'semester_short'           => trim((string) ($row[3] ?? '')),
-            'semester'                 => trim((string) ($row[4] ?? '')),
-            'units'                    => is_numeric($row[5] ?? null) ? (int) $row[5] : null,
-            'transaction_date'         => $this->normalizeDate($row[6] ?? null),
-            'reference_or_jev_number'  => trim((string) ($row[7] ?? '')),
-            'particulars'              => trim((string) ($row[8] ?? '')),
+            'student_name' => $studentName,
+            'course' => trim((string) ($row[1] ?? '')),
+            'school_year' => trim((string) ($row[2] ?? '')),
+            'semester_short' => trim((string) ($row[3] ?? '')),
+            'semester' => trim((string) ($row[4] ?? '')),
+            'units' => is_numeric($row[5] ?? null) ? (int) $row[5] : null,
+            'transaction_date' => $this->normalizeDate($row[6] ?? null),
+            'reference_or_jev_number' => trim((string) ($row[7] ?? '')),
+            'particulars' => trim((string) ($row[8] ?? '')),
             'tuition_per_unit_or_misc' => $this->cleanAmount($rawTuition),
-            'ar_payment'               => $this->normalizeArPaymentType(
-                                              (string) ($row[10] ?? ''),
-                                              str_contains($rawAmount, '(') && str_contains($rawAmount, ')')
-                                          ),
-            'amount'                   => $this->cleanAmount($rawAmount),
-            'remarks'                  => trim((string) ($row[12] ?? '')),
-            'input_by'                 => trim((string) ($row[13] ?? '')),
+            'ar_payment' => $this->normalizeArPaymentType(
+                (string) ($row[10] ?? ''),
+                str_contains($rawAmount, '(') && str_contains($rawAmount, ')')
+            ),
+            'amount' => $this->cleanAmount($rawAmount),
+            'remarks' => trim((string) ($row[12] ?? '')),
+            'input_by' => trim((string) ($row[13] ?? '')),
         ];
     }
 
@@ -515,7 +517,7 @@ class GraduateLedgerController extends Controller
         $currentYear = (int) date('Y');
         $defaultSchoolYears = [];
         for ($i = $currentYear - 5; $i <= $currentYear + 3; $i++) {
-            $defaultSchoolYears[] = $i . '-' . ($i + 1);
+            $defaultSchoolYears[] = $i.'-'.($i + 1);
         }
 
         $schoolYears = GraduateLedger::query()

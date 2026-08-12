@@ -48,8 +48,12 @@ function currency(n: number) {
 }
 
 function absAmount(val: unknown): number {
-  if (!val) return 0;
+  if (!val) {
+return 0;
+}
+
   const num = parseFloat(String(val).replace(/[^\d.]/g, ''));
+
   return isNaN(num) ? 0 : num;
 }
 
@@ -68,7 +72,11 @@ function formatTransactionDate(value?: string | null) {
     ? normalized.split('T')[0]
     : normalized.split(' ')[0];
   const parsedDate = new Date(`${datePart}T00:00:00`);
-  if (Number.isNaN(parsedDate.getTime())) return datePart;
+
+  if (Number.isNaN(parsedDate.getTime())) {
+return datePart;
+}
+
   return parsedDate.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
@@ -109,9 +117,11 @@ export default function PrintSelect({
 
   const filteredStudents = useMemo(() => {
     const term = search.trim().toLowerCase();
+
     if (!term) {
       return students;
     }
+
     return students.filter((name) => name.toLowerCase().includes(term));
   }, [students, search]);
 
@@ -129,7 +139,10 @@ export default function PrintSelect({
   };
 
   const handleOpenPdf = () => {
-    if (!selected) return;
+    if (!selected) {
+return;
+}
+
     window.open(
       `/law-ledger/pdf?student=${encodeURIComponent(selected)}`,
       '_blank',

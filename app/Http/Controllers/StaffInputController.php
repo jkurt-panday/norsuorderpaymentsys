@@ -3,18 +3,26 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StaffProcessingRequest;
+use App\Mail\OrderOfPaymentMail;
 use App\Models\BankAccountInfo;
 use App\Models\FormInput;
+use App\Models\PaymentDetailOption;
 use App\Models\StaffInput;
 use App\Models\UACS;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
-use App\Models\PaymentDetailOption;
+use Barryvdh\DomPDF\Facade\Pdf;
+
 
 class StaffInputController extends Controller
 {
+    private const OP_COPY_LABELS = [
+    "Payor's Copy",
+    "Cash Unit's Copy",
+    "Accounting Unit's Copy",
+    ];
     /**
      * Display the staff dashboard.
      */
@@ -107,7 +115,8 @@ class StaffInputController extends Controller
             'recentActivity' => $recentActivity,
         ]);
     }
-/**
+
+    /**
      * Display list of requests for staff processing
      */
     public function index(Request $request)
@@ -183,88 +192,39 @@ class StaffInputController extends Controller
         return Inertia::render('staff/requestform/request', compact('formInputs', 'filters'));
     }
 
-    /**
-     * Show form for processing a specific request
-     */
-    public function create(FormInput $formInput)
+    public function store(StaffProcessingRequest $request)
     {
-        if ($formInput->staffInput()->exists()) {
-            return redirect()
-                ->route('staff.requests.show', $formInput)
-                ->with('warning', 'This request has already been processed.');
+        try {
+            DB::beginTransaction();
+
+            $formInput = FormInput::findOrFail($request->form_input_id);
+
+            if ($formInput->staffInput()->exists()) {
+                throw new \Exception('This request has already been processed.');
+            }
+
+            StaffInput::create(array_merge(
+                $request->validated(),
+                ['form_input_id' => $formInput->id]
+            ));
+
+            DB::commit();
+
+            // Changed: redirect back to the request's own show page instead of
+            // the index, so processing an inline form lands you right back
+            // where you started, with fresh data.
+            return redirect()->route('staff.requests.show', $formInput)
+                ->with('success', 'Request processed successfully.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Staff processing failed: '.$e->getMessage());
+
+            return back()
+                ->withInput()
+                ->with('error', 'Failed to process request: '.$e->getMessage());
         }
-
-        $bankAccounts = BankAccountInfo::orderBy('bank_name')->get();
-        $uacsList = Uacs::orderBy('object_code')->get();
-
-        $formInput->loadMissing(['membership', 'paymentDetailOption', 'supportingDocuments']);
-        $documents = $formInput->supportingDocuments()->get();
-
-        return Inertia::render('staff/requestform/processrequest', compact(
-            'formInput',
-            'bankAccounts',
-            'uacsList',
-            'documents'
-        ));
     }
-
-    /**
-     * Store staff processing data
-     */
-public function store(StaffProcessingRequest $request)
-{
-    try {
-        DB::beginTransaction();
-
-        $formInput = FormInput::findOrFail($request->form_input_id);
-
-        if ($formInput->staffInput()->exists()) {
-            throw new \Exception('This request has already been processed.');
-        }
-
-        StaffInput::create(array_merge(
-            $request->validated(),
-            ['form_input_id' => $formInput->id]
-        ));
-
-        DB::commit();
-
-        // Changed: redirect back to the request's own show page instead of
-        // the index, so processing an inline form lands you right back
-        // where you started, with fresh data.
-        return redirect()->route('staff.requests.show', $formInput)
-            ->with('success', 'Request processed successfully.');
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Staff processing failed: '.$e->getMessage());
-
-        return back()
-            ->withInput()
-            ->with('error', 'Failed to process request: '.$e->getMessage());
-    }
-}
-
-
-    /**
-     * Show form for editing staff processing
-     */
-    public function edit(StaffInput $staffInput)
-    {
-        $staffInput->load(['formInput.membership', 'formInput.paymentDetailOption']);
-        $bankAccounts = BankAccountInfo::orderBy('bank_name')->get();
-        $uacsList = Uacs::orderBy('object_code')->get();
-        $documents = $staffInput->formInput->supportingDocuments;
-
-        return Inertia::render('staff/requestform/editrequest', compact(
-            'staffInput',
-            'bankAccounts',
-            'uacsList',
-            'documents'
-        ));
-    }
-
-    // App/Http/Controllers/StaffInputController.php
 
     public function update(StaffProcessingRequest $request, StaffInput $staffInput)
     {
@@ -280,6 +240,8 @@ public function store(StaffProcessingRequest $request)
                 'ref_date' => $validated['ref_date'],
                 'uacs_id' => $validated['uacs_id'],
                 'status' => $validated['status'],
+                'purpose' => $validated['purpose'] ?? null,
+
             ]);
 
             DB::commit();
@@ -307,6 +269,7 @@ public function store(StaffProcessingRequest $request)
             'middlename_or_project' => 'nullable|string|max:100',
             'lastname_or_agency' => 'required|string|max:100',
             'amount' => 'required|numeric|min:0',
+            'purpose' => 'nullable|string|max:350',
             'payment_detail_option_id' => ['nullable', 'exists:payment_detail_options,id'],
             'new_payment_option' => 'nullable|string|max:255',
         ]);
@@ -335,7 +298,12 @@ public function store(StaffProcessingRequest $request)
 
         try {
             DB::beginTransaction();
+            if ($formInput->staffInput) {
+                $formInput->staffInput->update(['purpose' => $validated['purpose'] ?? null]);
+            }
 
+            unset($validated['purpose']);
+            
             $formInput->update($validated);
 
             DB::commit();
@@ -364,7 +332,7 @@ public function store(StaffProcessingRequest $request)
             'staffInput.uacs',
             'staffInput.referenceDocument',
         ]);
- 
+
         // Added: bankAccounts + uacsList, so the inline "Process Now" form
         // on this page has what it needs without a separate navigation.
         // Added: paymentOptions, so the new "Edit Processed Request" form
@@ -373,10 +341,42 @@ public function store(StaffProcessingRequest $request)
         return Inertia::render('staff/requestform/showrequest', [
             'formInput' => $formInput,
             'bankAccounts' => BankAccountInfo::orderBy('bank_name')->get(),
-            'uacsList' => Uacs::orderBy('object_code')->get(),
+            'uacsList' => UACS::orderBy('object_code')->get(),
             'paymentOptions' => PaymentDetailOption::orderBy('payment_desc')->get(),
         ]);
     }
- 
 
+        public function viewOp(FormInput $formInput, Request $request)
+    {
+        $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument']);
+
+        $copyLabels = self::OP_COPY_LABELS;
+
+        $layout = $request->query('layout', 'portrait');
+
+        $pdf = $layout === 'landscape'
+            ? Pdf::loadView('pdf.op-landscape', compact('formInput', 'copyLabels'))->setPaper('legal', 'landscape')
+            : Pdf::loadView('pdf.op-portrait', compact('formInput', 'copyLabels'))->setPaper('a5', 'portrait');
+
+        return $pdf->stream("OP-{$formInput->reference_number}.pdf");
+    }
+    public function emailOp(FormInput $formInput)
+    {
+        if (! $formInput->staffInput) {
+            abort(404);
+        }
+
+        $formInput->load(['staffInput.bankAccount', 'staffInput.uacs']);
+
+        $pdf = Pdf::loadView('pdf.op-portrait', [
+            'formInput' => $formInput,
+            'copyLabels' => ['Accounting Units Copy', "Payor's Copy", 'Cash Units Copy'],
+        ])->setPaper('a5', 'portrait');
+
+        \Mail::to($formInput->email)->send(
+            new OrderOfPaymentMail($formInput, $pdf->output())
+        );
+
+        return back()->with('success', 'Order of Payment emailed successfully.');
+    }
 }

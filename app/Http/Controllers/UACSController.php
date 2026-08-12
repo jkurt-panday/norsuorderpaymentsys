@@ -13,14 +13,22 @@ use Inertia\Inertia;
 class UACSController extends BaseResourceController
 {
     // ---- Config consumed by BaseResourceController::index() ----
-    protected string $model = Uacs::class;
+    protected string $model = UACS::class;
+
     protected array $searchableColumns = ['object_code', 'account_title'];
+
     protected string $indexView = 'staff/uacs/uacs';
+
     protected string $resourceKey = 'uacs';
+
     protected int $perPage = 10;
+
     protected string $orderBy = 'object_code';
+
     protected string $orderDirection = 'asc';
+
     protected array $sortableColumns = ['id', 'object_code', 'account_title', 'created_at'];
+
     protected array $filterableColumns = [];
 
     protected function modifyIndexQuery(Builder $query, Request $request): Builder
@@ -44,7 +52,7 @@ class UACSController extends BaseResourceController
         try {
             DB::beginTransaction();
 
-            Uacs::create($request->validated());
+            UACS::create($request->validated());
 
             DB::commit();
 
@@ -53,7 +61,7 @@ class UACSController extends BaseResourceController
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to create UACS: ' . $e->getMessage(), [
+            Log::error('Failed to create UACS: '.$e->getMessage(), [
                 'request' => $request->validated(),
             ]);
 
@@ -63,7 +71,7 @@ class UACSController extends BaseResourceController
         }
     }
 
-    public function edit(Uacs $uacs)
+    public function edit(UACS $uacs)
     {
         return Inertia::render('staff/uacs/edituacs', [
             'uacs' => $uacs,
@@ -74,7 +82,7 @@ class UACSController extends BaseResourceController
         ]);
     }
 
-    public function update(UacsRequest $request, Uacs $uacs)
+    public function update(UacsRequest $request, UACS $uacs)
     {
         try {
             DB::beginTransaction();
@@ -88,7 +96,7 @@ class UACSController extends BaseResourceController
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Failed to update UACS ID {$uacs->id}: " . $e->getMessage());
+            Log::error("Failed to update UACS ID {$uacs->id}: ".$e->getMessage());
 
             return back()
                 ->withInput()
@@ -96,7 +104,7 @@ class UACSController extends BaseResourceController
         }
     }
 
-    public function destroy(Uacs $uacs)
+    public function destroy(UACS $uacs)
     {
         if ($uacs->staffInputs()->exists()) {
             return back()->with('error', 'Cannot delete UACS that has associated staff inputs.');
@@ -114,7 +122,7 @@ class UACSController extends BaseResourceController
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Failed to delete UACS ID {$uacs->id}: " . $e->getMessage());
+            Log::error("Failed to delete UACS ID {$uacs->id}: ".$e->getMessage());
 
             return back()
                 ->with('error', 'Failed to delete UACS. Please check if it is still in use.');

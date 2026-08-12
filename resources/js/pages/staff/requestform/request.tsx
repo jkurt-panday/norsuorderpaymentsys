@@ -1,13 +1,14 @@
-import React, { useState, useCallback, useEffect } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import { Inbox } from 'lucide-react';
-import { flashToast } from '@/utils/flashToast';
-import staff from '@/routes/staff';
+import React, { useState, useCallback, useEffect } from 'react';
 import RequestTable, {
-    type ColumnDef,
-    type PaginatedData,
-    StatusBadge,
+    
+    
+    StatusBadge
 } from '@/components/RequestTable';
+import type {ColumnDef, PaginatedData} from '@/components/RequestTable';
+import staff from '@/routes/staff';
+import { flashToast } from '@/utils/flashToast';
 
 interface StaffInput {
     id: number;
@@ -96,9 +97,17 @@ const ManageRequests: React.FC = () => {
         .props as unknown as PageProps;
 
     useEffect(() => {
-        if (flash?.success) flashToast('success', flash.success);
-        if (flash?.error) flashToast('error', flash.error);
-        if (flash?.warning) flashToast('warning', flash.warning);
+        if (flash?.success) {
+flashToast('success', flash.success);
+}
+
+        if (flash?.error) {
+flashToast('error', flash.error);
+}
+
+        if (flash?.warning) {
+flashToast('warning', flash.warning);
+}
     }, [flash]);
 
     const [search, setSearch] = useState(filters.search || '');
@@ -192,6 +201,7 @@ const ManageRequests: React.FC = () => {
             width: '130px',
             render: (row) => {
                 const currentStatus = row.staff_input?.status ?? 'unprocessed';
+
                 return (
                     <StatusBadge
                         label={

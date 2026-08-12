@@ -1,16 +1,14 @@
-import React, { useEffect } from 'react';
 import { Code } from 'lucide-react';
-import { flashToast } from '@/utils/flashToast';
+import React, { useEffect } from 'react';
 import {
     create,
     edit,
     destroy,
 } from '@/actions/App/Http/Controllers/UACSController';
-import ResourceTable, {
-    type PaginatedData,
-    type ColumnDef,
-} from '@/components/ResourceTable';
+import ResourceTable from '@/components/ResourceTable';
+import type {PaginatedData, ColumnDef} from '@/components/ResourceTable';
 import { Badge } from '@/components/ui/badge';
+import { flashToast } from '@/utils/flashToast';
 
 // ============ TYPE DEFINITIONS ============
 // created_at added here even though it's not rendered as a visible column —
@@ -41,8 +39,13 @@ export default function UacsIndex({ uacs, flash }: UacsIndexProps) {
     // UACS code is still in use). Without this, a rejected delete silently
     // redirects back with no visible feedback to the user.
     useEffect(() => {
-        if (flash?.success) flashToast('success', flash.success);
-        if (flash?.error) flashToast('error', flash.error);
+        if (flash?.success) {
+flashToast('success', flash.success);
+}
+
+        if (flash?.error) {
+flashToast('error', flash.error);
+}
     }, [flash]);
 
     const columns: ColumnDef<UacsRecord>[] = [
