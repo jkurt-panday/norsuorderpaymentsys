@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('assessment_forms', function (Blueprint $table) {
             $table->id();
-            $table->string('email');
+            $table->string('reference_number', 100)->unique();
+            $table->string('email', 100);
             $table->string('contact_num', 11);
             $table->string('first_name', 100);
             $table->string('middle_name', 100)->nullable();
