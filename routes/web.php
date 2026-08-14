@@ -9,6 +9,7 @@ use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\PaymentDetailOptionController;
 use App\Http\Controllers\StaffInputController;
 use App\Http\Controllers\SupportingDocumentController;
+use App\Http\Controllers\AssessmentFormController;
 use App\Http\Controllers\UACSController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,6 +23,13 @@ Route::name('public.')->prefix('public')->group(function () {
     
     Route::get('/success/{reference_number}', [FormInputController::class, 'success'])->name('success');
     Route::get('/success/{reference_number}/print', [FormInputController::class, 'printReceipt'])->name('print');
+
+    Route::get('/assessmentform', [AssessmentFormController::class, 'create'])->name('assessmentform');
+    Route::post('/assessmentform', [AssessmentFormController::class, 'store']);
+
+    Route::get('/assessment_complete/{reference_number}', [AssessmentFormController::class, 'complete'])->name('complete');
+    Route::get('/assessment_complete/{reference_number}/print', [AssessmentFormController::class, 'printReceipt'])->name('print');
+    
 });
 
 // Root redirect → public submission form
