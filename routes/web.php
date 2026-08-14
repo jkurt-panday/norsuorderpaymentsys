@@ -11,6 +11,7 @@ use App\Http\Controllers\StaffInputController;
 use App\Http\Controllers\SupportingDocumentController;
 use App\Http\Controllers\AssessmentFormController;
 use App\Http\Controllers\UACSController;
+use App\Http\Controllers\CoursesController;
 use Illuminate\Support\Facades\Route;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -163,6 +164,9 @@ Route::name('staff.')->prefix('staff')->middleware(['auth'])->group(function () 
         Route::delete('/{supportingDocument}', [SupportingDocumentController::class, 'destroy'])->name('destroy');
     });
 
+    // Courses
+    Route::resource('courses', CoursesController::class)
+        ->parameters(['courses' => 'courses']);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
