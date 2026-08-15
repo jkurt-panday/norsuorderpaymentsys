@@ -1,4 +1,4 @@
-import { useForm } from '@inertiajs/react';
+import { useForm, Head } from '@inertiajs/react';
 import { UploadCloud02 } from '@untitledui/icons';
 import { Mail, User, ClipboardList, FileText } from 'lucide-react';
 import { useState } from 'react';
@@ -183,6 +183,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
     // ? component ui
     return (
         <>
+            <Head title="Order of Payment Form" />
             <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-200 to-white px-6 py-12">
                 <div className="mx-auto max-w-4xl">
                     <div className="mb-10 rounded-2xl border border-blue-100 bg-white px-8 py-8 text-center shadow-md">
@@ -196,7 +197,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                             />
                         </div>
                         <h1 className="text-4xl font-bold tracking-tight text-blue-900">
-                            Order of Payment Request
+                            NORSU Order of Payment - MAIN CAMPUS
                         </h1>
                         <p className="mt-3 text-base text-slate-600">
                             Fill out the form below to submit your request.
@@ -577,7 +578,8 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         >
                                             <ComboboxInput
                                                 placeholder="Select a request type"
-                                                className={enlarge}
+                                                className={`border-slate-300 focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
+
                                                 showClear={!!data.request_type}
                                             />
                                             <ComboboxContent>
@@ -638,7 +640,8 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         >
                                             <ComboboxInput
                                                 placeholder="Select membership"
-                                                className={enlarge}
+                                                className={`border-slate-300 focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
+
                                                 showClear={!!data.membership_id}
                                             />
                                             <ComboboxContent>
@@ -706,7 +709,8 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                 showClear={
                                                     !!data.payment_detail_option_id
                                                 }
-                                                className={enlarge}
+                                                className={`border-slate-300 focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
+
                                             />
                                             <ComboboxContent>
                                                 <ComboboxEmpty>
