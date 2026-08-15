@@ -91,7 +91,7 @@ class AssessmentFormController extends Controller
         $assessmentform = AssessmentForm::where('reference_number', $reference_number)->firstOrFail();
         $assessmentform->load(['courses']);
         
-        return Inertia::render('public/Success', [
+        return Inertia::render('public/AssessmentSuccess', [
             'reference_number' => $assessmentform->reference_number,
             'assessmentform' => $assessmentform,
         ]);
