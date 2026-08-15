@@ -29,7 +29,7 @@ Route::name('public.')->prefix('public')->group(function () {
     Route::post('/assessmentform', [AssessmentFormController::class, 'store']);
 
     Route::get('/assessment_complete/{reference_number}', [AssessmentFormController::class, 'complete'])->name('complete');
-    Route::get('/assessment_complete/{reference_number}/print', [AssessmentFormController::class, 'printReceipt'])->name('print');
+    Route::get('/assessment_complete/{reference_number}/print', [AssessmentFormController::class, 'print'])->name('print_req');
     
 });
 
