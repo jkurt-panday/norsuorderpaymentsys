@@ -1,7 +1,5 @@
 // /home/kurt_/norsuorderpaymentsys/resources/js/pages/public/Success.tsx
 import { Link } from '@inertiajs/react';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import {
     CheckCircle,
     FileText,
@@ -14,7 +12,6 @@ import {
     Printer,
 } from 'lucide-react';
 import React, { useRef } from 'react';
-import { useReactToPrint } from 'react-to-print';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -91,6 +88,15 @@ export default function Success({ reference_number, formInput }: Props) {
         })
             .format(parseFloat(amount))
             .replace('₱', '₱  ');
+    };
+
+    const formatContactNumber = (contactNum: string) => {
+        if (!contactNum) return '';
+    
+        return contactNum.replace(
+            /^(\d{4})(\d{3})(\d{4})$/,
+            '$1 $2 $3',
+        );
     };
 
     // Format file size
@@ -206,7 +212,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                                     Contact Number
                                                 </p>
                                                 <p className="text-base sm:text-xl font-semibold text-slate-900 break-all">
-                                                    {formInput.contact_num}
+                                                    {formatContactNumber(formInput.contact_num)}
                                                 </p>
                                             </div>
                                         </div>
@@ -290,7 +296,7 @@ export default function Success({ reference_number, formInput }: Props) {
                                             </p>
                                             <div className="pt-1">
                                                 <Badge
-                                                    className={`rounded-full px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-lg font-semibold shadow-sm ${getRequestBadgeClass(
+                                                    className={`rounded-full px-3 py-4 sm:px-4 sm:py-4 text-sm sm:text-lg font-semibold shadow-sm ${getRequestBadgeClass(
                                                         formInput.request_type,
                                                     )}`}
                                                 >
