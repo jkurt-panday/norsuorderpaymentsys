@@ -62,6 +62,7 @@ class FormInputController extends Controller
             $formInput = FormInput::create([
                 'reference_number'              => $referenceNumber,
                 'email'                         => $validated['email'],
+                'purpose'                       => $validated['purpose'] ?? null,
                 'contact_num'                   => $validated['contact_num'],
                 'firstname_or_office'           => $validated['firstname_or_office'],
                 'middlename_or_project'         => $validated['middlename_or_project'] ?? null,
@@ -101,10 +102,19 @@ class FormInputController extends Controller
                 'reference_number' => $formInput->reference_number
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
 
-            return back()->withInput()->with('error', 'Failed to submit request: '.$e->getMessage());
+            
+            \Log::error('Public form submission failed', [
+                'message' => $e->getMessage(),
+                // 'trace' => $e->getTraceAsString(),
+            ]);
+
+            
+            return back()
+                ->withInput()
+                ->with('error', 'Failed to submit request.');
         }
     }
 
