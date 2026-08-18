@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import { ArrowLeft, FileText, Printer, Search, X } from 'lucide-react';
-import React, { useState, useMemo } from 'react';
+import { ArrowLeft, FileText, Printer } from 'lucide-react';
+import React, { useState } from 'react';
 
 import {
   CardDescription,
@@ -160,17 +160,6 @@ export default function PrintSelect({
   summary,
 }: PrintSelectProps) {
   const [selectedStudentState, setSelectedStudentState] = useState(selectedStudent || '');
-  const [search, setSearch] = useState('');
-
-  const filteredStudents = useMemo(() => {
-    const term = search.trim().toLowerCase();
-
-    if (!term) {
-      return students;
-    }
-
-    return students.filter((name) => name.toLowerCase().includes(term));
-  }, [students, search]);
 
   const handleStudentChange = (value: string | null) => {
     setSelectedStudentState(value ?? '');
@@ -220,59 +209,30 @@ export default function PrintSelect({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {/* Search box */}
-              <div className="relative w-full sm:w-2/3">
-                <Search className="absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Type a name to filter the list below..."
-                  className="w-full rounded-md border border-slate-200 bg-white py-2 pr-8 pl-8 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  aria-label="Search students"
-                />
-                {search && (
-                  <button
-                    type="button"
-                    onClick={() => setSearch('')}
-                    className="absolute top-1/2 right-2.5 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    aria-label="Clear search"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex-1 w-full sm:w-auto">
                 <Select value={selectedStudentState} onValueChange={handleStudentChange}>
-                  <SelectTrigger className="h-10 bg-white border-slate-200 w-full sm:w-96" aria-label="Select a student">
+                  <SelectTrigger className="h-10 bg-white border-slate-200 w-full sm:w-96">
                     <SelectValue placeholder="Select a student" />
                   </SelectTrigger>
                   <SelectContent>
-                    {filteredStudents.map((student) => (
+                    {students.map((student) => (
                       <SelectItem key={student} value={student}>
                         {student}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-
-                <Button
-                  onClick={handleGeneratePdf}
-                  disabled={!selectedStudentState}
-                  className="h-10 bg-blue-600 hover:bg-blue-700 text-white shadow-sm w-full sm:w-auto"
-                >
-                  <Printer className="h-4 w-4 mr-2" />
-                  Generate PDF
-                </Button>
               </div>
 
-              {search && (
-                <p className="text-xs text-slate-500">
-                  {filteredStudents.length} of {students.length} student{students.length === 1 ? '' : 's'} match "{search}"
-                </p>
-              )}
+              <Button
+                onClick={handleGeneratePdf}
+                disabled={!selectedStudentState}
+                className="h-10 bg-blue-600 hover:bg-blue-700 text-white shadow-sm w-full sm:w-auto"
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Generate PDF
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -280,56 +240,56 @@ export default function PrintSelect({
         {/* Student Records and Summary */}
         {selectedStudentState && records && records.length > 0 && (
           <>
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card className="border-slate-200 shadow-sm bg-white">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Total Assessments</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
-                {currency(
-                  records
-                    .filter((record) => (record.arOrPayment?.toUpperCase() === 'AR' || record.arOrPayment?.toUpperCase() === 'ASSESSMENT'))
-                    .reduce((sum, record) => sum + absAmount(record.amount), 0)
-                )}
-              </div>
-            </CardContent>
-          </Card>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Card className="border-slate-200 shadow-sm bg-white">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-slate-600">Total Assessments</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-slate-900">
+                    {currency(
+                      records
+                        .filter((record) => (record.arOrPayment?.toUpperCase() === 'AR' || record.arOrPayment?.toUpperCase() === 'ASSESSMENT'))
+                        .reduce((sum, record) => sum + absAmount(record.amount), 0)
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card className="border-slate-200 shadow-sm bg-white">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Total Payments</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
-                {currency(
-                  records
-                    .filter((record) => record.arOrPayment?.toUpperCase() === 'PAYMENT')
-                    .reduce((sum, record) => sum + absAmount(record.amount), 0)
-                )}
-              </div>
-            </CardContent>
-          </Card>
+              <Card className="border-slate-200 shadow-sm bg-white">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-slate-600">Total Payments</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-slate-900">
+                    {currency(
+                      records
+                        .filter((record) => record.arOrPayment?.toUpperCase() === 'PAYMENT')
+                        .reduce((sum, record) => sum + absAmount(record.amount), 0)
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card className="border-slate-200 shadow-sm bg-white">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Outstanding Balance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
-                {currency(
-                  records
-                    .filter((record) => (record.arOrPayment?.toUpperCase() === 'AR' || record.arOrPayment?.toUpperCase() === 'ASSESSMENT'))
-                    .reduce((sum, record) => sum + absAmount(record.amount), 0) -
-                  records
-                    .filter((record) => record.arOrPayment?.toUpperCase() === 'PAYMENT')
-                    .reduce((sum, record) => sum + absAmount(record.amount), 0)
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              <Card className="border-slate-200 shadow-sm bg-white">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-slate-600">Outstanding Balance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-slate-900">
+                    {currency(
+                      records
+                        .filter((record) => (record.arOrPayment?.toUpperCase() === 'AR' || record.arOrPayment?.toUpperCase() === 'ASSESSMENT'))
+                        .reduce((sum, record) => sum + absAmount(record.amount), 0) -
+                      records
+                        .filter((record) => record.arOrPayment?.toUpperCase() === 'PAYMENT')
+                        .reduce((sum, record) => sum + absAmount(record.amount), 0)
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Student Ledger Table */}
             <Card className="border-slate-200 shadow-sm bg-white">
