@@ -12,7 +12,6 @@ return new class extends Migration
             $table->id();
             $table->string('reference_number', 50)->unique();
             $table->string('email', 255);
-            $table->text('purpose')->nullable();
             $table->string('contact_num', 11);
             $table->string('firstname_or_office', 100);
             $table->string('middlename_or_project', 100)->nullable();
