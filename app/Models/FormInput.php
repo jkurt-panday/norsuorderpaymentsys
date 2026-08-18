@@ -17,6 +17,7 @@ class FormInput extends Model
     protected $fillable = [
         'reference_number',
         'email',
+        'purpose',
         'contact_num',
         'firstname_or_office',
         'middlename_or_project',
