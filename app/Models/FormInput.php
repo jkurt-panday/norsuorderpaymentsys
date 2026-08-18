@@ -18,7 +18,6 @@ class FormInput extends Model
         'reference_number',
         'email',
         'contact_num',
-        'purpose',
         'firstname_or_office',
         'middlename_or_project',
         'lastname_or_agency',
