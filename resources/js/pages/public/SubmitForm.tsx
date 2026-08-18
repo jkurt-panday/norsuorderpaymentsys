@@ -46,7 +46,7 @@ interface Props {
 
 export default function SubmitForm({ memberships, paymentOptions }: Props) {
     // ? form handling
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors, reset, transform } = useForm({
         email: '',
         contact_num: '',
         firstname_or_office: '',
@@ -59,45 +59,24 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
         request_type: '',
         membership_id: '',
         payment_detail_option_id: '',
-        // has_documents: false,
         documents: [] as File[],
     });
     // ? form submit
     // Submit handler with file upload
     const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
         e.preventDefault();
-
-        const formData = new FormData();
-
-        Object.entries(data).forEach(([key, value]) => {
-            if (value !== null && value !== '') {
-                formData.append(key, String(value));
-            }
-        });
-
-        data.documents.forEach((file) => {
-            formData.append(`documents[]`, file);
-        });
-
-        // Debug: Check what's being sent
-        // console.log('FormData entries:');
-
-        // for (const [key, value] of formData.entries()) {
-        //     console.log(key, value);
-        // }
-
-        // Use post with FormData
-        post('/public/form', formData, {
-            onSuccess: (page) => {
-                console.log('Success!', page);
-                reset();
-                // setSupportingDocuments([]);
-            },
-            onError: (errors) => {
-                console.error('Validation errors:', errors);
-            },
+    
+        // Ensures Inertia packages files cleanly
+        // transform((data) => ({
+        //     ...data,
+        //     documents: data.documents,
+        // }));
+    
+        post('/public/form', {
             forceFormData: true,
             preserveState: true,
+            onSuccess: () => console.log('Success'),
+            onError: (errs) => console.error('Validation errors:', errs),
         });
     };
 
@@ -165,7 +144,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
             data.documents.filter((_, i) => i !== index),
         );
 
-        if (updatedDocuments.length <= MAX_FILES) {
+        if (data.documents.length <= MAX_FILES) {
             setDocumentError('');
         }
 
