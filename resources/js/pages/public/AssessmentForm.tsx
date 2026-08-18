@@ -1,6 +1,6 @@
 import { useForm, Head } from '@inertiajs/react';
 import PublicLayout from '@/pages/layouts/PublicLayout';
-import { Mail, User, ClipboardList, FileText, University } from 'lucide-react';
+import { Mail, User, University } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -79,14 +79,23 @@ export default function AssessmentForm({ courses }: Props) {
         first_name: '',
         middle_name: '',
         last_name: '',
-        courses_id: '',
+        course_id: '',
         address: '',
         enrolled_under: EnrolledUnder.UNDERGRADUATE,
         sy_last_attended: '',
         semester: Semester.FIRST,
     });
 
-    const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {};
+    const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
+        e.preventDefault();
+
+        post('/public/assessmentform', {
+            forceFormData: true,
+            preserveState: true,
+            onSuccess: () => console.log('Success'),
+            onError: (errs) => console.error('Validation errors: ', errs)
+        })
+    };
 
     // contact num length
     const isValidContact = data.contact_num.length === 11;
@@ -331,7 +340,7 @@ export default function AssessmentForm({ courses }: Props) {
                                                     courses.find(
                                                         (m) =>
                                                             String(m.id) ===
-                                                            data.courses_id,
+                                                            data.course_id,
                                                     )?.course_desc || ''
                                                 }
                                                 onValueChange={(value) => {
@@ -343,7 +352,7 @@ export default function AssessmentForm({ courses }: Props) {
                                                         );
 
                                                     setData(
-                                                        'courses_id',
+                                                        'course_id',
                                                         selected
                                                             ? String(
                                                                   selected.id,
@@ -356,7 +365,7 @@ export default function AssessmentForm({ courses }: Props) {
                                                     placeholder="Select course"
                                                     className={`border-slate-300 focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
                                                     showClear={
-                                                        !!data.courses_id
+                                                        !!data.course_id
                                                     }
                                                 />
                                                 <ComboboxContent>
@@ -379,9 +388,9 @@ export default function AssessmentForm({ courses }: Props) {
                                                     </ComboboxList>
                                                 </ComboboxContent>
                                             </Combobox>
-                                            {errors.membership_id && (
+                                            {errors.course_id && (
                                                 <p className="mt-1 text-sm text-red-500">
-                                                    {errors.membership_id}
+                                                    {errors.course_id}
                                                 </p>
                                             )}
                                         </Field>
