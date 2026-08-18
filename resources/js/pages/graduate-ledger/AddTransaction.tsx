@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 import { Head, useForm, router } from '@inertiajs/react';
 import { ArrowLeft, Plus, X, Search, Check, ChevronsUpDown } from 'lucide-react';
 import React, { useState, useMemo } from 'react';
+=======
+import { Head, useForm } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
+import { ArrowLeft } from 'lucide-react';
+>>>>>>> f77723bae58ca20216585a8101db228612c78d1b
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -64,7 +70,10 @@ function formatStudentLabel(s: StudentOption): string {
 }
 
 function FieldError({ message }: { message?: string }) {
-    if (!message) return null;
+    if (!message) {
+return null;
+}
+
     return <p className="mt-1 text-xs text-red-500">{message}</p>;
 }
 

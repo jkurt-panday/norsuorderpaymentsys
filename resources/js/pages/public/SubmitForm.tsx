@@ -149,6 +149,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
             setDocumentError(
                 `You can upload a maximum of ${MAX_FILES} supporting documents.`,
             );
+
             return;
         }
 

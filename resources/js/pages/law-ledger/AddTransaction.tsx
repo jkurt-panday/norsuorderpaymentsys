@@ -46,6 +46,7 @@ export default function AddTransaction({ studentNames, authUserName }: Props) {
         input_by: authUserName,
     });
 
+<<<<<<< HEAD
     const parsedUnits = Number(data.units || 0);
     const parsedRate = Number(
         data.tuition_per_unit_or_fee_per_semester || 0,
@@ -59,6 +60,21 @@ export default function AddTransaction({ studentNames, authUserName }: Props) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+=======
+  const semesterOptions = useMemo(() => {
+    const defaults = ['1st Sem', '2nd Sem', 'Summer'];
+    const fromDb = filterOptions?.semesters ?? [];
+
+    return [...new Set([...defaults, ...fromDb])];
+  }, [filterOptions?.semesters]);
+
+  const courseOptions = useMemo(() => {
+    const defaults = ['JD', 'LLM', 'JSD'];
+    const fromDb = filterOptions?.courses ?? [];
+
+    return [...new Set([...defaults, ...fromDb])];
+  }, [filterOptions?.courses]);
+>>>>>>> f77723bae58ca20216585a8101db228612c78d1b
 
         router.post('/law-ledger', {
             ...data,

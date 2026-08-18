@@ -1,4 +1,3 @@
-import React, { useEffect, useRef, useState } from 'react';
 import { Head, Link, router, usePoll } from '@inertiajs/react';
 import {
     Plus,
@@ -12,10 +11,19 @@ import {
     ArrowUp,
     ArrowDown,
     Check,
-    RefreshCw,
-    type LucideIcon,
+    RefreshCw
+    
 } from 'lucide-react';
+import type {LucideIcon} from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { useConfirm } from '@/components/confirm-dialog';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import {
     Table,
     TableBody,
@@ -24,13 +32,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent } from '@/components/ui/card';
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from '@/components/ui/popover';
-import { useConfirm } from '@/components/confirm-dialog';
 
 // ============ TYPE DEFINITIONS ============
 export interface PaginationLink {
@@ -131,18 +132,28 @@ export default function ResourceTable<T extends { id: number }>({
     }, [resource.data]);
 
     function compareValues(a: unknown, b: unknown): number {
-        if (a === b) return 0;
-        if (a === null || a === undefined) return -1;
-        if (b === null || b === undefined) return 1;
+        if (a === b) {
+return 0;
+}
+
+        if (a === null || a === undefined) {
+return -1;
+}
+
+        if (b === null || b === undefined) {
+return 1;
+}
 
         const aNum = typeof a === 'number' ? a : Number(a);
         const bNum = typeof b === 'number' ? b : Number(b);
+
         if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) {
             return aNum - bNum;
         }
 
         const aDate = Date.parse(String(a));
         const bDate = Date.parse(String(b));
+
         if (!Number.isNaN(aDate) && !Number.isNaN(bDate)) {
             return aDate - bDate;
         }
@@ -156,8 +167,10 @@ export default function ResourceTable<T extends { id: number }>({
                 const valueA = (rowA as Record<string, unknown>)[sortKey];
                 const valueB = (rowB as Record<string, unknown>)[sortKey];
                 const result = compareValues(valueA, valueB);
+
                 return direction === 'asc' ? result : -result;
             });
+
             return sorted;
         });
     }
@@ -180,6 +193,7 @@ export default function ResourceTable<T extends { id: number }>({
 
             if (prevSignatures.current) {
                 const prevSig = prevSignatures.current.get(row.id);
+
                 if (prevSig === undefined || prevSig !== sig) {
                     changed.push(row.id);
                 }
@@ -190,17 +204,22 @@ export default function ResourceTable<T extends { id: number }>({
             setHighlightedIds((prev) => {
                 const next = new Set(prev);
                 changed.forEach((id) => next.add(id));
+
                 return next;
             });
 
             changed.forEach((id) => {
                 const existing = highlightTimers.current.get(id);
-                if (existing) clearTimeout(existing);
+
+                if (existing) {
+clearTimeout(existing);
+}
 
                 const timer = setTimeout(() => {
                     setHighlightedIds((prev) => {
                         const next = new Set(prev);
                         next.delete(id);
+
                         return next;
                     });
                     highlightTimers.current.delete(id);
@@ -230,7 +249,9 @@ export default function ResourceTable<T extends { id: number }>({
     );
 
     useEffect(() => {
-        if (!pollInterval) return;
+        if (!pollInterval) {
+return;
+}
 
         if (process.env.NODE_ENV !== 'production' && !resourceKey) {
             console.warn(
@@ -239,12 +260,15 @@ export default function ResourceTable<T extends { id: number }>({
         }
 
         start();
+
         return () => stop();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pollInterval, resourceKey]);
 
     const handleDeleteClick = async (id: number) => {
-        if (pollInterval) stop();
+        if (pollInterval) {
+stop();
+}
 
         const ok = await confirm({
             title: 'Confirm Delete',
@@ -254,7 +278,10 @@ export default function ResourceTable<T extends { id: number }>({
         });
 
         if (!ok) {
-            if (pollInterval) start();
+            if (pollInterval) {
+start();
+}
+
             return;
         }
 
@@ -264,7 +291,9 @@ export default function ResourceTable<T extends { id: number }>({
                 toast.error('Something went wrong while deleting.');
             },
             onFinish: () => {
-                if (pollInterval) start();
+                if (pollInterval) {
+start();
+}
             },
         });
     };
@@ -283,6 +312,7 @@ export default function ResourceTable<T extends { id: number }>({
                 url.searchParams.delete(key);
             }
         }
+
         url.searchParams.delete('page');
 
         router.get(
@@ -311,7 +341,10 @@ export default function ResourceTable<T extends { id: number }>({
     const isControlledSearch = onSearchChange !== undefined;
 
     const [internalSearch, setInternalSearch] = useState<string>(() => {
-        if (typeof window === 'undefined') return '';
+        if (typeof window === 'undefined') {
+return '';
+}
+
         return new URLSearchParams(window.location.search).get('search') ?? '';
     });
 
@@ -332,6 +365,7 @@ export default function ResourceTable<T extends { id: number }>({
 
         if (isControlledSearch) {
             onSearchSubmit?.(effectiveSearchValue);
+
             return;
         }
 
@@ -382,6 +416,7 @@ export default function ResourceTable<T extends { id: number }>({
 
     const handleReloadAndReset = () => {
         setInternalSearch('');
+
         if (isControlledSearch) {
             onSearchChange?.('');
             onSearchSubmit?.('');
@@ -524,6 +559,7 @@ export default function ResourceTable<T extends { id: number }>({
                                         const optionValue = `${opt.sort}:${opt.direction}`;
                                         const isActive =
                                             optionValue === activeSortValue;
+
                                         return (
                                             <button
                                                 key={optionValue}
@@ -646,6 +682,7 @@ export default function ResourceTable<T extends { id: number }>({
                                     const isHighlighted = highlightedIds.has(
                                         row.id,
                                     );
+
                                     return (
                                         <TableRow
                                             key={row.id}
@@ -766,6 +803,7 @@ export default function ResourceTable<T extends { id: number }>({
                                             open={pageJumpOpen}
                                             onOpenChange={(open) => {
                                                 setPageJumpOpen(open);
+
                                                 if (open) {
                                                     setPageJumpInput(
                                                         String(
@@ -795,6 +833,7 @@ export default function ResourceTable<T extends { id: number }>({
                                                             Number(
                                                                 pageJumpInput,
                                                             );
+
                                                         if (
                                                             !Number.isNaN(
                                                                 parsed,

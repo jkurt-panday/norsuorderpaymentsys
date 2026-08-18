@@ -114,18 +114,17 @@ Route::name('staff.')->prefix('staff')->middleware(['auth'])->group(function () 
 
     // ── Requests Management ──────────────────────────────────────────────────
     Route::name('requests.')->prefix('requests')->group(function () {
-        Route::get('/', [StaffInputController::class, 'index'])->name('index');
+    Route::get('/', [StaffInputController::class, 'index'])->name('index');
 
-        // Non-wildcard routes ABOVE wildcard routes to prevent fallback hijacking
-        Route::post('/process', [StaffInputController::class, 'store'])->name('store');
+    // Non-wildcard routes ABOVE wildcard routes to prevent fallback hijacking
+    Route::post('/process', [StaffInputController::class, 'store'])->name('store');
 
-        Route::get('/{formInput}/process', [StaffInputController::class, 'create'])->name('process');
-        Route::get('/{formInput}', [StaffInputController::class, 'show'])->name('show');
-        Route::put('/{formInput}/details', [StaffInputController::class, 'updateDetails'])->name('updateDetails');
-        Route::get('/{staffInput}/edit', [StaffInputController::class, 'edit'])->name('edit');
-        Route::put('/{staffInput}', [StaffInputController::class, 'update'])->name('update');
-
-    });
+    Route::get('/{formInput}', [StaffInputController::class, 'show'])->name('show');
+    Route::get('/{formInput}/view-op', [StaffInputController::class, 'viewOp'])->name('viewOp');
+    Route::post('/{formInput}/email-op', [StaffInputController::class, 'emailOp'])->name('emailOp');
+    Route::put('/{formInput}/details', [StaffInputController::class, 'updateDetails'])->name('updateDetails');
+    Route::put('/{staffInput}', [StaffInputController::class, 'update'])->name('update');
+});
 
     // ── Master Data (Resource Routes) ───────────────────────────────────────
     // Explicit parameter bindings prevent Laravel's inflector from scrambling singular names.

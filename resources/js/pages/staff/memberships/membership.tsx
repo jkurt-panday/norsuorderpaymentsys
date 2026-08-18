@@ -1,15 +1,13 @@
-import React, { useEffect } from 'react';
 import { Users } from 'lucide-react';
-import { flashToast } from '@/utils/flashToast';
-import ResourceTable, {
-    type PaginatedData,
-    type ColumnDef,
-} from '@/components/ResourceTable';
+import React, { useEffect } from 'react';
 import {
     create,
     edit,
     destroy,
 } from '@/actions/App/Http/Controllers/MembershipController';
+import ResourceTable from '@/components/ResourceTable';
+import type {PaginatedData, ColumnDef} from '@/components/ResourceTable';
+import { flashToast } from '@/utils/flashToast';
 
 // ============ TYPE DEFINITIONS ============
 interface Membership {
@@ -48,8 +46,13 @@ export default function MembershipsIndex({
     // membership is still in use). Without this, a rejected delete silently
     // redirects back with no visible feedback to the user.
     useEffect(() => {
-        if (flash?.success) flashToast('success', flash.success);
-        if (flash?.error) flashToast('error', flash.error);
+        if (flash?.success) {
+flashToast('success', flash.success);
+}
+
+        if (flash?.error) {
+flashToast('error', flash.error);
+}
     }, [flash]);
 
     // ============ COLUMNS ============
