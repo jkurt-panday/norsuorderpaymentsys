@@ -14,7 +14,7 @@ export default function Dashboard() {
     const [confirmationError, setConfirmationError] = useState('');
     
     const { data, setData, post, processing, errors, reset } = useForm({
-        name: '', email: '', password: '', role: 'accountant',
+        name: '', email: '', password: '', role: 'staff',
     });
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -103,8 +103,8 @@ export default function Dashboard() {
                 {auth.user?.role === 'admin' && (
                     <Card>
                         <CardHeader>
-                            <CardTitle>Register New Accountant Account</CardTitle>
-                            <CardDescription>Provision an accountant account for the NORSU system.</CardDescription>
+                            <CardTitle>Register New Staff Account</CardTitle>
+                            <CardDescription>Provision a staff account for the NORSU system.</CardDescription>
                         </CardHeader>
                         <form onSubmit={submit}>
                             <CardContent className="grid gap-4 md:grid-cols-2">
@@ -131,7 +131,7 @@ export default function Dashboard() {
                             </CardContent>
                             <CardFooter>
                                 <Button type="submit" disabled={processing}>
-                                    {processing ? 'Creating…' : 'Create accountant account'}
+                                    {processing ? 'Creating…' : 'Create staff account'}
                                 </Button>
                             </CardFooter>
                         </form>

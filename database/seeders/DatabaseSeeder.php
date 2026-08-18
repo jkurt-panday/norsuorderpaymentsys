@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $adminPassword = env('ADMIN_SEED_PASSWORD', Str::random(16));
-        $accountantPassword = env('ACCOUNTANT_SEED_PASSWORD', Str::random(16));
+        $staffPassword = env('STAFF_SEED_PASSWORD', Str::random(16));
 
         // 3. Create the System Administrator
         User::updateOrCreate(
@@ -27,16 +27,16 @@ class DatabaseSeeder extends Seeder
         );
         $this->command->info('Successfully seeded: Admin User (admin@norsu.edu.ph)');
 
-        // 4. Create the System Accountant
+        // 4. Create the System Staff
         User::updateOrCreate(
-            ['email' => 'accountant@norsu.edu.ph'],
+            ['email' => 'staff@norsu.edu.ph'],
             [
-                'name' => 'Lead Accountant',
-                'password' => $accountantPassword,
-                'role' => 'accountant',
+                'name'     => 'Lead Staff',
+                'password' => $staffPassword,
+                'role'     => 'staff',
             ]
         );
-        $this->command->info('Successfully seeded: Accountant User (accountant@norsu.edu.ph)');
+        $this->command->info('Successfully seeded: Staff User (staff@norsu.edu.ph)');
         $this->command->warn('Seeded credentials must be rotated before production use.');
     }
 }
