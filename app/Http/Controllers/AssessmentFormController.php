@@ -78,7 +78,7 @@ class AssessmentFormController extends Controller
             // return redirect()->back()->with('success', 'Assessment request submitted successfully!');
 
             return redirect()->route('public.complete', [
-                'reference_number' => $assessment->reference_number
+                'assessmentForm' => $assessment->reference_number,
             ]);
             
         } catch (\Throwable $e) {
@@ -93,16 +93,16 @@ class AssessmentFormController extends Controller
         }
     }
 
-    public function complete(string $reference_number)
+    public function complete(AssessmentForm $assessmentForm)
     {
-        $assessmentform = AssessmentForm::where('reference_number', $reference_number)->firstOrFail();
-        $assessmentform->load(['course']);
+        // $assessmentform = AssessmentForm::where('reference_number', $reference_number)->firstOrFail();
+        $assessmentForm->load(['course']);
 
-        dd($assessmentform);
+        // dd($assessmentform);
         
         return Inertia::render('public/AssessmentSuccess', [
-            'reference_number' => $assessmentform->reference_number,
-            'assessmentform' => $assessmentform,
+            // 'reference_number' => $assessmentform->reference_number,
+            'assessmentForm' => $assessmentForm,        // this format must be followed for the props
         ]);
     }
 
