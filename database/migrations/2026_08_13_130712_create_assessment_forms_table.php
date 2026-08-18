@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('first_name', 100);
             $table->string('middle_name', 100)->nullable();
             $table->string('last_name', 100);
-            $table->foreignId('courses')->constrained()->cascadeOnDelete();
+            $table->foreignId('course_id')->constrained()->cascadeOnDelete();
             $table->text('address');
             $table->string('enrolled_under', 100);
             $table->string('sy_last_attended', 100);
