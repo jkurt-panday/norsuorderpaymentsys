@@ -285,7 +285,7 @@
     </div>
 
     <div class="footer">
-        <span>Generated: {{ now()->format('Y-m-d h:i A') }} &bull; This is a computer-generated statement. No signature required.</span>
+        <span>Generated: {{ now()->timezone('Asia/Manila')->format('Y-m-d h:i A') }} &bull; This is a computer-generated statement. No signature required.</span>
     </div>
 
 </body>
