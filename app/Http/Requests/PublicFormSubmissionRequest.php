@@ -51,19 +51,19 @@ class PublicFormSubmissionRequest extends FormRequest
     public function messages(): array
     {
         return [
-                'firstname_or_office.required' => 'Please enter your first name or office.',
-                'lastname_or_agency.required' => 'Please enter your last name or agency.',
-                'office_or_college.required' => 'Please enter your office or college.',
-                'position_or_designation.required' => 'Please enter your position or designation.',
-                'contact_num.required' => 'Please enter your contact number.',
-                'email.required' => 'Please enter your email address.',
-                'email.email' => 'Please enter a valid email address.',
-                'address.required' => 'Please enter your address.',
-                'request_type.required' => 'Please select a request type.',
-                'amount.required' => 'Please enter the amount.',
-                'amount.numeric' => 'Amount must be a valid number.',
-                'membership_id.required' => 'Please select a membership type.',
-                'payment_detail_option_id.required' => 'Please select a payment detail.',
+            'firstname_or_office.required' => 'Please enter your first name or office.',
+            'lastname_or_agency.required' => 'Please enter your last name or agency.',
+            'office_or_college.required' => 'Please enter your office or college.',
+            'position_or_designation.required' => 'Please enter your position or designation.',
+            'contact_num.required' => 'Please enter your contact number.',
+            'email.required' => 'Please enter your email address.',
+            'email.email' => 'Please enter a valid email address.',
+            'address.required' => 'Please enter your address.',
+            'request_type.required' => 'Please select a request type.',
+            'amount.required' => 'Please enter the amount.',
+            'amount.numeric' => 'Amount must be a valid number.',
+            'membership_id.required' => 'Please select a membership type.',
+            'payment_detail_option_id.required' => 'Please select a payment detail.',
         ];
     }
 

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class UACS extends Model
 {
     protected $table = 'uacs';
+
     use HasFactory;
 
     protected $fillable = [

@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import React from 'react';
 import AppLogo from '@/components/app-logo';
-import { Separator } from '@/components/ui/separator';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -31,6 +30,7 @@ import {
     CollapsibleTrigger,
     CollapsibleContent,
 } from '@/components/ui/collapsible';
+import { Separator } from '@/components/ui/separator';
 import {
     Sidebar,
     SidebarContent,
