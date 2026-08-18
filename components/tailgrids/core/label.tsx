@@ -1,10 +1,11 @@
 "use client";
 
-import { cn } from "@/utils/cn";
 import {
-  Label as AriaLabel,
-  type LabelProps as AriaLabelProps
+  Label as AriaLabel
+  
 } from "react-aria-components";
+import type {LabelProps as AriaLabelProps} from "react-aria-components";
+import { cn } from "@/utils/cn";
 
 export interface LabelProps extends AriaLabelProps {}
 

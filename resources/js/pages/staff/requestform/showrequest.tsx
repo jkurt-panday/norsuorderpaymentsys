@@ -1,6 +1,12 @@
-import React, { useEffect, useState } from 'react';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
+import React, { useEffect, useState } from 'react';
 import staff from '@/routes/staff';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface Membership {
     member_code: string;
@@ -39,6 +45,7 @@ interface StaffInput {
     uacs: Uacs | null;
     reference_document: ReferenceDocument | null;
     created_at: string;
+    purpose: string | null;
 }
 
 interface SupportingDocument {
@@ -97,26 +104,69 @@ const statusBadgeClass = (status: string) => {
     }
 };
 
+const PlaceholderField = ({
+    label,
+    value = 'Not yet set',
+}: {
+    label: string;
+    value?: string;
+}) => (
+    <div>
+        <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
+            {label}
+        </label>
+        <input
+            type="text"
+            value={value}
+            disabled
+            className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-400 italic outline-none disabled:opacity-100"
+        />
+    </div>
+);
+
 const ReadOnlyRow = ({
     label,
     value,
     valueClass = 'text-slate-900',
+    stacked = false,
+    scrollable = false,
 }: {
     label: string;
     value: string | number | null;
     valueClass?: string;
-}) => (
-    <div className="flex items-start gap-6 border-b border-slate-100 py-0 last:border-0">
-        <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
-            {label}
-        </label>
+    stacked?: boolean;
+    scrollable?: boolean;
+}) => {
+    const valueContent = scrollable ? (
+        <div
+            className={`max-h-30 min-w-0 flex-1 overflow-y-auto rounded-md border border-slate-100 bg-slate-50/60 px-3 py-2 text-sm ${valueClass} break-words whitespace-pre-wrap`}
+        >
+            {value}
+        </div>
+    ) : (
         <p
             className={`min-w-0 flex-1 text-sm ${valueClass} break-words whitespace-pre-wrap`}
         >
             {value}
         </p>
-    </div>
-);
+    );
+
+    return stacked ? (
+        <div className="border-b border-slate-100 py-0 last:border-0">
+            <label className="mb-1 block text-sm font-medium text-slate-600">
+                {label}
+            </label>
+            {valueContent}
+        </div>
+    ) : (
+        <div className="flex items-start gap-6 border-b border-slate-100 py-0 last:border-0">
+            <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
+                {label}
+            </label>
+            {valueContent}
+        </div>
+    );
+};
 
 const FormField = ({
     label,
@@ -227,9 +277,17 @@ export default function ShowRequest() {
     // Basic flash handling — swap in your toast lib here if you have one
     // (e.g. sonner's toast.success / toast.error) instead of console.log.
     useEffect(() => {
-        if (flash?.success) console.log(flash.success);
-        if (flash?.error) console.error(flash.error);
-        if (flash?.warning) console.warn(flash.warning);
+        if (flash?.success) {
+            console.log(flash.success);
+        }
+
+        if (flash?.error) {
+            console.error(flash.error);
+        }
+
+        if (flash?.warning) {
+            console.warn(flash.warning);
+        }
     }, [flash]);
 
     const supportingDocuments: SupportingDocument[] =
@@ -304,6 +362,7 @@ export default function ShowRequest() {
             ? String(formInput.staff_input.uacs.id)
             : '',
         status: formInput.staff_input?.status ?? 'pending',
+        purpose: formInput.staff_input?.purpose ?? '',
     });
 
     const handleStaffInputSubmit = (e: React.FormEvent) => {
@@ -342,8 +401,9 @@ export default function ShowRequest() {
         ref_date: new Date().toISOString().slice(0, 10),
         uacs_id: '',
         status: '',
+        purpose: '',
     });
-
+    const [isOpDropdownOpen, setIsOpDropdownOpen] = useState(false);
     const handleProcessSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         postProcess(staff.requests.store.url(), {
@@ -769,7 +829,6 @@ export default function ShowRequest() {
                                                 </p>
                                             )}
                                         </div>
-
                                         <div className="flex justify-end gap-2">
                                             <button
                                                 type="button"
@@ -885,8 +944,8 @@ export default function ShowRequest() {
                                         </span>
                                     )}
                                     {/* Inline edit is used here so the staff processing
-                                            fields stay on the same page and behave like the
-                                            left-side request details card. */}
+                                                fields stay on the same page and behave like the
+                                                left-side request details card. */}
                                     {formInput.staff_input &&
                                         !isEditingStaffInput && (
                                             <button
@@ -933,6 +992,10 @@ export default function ShowRequest() {
                                                                 .staff_input
                                                                 ?.status ??
                                                             'pending',
+                                                        purpose:
+                                                            formInput
+                                                                .staff_input
+                                                                ?.purpose ?? '',
                                                     });
                                                     setIsEditingStaffInput(
                                                         true,
@@ -1115,7 +1178,6 @@ export default function ShowRequest() {
                                                         required
                                                     />
                                                 </FormField>
-
                                                 <FormField
                                                     label="UACS"
                                                     required
@@ -1200,6 +1262,30 @@ export default function ShowRequest() {
                                                         </option>
                                                     </select>
                                                 </FormField>
+                                                <FormField
+                                                    label="Purpose"
+                                                    error={
+                                                        staffInputErrors.purpose
+                                                    }
+                                                >
+                                                    <textarea
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                            staffInputErrors.purpose
+                                                                ? 'border-rose-400'
+                                                                : 'border-slate-200'
+                                                        }`}
+                                                        value={
+                                                            staffInputData.purpose
+                                                        }
+                                                        onChange={(e) =>
+                                                            setStaffInputData(
+                                                                'purpose',
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                    />
+                                                </FormField>
+
                                                 <div className="flex justify-end gap-2 pt-2">
                                                     <button
                                                         type="button"
@@ -1323,6 +1409,17 @@ export default function ShowRequest() {
                                                         'N/A'
                                                     }
                                                     valueClass="text-black-400"
+                                                />
+                                            </div>
+                                            <div className="w-full border-b border-slate-100 py-3 last:border-0">
+                                                <ReadOnlyRow
+                                                    label="Purpose"
+                                                    value={
+                                                        formInput.staff_input
+                                                            .purpose ?? 'N/A'
+                                                    }
+                                                    valueClass="text-black-400"
+                                                    scrollable
                                                 />
                                             </div>
                                             <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
@@ -1560,7 +1657,30 @@ export default function ShowRequest() {
                                                 </p>
                                             )}
                                         </div>
-
+                                        <div className="mb-6">
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                                Purpose
+                                            </label>
+                                            <textarea
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                    processErrors.purpose
+                                                        ? 'border-rose-400'
+                                                        : 'border-slate-200'
+                                                }`}
+                                                value={processData.purpose}
+                                                onChange={(e) =>
+                                                    setProcessData(
+                                                        'purpose',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                            {processErrors.purpose && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {processErrors.purpose}
+                                                </p>
+                                            )}
+                                        </div>
                                         <div className="flex justify-end gap-2">
                                             <button
                                                 type="button"
@@ -1596,61 +1716,18 @@ export default function ShowRequest() {
                                     </form>
                                 ) : (
                                     <div className="space-y-3">
-                                        <div>
-                                            <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
-                                                Bank Account
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value="Not yet set"
-                                                disabled
-                                                className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-400 italic outline-none disabled:opacity-100"
+                                        {[
+                                            'Bank Account',
+                                            'Bank',
+                                            'Reference Date',
+                                            'UACS',
+                                            'Reference Document',
+                                        ].map((label) => (
+                                            <PlaceholderField
+                                                key={label}
+                                                label={label}
                                             />
-                                        </div>
-                                        <div>
-                                            <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
-                                                Bank
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value="Not yet set"
-                                                disabled
-                                                className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-400 italic outline-none disabled:opacity-100"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
-                                                Reference Date
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value="Not yet set"
-                                                disabled
-                                                className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-400 italic outline-none disabled:opacity-100"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
-                                                UACS
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value="Not yet set"
-                                                disabled
-                                                className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-400 italic outline-none disabled:opacity-100"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
-                                                Reference Document
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value="Not yet set"
-                                                disabled
-                                                className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-400 italic outline-none disabled:opacity-100"
-                                            />
-                                        </div>
+                                        ))}
                                         <div>
                                             <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
                                                 Status
@@ -1659,6 +1736,10 @@ export default function ShowRequest() {
                                                 Unprocessed
                                             </span>
                                         </div>
+                                        <PlaceholderField
+                                            label="Purpose"
+                                            value="To be filled"
+                                        />
                                     </div>
                                 )}
                             </div>
@@ -1781,7 +1862,96 @@ export default function ShowRequest() {
                     </div>
                 </div>
             </div>
+            {formInput.staff_input && (
+                <div className="mx-auto mt-6 flex max-w-6xl justify-end gap-2">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button
+                                type="button"
+                                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="h-4 w-4"
+                                >
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg>
+                                View OP
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="h-3.5 w-3.5"
+                                >
+                                    <path d="m6 9 6 6 6-6" />
+                                </svg>
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuItem asChild>
+                                <a
+                                    href={`${staff.requests.viewOp.url(formInput.id)}?layout=portrait`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="cursor-pointer"
+                                >
+                                    Portrait (3 Pages)
+                                </a>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <a
+                                    href={`${staff.requests.viewOp.url(formInput.id)}?layout=landscape`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="cursor-pointer"
+                                >
+                                    Landscape (1 Page)
+                                </a>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
 
+                    <button
+                        type="button"
+                        onClick={() =>
+                            router.post(
+                                staff.requests.emailOp.url(formInput.id),
+                                {},
+                                {
+                                    preserveScroll: true,
+                                },
+                            )
+                        }
+                        className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-4 w-4"
+                        >
+                            <rect width="20" height="16" x="2" y="4" rx="2" />
+                            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                        </svg>
+                        Send to Email
+                    </button>
+                </div>
+            )}
             {/* Delete Document Confirmation Modal */}
             {deleteTargetId !== null && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">

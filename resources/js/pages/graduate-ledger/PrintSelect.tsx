@@ -44,8 +44,12 @@ function currency(n: number) {
 }
 
 function absAmount(val: unknown): number {
-    if (!val) return 0;
+    if (!val) {
+return 0;
+}
+
     const num = parseFloat(String(val).replace(/[^\d.]/g, ''));
+
     return isNaN(num) ? 0 : num;
 }
 
@@ -64,7 +68,11 @@ function formatTransactionDate(value?: string | null) {
         ? normalized.split('T')[0]
         : normalized.split(' ')[0];
     const parsedDate = new Date(`${datePart}T00:00:00`);
-    if (Number.isNaN(parsedDate.getTime())) return datePart;
+
+    if (Number.isNaN(parsedDate.getTime())) {
+return datePart;
+}
+
     return parsedDate.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
@@ -85,9 +93,11 @@ export default function PrintSelect({
 
     const filteredStudents = useMemo(() => {
         const term = search.trim().toLowerCase();
+
         if (!term) {
             return students;
         }
+<<<<<<< HEAD
         const matched = students.filter((s) => s.full_name.toLowerCase().includes(term));
         // starts-with results float to top, contains-only results follow
         return matched.sort((a, b) => {
@@ -95,6 +105,10 @@ export default function PrintSelect({
             const bStarts = b.full_name.toLowerCase().startsWith(term) ? 0 : 1;
             return aStarts - bStarts;
         });
+=======
+
+        return students.filter((name) => name.toLowerCase().includes(term));
+>>>>>>> f77723bae58ca20216585a8101db228612c78d1b
     }, [students, search]);
 
     const handleSelect = (idOrName: string | number) => {
@@ -121,8 +135,15 @@ export default function PrintSelect({
     };
 
     const handleOpenPdf = () => {
+<<<<<<< HEAD
         if (!selected) return;
         const queryKey = isNumericId ? 'student_id' : 'student';
+=======
+        if (!selected) {
+return;
+}
+
+>>>>>>> f77723bae58ca20216585a8101db228612c78d1b
         window.open(
             `/graduate-ledger/pdf?${queryKey}=${encodeURIComponent(selected)}`,
             '_blank',

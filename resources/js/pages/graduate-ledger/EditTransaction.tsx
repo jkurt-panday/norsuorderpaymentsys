@@ -87,7 +87,10 @@ function formatStudentLabel(s: StudentOption): string {
 }
 
 function FieldError({ message }: { message?: string }) {
-    if (!message) return null;
+    if (!message) {
+return null;
+}
+
     return <p className="mt-1 text-xs text-red-500">{message}</p>;
 }
 
@@ -269,8 +272,10 @@ export default function EditTransaction({
             !window.confirm(
                 `Delete this transaction for "${studentLabel}"? This cannot be undone.`,
             )
-        )
-            return;
+        ) {
+return;
+}
+
         router.delete(`/graduate-ledger/${record.id}`);
     };
 
