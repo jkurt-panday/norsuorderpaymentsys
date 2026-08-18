@@ -2,6 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\BankAccountInfo;
+use App\Models\Membership;
+use App\Models\PaymentDetailOption;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -68,13 +71,13 @@ class DatabaseSeeder extends Seeder
         }
 
         $this->command->info('Successfully seeded: Memberships');
-       
-               /*
-               |--------------------------------------------------------------------------
-               | Payment Detail Options
-               |--------------------------------------------------------------------------
-               */
-       
+
+        /*
+        |--------------------------------------------------------------------------
+        | Payment Detail Options
+        |--------------------------------------------------------------------------
+        */
+
         $paymentOptions = [
             [
                 'payment_desc' => 'Comprehensive Exam - Doctorate',
@@ -86,7 +89,7 @@ class DatabaseSeeder extends Seeder
                 'payment_desc' => 'IGP FABLAB',
             ],
         ];
-       
+
         foreach ($paymentOptions as $option) {
             PaymentDetailOption::updateOrCreate(
                 ['payment_desc' => $option['payment_desc']],
@@ -121,7 +124,7 @@ class DatabaseSeeder extends Seeder
                 'account_num' => '0740-012637-032',
             ],
         ];
-       
+
         foreach ($bankaccount as $option) {
             BankAccountInfo::updateOrCreate(
                 ['account_name' => $option['account_name']],

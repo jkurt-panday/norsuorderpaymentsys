@@ -3,7 +3,8 @@ import {
     update,
     index,
 } from '@/actions/App/Http/Controllers/PaymentDetailOptionController';
-import ResourceForm, { type FieldDef } from '@/components/ResourceForm';
+import ResourceForm from '@/components/ResourceForm';
+import type {FieldDef} from '@/components/ResourceForm';
 
 interface PaymentOption {
     id: number;

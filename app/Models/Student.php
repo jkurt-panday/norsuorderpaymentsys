@@ -30,7 +30,7 @@ class Student extends Model
     public function getFullNameAttribute(): string
     {
         $middle = $this->middle_name
-            ? ' ' . strtoupper(substr($this->middle_name, 0, 1)) . '.'
+            ? ' '.strtoupper(substr($this->middle_name, 0, 1)).'.'
             : '';
 
         return trim("{$this->last_name}, {$this->first_name}{$middle}");
@@ -76,7 +76,7 @@ class Student extends Model
                     $first = $parts[0];
                     $middle = $cleanLastWord;
                 } else {
-                    $first = $parts[0] . ' ' . $parts[1];
+                    $first = $parts[0].' '.$parts[1];
                     $middle = null;
                 }
             } else {
@@ -86,16 +86,16 @@ class Student extends Model
             }
 
             return [
-                'last_name'   => trim($last),
-                'first_name'  => trim($first),
+                'last_name' => trim($last),
+                'first_name' => trim($first),
                 'middle_name' => $middle,
             ];
         }
 
         // Fallback: treat the whole thing as last name
         return [
-            'last_name'   => $rawName,
-            'first_name'  => '',
+            'last_name' => $rawName,
+            'first_name' => '',
             'middle_name' => null,
         ];
     }

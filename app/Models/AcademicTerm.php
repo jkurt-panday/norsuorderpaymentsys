@@ -34,8 +34,8 @@ class AcademicTerm extends Model
     {
         return match ($short) {
             '2nd Sem.' => 'Second Semester',
-            'Summer'   => 'Summer',
-            default    => 'First Semester',
+            'Summer' => 'Summer',
+            default => 'First Semester',
         };
     }
 
@@ -47,8 +47,8 @@ class AcademicTerm extends Model
         return match ($short) {
             '1st Sem.' => 1,
             '2nd Sem.' => 2,
-            'Summer'   => 3,
-            default    => 1,
+            'Summer' => 3,
+            default => 1,
         };
     }
 }

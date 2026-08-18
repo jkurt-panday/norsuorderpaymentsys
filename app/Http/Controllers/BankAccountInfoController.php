@@ -30,12 +30,14 @@ class BankAccountInfoController extends BaseResourceController
     protected array $secondaryOrderBy = [
         ['column' => 'account_name', 'direction' => 'asc'],
     ];
+
     // Added 'fund_cluster' and 'account_num' — the frontend now has sortable
     // arrows on every column (ID through Account Number), and this allowlist
     // is what actually lets those two new ones take effect. Without a key
     // being present here, BaseResourceController silently ignores a
     // requested ?sort= for it and falls back to the default order.
     protected array $sortableColumns = ['id', 'bank_name', 'account_name', 'fund_cluster', 'account_num', 'created_at'];
+
     protected array $filterableColumns = [];
 
     /**
@@ -133,6 +135,7 @@ class BankAccountInfoController extends BaseResourceController
 
             if ($hasRelations) {
                 DB::rollBack();
+
                 return back()->with('error', 'Cannot delete a bank account that is in use by processing records.');
             }
 

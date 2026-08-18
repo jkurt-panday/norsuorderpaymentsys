@@ -47,9 +47,7 @@ export default function AddTransaction({ studentNames, authUserName }: Props) {
     });
 
     const parsedUnits = Number(data.units || 0);
-    const parsedRate = Number(
-        data.tuition_per_unit_or_fee_per_semester || 0,
-    );
+    const parsedRate = Number(data.tuition_per_unit_or_fee_per_semester || 0);
     const computedAmount = parsedUnits * parsedRate;
     const shouldAutoComputeAmount =
         data.ar_or_payment === 'AR' && data.amount === '';
@@ -283,7 +281,9 @@ export default function AddTransaction({ studentNames, authUserName }: Props) {
                                     type="number"
                                     step="0.01"
                                     min="0"
-                                    value={data.tuition_per_unit_or_fee_per_semester}
+                                    value={
+                                        data.tuition_per_unit_or_fee_per_semester
+                                    }
                                     onChange={(e) =>
                                         setData(
                                             'tuition_per_unit_or_fee_per_semester',
