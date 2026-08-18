@@ -62,7 +62,7 @@ class FormInputController extends Controller
             $formInput = FormInput::create([
                 'reference_number'              => $referenceNumber,
                 'email'                         => $validated['email'],
-                'purpose'                       => $validated['purpose'] ?? null,
+                // 'purpose'                       => $validated['purpose'] ?? null,
                 'contact_num'                   => $validated['contact_num'],
                 'firstname_or_office'           => $validated['firstname_or_office'],
                 'middlename_or_project'         => $validated['middlename_or_project'] ?? null,
