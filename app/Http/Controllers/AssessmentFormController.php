@@ -53,7 +53,7 @@ class AssessmentFormController extends Controller
         {
             DB::beginTransaction();
 
-            $assessment_ref_num = $this->referenceNumberService->assess_ref_gen();
+            $assessment_ref_num = $this->assessment_ref_num->assess_ref_gen();
 
             // 1. Create the assessment record
             $assessment = AssessmentForm::create([
@@ -63,7 +63,7 @@ class AssessmentFormController extends Controller
                 'first_name'       => $validated['first_name'],
                 'middle_name'      => $validated['middle_name'] ?? null,
                 'last_name'        => $validated['last_name'],
-                'courses'          => $validated['courses'], // Or 'course_id' if renamed
+                'course_id'        => $validated['course_id'], // Or 'course_id' if renamed
                 'address'          => $validated['address'],
                 'enrolled_under'   => $validated['enrolled_under'],
                 'sy_last_attended' => $validated['sy_last_attended'],
@@ -72,6 +72,8 @@ class AssessmentFormController extends Controller
     
             DB::commit();
 
+            // dd($assessment);
+
             // 2. Return Inertia response with success notification
             // return redirect()->back()->with('success', 'Assessment request submitted successfully!');
 
@@ -79,8 +81,13 @@ class AssessmentFormController extends Controller
                 'reference_number' => $assessment->reference_number
             ]);
             
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
+
+            \Log::error('Assessment form submission failed', [
+                'message' => $e->getMessage(),
+                // 'trace' => $e->getTraceAsString(),
+            ]);
             
             return back()->withInput()->with('error', 'Faild to submit request.'.$e->getMessage());
         }
@@ -89,7 +96,9 @@ class AssessmentFormController extends Controller
     public function complete(string $reference_number)
     {
         $assessmentform = AssessmentForm::where('reference_number', $reference_number)->firstOrFail();
-        $assessmentform->load(['courses']);
+        $assessmentform->load(['course']);
+
+        dd($assessmentform);
         
         return Inertia::render('public/AssessmentSuccess', [
             'reference_number' => $assessmentform->reference_number,
