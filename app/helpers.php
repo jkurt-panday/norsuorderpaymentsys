@@ -1,5 +1,17 @@
 <?php
 
+if (!function_exists('wrapToLines')) {
+    function wrapToLines(string $text, int $charsPerLine = 60): array
+    {
+        if (trim($text) === '') {
+            return [''];
+        }
+
+        $wrapped = wordwrap($text, $charsPerLine, "\n", true);
+        return explode("\n", $wrapped);
+    }
+}
+
 if (! function_exists('numberToWords')) {
     /**
      * Convert a peso amount (e.g. 3372.01) into words, e.g.

@@ -269,7 +269,7 @@ class StaffInputController extends Controller
             'middlename_or_project' => 'nullable|string|max:100',
             'lastname_or_agency' => 'required|string|max:100',
             'amount' => 'required|numeric|min:0',
-            'purpose' => 'nullable|string|max:350',
+            'purpose' => 'nullable|string|max:250',
             'payment_detail_option_id' => ['nullable', 'exists:payment_detail_options,id'],
             'new_payment_option' => 'nullable|string|max:255',
         ]);
@@ -346,9 +346,9 @@ class StaffInputController extends Controller
         ]);
     }
 
-        public function viewOp(FormInput $formInput, Request $request)
+    public function viewOp(FormInput $formInput, Request $request)
     {
-        $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument']);
+        $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument',]);
 
         $copyLabels = self::OP_COPY_LABELS;
 
@@ -366,7 +366,7 @@ class StaffInputController extends Controller
             abort(404);
         }
 
-        $formInput->load(['staffInput.bankAccount', 'staffInput.uacs']);
+        $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument']);
 
         $pdf = Pdf::loadView('pdf.op-portrait', [
             'formInput' => $formInput,
