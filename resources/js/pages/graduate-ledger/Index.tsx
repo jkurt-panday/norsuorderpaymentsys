@@ -139,6 +139,48 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const [exportProgress, setExportProgress] = useState(0);
   const [exportSuccess, setExportSuccess] = useState(false);
 
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importSuccess, setImportSuccess] = useState(false);
+
+  const handleImportFile = (file: File | null, inputEl: HTMLInputElement) => {
+    if (!file || isImporting) return;
+
+    setIsImporting(true);
+    setImportProgress(10);
+    setImportSuccess(false);
+
+    const interval = setInterval(() => {
+      setImportProgress((prev) => {
+        if (prev >= 90) return 90;
+        return prev + Math.floor(Math.random() * 8) + 5;
+      });
+    }, 250);
+
+    importForm.setData('file', file);
+    importForm.post('/graduate-ledger/import', {
+      forceFormData: true,
+      preserveScroll: true,
+      onSuccess: () => {
+        clearInterval(interval);
+        setImportProgress(100);
+        setTimeout(() => {
+          setIsImporting(false);
+          setImportSuccess(true);
+          importForm.reset('file');
+          inputEl.value = '';
+          setTimeout(() => setImportSuccess(false), 4000);
+        }, 300);
+      },
+      onError: () => {
+        clearInterval(interval);
+        setIsImporting(false);
+        setImportProgress(0);
+        inputEl.value = '';
+      },
+    });
+  };
+
   const handleExport = async () => {
     if (isExporting) return;
     setIsExporting(true);
@@ -349,28 +391,25 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
             </form>
 
             <div className="flex flex-wrap items-center justify-end gap-2 ml-auto">
-              <label className="inline-flex cursor-pointer items-center rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm font-medium text-[#0B3D91] hover:bg-[#F3F8FF] transition-colors">
+              <label className={`inline-flex items-center rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm font-medium text-[#0B3D91] transition-colors ${isImporting ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-[#F3F8FF]'}`}>
                 <input
                   type="file"
                   accept=".csv,.xlsx,.xls"
+                  disabled={isImporting}
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0] ?? null;
-                    importForm.setData('file', file);
-
-                    if (file) {
-                      importForm.post('/graduate-ledger/import', {
-                        forceFormData: true,
-                        preserveScroll: true,
-                        onSuccess: () => {
-                          importForm.reset('file');
-                          e.currentTarget.value = '';
-                        },
-                      });
-                    }
+                    handleImportFile(file, e.target);
                   }}
                 />
-                Import Excel/CSV
+                {isImporting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin text-[#0F6FFF]" />
+                    Importing...
+                  </>
+                ) : (
+                  'Import Excel/CSV'
+                )}
               </label>
 
               <Button
@@ -612,6 +651,45 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
           )}
         </Card>
       </div>
+
+      {/* Floating Bottom-Right Import Progress Bar & Toast */}
+      {(isImporting || importSuccess) && (
+        <div className="fixed bottom-6 right-6 z-50 flex min-w-[320px] flex-col gap-2.5 rounded-xl border border-[#CFE3FF] bg-white p-4 shadow-xl transition-all duration-300">
+          {isImporting ? (
+            <>
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-[#E8F0FE] p-2 text-[#0F6FFF]">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-[#0B3D91]">Importing Spreadsheet...</p>
+                  <p className="text-xs text-[#5C7A9E]">Processing and saving dataset records ({importProgress}%)</p>
+                </div>
+              </div>
+
+              {/* Animated Progress Bar */}
+              <div className="mt-1 w-full">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-[#E8F0FE]">
+                  <div
+                    className="h-full rounded-full bg-[#0F6FFF] transition-all duration-300 ease-out"
+                    style={{ width: `${importProgress}%` }}
+                  />
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-emerald-100 p-2 text-emerald-600">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-emerald-900">Import Complete!</p>
+                <p className="text-xs text-emerald-700">Spreadsheet records have been imported.</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Floating Bottom-Right Export Progress Bar & Toast */}
       {(isExporting || exportSuccess) && (
