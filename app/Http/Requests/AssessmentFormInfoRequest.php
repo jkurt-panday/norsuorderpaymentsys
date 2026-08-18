@@ -12,7 +12,7 @@ class AssessmentFormInfoRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -28,7 +28,7 @@ class AssessmentFormInfoRequest extends FormRequest
             'first_name'       => ['required', 'string', 'max:100'],
             'middle_name'      => ['nullable', 'string', 'max:100'],
             'last_name'        => ['required', 'string', 'max:100'],
-            'courses'          => ['required', 'integer', 'exists:courses,id'],
+            'course_id'        => ['required', 'exists:courses,id'],
             'address'          => ['required', 'string'],
             'enrolled_under'   => ['required', 'string', 'max:100'],
             'sy_last_attended' => ['required', 'string', 'max:100'],

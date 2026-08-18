@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AssessmentForm extends Model
 {
@@ -13,21 +13,21 @@ class AssessmentForm extends Model
     protected $table = 'assessment_forms';
 
     protected $fillable = [
-        'reference_num',
+        'reference_number',
         'email',
         'contact_num',
         'first_name',
         'middle_name',
         'last_name',
-        'courses',
+        'course_id',
         'address',
         'enrolled_under',
         'sy_last_attended',
         'semester',
     ];
 
-    public function course(): HasOne 
+    public function course(): BelongsTo 
     {
-        return $this->hasOne(Courses::class);
+        return $this->belongsTo(Courses::class);
     }
 }
