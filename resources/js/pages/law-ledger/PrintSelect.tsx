@@ -280,35 +280,56 @@ export default function PrintSelect({
         {/* Student Records and Summary */}
         {selectedStudentState && records && records.length > 0 && (
           <>
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Card className="border-slate-200 shadow-sm bg-white">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-600">Total Assessments</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-slate-900">{currency(summary?.totalAssessments || 0)}</div>
-                </CardContent>
-              </Card>
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card className="border-slate-200 shadow-sm bg-white">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-slate-600">Total Assessments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-slate-900">
+                {currency(
+                  records
+                    .filter((record) => (record.arOrPayment?.toUpperCase() === 'AR' || record.arOrPayment?.toUpperCase() === 'ASSESSMENT'))
+                    .reduce((sum, record) => sum + absAmount(record.amount), 0)
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-              <Card className="border-slate-200 shadow-sm bg-white">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-600">Total Payments</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-slate-900">{currency(summary?.totalPayments || 0)}</div>
-                </CardContent>
-              </Card>
+          <Card className="border-slate-200 shadow-sm bg-white">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-slate-600">Total Payments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-slate-900">
+                {currency(
+                  records
+                    .filter((record) => record.arOrPayment?.toUpperCase() === 'PAYMENT')
+                    .reduce((sum, record) => sum + absAmount(record.amount), 0)
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-              <Card className="border-slate-200 shadow-sm bg-white">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-600">Outstanding Balance</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-slate-900">{currency(summary?.outstandingBalance || 0)}</div>
-                </CardContent>
-              </Card>
-            </div>
+          <Card className="border-slate-200 shadow-sm bg-white">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-slate-600">Outstanding Balance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-slate-900">
+                {currency(
+                  records
+                    .filter((record) => (record.arOrPayment?.toUpperCase() === 'AR' || record.arOrPayment?.toUpperCase() === 'ASSESSMENT'))
+                    .reduce((sum, record) => sum + absAmount(record.amount), 0) -
+                  records
+                    .filter((record) => record.arOrPayment?.toUpperCase() === 'PAYMENT')
+                    .reduce((sum, record) => sum + absAmount(record.amount), 0)
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
             {/* Student Ledger Table */}
             <Card className="border-slate-200 shadow-sm bg-white">
