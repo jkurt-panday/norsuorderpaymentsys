@@ -12,7 +12,8 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 class GraduateLedgerExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSize, WithCustomChunkSize
 {
     public function __construct(
-        private readonly Builder $query
+        private readonly Builder $query,
+        private readonly bool $isNormalized = true
     ) {
     }
 
@@ -29,41 +30,47 @@ class GraduateLedgerExport implements FromQuery, WithHeadings, WithMapping, Shou
     public function headings(): array
     {
         return [
-            'Student Name',
-            'Last Name',
-            'First Name',
-            'Middle Name',
-            'Course',
-            'School Year',
-            'Semester',
-            'Units',
-            'Transaction Date',
-            'Reference/JEV Number',
-            'Particulars',
-            'Tuition/Unit or Fee',
-            'Type (AR/Payment)',
-            'Amount',
-            'Remarks',
-            'Input By',
+            'FF',
+            'COURSE',
+            'SCHOOL YEAR',
+            '',
+            "SEMESTER/\nSUMMER",
+            'UNITS',
+            'TRANSACTION DATE',
+            'Reference JEV  / O.R. NUMBER',
+            'PARTICULARS',
+            'TUITION per UNIT/ Reg. and Miscellaneous per semester',
+            'AR/PAYMENT',
+            'AMOUNT',
+            'REMARKS',
+            'INPUT BY:',
         ];
     }
 
     public function map($row): array
     {
-        $student    = $row->student;
-        $courseCode = $row->course?->code ?? '';
-        $schoolYear = $row->academicTerm?->school_year ?? '';
-        $semester   = $row->academicTerm?->semester_short ?? ($row->academicTerm?->semester ?? '');
-        $type       = strtoupper($row->entry_type ?? 'AR');
+        if ($this->isNormalized && $row->relationLoaded('student')) {
+            $studentName = $row->student?->full_name ?? '';
+            $courseCode  = $row->course?->code ?? '';
+            $schoolYear  = $row->academicTerm?->school_year ?? '';
+            $semShort    = $row->academicTerm?->semester_short ?? '';
+            $semFull     = $row->academicTerm?->semester ?? '';
+            $type        = strtoupper($row->entry_type ?? 'AR');
+        } else {
+            $studentName = $row->student_name ?? '';
+            $courseCode  = $row->course ?? '';
+            $schoolYear  = $row->school_year ?? '';
+            $semShort    = $row->semester_short ?: ($row->semester ?? '');
+            $semFull     = $row->semester ?? '';
+            $type        = strtoupper($row->ar_payment ?? 'AR');
+        }
 
         return [
-            $student?->full_name ?? '',
-            $student?->last_name ?? '',
-            $student?->first_name ?? '',
-            $student?->middle_name ?? '',
+            $studentName,
             $courseCode,
             $schoolYear,
-            $semester,
+            $semShort,
+            $semFull,
             (float) ($row->units ?? 0),
             $row->transaction_date ? (string) $row->transaction_date : '',
             $row->reference_or_jev_number ?? '',

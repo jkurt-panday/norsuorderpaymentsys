@@ -109,15 +109,11 @@ class GraduateLedgerController extends Controller
         }
 
         if ($semester) {
-            $semLower = strtolower($semester);
-            $query->whereHas('academicTerm', fn ($q) => $q
-                ->whereRaw('LOWER(semester_short) = ?', [$semLower])
-                ->orWhereRaw('LOWER(semester) = ?', [$semLower]));
+            $query->whereHas('academicTerm', fn ($q) => $q->where('semester', $semester));
         }
 
         if ($course) {
-            $courseLower = strtolower($course);
-            $query->whereHas('course', fn ($q) => $q->whereRaw('LOWER(code) = ?', [$courseLower]));
+            $query->whereHas('course', fn ($q) => $q->where('code', $course));
         }
 
         $query
@@ -172,7 +168,7 @@ class GraduateLedgerController extends Controller
             'course_id'                => ['nullable', 'exists:graduate_course,id'],
             'academic_term_id'         => ['nullable', 'exists:graduate_academic_term,id'],
             'school_year'              => ['nullable', 'string', 'max:20'],
-            'semester_short'           => ['nullable', 'string', 'max:20'],
+            'semester'                 => ['nullable', 'in:First Semester,Second Semester,Summer'],
             'entry_type'               => ['nullable', 'in:ar,payment,adjustment'],
             'units'                    => ['nullable', 'numeric', 'min:0'],
             'transaction_date'         => ['nullable', 'date'],
@@ -194,14 +190,12 @@ class GraduateLedgerController extends Controller
             $data['student_id'] = $student->id;
         }
 
-        // Resolve academic_term_id from school_year + semester_short if not provided directly
-        if (empty($data['academic_term_id']) && !empty($data['school_year']) && !empty($data['semester_short'])) {
+        // Resolve academic_term_id from school_year + semester if not provided directly
+        if (empty($data['academic_term_id']) && !empty($data['school_year']) && !empty($data['semester'])) {
+            $canonical = AcademicTerm::normalizeSemester($data['semester']);
             $term = AcademicTerm::firstOrCreate(
-                ['school_year' => $data['school_year'], 'semester_short' => $data['semester_short']],
-                [
-                    'semester'   => AcademicTerm::semesterLabel($data['semester_short']),
-                    'sort_order' => AcademicTerm::sortOrder($data['semester_short']),
-                ]
+                ['school_year' => $data['school_year'], 'semester' => $canonical],
+                ['sort_order' => AcademicTerm::sortOrder($canonical)]
             );
             $data['academic_term_id'] = $term->id;
         }
@@ -210,7 +204,7 @@ class GraduateLedgerController extends Controller
             $data['amount'] = ($data['units'] ?? 0) * ($data['tuition_per_unit_or_misc'] ?? 0);
         }
 
-        unset($data['new_student'], $data['school_year'], $data['semester_short']);
+        unset($data['new_student'], $data['school_year'], $data['semester']);
         GraduateLedger::create($data);
 
         return redirect()->route('graduate-ledger.index');
@@ -246,7 +240,7 @@ class GraduateLedgerController extends Controller
             'course_id'                => ['nullable', 'exists:graduate_course,id'],
             'academic_term_id'         => ['nullable', 'exists:graduate_academic_term,id'],
             'school_year'              => ['nullable', 'string', 'max:20'],
-            'semester_short'           => ['nullable', 'string', 'max:20'],
+            'semester'                 => ['nullable', 'in:First Semester,Second Semester,Summer'],
             'entry_type'               => ['nullable', 'in:ar,payment,adjustment'],
             'units'                    => ['nullable', 'numeric', 'min:0'],
             'transaction_date'         => ['nullable', 'date'],
@@ -258,14 +252,12 @@ class GraduateLedgerController extends Controller
             'input_by'                 => ['nullable', 'string', 'max:255'],
         ]);
 
-        // Resolve academic_term_id from school_year + semester_short if not provided directly
-        if (empty($data['academic_term_id']) && !empty($data['school_year']) && !empty($data['semester_short'])) {
+        // Resolve academic_term_id from school_year + semester if not provided directly
+        if (empty($data['academic_term_id']) && !empty($data['school_year']) && !empty($data['semester'])) {
+            $canonical = AcademicTerm::normalizeSemester($data['semester']);
             $term = AcademicTerm::firstOrCreate(
-                ['school_year' => $data['school_year'], 'semester_short' => $data['semester_short']],
-                [
-                    'semester'   => AcademicTerm::semesterLabel($data['semester_short']),
-                    'sort_order' => AcademicTerm::sortOrder($data['semester_short']),
-                ]
+                ['school_year' => $data['school_year'], 'semester' => $canonical],
+                ['sort_order' => AcademicTerm::sortOrder($canonical)]
             );
             $data['academic_term_id'] = $term->id;
         }
@@ -274,7 +266,7 @@ class GraduateLedgerController extends Controller
             $data['amount'] = ($data['units'] ?? 0) * ($data['tuition_per_unit_or_misc'] ?? 0);
         }
 
-        unset($data['school_year'], $data['semester_short']);
+        unset($data['school_year'], $data['semester']);
 
         $record->update($data);
 
@@ -313,8 +305,8 @@ class GraduateLedgerController extends Controller
             ],
         ]);
 
-        set_time_limit(300);
-        ini_set('memory_limit', '512M');
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
 
         $uploadedFile = $request->file('file');
         $extension    = strtolower($uploadedFile->getClientOriginalExtension());
@@ -351,7 +343,7 @@ class GraduateLedgerController extends Controller
 
         while (($row = fgetcsv($handle)) !== false) {
             $name = trim(str_replace(['\u{2212}', '\u{2013}', '\u{2014}'], '-', (string) ($row[0] ?? '')));
-            if ($name !== '') {
+            if ($name !== '' && !in_array(strtolower($name), ['student name', 'student', 'ff', 'name'])) {
                 $distinctStudents[$name] = true;
             }
             $code = trim((string) ($row[1] ?? ''));
@@ -409,38 +401,46 @@ class GraduateLedgerController extends Controller
     }
 
     /**
-     * Excel importer (xlsx/xls). Uses two passes over the in-memory collection.
+     * Memory-efficient Excel importer (xlsx/xls) using PhpSpreadsheet DataOnly Reader.
      */
     private function importExcel($uploadedFile, int &$imported, int &$skipped, $now): RedirectResponse
     {
-        HeadingRowFormatter::default('none');
-        $rows = Excel::toCollection(null, $uploadedFile)->first() ?? collect();
+        $path   = $uploadedFile->getRealPath();
+        $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($path);
+        $reader->setReadDataOnly(true);
 
-        if ($rows->isEmpty()) {
+        $spreadsheet = $reader->load($path);
+        $sheet       = $spreadsheet->getActiveSheet();
+        $highestRow  = $sheet->getHighestRow();
+
+        if ($highestRow <= 1) {
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
             return redirect()->route('graduate-ledger.index')
                 ->with('success', 'No rows found in the uploaded file.');
         }
-
-        $dataRows = $rows->slice(1);
 
         $distinctStudents = [];
         $distinctCourses  = [];
         $distinctTerms    = [];
 
-        foreach ($dataRows as $rowObj) {
-            $row  = $rowObj->values()->all();
-            $name = trim(str_replace(['\u{2212}', '\u{2013}', '\u{2014}'], '-', (string) ($row[0] ?? '')));
-            if ($name !== '') {
+        // Pass 1: Collect distinct values (rows 2 to highestRow)
+        for ($r = 2; $r <= $highestRow; $r++) {
+            $name = trim(str_replace(['\u{2212}', '\u{2013}', '\u{2014}'], '-', (string) $sheet->getCell("A{$r}")->getValue()));
+            if ($name !== '' && !in_array(strtolower($name), ['student name', 'student', 'ff', 'name'])) {
                 $distinctStudents[$name] = true;
             }
-            $code = trim((string) ($row[1] ?? ''));
+            $code = trim((string) $sheet->getCell("B{$r}")->getValue());
             if ($code !== '') {
                 $distinctCourses[$code] = true;
             }
-            $sy  = trim((string) ($row[2] ?? ''));
-            $sem = trim((string) ($row[3] ?? ''));
+            $sy  = trim((string) $sheet->getCell("C{$r}")->getValue());
+            // Always read Col E (SEMESTER/SUMMER) — the labeled, visible column
+            $sem = AcademicTerm::normalizeSemester(
+                trim((string) $sheet->getCell("E{$r}")->getValue())
+            );
             if ($sy !== '' && $sem !== '') {
-                $distinctTerms["{$sy}|||{$sem}"] = ['school_year' => $sy, 'semester_short' => $sem];
+                $distinctTerms["{$sy}|||{$sem}"] = ['school_year' => $sy, 'semester' => $sem];
             }
         }
 
@@ -450,8 +450,25 @@ class GraduateLedgerController extends Controller
 
         $insertData = [];
 
-        foreach ($dataRows as $rowObj) {
-            $row  = $rowObj->values()->all();
+        // Pass 2: Map and chunk-insert rows
+        for ($r = 2; $r <= $highestRow; $r++) {
+            $row = [
+                $sheet->getCell("A{$r}")->getValue(),
+                $sheet->getCell("B{$r}")->getValue(),
+                $sheet->getCell("C{$r}")->getValue(),
+                $sheet->getCell("D{$r}")->getValue(),
+                $sheet->getCell("E{$r}")->getValue(),
+                $sheet->getCell("F{$r}")->getValue(),
+                $sheet->getCell("G{$r}")->getValue(),
+                $sheet->getCell("H{$r}")->getValue(),
+                $sheet->getCell("I{$r}")->getValue(),
+                $sheet->getCell("J{$r}")->getValue(),
+                $sheet->getCell("K{$r}")->getValue(),
+                $sheet->getCell("L{$r}")->getValue(),
+                $sheet->getCell("M{$r}")->getValue(),
+                $sheet->getCell("N{$r}")->getValue(),
+            ];
+
             $data = $this->mapImportRowNormalized($row, $studentMap, $courseMap, $termMap);
 
             if ($data === null) {
@@ -478,6 +495,9 @@ class GraduateLedgerController extends Controller
             });
             $imported += count($insertData);
         }
+
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
 
         return redirect()->route('graduate-ledger.index')
             ->with('success', "Import complete: {$imported} records imported, {$skipped} blank rows skipped.");
@@ -567,7 +587,7 @@ class GraduateLedgerController extends Controller
         $name       = $r->student?->full_name ?? '';
         $courseCode = $r->course?->code ?? '';
         $schoolYear = $r->academicTerm?->school_year ?? '';
-        $semester   = $r->academicTerm?->semester_short ?? $r->academicTerm?->semester ?? '';
+        $semester   = $r->academicTerm?->semester ?? '';
         $arPayment  = $this->entryTypeToLabel($r->entry_type);
 
         return [
@@ -654,7 +674,7 @@ class GraduateLedgerController extends Controller
     {
         return AcademicTerm::orderBy('school_year', 'desc')
             ->orderBy('sort_order')
-            ->get(['id', 'school_year', 'semester_short', 'semester'])
+            ->get(['id', 'school_year', 'semester'])
             ->toArray();
     }
 
@@ -709,31 +729,30 @@ class GraduateLedgerController extends Controller
         }
 
         // 3. Bulk resolve terms (2 queries total instead of N+1)
-        $termsInDb = AcademicTerm::get(['id', 'school_year', 'semester_short'])->toArray();
+        $termsInDb = AcademicTerm::get(['id', 'school_year', 'semester'])->toArray();
         $termMap   = [];
         foreach ($termsInDb as $t) {
-            $termMap["{$t['school_year']}|||{$t['semester_short']}"] = $t['id'];
+            $termMap["{$t['school_year']}|||{$t['semester']}"] = $t['id'];
         }
 
         $newTerms = [];
         foreach ($distinctTerms as $key => $pair) {
             if (!isset($termMap[$key])) {
                 $newTerms[] = [
-                    'school_year'    => $pair['school_year'],
-                    'semester_short' => $pair['semester_short'],
-                    'semester'       => AcademicTerm::semesterLabel($pair['semester_short']),
-                    'sort_order'     => AcademicTerm::sortOrder($pair['semester_short']),
-                    'created_at'     => $now,
-                    'updated_at'     => $now,
+                    'school_year' => $pair['school_year'],
+                    'semester'    => $pair['semester'],
+                    'sort_order'  => AcademicTerm::sortOrder($pair['semester']),
+                    'created_at'  => $now,
+                    'updated_at'  => $now,
                 ];
             }
         }
         if (!empty($newTerms)) {
             AcademicTerm::insert($newTerms);
-            $termsInDb = AcademicTerm::get(['id', 'school_year', 'semester_short'])->toArray();
+            $termsInDb = AcademicTerm::get(['id', 'school_year', 'semester'])->toArray();
             $termMap   = [];
             foreach ($termsInDb as $t) {
-                $termMap["{$t['school_year']}|||{$t['semester_short']}"] = $t['id'];
+                $termMap["{$t['school_year']}|||{$t['semester']}"] = $t['id'];
             }
         }
 
@@ -746,7 +765,7 @@ class GraduateLedgerController extends Controller
     private function mapImportRowNormalized(array $row, array $studentMap, array $courseMap, array $termMap): ?array
     {
         $rawName = trim(str_replace(['−', '–', '—'], '-', (string) ($row[0] ?? '')));
-        if ($rawName === '') {
+        if ($rawName === '' || in_array(strtolower($rawName), ['student name', 'student', 'ff', 'name'])) {
             return null;
         }
 
@@ -754,12 +773,15 @@ class GraduateLedgerController extends Controller
         $rawTuition = (string) ($row[9] ?? '0');
         $code       = trim((string) ($row[1] ?? ''));
         $sy         = trim((string) ($row[2] ?? ''));
-        $sem        = trim((string) ($row[3] ?? ''));
+        // Col E (index 4) = SEMESTER/SUMMER — the labeled, visible column
+        $sem        = AcademicTerm::normalizeSemester(trim((string) ($row[4] ?? '')));
 
         return [
             'student_id'               => $studentMap[$rawName] ?? null,
             'course_id'                => $code !== '' ? ($courseMap[$code] ?? null) : null,
-            'academic_term_id'         => ($sy !== '' && $sem !== '') ? ($termMap["{$sy}|||{$sem}"] ?? null) : null,
+            'academic_term_id' => ($sy !== '' && $sem !== '' && $this->isValidSemester($sem))
+                ? ($termMap["{$sy}|||{$sem}"] ?? null)
+                : null,
             'units'                    => is_numeric($row[5] ?? null) ? (float) $row[5] : null,
             'transaction_date'         => $this->normalizeDate($row[6] ?? null),
             'reference_or_jev_number'  => trim((string) ($row[7] ?? '')),
@@ -770,7 +792,7 @@ class GraduateLedgerController extends Controller
                 str_contains($rawAmount, '(') && str_contains($rawAmount, ')')
             ),
             'amount'  => $this->cleanAmount($rawAmount),
-            'remarks' => trim((string) ($row[12] ?? '')),
+            'remarks' => $this->cleanRemarks($row[12] ?? null),
             'input_by' => trim((string) ($row[13] ?? '')),
         ];
     }
@@ -793,7 +815,7 @@ class GraduateLedgerController extends Controller
         return [
             'courses'     => Course::orderBy('code')->pluck('code')->filter()->values()->all(),
             'schoolYears' => $schoolYears ?: $defaultSchoolYears,
-            'semesters'   => AcademicTerm::distinct()->pluck('semester_short')->filter()->values()->all(),
+            'semesters'   => ['First Semester', 'Second Semester', 'Summer'],
         ];
     }
 
@@ -808,6 +830,14 @@ class GraduateLedgerController extends Controller
             return $value->format('Y-m-d');
         }
         if (is_numeric($value)) {
+            $num = (float) $value;
+            if ($num > 10000 && $num < 100000) {
+                try {
+                    return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($num)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    // Fallback to Ymd parsing if failed
+                }
+            }
             try {
                 return Carbon::createFromFormat('Ymd', (string) $value)->format('Y-m-d');
             } catch (\Exception $e) {
@@ -849,9 +879,52 @@ class GraduateLedgerController extends Controller
         };
     }
 
+    /**
+     * Returns true if the given string looks like a real semester/summer value.
+     * Rejects names, numbers-only, and other garbage that occasionally appears
+     * in Column D of the Excel due to data-entry errors.
+     */
+    private function isValidSemester(string $value): bool
+    {
+        $lower = strtolower(trim($value));
+        // Must be short enough to be a semester label (names are typically long)
+        if (mb_strlen($value) > 30) {
+            return false;
+        }
+        // Must contain a known semester keyword
+        $keywords = ['1st', '2nd', '3rd', 'sem', 'summer', 'summer/intersession', 'intersession'];
+        foreach ($keywords as $kw) {
+            if (str_contains($lower, $kw)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function cleanRemarks($val): ?string
+    {
+        $str = trim((string) ($val ?? ''));
+        if (str_starts_with($str, '=')) {
+            return null;
+        }
+        return $str !== '' ? $str : null;
+    }
+
     private function cleanAmount($rawAmount): float
     {
-        return abs((float) preg_replace('/[^\d.]/', '', (string) $rawAmount));
+        $str = trim((string) ($rawAmount ?? ''));
+        if (str_starts_with($str, '=')) {
+            return 0.0;
+        }
+
+        $cleaned = (float) preg_replace('/[^\d.]/', '', $str);
+
+        // PostgreSQL decimal(10,2) allows max 99,999,999.99 (absolute value < 10^8)
+        if ($cleaned >= 100000000.00) {
+            return 99999999.99;
+        }
+
+        return abs($cleaned);
     }
 
     private function calculateStudentBalanceNormalized($records): array

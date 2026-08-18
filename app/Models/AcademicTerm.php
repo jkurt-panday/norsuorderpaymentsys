@@ -13,7 +13,6 @@ class AcademicTerm extends Model
 
     protected $fillable = [
         'school_year',
-        'semester_short',
         'semester',
         'sort_order',
     ];
@@ -28,27 +27,29 @@ class AcademicTerm extends Model
     }
 
     /**
-     * Resolve the full semester label from the short code.
+     * Normalize any raw semester string to one of 3 canonical values.
      */
-    public static function semesterLabel(string $short): string
+    public static function normalizeSemester(string $raw): string
     {
-        return match ($short) {
-            '2nd Sem.' => 'Second Semester',
-            'Summer'   => 'Summer',
-            default    => 'First Semester',
-        };
+        $lower = strtolower(trim($raw));
+        if (str_contains($lower, '2nd') || str_contains($lower, 'second')) {
+            return 'Second Semester';
+        }
+        if (str_contains($lower, 'summer') || str_contains($lower, 'intersession')) {
+            return 'Summer';
+        }
+        return 'First Semester';
     }
 
     /**
-     * Resolve the sort order from the short code.
+     * Resolve sort order from a canonical semester string.
      */
-    public static function sortOrder(string $short): int
+    public static function sortOrder(string $semester): int
     {
-        return match ($short) {
-            '1st Sem.' => 1,
-            '2nd Sem.' => 2,
-            'Summer'   => 3,
-            default    => 1,
+        return match ($semester) {
+            'Second Semester' => 2,
+            'Summer'          => 3,
+            default           => 1,
         };
     }
 }
