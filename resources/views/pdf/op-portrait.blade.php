@@ -2,10 +2,11 @@
 <html>
 <head>
 <style>
-    @page { size: a5; margin: 8mm; }
+    @page { size: a5; margin: 12mm; }
     body { margin: 0; }
     .op-page { page-break-after: always; }
     .op-page:last-child { page-break-after: avoid; }
+    
 </style>
 </head>
 <body>
