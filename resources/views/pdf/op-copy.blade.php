@@ -63,14 +63,41 @@
 
         <p style="margin:8px 0 2px;">for payment of</p>
         <p style="margin:0 0 6px; font-size:7px;">(Purpose)</p>
+
+
         @php
-            $purposeText = trim(($formInput->membership->member_desc ?? '') . ' - ' . '₱'  .number_format($formInput->amount, 2) . ' - ' . ($formInput->staffInput->purpose ?? ''));
+            $purposeBase = trim(($formInput->membership->member_desc ?? '') . ' - ' . '₱' . number_format($formInput->amount, 2) . ' - ' . ($formInput->staffInput->purpose ?? ''));
+
+            // Wrap width scales inversely with font size (smaller font = more chars
+            // fit per physical line). Base: 115 chars at 7.5px, extrapolated from there.
+            $purposeTiers = [
+                ['size' => 7.5, 'wrap' => 110],
+                ['size' => 6.5, 'wrap' => 133],
+                ['size' => 5.5, 'wrap' => 157],
+                ['size' => 4.5, 'wrap' => 192],
+            ];
+
+            $purposeFontSize = end($purposeTiers)['size'];
+            $purposeLines = wrapToLines($purposeBase, end($purposeTiers)['wrap']);
+
+            foreach ($purposeTiers as $tier) {
+                $lines = wrapToLines($purposeBase, $tier['wrap']);
+                if (count($lines) <= 4) {
+                    $purposeFontSize = $tier['size'];
+                    $purposeLines = $lines;
+                    break;
+                }
+            }
+        
         @endphp
-        @foreach (wrapToLines($purposeText, 95) as $line)
-            <p style="text-align:center; margin:0; padding:0 2px 2px; font-size:8px; border-bottom:1px solid #000; min-height:8px;">
+
+
+        @foreach ($purposeLines as $line)
+            <p style="text-align:center; margin:0; padding:0 2px 2px; font-size:{{ $purposeFontSize }}px; border-bottom:1px solid #000; min-height:{{ $purposeFontSize + 0.5 }}px;">
                 {{ $line }}
             </p>
         @endforeach
+
 
     {{-- Per Reference Doc / UACS — same "short label, long wrapping value"
          shape as the header table, so the same treatment applies. --}}
