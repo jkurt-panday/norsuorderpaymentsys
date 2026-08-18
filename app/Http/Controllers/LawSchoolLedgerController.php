@@ -477,7 +477,7 @@ class LawSchoolLedgerController extends Controller
             'studentName' => $studentName,
             'records' => $records,
             'summary' => $summary,
-            'generatedAt' => now()->format('Y-m-d h:i A'),
+            'generatedAt' => now()->timezone('Asia/Manila')->format('Y-m-d h:i A'),
             'logoDataUri' => $logoDataUri,
         ])
             ->setPaper('a4', 'portrait')
