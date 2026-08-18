@@ -28,8 +28,8 @@ Route::name('public.')->prefix('public')->group(function () {
     Route::get('/assessmentform', [AssessmentFormController::class, 'create'])->name('assessmentform');
     Route::post('/assessmentform', [AssessmentFormController::class, 'store']);
 
-    Route::get('/assessment_complete/{reference_number}', [AssessmentFormController::class, 'complete'])->name('complete');
-    Route::get('/assessment_complete/{reference_number}/print', [AssessmentFormController::class, 'print'])->name('print_req');
+    Route::get('/assessment_complete/{assessmentForm:reference_number}', [AssessmentFormController::class, 'complete'])->name('complete');
+    Route::get('/assessment_complete/{assessmentForm:reference_number}/print', [AssessmentFormController::class, 'print'])->name('print_req');
     
 });
 
