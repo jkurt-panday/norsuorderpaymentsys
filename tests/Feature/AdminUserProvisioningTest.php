@@ -10,16 +10,16 @@ class AdminUserProvisioningTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_accountants_cannot_provision_users(): void
+    public function test_staff_cannot_provision_users(): void
     {
-        $accountant = User::factory()->create(['role' => 'accountant']);
+        $staff = User::factory()->create(['role' => 'staff']);
 
-        $this->actingAs($accountant)
+        $this->actingAs($staff)
             ->post(route('admin.users.store'), $this->validPayload())
             ->assertForbidden();
     }
 
-    public function test_admin_can_provision_an_accountant_and_an_audit_entry_is_created(): void
+    public function test_admin_can_provision_a_staff_and_an_audit_entry_is_created(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
 
@@ -27,7 +27,7 @@ class AdminUserProvisioningTest extends TestCase
             ->post(route('admin.users.store'), $this->validPayload())
             ->assertRedirect();
 
-        $user = User::where('email', 'new.accountant@norsu.edu.ph')->firstOrFail();
+        $user = User::where('email', 'new.staff@norsu.edu.ph')->firstOrFail();
 
         $this->assertDatabaseHas('activity_log', [
             'actor_id' => $admin->id,
@@ -51,10 +51,10 @@ class AdminUserProvisioningTest extends TestCase
     private function validPayload(): array
     {
         return [
-            'name' => 'New Accountant',
-            'email' => 'new.accountant@norsu.edu.ph',
+            'name' => 'New Staff',
+            'email' => 'new.staff@norsu.edu.ph',
             'password' => 'CorrectHorseBatteryStaple1!',
-            'role' => 'accountant',
+            'role' => 'staff',
         ];
     }
 }
