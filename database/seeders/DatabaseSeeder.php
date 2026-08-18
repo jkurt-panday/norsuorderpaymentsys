@@ -9,6 +9,7 @@ use App\Models\Membership;
 use App\Models\PaymentDetailOption;
 use App\Models\BankAccountInfo;
 use App\Models\UACS;
+use App\Models\YearSequence;
 use App\Models\Courses;
 
 class DatabaseSeeder extends Seeder
@@ -153,5 +154,15 @@ class DatabaseSeeder extends Seeder
         $this->command->info(
             'Successfully seeded: Courses'
         );
+
+        YearSequence::updateOrCreate(
+            ['year' => 2026],
+            [
+                'month' => 8,
+                'current_number' => 4224,
+            ]
+        );
+
+        $this->command->info('Successfully seede: YearSequence.');
     }
 }
