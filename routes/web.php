@@ -9,7 +9,9 @@ use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\PaymentDetailOptionController;
 use App\Http\Controllers\StaffInputController;
 use App\Http\Controllers\SupportingDocumentController;
+use App\Http\Controllers\AssessmentFormController;
 use App\Http\Controllers\UACSController;
+use App\Http\Controllers\CoursesController;
 use Illuminate\Support\Facades\Route;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -19,7 +21,16 @@ use Illuminate\Support\Facades\Route;
 Route::name('public.')->prefix('public')->group(function () {
     Route::get('/form', [FormInputController::class, 'create'])->name('submit');
     Route::post('/form', [FormInputController::class, 'store'])->name('submit.store');
-    Route::get('/success/{referenceNumber?}', [FormInputController::class, 'success'])->name('success');
+    
+    Route::get('/success/{reference_number}', [FormInputController::class, 'success'])->name('success');
+    Route::get('/success/{reference_number}/print', [FormInputController::class, 'printReceipt'])->name('print');
+
+    Route::get('/assessmentform', [AssessmentFormController::class, 'create'])->name('assessmentform');
+    Route::post('/assessmentform', [AssessmentFormController::class, 'store']);
+
+    Route::get('/assessment_complete/{assessmentForm:reference_number}', [AssessmentFormController::class, 'complete'])->name('complete');
+    Route::get('/assessment_complete/{assessmentForm:reference_number}/print', [AssessmentFormController::class, 'print'])->name('print_req');
+    
 });
 
 // Root redirect → public submission form
@@ -153,6 +164,9 @@ Route::name('staff.')->prefix('staff')->middleware(['auth'])->group(function () 
         Route::delete('/{supportingDocument}', [SupportingDocumentController::class, 'destroy'])->name('destroy');
     });
 
+    // Courses
+    Route::resource('courses', CoursesController::class)
+        ->parameters(['courses' => 'courses']);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

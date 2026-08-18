@@ -21,6 +21,7 @@ export default defineConfig({
                     weights: [400, 500, 600],
                     // Add specific font display strategy
                     fontDisplay: 'swap',
+                    // preload: false,
                 }),
             ],
         }),

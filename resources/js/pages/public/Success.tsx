@@ -1,7 +1,5 @@
 // /home/kurt_/norsuorderpaymentsys/resources/js/pages/public/Success.tsx
 import { Link } from '@inertiajs/react';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import {
     CheckCircle,
     FileText,
@@ -14,7 +12,6 @@ import {
     Printer,
 } from 'lucide-react';
 import React, { useRef } from 'react';
-import { useReactToPrint } from 'react-to-print';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -93,6 +90,15 @@ export default function Success({ reference_number, formInput }: Props) {
             .replace('₱', '₱  ');
     };
 
+    const formatContactNumber = (contactNum: string) => {
+        if (!contactNum) return '';
+    
+        return contactNum.replace(
+            /^(\d{4})(\d{3})(\d{4})$/,
+            '$1 $2 $3',
+        );
+    };
+
     // Format file size
     const formatFileSize = (bytes: number) => {
         if (bytes === 0) {
@@ -125,58 +131,55 @@ export default function Success({ reference_number, formInput }: Props) {
     // ? for printing
     const receiptRef = useRef<HTMLDivElement>(null);
 
-    const handlePrint = useReactToPrint({
-        contentRef: receiptRef,
-
-        documentTitle: `Receipt-${reference_number}`,
-    });
-
-    // console.log('formInput:', formInput);
-    // console.log('supportingDocuments:', formInput?.supporting_documents);
-    // console.log('keys:', Object.keys(formInput ?? {}));
+    const handlePrint = () => {
+        window.open(
+            `/public/success/${formInput.reference_number}/print`,
+            '_blank',
+        );
+    };
 
     return (
         <>
-            <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-100 to-white py-12">
-                <div className="mx-auto max-w-5xl px-6">
+            <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-100 to-white py-6 sm:py-12">
+                <div className="mx-auto max-w-5xl px-3 sm:px-6">
                     <div
-                        className="print-container container mx-auto max-w-4xl rounded-3xl px-4 py-8"
+                        className="print-container container mx-auto max-w-4xl rounded-2xl sm:rounded-3xl px-0 sm:px-4 py-4 sm:py-8"
                         id="print-receipt"
                         ref={receiptRef}
                     >
-                        <Card className="print-card overflow-hidden rounded-3xl bg-white shadow-2xl print:shadow-none">
-                            <CardHeader className="print-header -mx-6 -mt-6 rounded-t-3xl rounded-b-3xl bg-linear-to-b from-blue-600 to-blue-400 px-8 py-10 text-center text-white">
+                        <Card className="print-card overflow-hidden rounded-2xl sm:rounded-3xl bg-white shadow-xl sm:shadow-2xl print:shadow-none">
+                            <CardHeader className="print-header -mx-6 -mt-6 rounded-t-2xl sm:rounded-t-3xl rounded-b-2xl sm:rounded-b-3xl bg-linear-to-b from-blue-600 to-blue-400 px-4 sm:px-8 py-8 sm:py-10 text-center text-white">
                                 <div className="mx-auto flex items-center justify-center">
                                     <img
                                         src="/finance_logo1.png"
                                         alt="NORSU Logo"
                                         width={500}
                                         height={500}
-                                        className="pb-6"
+                                        className="h-auto max-w-70 pb-4 sm:max-w-md sm:pb-6"
                                     />
                                 </div>
-                                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm">
-                                    <CheckCircle className="h-14 w-14 text-white" />
+                                <div className="mx-auto flex h-16 w-16 sm:h-24 sm:w-24 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm">
+                                    <CheckCircle className="h-10 w-10 sm:h-14 sm:w-14 text-white" />
                                 </div>
-                                <CardTitle className="text-3xl font-bold text-green-300">
+                                <CardTitle className="mt-2 text-2xl sm:text-3xl font-bold text-green-300">
                                     Submission Successful!
                                 </CardTitle>
-                                <CardDescription className="mt-2 text-blue-100">
+                                <CardDescription className="mt-1 sm:mt-2 text-sm sm:text-base text-blue-100">
                                     Your request has been submitted
                                     successfully.
                                 </CardDescription>
                             </CardHeader>
 
-                            <CardContent className="print-content space-y-10 pt-8">
+                            <CardContent className="print-content space-y-6 sm:space-y-10 px-4 sm:px-6 pt-6 sm:pt-8">
                                 {/* Reference Number */}
-                                <div className="rounded-2xl border border-blue-100 bg-blue-50 p-8 text-center shadow-sm">
-                                    <p className="text-sm text-muted-foreground">
+                                <div className="rounded-xl sm:rounded-2xl border border-blue-100 bg-blue-50 p-4 sm:p-8 text-center shadow-sm">
+                                    <p className="text-xs sm:text-sm text-muted-foreground">
                                         Reference Number
                                     </p>
-                                    <p className="font-mono text-4xl font-bold tracking-widest text-blue-700">
+                                    <p className="font-mono text-2xl sm:text-4xl font-bold tracking-wider sm:tracking-widest text-blue-700 break-all my-1 sm:my-2">
                                         {reference_number}
                                     </p>
-                                    <p className="text-slate-500">
+                                    <p className="text-xs sm:text-sm text-slate-500">
                                         Please keep this reference number for
                                         tracking your request.
                                     </p>
@@ -186,30 +189,30 @@ export default function Success({ reference_number, formInput }: Props) {
 
                                 {/* Contact Information */}
                                 <div>
-                                    <h3 className="mb-6 flex items-center gap-3 text-2xl font-semibold text-blue-900">
-                                        <User className="h-6 w-6 text-blue-700" />
+                                    <h3 className="mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-semibold text-blue-900">
+                                        <User className="h-5 w-5 sm:h-6 sm:w-6 text-blue-700 shrink-0" />
                                         Contact Information
                                     </h3>
-                                    <div className="grid grid-cols-1 gap-x-10 gap-y-6 md:grid-cols-2">
+                                    <div className="grid grid-cols-1 gap-x-10 gap-y-4 sm:gap-y-6 md:grid-cols-2">
                                         <div className="flex items-start gap-2">
-                                            <Mail className="mt-1 h-4 w-4 text-muted-foreground" />
-                                            <div>
-                                                <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                            <Mail className="mt-1 h-4 w-4 text-muted-foreground shrink-0" />
+                                            <div className="min-w-0 flex-1">
+                                                <p className="mb-1 text-xs sm:text-sm font-medium tracking-wide text-slate-500 uppercase">
                                                     Email
                                                 </p>
-                                                <p className="text-xl font-semibold text-slate-900">
+                                                <p className="text-base sm:text-xl font-semibold text-slate-900 break-all">
                                                     {formInput.email}
                                                 </p>
                                             </div>
                                         </div>
                                         <div className="flex items-start gap-2">
-                                            <Phone className="mt-1 h-4 w-4 text-muted-foreground" />
-                                            <div>
-                                                <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                            <Phone className="mt-1 h-4 w-4 text-muted-foreground shrink-0" />
+                                            <div className="min-w-0 flex-1">
+                                                <p className="mb-1 text-xs sm:text-sm font-medium tracking-wide text-slate-500 uppercase">
                                                     Contact Number
                                                 </p>
-                                                <p className="text-xl font-semibold text-slate-900">
-                                                    {formInput.contact_num}
+                                                <p className="text-base sm:text-xl font-semibold text-slate-900 break-all">
+                                                    {formatContactNumber(formInput.contact_num)}
                                                 </p>
                                             </div>
                                         </div>
@@ -220,64 +223,57 @@ export default function Success({ reference_number, formInput }: Props) {
 
                                 {/* Identity Details */}
                                 <div>
-                                    <h3 className="mb-6 flex items-center gap-3 text-2xl font-semibold text-blue-900">
-                                        <IdCard className="h-6 w-6 text-blue-700" />
+                                    <h3 className="mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-semibold text-blue-900">
+                                        <IdCard className="h-5 w-5 sm:h-6 sm:w-6 text-blue-700 shrink-0" />
                                         Identity Details
                                     </h3>
-                                    <div className="grid grid-cols-1 gap-x-10 gap-y-6 md:grid-cols-2">
-                                        <div>
-                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
-                                                First Name / Office
+                                    <div className="grid grid-cols-1 gap-x-10 gap-y-4 sm:gap-y-6 md:grid-cols-2">
+                                        {/* Full Name / Office */}
+                                        <div className="col-span-full">
+                                            <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase sm:text-sm">
+                                                Full Name / Agency / Office / Project
                                             </p>
-                                            <p className="text-xl font-semibold text-slate-900">
-                                                {formInput.firstname_or_office}
-                                            </p>
-                                        </div>
-                                        {formInput.middlename_or_project && (
-                                            <div>
-                                                <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
-                                                    Middle Name / Project
-                                                </p>
-                                                <p className="text-xl font-semibold text-slate-900">
-                                                    {
-                                                        formInput.middlename_or_project
-                                                    }
-                                                </p>
-                                            </div>
-                                        )}
-                                        <div>
-                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
-                                                Last Name / Agency
-                                            </p>
-                                            <p className="text-xl font-semibold text-slate-900">
-                                                {formInput.lastname_or_agency}
+                                            <p className="text-base font-semibold text-slate-900 wrap-break-word sm:text-xl">
+                                                {[
+                                                    formInput.lastname_or_agency
+                                                        ? `${formInput.lastname_or_agency},`
+                                                        : null,
+                                                    formInput.firstname_or_office,
+                                                    formInput.middlename_or_project,
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(' ')}
                                             </p>
                                         </div>
+                                    
+                                        {/* Office / College */}
                                         <div>
-                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                            <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase sm:text-sm">
                                                 Office / College
                                             </p>
-                                            <p className="text-xl font-semibold text-slate-900">
+                                            <p className="text-base font-semibold text-slate-900 wrap-break-word sm:text-xl">
                                                 {formInput.office_or_college}
                                             </p>
                                         </div>
+                                    
+                                        {/* Position / Designation */}
                                         <div>
-                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                            <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase sm:text-sm">
                                                 Position / Designation
                                             </p>
-                                            <p className="text-xl font-semibold text-slate-900">
-                                                {
-                                                    formInput.position_or_designation
-                                                }
+                                            <p className="text-base font-semibold text-slate-900 wrap-break-word sm:text-xl">
+                                                {formInput.position_or_designation}
                                             </p>
                                         </div>
+                                    
+                                        {/* Address */}
                                         <div className="col-span-full flex items-start gap-2">
-                                            <MapPin className="mt-1 h-4 w-4 text-muted-foreground" />
-                                            <div>
-                                                <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                            <MapPin className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+                                            <div className="min-w-0 flex-1">
+                                                <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase sm:text-sm">
                                                     Address
                                                 </p>
-                                                <p className="text-xl font-semibold text-slate-900">
+                                                <p className="text-base font-semibold text-slate-900 wrap-break-word sm:text-xl">
                                                     {formInput.address}
                                                 </p>
                                             </div>
@@ -289,38 +285,40 @@ export default function Success({ reference_number, formInput }: Props) {
 
                                 {/* Request Details */}
                                 <div>
-                                    <h3 className="mb-6 flex items-center gap-3 text-2xl font-semibold text-blue-900">
-                                        <Receipt className="h-6 w-6 text-blue-700" />
+                                    <h3 className="mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-semibold text-blue-900">
+                                        <Receipt className="h-5 w-5 sm:h-6 sm:w-6 text-blue-700 shrink-0" />
                                         Request Details
                                     </h3>
-                                    <div className="grid grid-cols-1 gap-x-10 gap-y-6 md:grid-cols-2">
+                                    <div className="grid grid-cols-1 gap-x-10 gap-y-4 sm:gap-y-6 md:grid-cols-2">
                                         <div>
-                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                            <p className="mb-1 text-xs sm:text-sm font-medium tracking-wide text-slate-500 uppercase">
                                                 Request Type
                                             </p>
-                                            <Badge
-                                                className={`rounded-full px-4 py-4 text-lg font-semibold shadow-sm ${getRequestBadgeClass(
-                                                    formInput.request_type,
-                                                )}`}
-                                            >
-                                                {formInput.request_type}
-                                            </Badge>
+                                            <div className="pt-1">
+                                                <Badge
+                                                    className={`rounded-full px-3 py-4 sm:px-4 sm:py-4 text-sm sm:text-lg font-semibold shadow-sm ${getRequestBadgeClass(
+                                                        formInput.request_type,
+                                                    )}`}
+                                                >
+                                                    {formInput.request_type}
+                                                </Badge>
+                                            </div>
                                         </div>
                                         <div>
-                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                            <p className="mb-1 text-xs sm:text-sm font-medium tracking-wide text-slate-500 uppercase">
                                                 Amount
                                             </p>
-                                            <p className="text-3xl font-bold text-blue-700">
+                                            <p className="text-2xl sm:text-3xl font-bold text-blue-700">
                                                 {formatCurrency(
                                                     formInput.amount,
                                                 )}
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                            <p className="mb-1 text-xs sm:text-sm font-medium tracking-wide text-slate-500 uppercase">
                                                 Membership Type
                                             </p>
-                                            <p className="text-lg font-semibold text-slate-900">
+                                            <p className="text-base sm:text-lg font-semibold text-slate-900 wrap-break-word">
                                                 {
                                                     formInput.membership
                                                         .member_code
@@ -328,10 +326,10 @@ export default function Success({ reference_number, formInput }: Props) {
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="mb-1 text-sm font-medium tracking-wide text-slate-500 uppercase">
+                                            <p className="mb-1 text-xs sm:text-sm font-medium tracking-wide text-slate-500 uppercase">
                                                 Payment Details
                                             </p>
-                                            <p className="text-lg font-semibold text-slate-900">
+                                            <p className="text-base sm:text-lg font-semibold text-slate-900 wrap-break-word">
                                                 {formInput.payment_detail_option
                                                     ?.payment_desc || 'N/A'}
                                             </p>
@@ -346,8 +344,8 @@ export default function Success({ reference_number, formInput }: Props) {
                                     formInput.supporting_documents.length >
                                         0 && (
                                         <div>
-                                            <h3 className="mb-6 flex items-center gap-3 text-2xl font-semibold text-blue-900">
-                                                <FileText className="h-5 w-5" />
+                                            <h3 className="mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-semibold text-blue-900">
+                                                <FileText className="h-5 w-5 shrink-0" />
                                                 Supporting Documents
                                             </h3>
                                             <div className="space-y-2">
@@ -355,29 +353,35 @@ export default function Success({ reference_number, formInput }: Props) {
                                                     (doc) => (
                                                         <div
                                                             key={doc.id}
-                                                            className="flex items-center justify-between rounded-lg bg-blue-400/25 p-3 transition-colors hover:bg-blue-400/40"
+                                                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg bg-blue-400/25 p-3 transition-colors hover:bg-blue-400/40"
                                                         >
-                                                            <div className="flex items-center gap-3">
-                                                                <FileText className="h-5 w-5 text-muted-foreground" />
-                                                                <div>
-                                                                    <p className="text-lg font-medium">
+                                                            <div className="flex items-start sm:items-center gap-3 min-w-0">
+                                                                <FileText className="mt-1 sm:mt-0 h-5 w-5 text-muted-foreground shrink-0" />
+                                                                <div className="min-w-0 flex-1">
+                                                                    <p className="text-sm sm:text-lg font-medium truncate">
                                                                         {
                                                                             doc.original_filename
                                                                         }
                                                                     </p>
-                                                                    <p className="text-xs text-muted-foreground">
-                                                                        {formatFileSize(
-                                                                            doc.file_size,
-                                                                        )}{' '}
-                                                                        •
-                                                                        {
-                                                                            doc.mime_type
-                                                                        }{' '}
-                                                                        •
-                                                                        Uploaded:{' '}
-                                                                        {formatDate(
-                                                                            doc.uploaded_at,
-                                                                        )}
+                                                                    <p className="text-xs text-muted-foreground flex flex-wrap gap-x-1.5 gap-y-0.5">
+                                                                        <span>
+                                                                            {formatFileSize(
+                                                                                doc.file_size,
+                                                                            )}
+                                                                        </span>
+                                                                        <span>•</span>
+                                                                        <span>
+                                                                            {
+                                                                                doc.mime_type
+                                                                            }
+                                                                        </span>
+                                                                        <span>•</span>
+                                                                        <span>
+                                                                            Uploaded:{' '}
+                                                                            {formatDate(
+                                                                                doc.uploaded_at,
+                                                                            )}
+                                                                        </span>
                                                                     </p>
                                                                 </div>
                                                             </div>
@@ -391,34 +395,30 @@ export default function Success({ reference_number, formInput }: Props) {
                                 <Separator />
 
                                 {/* Submission Details */}
-                                <div className="font-lg text-center leading-7 text-slate-600">
-                                    <p className="font-xl -mt-4 mb-1 text-sm tracking-wide text-slate-500">
+                                <div className="text-center leading-7 text-slate-600">
+                                    <p className="-mt-2 sm:-mt-4 mb-1 text-xs sm:text-sm tracking-wide text-slate-500">
                                         Submitted on:{' '}
                                         {formatDate(formInput.created_at)}
                                     </p>
                                 </div>
                             </CardContent>
 
-                            <CardFooter className="print-hidden no-print flex flex-col gap-4 border-t pt-6">
-                                {/*<div className="max-w-2xl text-center text-base leading-7 text-slate-600">
-                                    <p>
-                                        A confirmation email has been sent to
-                                        your email address. Our team will review
-                                        your request and contact you shortly.
-                                    </p>
-                                </div>*/}
-                                <div className="flex gap-4">
-                                    <Button className="h-12 rounded-xl bg-blue-700 px-8 text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-800 hover:shadow-lg active:scale-[0.98]">
-                                        <Link href="/public/form">
+                            <CardFooter className="print-hidden no-print flex flex-col gap-4 border-t px-4 sm:px-6 pt-6 pb-6 sm:pb-8">
+                                <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3 sm:gap-4 justify-center">
+                                    <Button className="h-11 sm:h-12 w-full sm:w-auto rounded-xl bg-blue-700 px-6 sm:px-8 text-sm sm:text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-800 hover:shadow-lg active:scale-[0.98]">
+                                        <Link
+                                            href="/public/form"
+                                            className="w-full h-full flex items-center justify-center"
+                                        >
                                             Submit Another Request
                                         </Link>
                                     </Button>
                                     <Button
                                         variant="outline"
                                         onClick={handlePrint}
-                                        className="h-12 rounded-xl border-blue-200 px-8 text-base font-semibold text-blue-700 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800"
+                                        className="h-11 sm:h-12 w-full sm:w-auto rounded-xl border-blue-200 px-6 sm:px-8 text-sm sm:text-base font-semibold text-blue-700 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800"
                                     >
-                                        <Printer className="mr-2 h-5 w-5" />
+                                        <Printer className="mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
                                         Print Receipt
                                     </Button>
                                 </div>

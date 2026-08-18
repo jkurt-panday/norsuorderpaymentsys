@@ -8,6 +8,12 @@ use App\Models\PaymentDetailOption;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
+use App\Models\Membership;
+use App\Models\PaymentDetailOption;
+use App\Models\BankAccountInfo;
+use App\Models\UACS;
+use App\Models\YearSequence;
+use App\Models\Courses;
 
 class DatabaseSeeder extends Seeder
 {
@@ -122,9 +128,7 @@ class DatabaseSeeder extends Seeder
         foreach ($bankaccount as $option) {
             BankAccountInfo::updateOrCreate(
                 ['account_name' => $option['account_name']],
-                ['fund_cluster' => $option['fund_cluster']],
-                ['bank_name' => $option['bank_name']],
-                ['account_num' => $option['account_num']],
+                $option
             );
         }
 
@@ -132,32 +136,36 @@ class DatabaseSeeder extends Seeder
             'Successfully seeded: Bank Account Info'
         );
 
-        // $uacs = [
-        //     [
-        //         'account_name' => 'NORSU Special Trust Fund 164 - Miscellaneous',
-        //         'fund_cluster' => 'M-164',
-        //         'bank_name' => 'DBP Dumaguete',
-        //         'account_num' => '0740-012653-080',
-        //     ],
-        //     [
-        //         'account_name' => 'NORSU Special Trust Fund 164 - Tuition',
-        //         'fund_cluster' => 'T-164',
-        //         'bank_name' => 'DBP Dumaguete',
-        //         'account_num' => '0740-012637-032',
-        //     ],
-        // ];
+        $courses = [
+            [
+                'course_code' => 'BSCS',
+                'course_desc' => 'BoS in Computer Science',
+            ],
+            [
+                'course_code' => 'BSLaw',
+                'course_desc' => 'BoS in Law Studies',
+            ],
+        ];
+       
+        foreach ($courses as $option) {
+            Courses::updateOrCreate(
+                ['course_code' => $option['course_code']],
+                ['course_desc' => $option['course_desc']],
+            );
+        }
 
-        // foreach ($bankaccount as $option) {
-        //     BankAccountInfo::updateOrCreate(
-        //         ['account_name' => $option['account_name']],
-        //         ['func_cluster' => $option['func_cluster']],
-        //         ['bank_name' => $option['bank_name']],
-        //         ['account_num' => $option['account_num']],
-        //     );
-        // }
+        $this->command->info(
+            'Successfully seeded: Courses'
+        );
 
-        // $this->command->info(
-        //     'Successfully seeded: Bank Account Info'
-        // );
+        YearSequence::updateOrCreate(
+            ['year' => 2026],
+            [
+                'month' => 8,
+                'current_number' => 4224,
+            ]
+        );
+
+        $this->command->info('Successfully seede: YearSequence.');
     }
 }
