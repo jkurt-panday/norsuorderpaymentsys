@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { Printer, ArrowLeft, Search, X } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,7 +31,7 @@ interface LawLedgerRecord {
 }
 
 interface PrintSelectProps {
-    students: StudentItem[];
+    students?: StudentItem[];
     selectedStudent: string | number | null;
     records: LawLedgerRecord[];
     summary: {
@@ -83,35 +83,57 @@ function formatTransactionDate(value?: string | null) {
 }
 
 export default function PrintSelect({
-    students = [],
     selectedStudent,
     records = [],
     summary,
 }: PrintSelectProps) {
     const [selected, setSelected] = useState<string | number>(selectedStudent || '');
     const [search, setSearch] = useState('');
+    const [searchResults, setSearchResults] = useState<StudentItem[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [hasSearched, setHasSearched] = useState(false);
 
     const isNumericId = typeof selected === 'number' || (typeof selected === 'string' && /^\d+$/.test(selected));
 
-    const filteredStudents = useMemo(() => {
-        const term = search.trim().toLowerCase();
+    const fetchStudents = async (query: string) => {
+        setIsSearching(true);
 
-        if (!term) {
-            return students;
+        try {
+            const res = await fetch(`/law-ledger/students/search?q=${encodeURIComponent(query)}&limit=50`);
+            const data: string[] = await res.json();
+            setSearchResults(
+                data.map((name) => ({
+                    id: name,
+                    full_name: name,
+                })),
+            );
+        } catch {
+            setSearchResults([]);
+        } finally {
+            setIsSearching(false);
+            setHasSearched(true);
         }
-        const matched = students.filter((s) => s.full_name.toLowerCase().includes(term));
-        // starts-with results float to top, contains-only results follow
-        return matched.sort((a, b) => {
-            const aStarts = a.full_name.toLowerCase().startsWith(term) ? 0 : 1;
-            const bStarts = b.full_name.toLowerCase().startsWith(term) ? 0 : 1;
-            return aStarts - bStarts;
-        });
-    }, [students, search]);
+    };
+
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchStudents(search.trim());
+        }, 150);
+
+        return () => clearTimeout(timer);
+    }, [search]);
+
+    const handleSearchFocus = () => {
+        if (!hasSearched && !search.trim()) {
+            fetchStudents('');
+        }
+    };
 
     const handleSelect = (idOrName: string | number) => {
         setSelected(idOrName);
 
         const params: Record<string, any> = {};
+
         if (typeof idOrName === 'number' || /^\d+$/.test(String(idOrName))) {
             params.student_id = idOrName;
         } else {
@@ -132,7 +154,10 @@ export default function PrintSelect({
     };
 
     const handleOpenPdf = () => {
-        if (!selected) return;
+        if (!selected) {
+            return;
+        }
+
         const queryKey = isNumericId ? 'student_id' : 'student';
         window.open(
             `/law-ledger/pdf?${queryKey}=${encodeURIComponent(selected)}`,
@@ -183,14 +208,18 @@ export default function PrintSelect({
                                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#8AA8CC]" />
                                 <Input
                                     type="text"
-                                    placeholder="Type to filter list..."
+                                    placeholder="Type to search students..."
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
+                                    onFocus={handleSearchFocus}
                                     className="pl-9 pr-8"
                                 />
                                 {search && (
                                     <button
-                                        onClick={() => setSearch('')}
+                                        onClick={() => {
+                                            setSearch('');
+                                            setSearchResults([]);
+                                        }}
                                         className="absolute right-2.5 top-2.5 text-[#8AA8CC] hover:text-[#0B3D91]"
                                     >
                                         <X className="h-4 w-4" />
@@ -206,7 +235,7 @@ export default function PrintSelect({
                                     className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
                                 >
                                     <option value="">-- Choose Student --</option>
-                                    {filteredStudents.map((s) => (
+                                    {searchResults.map((s) => (
                                         <option key={s.id} value={String(s.id)}>
                                             {s.full_name}
                                         </option>
@@ -216,14 +245,19 @@ export default function PrintSelect({
 
                             {/* List for Desktop */}
                             <div className="hidden max-h-[380px] overflow-y-auto border border-[#EAF2FF] rounded-md md:block">
-                                {filteredStudents.length === 0 ? (
+                                {isSearching ? (
                                     <p className="p-4 text-center text-xs text-[#8AA8CC]">
-                                        No students found.
+                                        Searching...
+                                    </p>
+                                ) : searchResults.length === 0 ? (
+                                    <p className="p-4 text-center text-xs text-[#8AA8CC]">
+                                        {search ? 'No students found.' : 'Type a name to search for students.'}
                                     </p>
                                 ) : (
                                     <div className="divide-y divide-[#EAF2FF]">
-                                        {filteredStudents.map((s) => {
+                                        {searchResults.map((s) => {
                                             const isActive = String(selected) === String(s.id);
+
                                             return (
                                                 <button
                                                     key={s.id}

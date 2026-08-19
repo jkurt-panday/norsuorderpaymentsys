@@ -54,6 +54,12 @@ class LawSchoolLedgerController extends Controller
 
         $outstandingBalance = $totalAssessments - $totalPayments;
 
+        $statusCounts = (clone $query)
+            ->selectRaw('UPPER(TRIM(status)) as status, COUNT(*) as count')
+            ->groupBy('status')
+            ->get()
+            ->mapWithKeys(fn ($item) => [ucfirst(strtolower($item->status)) => (int) $item->count]);
+
         // 2. Fetch paginated records
         $records = $query
             ->latest('id')
@@ -73,6 +79,7 @@ class LawSchoolLedgerController extends Controller
                 'totalAssessments' => $totalAssessments,
                 'totalPayments' => $totalPayments,
                 'outstandingBalance' => $outstandingBalance,
+                'statusCounts' => $statusCounts,
             ],
             'filterOptions' => $this->getFilterOptions(),
         ]);
@@ -81,6 +88,7 @@ class LawSchoolLedgerController extends Controller
     public function searchStudents(Request $request)
     {
         $search = trim((string) $request->query('q', ''));
+        $limit = (int) $request->query('limit', 50);
 
         $query = LawSchoolLedger::query()
             ->whereNotNull('last_name')
@@ -97,6 +105,8 @@ class LawSchoolLedgerController extends Controller
         }
 
         $students = $query
+            ->orderBy('last_name', 'asc')
+            ->limit($limit)
             ->get(['last_name', 'first_name', 'middle_initial'])
             ->map(function ($student) {
                 return trim("$student->last_name, $student->first_name ".($student->middle_initial ? "$student->middle_initial" : ''));
@@ -368,25 +378,7 @@ class LawSchoolLedgerController extends Controller
      */
     public function printSelect(Request $request): Response
     {
-        $studentNames = LawSchoolLedger::query()
-            ->whereNotNull('last_name')
-            ->where('last_name', '!=', '')
-            ->distinct()
-            ->orderBy('last_name', 'asc')
-            ->get(['last_name', 'first_name', 'middle_initial'])
-            ->map(function ($student) {
-                return trim("$student->last_name, $student->first_name ".($student->middle_initial ? "$student->middle_initial" : ''));
-            })
-            ->unique()
-            ->values();
-
-        // Mirror the Graduate ledger shape: each student exposes an id and a
-        // display name. Law students are identified by their composite name, so
-        // the name doubles as the id used by the select / PDF routes.
-        $students = $studentNames->map(fn ($name) => [
-            'id' => $name,
-            'full_name' => $name,
-        ])->all();
+        $students = [];
 
         $selectedStudent = $request->input('student') ?? $request->input('student_id');
         $studentRecords = collect();
