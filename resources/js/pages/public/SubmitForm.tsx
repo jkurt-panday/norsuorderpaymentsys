@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { useForm, Head } from '@inertiajs/react';
+=======
+import { useForm, Head, usePage } from '@inertiajs/react';
+>>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703
 import { UploadCloud02 } from '@untitledui/icons';
 import { Mail, User, ClipboardList, FileText } from 'lucide-react';
 import { useState } from 'react';
@@ -45,7 +49,12 @@ interface Props {
 }
 
 export default function SubmitForm({ memberships, paymentOptions }: Props) {
+    const { auth } = usePage<any>().props;
+    const user = auth?.user;
+    const profile = user?.profile;
+
     // ? form handling
+<<<<<<< HEAD
     const { data, setData, post, processing, errors, reset, transform } = useForm({
         email: '',
         contact_num: '',
@@ -55,6 +64,17 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
         office_or_college: '',
         position_or_designation: '',
         address: '',
+=======
+    const { data, setData, post, processing, errors, reset } = useForm({
+        email: user?.email || '',
+        contact_num: profile?.contact_num || '',
+        firstname_or_office: profile?.firstname_or_office || '',
+        middlename_or_project: profile?.middlename_or_project || '',
+        lastname_or_agency: profile?.lastname_or_agency || '',
+        office_or_college: profile?.office_or_college || '',
+        position_or_designation: profile?.position_or_designation || '',
+        address: profile?.address || '',
+>>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703
         amount: '',
         request_type: '',
         membership_id: '',
@@ -183,6 +203,16 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                             Fill out the form below to submit your request.
                         </p>
                     </div>
+
+                    {user && (
+                        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4 text-sm text-blue-800">
+                            <span className="inline-block h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-blue-600" />
+                            <span>
+                                Logged in as <strong className="font-semibold">{user.email}</strong> — your saved details have been auto-filled. You can still edit them before submitting.
+                            </span>
+                        </div>
+                    )}
+
                     <form noValidate onSubmit={handleSubmit}>
                         <Card className="overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-xl">
                             <CardHeader className="border-b border-slate-100 bg-white pb-6">
@@ -246,7 +276,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                     maxLength={13} // 11 digits + 2 spaces
                                                     value={data.contact_num.replace(
                                                         /^(\d{0,4})(\d{0,3})(\d{0,4}).*/,
-                                                        (_, a, b, c) =>
+                                                        (_: string, a: string, b: string, c: string) =>
                                                             [a, b, c]
                                                                 .filter(Boolean)
                                                                 .join(' '),
