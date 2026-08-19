@@ -49,26 +49,7 @@ class FormInputController extends Controller
 
     public function store(PublicFormSubmissionRequest $request)
     {
-        // validation is done with publicformsubmissionrequest service
-        // 1. Validate Form & Files
-        // $request->validate([
-        //     'firstname_or_office'           => 'required|string|max:255',
-        //     'middlename_or_project'         => 'nullable|string|max:255',
-        //     'lastname_or_agency'            => 'required|string|max:255',
-        //     'office_or_college'             => 'required|string|max:255',
-        //     'position_or_designation'       => 'required|string|max:255',
-        //     'contact_num'                   => 'required|string|max:50',
-        //     'email'                         => 'required|email|max:255',
-        //     'address'                       => 'required|string',
-        //     'request_type'                  => 'required|string',
-        //     'amount'                        => 'required|numeric|min:0',
-        //     'membership_id'                 => 'required|exists:memberships,id',
-        //     'payment_detail_option_id'      => 'required|exists:payment_detail_options,id',
-
-        //     'documents' => 'nullable|array',
-        //     'documents.*' => 'file|mimes:pdf,jpg,jpeg,png,webp,svg|max:10240',
-        // ]);
-        //
+        
         $validated = $request->validated();
 
         try {
@@ -77,23 +58,7 @@ class FormInputController extends Controller
             // 2. Generate Reference Number
             $referenceNumber = $this->referenceNumberService->generate();
 
-            // 3. Create FormInput Record using your explicit mapping
-            // $formInput = FormInput::create([
-            //     'reference_number'          => $referenceNumber,
-            //     'email'                     => $request->email,
-            //     'contact_num'               => $request->contact_num,
-            //     'firstname_or_office'       => $request->firstname_or_office,
-            //     'middlename_or_project'     => $request->middlename_or_project,
-            //     'lastname_or_agency'        => $request->lastname_or_agency,
-            //     'office_or_college'         => $request->office_or_college,
-            //     'position_or_designation'   => $request->position_or_designation,
-            //     'address'                   => $request->address,
-            //     'amount'                    => $request->amount,
-            //     'request_type'              => $request->request_type,
-            //     'membership_id'             => $request->membership_id,
-            //     'payment_detail_option_id'  => $request->payment_detail_option_id,
-            // ]);
-            //
+            
             $formInput = FormInput::create([
                 'reference_number'              => $referenceNumber,
                 'email'                         => $validated['email'],
@@ -111,33 +76,6 @@ class FormInputController extends Controller
                 'payment_detail_option_id'      => $validated['payment_detail_option_id'],
             ]);
 
-            // // 4. Handle Uploaded Documents
-            // if ($request->hasFile('documents')) {
-            //     foreach ($request->file('documents') as $file) {
-            //         $originalName = $file->getClientOriginalName();
-            //         $extension = $file->getClientOriginalExtension();
-            //         $mimeType = $file->getClientMimeType();
-            //         $fileSize = $file->getSize();
-
-            //         $storedFilename = Str::uuid().'.'.$extension;
-
-            //         $file->storeAs('supporting-documents', $storedFilename, 'public');
-
-            //         $fileUrl = Storage::disk('public')->url('supporting-documents/'.$storedFilename);
-
-            //         SupportingDocument::create([
-            //             'form_input_id' => $formInput->id,
-            //             'original_filename' => $originalName,
-            //             'stored_filename' => $storedFilename,
-            //             'file_url' => $fileUrl,
-            //             'mime_type' => $mimeType,
-            //             'file_extension' => $extension,
-            //             'file_size' => $fileSize,
-            //             'uploaded_at' => now(),
-            //         ]);
-            //     }
-            // }
-
             // 4. Handle Uploaded Documents using FileUploadService
             if ($request->hasFile('documents')) {
                 $this->fileUploadService->uploadDocuments(
@@ -148,20 +86,8 @@ class FormInputController extends Controller
 
             DB::commit();
 
-            // Eager-load relations before rendering, so the Success page
-            // receives formInput.membership and formInput.paymentDetailOption
-            // as populated nested objects instead of undefined.
-            // $formInput->load(['membership', 'paymentDetailOption', 'supportingDocuments']);
-
-            // Render the success page directly — no separate success() action
-            // or route needed, since we already have everything we need here.
-            // return Inertia::render('public/Success', [
-            //     'reference_number' => $formInput->reference_number,
-            //     'formInput' => $formInput,
-            // ]);
-            // 
             return redirect()->route('public.success', [
-                'reference_number' => $formInput->reference_number
+                'reference_number' => $formInput->reference_number      // '' must be the same in the web.php
             ]);
 
         } catch (\Throwable $e) {
@@ -235,3 +161,54 @@ class FormInputController extends Controller
     //     return Inertia::render('staff/requestform/showrequest', compact('formInput'));
     // }
 }
+
+// Eager-load relations before rendering, so the Success page
+// receives formInput.membership and formInput.paymentDetailOption
+// as populated nested objects instead of undefined.
+// $formInput->load(['membership', 'paymentDetailOption', 'supportingDocuments']);
+
+// Render the success page directly — no separate success() action
+// or route needed, since we already have everything we need here.
+// return Inertia::render('public/Success', [
+//     'reference_number' => $formInput->reference_number,
+//     'formInput' => $formInput,
+// ]);
+// 
+// 
+// // validation is done with publicformsubmissionrequest service
+// 1. Validate Form & Files
+// $request->validate([
+//     'firstname_or_office'           => 'required|string|max:255',
+//     'middlename_or_project'         => 'nullable|string|max:255',
+//     'lastname_or_agency'            => 'required|string|max:255',
+//     'office_or_college'             => 'required|string|max:255',
+//     'position_or_designation'       => 'required|string|max:255',
+//     'contact_num'                   => 'required|string|max:50',
+//     'email'                         => 'required|email|max:255',
+//     'address'                       => 'required|string',
+//     'request_type'                  => 'required|string',
+//     'amount'                        => 'required|numeric|min:0',
+//     'membership_id'                 => 'required|exists:memberships,id',
+//     'payment_detail_option_id'      => 'required|exists:payment_detail_options,id',
+
+//     'documents' => 'nullable|array',
+//     'documents.*' => 'file|mimes:pdf,jpg,jpeg,png,webp,svg|max:10240',
+// ]);
+//
+// // 3. Create FormInput Record using your explicit mapping
+// $formInput = FormInput::create([
+//     'reference_number'          => $referenceNumber,
+//     'email'                     => $request->email,
+//     'contact_num'               => $request->contact_num,
+//     'firstname_or_office'       => $request->firstname_or_office,
+//     'middlename_or_project'     => $request->middlename_or_project,
+//     'lastname_or_agency'        => $request->lastname_or_agency,
+//     'office_or_college'         => $request->office_or_college,
+//     'position_or_designation'   => $request->position_or_designation,
+//     'address'                   => $request->address,
+//     'amount'                    => $request->amount,
+//     'request_type'              => $request->request_type,
+//     'membership_id'             => $request->membership_id,
+//     'payment_detail_option_id'  => $request->payment_detail_option_id,
+// ]);
+//
