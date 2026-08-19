@@ -13,13 +13,19 @@ class EnsureUserIsAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // 1. Check if the user is authenticated (logged in)
-        // 2. Check if their database 'role' column says exactly 'admin'
         if ($request->user() && $request->user()->role === 'admin') {
-            return $next($request); // Let them proceed to the route!
+            return $next($request);
         }
 
-        // 3. Kick them out with a 403 Forbidden error if they aren't an admin
-        abort(403, 'Unauthorized action. Admin access required.');
+        if (! $request->user()) {
+            return redirect()->route('login')->with('error', 'Please log in to access this area.');
+        }
+
+        $redirectTo = match ($request->user()->role) {
+            'staff' => route('staff.dashboard'),
+            default => route('client.dashboard'),
+        };
+
+        return redirect($redirectTo)->with('error', 'Unauthorized access. Admin privileges required.');
     }
 }

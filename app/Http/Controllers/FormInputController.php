@@ -7,6 +7,7 @@ use App\Models\FormInput;
 use App\Models\Membership;
 // use App\Models\SupportingDocument;
 use App\Models\PaymentDetailOption;
+use App\Models\UserProfile;
 use App\Services\FileUploadService;
 use App\Services\ReferenceNumberService;
 use App\Services\ReceiptPDFService;
@@ -15,7 +16,7 @@ use App\Services\ReceiptPDFService;
 // use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
-
+use Inertia\Response;
 class FormInputController extends Controller
 {
     protected FileUploadService $fileUploadService;
@@ -147,20 +148,24 @@ class FormInputController extends Controller
 
             DB::commit();
 
-            // Eager-load relations before rendering, so the Success page
-            // receives formInput.membership and formInput.paymentDetailOption
-            // as populated nested objects instead of undefined.
-            // $formInput->load(['membership', 'paymentDetailOption', 'supportingDocuments']);
+            // If user is authenticated, save/update their profile preferences for next time
+            if (auth()->check()) {
+                UserProfile::updateOrCreate(
+                    ['user_id' => auth()->id()],
+                    [
+                        'firstname_or_office'     => $validated['firstname_or_office'],
+                        'middlename_or_project'   => $validated['middlename_or_project'] ?? null,
+                        'lastname_or_agency'      => $validated['lastname_or_agency'],
+                        'contact_num'             => $validated['contact_num'],
+                        'office_or_college'       => $validated['office_or_college'],
+                        'position_or_designation' => $validated['position_or_designation'],
+                        'address'                 => $validated['address'],
+                    ]
+                );
+            }
 
-            // Render the success page directly — no separate success() action
-            // or route needed, since we already have everything we need here.
-            // return Inertia::render('public/Success', [
-            //     'reference_number' => $formInput->reference_number,
-            //     'formInput' => $formInput,
-            // ]);
-            // 
             return redirect()->route('public.success', [
-                'reference_number' => $formInput->reference_number
+                'referenceNumber' => $formInput->reference_number
             ]);
 
         } catch (\Throwable $e) {
