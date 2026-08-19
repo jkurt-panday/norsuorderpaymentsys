@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { router, usePoll } from '@inertiajs/react';
 import {
     Search,
@@ -10,17 +9,15 @@ import {
     ArrowDown,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import { Card, CardContent } from '@/components/ui/card';
+import * as React from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import {
     Select,
     SelectContent,
@@ -29,10 +26,13 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from '@/components/ui/popover';
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
 interface PaginationLink {
@@ -92,6 +92,42 @@ export interface StatusOption {
     label: string;
     color?: keyof typeof STATUS_COLORS | string;
 }
+
+const ReadOnlyRow = ({
+    label,
+    value,
+    valueClass = 'text-slate-900',
+}: {
+    label: string;
+    value: string;
+    valueClass?: string;
+}) => (
+    <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+        <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
+            {label}
+        </label>
+        <input
+            type="text"
+            value={value}
+            disabled
+            className={`flex-1 border-0 bg-transparent p-0 text-sm ${valueClass} outline-none disabled:opacity-100`}
+        />
+    </div>
+);
+
+const ReadOnlyStat = ({ label, value }: { label: string; value: string }) => (
+    <div>
+        <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
+            {label}
+        </label>
+        <input
+            type="text"
+            value={value}
+            disabled
+            className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+        />
+    </div>
+);
 
 const resolveStatusColor = (color?: string) =>
     (color && STATUS_COLORS[color as keyof typeof STATUS_COLORS]) ||
@@ -199,6 +235,7 @@ export default function RequestTable<T extends { id: number | string }>({
 
             if (prevSignatures.current) {
                 const prevSig = prevSignatures.current.get(row.id);
+
                 if (prevSig === undefined || prevSig !== sig) {
                     changed.push(row.id);
                 }
@@ -209,17 +246,22 @@ export default function RequestTable<T extends { id: number | string }>({
             setHighlightedIds((prev) => {
                 const next = new Set(prev);
                 changed.forEach((id) => next.add(id));
+
                 return next;
             });
 
             changed.forEach((id) => {
                 const existing = highlightTimers.current.get(id);
-                if (existing) clearTimeout(existing);
+
+                if (existing) {
+clearTimeout(existing);
+}
 
                 const timer = setTimeout(() => {
                     setHighlightedIds((prev) => {
                         const next = new Set(prev);
                         next.delete(id);
+
                         return next;
                     });
                     highlightTimers.current.delete(id);
@@ -249,7 +291,9 @@ export default function RequestTable<T extends { id: number | string }>({
     );
 
     React.useEffect(() => {
-        if (!pollInterval) return;
+        if (!pollInterval) {
+return;
+}
 
         if (process.env.NODE_ENV !== 'production' && !resourceKey) {
             console.warn(
@@ -258,6 +302,7 @@ export default function RequestTable<T extends { id: number | string }>({
         }
 
         start();
+
         return () => stop();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pollInterval, resourceKey]);
@@ -319,6 +364,7 @@ export default function RequestTable<T extends { id: number | string }>({
                 url.searchParams.delete(key);
             }
         }
+
         url.searchParams.delete('page');
 
         router.get(
@@ -615,6 +661,7 @@ export default function RequestTable<T extends { id: number | string }>({
                                     const isHighlighted = highlightedIds.has(
                                         row.id,
                                     );
+
                                     return (
                                         <TableRow
                                             key={row.id}
@@ -712,6 +759,7 @@ export default function RequestTable<T extends { id: number | string }>({
                                             open={pageJumpOpen}
                                             onOpenChange={(open) => {
                                                 setPageJumpOpen(open);
+
                                                 if (open) {
                                                     setPageJumpInput(
                                                         String(
@@ -741,6 +789,7 @@ export default function RequestTable<T extends { id: number | string }>({
                                                             Number(
                                                                 pageJumpInput,
                                                             );
+
                                                         if (
                                                             !Number.isNaN(
                                                                 parsed,

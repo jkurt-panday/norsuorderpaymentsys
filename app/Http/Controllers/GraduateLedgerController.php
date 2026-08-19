@@ -48,12 +48,12 @@ class GraduateLedgerController extends Controller
         $records->through(fn ($r) => $this->transformRecord($r));
 
         return Inertia::render('graduate-ledger/Index', [
-            'records'       => $records,
-            'filters'       => $request->only(['search', 'school_year', 'semester', 'course', 'date_from', 'date_to']),
-            'stats'         => [
-                'totalStudents'      => $totalStudents,
-                'totalAssessments'   => $totalAssessments,
-                'totalPayments'      => $totalPayments,
+            'records' => $records,
+            'filters' => $request->only(['search', 'school_year', 'semester', 'course', 'date_from', 'date_to']),
+            'stats' => [
+                'totalStudents' => $totalStudents,
+                'totalAssessments' => $totalAssessments,
+                'totalPayments' => $totalPayments,
                 'outstandingBalance' => $outstandingBalance,
             ],
             'filterOptions' => $this->getFilterOptions(),
@@ -79,11 +79,11 @@ class GraduateLedgerController extends Controller
     private function buildFilteredQuery(Request $request)
     {
         $schoolYear = $request->input('school_year');
-        $semester   = $request->input('semester');
-        $course     = $request->input('course');
-        $dateFrom   = $request->input('date_from');
-        $dateTo     = $request->input('date_to');
-        $search     = $request->input('search');
+        $semester = $request->input('semester');
+        $course = $request->input('course');
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+        $search = $request->input('search');
 
         $query = GraduateLedger::query();
 
@@ -118,7 +118,7 @@ class GraduateLedgerController extends Controller
 
         $query
             ->when($dateFrom, fn ($q, $v) => $q->whereDate('transaction_date', '>=', $v))
-            ->when($dateTo,   fn ($q, $v) => $q->whereDate('transaction_date', '<=', $v));
+            ->when($dateTo, fn ($q, $v) => $q->whereDate('transaction_date', '<=', $v));
 
         // ── Relevance sort: starts-with results float to top ───────────────
         if ($search) {
@@ -147,10 +147,10 @@ class GraduateLedgerController extends Controller
     public function create(): Response
     {
         return Inertia::render('graduate-ledger/AddTransaction', [
-            'students'      => $this->studentList(),
-            'courses'       => $this->courseList(),
+            'students' => $this->studentList(),
+            'courses' => $this->courseList(),
             'academicTerms' => $this->academicTermList(),
-            'authUserName'  => auth()->user()?->name ?? '',
+            'authUserName' => auth()->user()?->name ?? '',
         ]);
     }
 
@@ -220,11 +220,11 @@ class GraduateLedgerController extends Controller
         $record = GraduateLedger::with(['student', 'course', 'academicTerm'])->findOrFail($id);
 
         return Inertia::render('graduate-ledger/EditTransaction', [
-            'record'        => $this->recordForForm($record),
-            'students'      => $this->studentList(),
-            'courses'       => $this->courseList(),
+            'record' => $this->recordForForm($record),
+            'students' => $this->studentList(),
+            'courses' => $this->courseList(),
             'academicTerms' => $this->academicTermList(),
-            'authUserName'  => auth()->user()?->name ?? '',
+            'authUserName' => auth()->user()?->name ?? '',
         ]);
     }
 
@@ -298,7 +298,7 @@ class GraduateLedgerController extends Controller
                 'file',
                 function ($attribute, $value, $fail) {
                     $extension = strtolower($value->getClientOriginalExtension());
-                    if (!in_array($extension, ['csv', 'xlsx', 'xls'])) {
+                    if (! in_array($extension, ['csv', 'xlsx', 'xls'])) {
                         $fail('The file must be a file of type: csv, xlsx, xls.');
                     }
                 },
@@ -309,10 +309,10 @@ class GraduateLedgerController extends Controller
         ini_set('memory_limit', '1024M');
 
         $uploadedFile = $request->file('file');
-        $extension    = strtolower($uploadedFile->getClientOriginalExtension());
-        $imported     = 0;
-        $skipped      = 0;
-        $now          = now();
+        $extension = strtolower($uploadedFile->getClientOriginalExtension());
+        $imported = 0;
+        $skipped = 0;
+        $now = now();
 
         if ($extension === 'csv') {
             return $this->importCsv($uploadedFile->getRealPath(), $imported, $skipped, $now);
@@ -330,7 +330,7 @@ class GraduateLedgerController extends Controller
     {
         // Pass 1: collect distinct values without holding rows in memory
         $handle = fopen($path, 'r');
-        if (!$handle) {
+        if (! $handle) {
             return redirect()->route('graduate-ledger.index')
                 ->with('error', 'Could not open the uploaded CSV file.');
         }
@@ -338,8 +338,8 @@ class GraduateLedgerController extends Controller
         fgetcsv($handle); // skip header
 
         $distinctStudents = [];
-        $distinctCourses  = [];
-        $distinctTerms    = [];
+        $distinctCourses = [];
+        $distinctTerms = [];
 
         while (($row = fgetcsv($handle)) !== false) {
             $name = trim(str_replace(['\u{2212}', '\u{2013}', '\u{2014}'], '-', (string) ($row[0] ?? '')));
@@ -350,7 +350,7 @@ class GraduateLedgerController extends Controller
             if ($code !== '') {
                 $distinctCourses[$code] = true;
             }
-            $sy  = trim((string) ($row[2] ?? ''));
+            $sy = trim((string) ($row[2] ?? ''));
             $sem = trim((string) ($row[3] ?? ''));
             if ($sy !== '' && $sem !== '') {
                 $distinctTerms["{$sy}|||{$sem}"] = ['school_year' => $sy, 'semester_short' => $sem];
@@ -372,23 +372,24 @@ class GraduateLedgerController extends Controller
 
             if ($data === null) {
                 $skipped++;
+
                 continue;
             }
 
             $data['created_at'] = $now;
             $data['updated_at'] = $now;
-            $insertData[]       = $data;
+            $insertData[] = $data;
 
             if (count($insertData) >= 1000) {
                 DB::transaction(function () use ($insertData) {
                     GraduateLedger::insert($insertData);
                 });
-                $imported  += count($insertData);
+                $imported += count($insertData);
                 $insertData = [];
             }
         }
 
-        if (!empty($insertData)) {
+        if (! empty($insertData)) {
             DB::transaction(function () use ($insertData) {
                 GraduateLedger::insert($insertData);
             });
@@ -473,23 +474,24 @@ class GraduateLedgerController extends Controller
 
             if ($data === null) {
                 $skipped++;
+
                 continue;
             }
 
             $data['created_at'] = $now;
             $data['updated_at'] = $now;
-            $insertData[]       = $data;
+            $insertData[] = $data;
 
             if (count($insertData) >= 1000) {
                 DB::transaction(function () use ($insertData) {
                     GraduateLedger::insert($insertData);
                 });
-                $imported  += count($insertData);
+                $imported += count($insertData);
                 $insertData = [];
             }
         }
 
-        if (!empty($insertData)) {
+        if (! empty($insertData)) {
             DB::transaction(function () use ($insertData) {
                 GraduateLedger::insert($insertData);
             });
@@ -562,8 +564,8 @@ class GraduateLedgerController extends Controller
 
         $pdf = Pdf::loadView('pdf.student-ledger-statement', [
             'studentName' => $studentName,
-            'records'     => $records,
-            'summary'     => $summary,
+            'records' => $records,
+            'summary' => $summary,
             'generatedAt' => now()->format('Y-m-d'),
         ])
             ->setPaper('a4', 'portrait')
@@ -571,7 +573,7 @@ class GraduateLedgerController extends Controller
             ->setOption('isHtml5ParserEnabled', true)
             ->setOption('isRemoteEnabled', true);
 
-        $filename = 'Statement_of_Account_' . str_replace(['/', '\\', ' '], '_', $studentName) . '.pdf';
+        $filename = 'Statement_of_Account_'.str_replace(['/', '\\', ' '], '_', $studentName).'.pdf';
 
         return $pdf->stream($filename);
     }
@@ -591,20 +593,20 @@ class GraduateLedgerController extends Controller
         $arPayment  = $this->entryTypeToLabel($r->entry_type);
 
         return [
-            'id'                            => $r->id,
-            'name'                          => $name,
-            'course'                        => $courseCode,
-            'schoolYear'                    => $schoolYear,
-            'semester'                      => $semester,
-            'units'                         => (float) ($r->units ?? 0),
-            'transactionDate'               => $r->transaction_date,
-            'referenceNo'                   => $r->reference_or_jev_number,
-            'particulars'                   => $r->particulars,
+            'id' => $r->id,
+            'name' => $name,
+            'course' => $courseCode,
+            'schoolYear' => $schoolYear,
+            'semester' => $semester,
+            'units' => (float) ($r->units ?? 0),
+            'transactionDate' => $r->transaction_date,
+            'referenceNo' => $r->reference_or_jev_number,
+            'particulars' => $r->particulars,
             'tuitionPerUnitOrFeePerSemester' => (float) ($r->tuition_per_unit_or_misc ?? 0),
-            'arPayment'                     => $arPayment,
-            'amount'                        => $this->cleanAmount($r->amount),
-            'remark'                        => $r->remarks,
-            'inputBy'                       => $r->input_by,
+            'arPayment' => $arPayment,
+            'amount' => $this->cleanAmount($r->amount),
+            'remark' => $r->remarks,
+            'inputBy' => $r->input_by,
         ];
     }
 
@@ -626,9 +628,9 @@ class GraduateLedgerController extends Controller
             'reference_or_jev_number'  => $r->reference_or_jev_number ?? '',
             'particulars'              => $r->particulars ?? 'Tuition',
             'tuition_per_unit_or_misc' => $r->tuition_per_unit_or_misc,
-            'amount'                   => $r->amount,
-            'remarks'                  => $r->remarks ?? '',
-            'input_by'                 => $r->input_by ?? '',
+            'amount' => $r->amount,
+            'remarks' => $r->remarks ?? '',
+            'input_by' => $r->input_by ?? '',
         ];
     }
 
@@ -689,19 +691,19 @@ class GraduateLedgerController extends Controller
         $now
     ): array {
         // 1. Bulk resolve students (2 queries total instead of N+1)
-        $studentMap  = Student::pluck('id', 'raw_name_from_csv')->toArray();
+        $studentMap = Student::pluck('id', 'raw_name_from_csv')->toArray();
         $newStudents = [];
         foreach (array_keys($distinctStudents) as $rawName) {
-            if (!isset($studentMap[$rawName])) {
-                $parsed        = Student::parseRawName($rawName);
+            if (! isset($studentMap[$rawName])) {
+                $parsed = Student::parseRawName($rawName);
                 $newStudents[] = array_merge($parsed, [
                     'raw_name_from_csv' => $rawName,
-                    'created_at'        => $now,
-                    'updated_at'        => $now,
+                    'created_at' => $now,
+                    'updated_at' => $now,
                 ]);
             }
         }
-        if (!empty($newStudents)) {
+        if (! empty($newStudents)) {
             foreach (array_chunk($newStudents, 500) as $chunk) {
                 Student::insert($chunk);
             }
@@ -709,19 +711,19 @@ class GraduateLedgerController extends Controller
         }
 
         // 2. Bulk resolve courses (2 queries total instead of N+1)
-        $courseMap  = Course::pluck('id', 'code')->toArray();
+        $courseMap = Course::pluck('id', 'code')->toArray();
         $newCourses = [];
         foreach (array_keys($distinctCourses) as $code) {
-            if (!isset($courseMap[$code])) {
+            if (! isset($courseMap[$code])) {
                 $newCourses[] = [
-                    'code'       => $code,
-                    'title'      => null,
+                    'code' => $code,
+                    'title' => null,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
             }
         }
-        if (!empty($newCourses)) {
+        if (! empty($newCourses)) {
             foreach (array_chunk($newCourses, 500) as $chunk) {
                 Course::insert($chunk);
             }
@@ -737,7 +739,7 @@ class GraduateLedgerController extends Controller
 
         $newTerms = [];
         foreach ($distinctTerms as $key => $pair) {
-            if (!isset($termMap[$key])) {
+            if (! isset($termMap[$key])) {
                 $newTerms[] = [
                     'school_year' => $pair['school_year'],
                     'semester'    => $pair['semester'],
@@ -747,7 +749,7 @@ class GraduateLedgerController extends Controller
                 ];
             }
         }
-        if (!empty($newTerms)) {
+        if (! empty($newTerms)) {
             AcademicTerm::insert($newTerms);
             $termsInDb = AcademicTerm::get(['id', 'school_year', 'semester'])->toArray();
             $termMap   = [];
@@ -769,7 +771,7 @@ class GraduateLedgerController extends Controller
             return null;
         }
 
-        $rawAmount  = (string) ($row[11] ?? '0');
+        $rawAmount = (string) ($row[11] ?? '0');
         $rawTuition = (string) ($row[9] ?? '0');
         $code       = trim((string) ($row[1] ?? ''));
         $sy         = trim((string) ($row[2] ?? ''));
@@ -787,7 +789,7 @@ class GraduateLedgerController extends Controller
             'reference_or_jev_number'  => trim((string) ($row[7] ?? '')),
             'particulars'              => trim((string) ($row[8] ?? '')),
             'tuition_per_unit_or_misc' => $this->cleanAmount($rawTuition),
-            'entry_type'               => $this->normalizeEntryType(
+            'entry_type' => $this->normalizeEntryType(
                 (string) ($row[10] ?? ''),
                 str_contains($rawAmount, '(') && str_contains($rawAmount, ')')
             ),
@@ -799,10 +801,10 @@ class GraduateLedgerController extends Controller
 
     private function getFilterOptions(): array
     {
-        $currentYear       = (int) date('Y');
+        $currentYear = (int) date('Y');
         $defaultSchoolYears = [];
         for ($i = $currentYear - 5; $i <= $currentYear + 3; $i++) {
-            $defaultSchoolYears[] = $i . '-' . ($i + 1);
+            $defaultSchoolYears[] = $i.'-'.($i + 1);
         }
 
         $schoolYears = AcademicTerm::distinct()
@@ -873,9 +875,9 @@ class GraduateLedgerController extends Controller
     private function entryTypeToLabel(?string $entryType): string
     {
         return match ($entryType) {
-            'ar'         => 'AR',
+            'ar' => 'AR',
             'adjustment' => 'Adjustment',
-            default      => 'Payment',
+            default => 'Payment',
         };
     }
 
@@ -929,7 +931,7 @@ class GraduateLedgerController extends Controller
 
     private function calculateStudentBalanceNormalized($records): array
     {
-        $totalCharges  = 0;
+        $totalCharges = 0;
         $totalPayments = 0;
 
         foreach ($records as $record) {
@@ -943,8 +945,8 @@ class GraduateLedgerController extends Controller
         }
 
         return [
-            'totalCharges'      => $totalCharges,
-            'totalPayments'     => $totalPayments,
+            'totalCharges' => $totalCharges,
+            'totalPayments' => $totalPayments,
             'outstandingBalance' => $totalCharges - $totalPayments,
         ];
     }

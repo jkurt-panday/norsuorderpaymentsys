@@ -43,7 +43,10 @@ interface EditTransactionProps {
 }
 
 function FieldError({ message }: { message?: string }) {
-  if (!message) return null;
+  if (!message) {
+return null;
+}
+
   return <p className="mt-1 text-xs text-red-500">{message}</p>;
 }
 
@@ -77,12 +80,14 @@ export default function EditTransaction({
   const semesterOptions = useMemo(() => {
     const defaults = ['1st Sem', '2nd Sem', 'Summer'];
     const fromDb = filterOptions?.semesters ?? [];
+
     return [...new Set([...defaults, ...fromDb])];
   }, [filterOptions?.semesters]);
 
   const courseOptions = useMemo(() => {
     const defaults = ['JD', 'LLM', 'JSD'];
     const fromDb = filterOptions?.courses ?? [];
+
     return [...new Set([...defaults, ...fromDb])];
   }, [filterOptions?.courses]);
 
@@ -97,8 +102,10 @@ export default function EditTransaction({
       !window.confirm(
         `Delete this transaction for "${record.last_name}, ${record.first_name}"? This cannot be undone.`,
       )
-    )
-      return;
+    ) {
+return;
+}
+
     router.delete(`/law-ledger/${record.id}`);
   };
 

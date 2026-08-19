@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -24,6 +25,8 @@ class LawSchoolLedgerController extends Controller
      */
     public function index(Request $request): Response
     {
+        set_time_limit(300);
+
         $query = $this->buildFilteredQuery($request);
 
         // 1. Calculate overall metrics using a cloned query BEFORE pagination
@@ -73,6 +76,36 @@ class LawSchoolLedgerController extends Controller
             ],
             'filterOptions' => $this->getFilterOptions(),
         ]);
+    }
+
+    public function searchStudents(Request $request)
+    {
+        $search = trim((string) $request->query('q', ''));
+
+        $query = LawSchoolLedger::query()
+            ->whereNotNull('last_name')
+            ->where('last_name', '!=', '');
+
+        if ($search !== '') {
+            $searchLower = strtolower($search);
+            $query->where(function ($q) use ($searchLower) {
+                $q->whereRaw('LOWER(last_name) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw('LOWER(first_name) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw('LOWER(middle_initial) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw("LOWER(TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_initial, '')))) LIKE ?", ["%{$searchLower}%"]);
+            });
+        }
+
+        $students = $query
+            ->get(['last_name', 'first_name', 'middle_initial'])
+            ->map(function ($student) {
+                return trim("$student->last_name, $student->first_name ".($student->middle_initial ? "$student->middle_initial" : ''));
+            })
+            ->unique()
+            ->values()
+            ->all();
+
+        return response()->json($students);
     }
 
     /**
@@ -216,109 +249,159 @@ class LawSchoolLedgerController extends Controller
     public function import(Request $request): RedirectResponse
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,csv,xls'],
+            'file' => [
+                'required',
+                'file',
+                function ($attribute, $value, $fail) {
+                    $extension = strtolower($value->getClientOriginalExtension());
+                    if (! in_array($extension, ['csv', 'xlsx', 'xls'])) {
+                        $fail('The file must be a file of type: csv, xlsx, xls.');
+                    }
+                },
+            ],
         ]);
 
-        set_time_limit(0);
-        ini_set('memory_limit', '1024M');
+        set_time_limit(300);
+        ini_set('memory_limit', '512M');
 
         $uploadedFile = $request->file('file');
-        $extension    = strtolower($uploadedFile->getClientOriginalExtension());
-        $path         = $uploadedFile->getRealPath();
-        $imported     = 0;
-        $now          = now();
+        $extension = strtolower($uploadedFile->getClientOriginalExtension());
+
+        $imported = 0;
+        $skipped = 0;
+        $insertData = [];
+        $now = now();
 
         if ($extension === 'csv') {
+            $path = $uploadedFile->getRealPath();
             $handle = fopen($path, 'r');
-            if (!$handle) {
-                return redirect()->route('law-ledger.index')->with('error', 'Could not open CSV file.');
+            if (! $handle) {
+                return redirect()->route('law-ledger.index')
+                    ->with('error', 'Could not open the uploaded CSV file.');
             }
-            $headerRow = fgetcsv($handle);
-            $headers   = $headerRow ? array_map(fn ($h) => Str::slug((string) $h, '_'), $headerRow) : [];
-            $insertData = [];
+
+            $headers = fgetcsv($handle);
+            if ($headers === false) {
+                fclose($handle);
+
+                return redirect()->route('law-ledger.index')
+                    ->with('error', 'Could not read the CSV header row.');
+            }
 
             while (($row = fgetcsv($handle)) !== false) {
-                $rowData = [];
-                foreach ($row as $index => $value) {
-                    $key = $headers[$index] ?? 'column_'.$index;
-                    $rowData[$key] = $value;
-                }
-                $data = $this->mapImportRow($rowData);
-                if ($data !== null) {
-                    $data['created_at'] = $now;
-                    $data['updated_at'] = $now;
-                    $insertData[]       = $data;
+                $rowData = array_combine($headers, array_slice($row, 0, count($headers)));
+                if ($rowData === false) {
+                    $skipped++;
+
+                    continue;
                 }
 
+                $data = $this->mapImportRow($rowData);
+
+                if ($data === null) {
+                    $skipped++;
+
+                    continue;
+                }
+
+                $data['created_at'] = $now;
+                $data['updated_at'] = $now;
+                $insertData[] = $data;
+
                 if (count($insertData) >= 1000) {
-                    DB::transaction(fn () => LawSchoolLedger::insert($insertData));
-                    $imported  += count($insertData);
+                    try {
+                        DB::transaction(function () use ($insertData) {
+                            LawSchoolLedger::insert($insertData);
+                        });
+                        $imported += count($insertData);
+                    } catch (\Throwable $e) {
+                        Log::error('Law Ledger CSV import batch failed', [
+                            'message' => $e->getMessage(),
+                            'trace' => $e->getTraceAsString(),
+                            'batch_size' => count($insertData),
+                        ]);
+
+                        return redirect()->route('law-ledger.index')
+                            ->with('error', 'Import failed: '.$e->getMessage());
+                    }
                     $insertData = [];
                 }
             }
-            if (!empty($insertData)) {
-                DB::transaction(fn () => LawSchoolLedger::insert($insertData));
-                $imported += count($insertData);
+
+            if (! empty($insertData)) {
+                try {
+                    DB::transaction(function () use ($insertData) {
+                        LawSchoolLedger::insert($insertData);
+                    });
+                    $imported += count($insertData);
+                } catch (\Throwable $e) {
+                    Log::error('Law Ledger CSV import final batch failed', [
+                        'message' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                        'batch_size' => count($insertData),
+                    ]);
+
+                    return redirect()->route('law-ledger.index')
+                        ->with('error', 'Import failed: '.$e->getMessage());
+                }
             }
+
             fclose($handle);
+        } else {
+            HeadingRowFormatter::default('none');
+            $rows = Excel::toCollection(null, $uploadedFile)->first() ?? collect();
 
-            return redirect()->route('law-ledger.index')->with('success', "Import complete: {$imported} records imported.");
-        }
-
-        // Excel (.xlsx, .xls)
-        $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($path);
-        $reader->setReadDataOnly(true);
-
-        $spreadsheet = $reader->load($path);
-        $sheet       = $spreadsheet->getActiveSheet();
-        $highestRow  = $sheet->getHighestRow();
-        $highestCol  = $sheet->getHighestColumn();
-
-        if ($highestRow <= 1) {
-            $spreadsheet->disconnectWorksheets();
-            unset($spreadsheet);
-            return redirect()->route('law-ledger.index')->with('success', 'No rows found in the uploaded file.');
-        }
-
-        $headerRow = [];
-        for ($col = 'A'; $col <= $highestCol; $col++) {
-            $headerRow[] = Str::slug((string) $sheet->getCell($col . '1')->getValue(), '_');
-        }
-
-        $insertData = [];
-
-        for ($r = 2; $r <= $highestRow; $r++) {
-            $rowData = [];
-            $cIdx    = 0;
-            for ($col = 'A'; $col <= $highestCol; $col++) {
-                $key           = $headerRow[$cIdx] ?? 'column_'.$cIdx;
-                $rowData[$key] = $sheet->getCell($col . $r)->getValue();
-                $cIdx++;
+            if ($rows->isEmpty()) {
+                return redirect()->route('law-ledger.index')
+                    ->with('success', 'No rows found in the uploaded file.');
             }
 
-            $data = $this->mapImportRow($rowData);
-            if ($data !== null) {
+            $headers = $rows->first()?->values()->all() ?? [];
+            $rows->slice(1)->each(function ($row) use ($headers, &$insertData, &$skipped, $now) {
+                $values = $row->values()->all();
+                $rowData = array_combine($headers, array_slice($values, 0, count($headers)));
+                if ($rowData === false) {
+                    $skipped++;
+
+                    return;
+                }
+
+                $data = $this->mapImportRow($rowData);
+
+                if ($data === null) {
+                    $skipped++;
+
+                    return;
+                }
+
                 $data['created_at'] = $now;
                 $data['updated_at'] = $now;
-                $insertData[]       = $data;
-            }
+                $insertData[] = $data;
+            });
 
-            if (count($insertData) >= 1000) {
-                DB::transaction(fn () => LawSchoolLedger::insert($insertData));
-                $imported  += count($insertData);
-                $insertData = [];
+            if (! empty($insertData)) {
+                try {
+                    DB::transaction(function () use ($insertData, &$imported) {
+                        foreach (array_chunk($insertData, 1000) as $chunk) {
+                            LawSchoolLedger::insert($chunk);
+                            $imported += count($chunk);
+                        }
+                    });
+                } catch (\Throwable $e) {
+                    Log::error('Law Ledger Excel import failed', [
+                        'message' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                        'total_rows' => count($insertData),
+                    ]);
+
+                    return redirect()->route('law-ledger.index')
+                        ->with('error', 'Import failed: '.$e->getMessage());
+                }
             }
         }
 
-        if (!empty($insertData)) {
-            DB::transaction(fn () => LawSchoolLedger::insert($insertData));
-            $imported += count($insertData);
-        }
-
-        $spreadsheet->disconnectWorksheets();
-        unset($spreadsheet);
-
-        return redirect()->route('law-ledger.index')->with('success', "Import complete: {$imported} records imported.");
+        return redirect()->route('law-ledger.index')
+            ->with('success', "Import complete: {$imported} records imported, {$skipped} blank rows skipped.");
     }
 
     /**
@@ -368,6 +451,8 @@ class LawSchoolLedgerController extends Controller
      */
     public function generatePdf(Request $request)
     {
+        set_time_limit(300);
+
         $request->validate([
             'student' => 'required|string',
         ]);
@@ -380,11 +465,17 @@ class LawSchoolLedgerController extends Controller
 
         $summary = $this->calculateStudentBalance($records);
 
+        $logoPath = public_path('norsu.png');
+        $logoDataUri = file_exists($logoPath)
+            ? 'data:image/png;base64,'.base64_encode(file_get_contents($logoPath))
+            : null;
+
         $pdf = Pdf::loadView('pdf.law-student-ledger-statement', [
             'studentName' => $studentName,
             'records' => $records,
             'summary' => $summary,
-            'generatedAt' => now()->format('Y-m-d h:i A'),
+            'generatedAt' => now()->timezone('Asia/Manila')->format('Y-m-d h:i A'),
+            'logoDataUri' => $logoDataUri,
         ])
             ->setPaper('a4', 'portrait')
             ->setOption('defaultFont', 'DejaVu Sans')
@@ -405,27 +496,44 @@ class LawSchoolLedgerController extends Controller
             $normalized[Str::slug((string) $key, '_')] = $value;
         }
 
-        // Handles "NAME\n(Last Name, First Name, M.I.)" and standard variations
-        $studentName = Arr::get($normalized, 'name_last_name_first_name_m_i')
-            ?? Arr::get($normalized, 'name_last_name_first_name_mi')
-            ?? Arr::get($normalized, 'student_name')
-            ?? Arr::get($normalized, 'student')
-            ?? Arr::get($normalized, 'name');
+        // LAW_SCHOOL_Ledger.csv uses separate name columns; older exports may use
+        // a combined name field. Handle both formats.
+        $lastName = Arr::get($normalized, 'last_name');
+        $firstName = Arr::get($normalized, 'first_name');
+        $middleInitial = Arr::get($normalized, 'middle_initial');
 
-        $studentName = is_string($studentName) ? trim($studentName) : null;
+        if ($lastName || $firstName) {
+            $nameParts = [
+                'last_name' => is_string($lastName) ? trim($lastName) : null,
+                'first_name' => is_string($firstName) ? trim($firstName) : null,
+                'middle_initial' => is_string($middleInitial) ? rtrim(trim($middleInitial), '.') : null,
+            ];
+        } else {
+            $studentName = Arr::get($normalized, 'name_last_name_first_name_m_i')
+                ?? Arr::get($normalized, 'name_last_name_first_name_mi')
+                ?? Arr::get($normalized, 'student_name')
+                ?? Arr::get($normalized, 'student')
+                ?? Arr::get($normalized, 'name');
 
-        if (blank($studentName)) {
-            return null;
+            $studentName = is_string($studentName) ? trim($studentName) : null;
+
+            if (blank($studentName)) {
+                return null;
+            }
+
+            $nameParts = $this->parseStudentName($studentName) ?? [
+                'last_name' => $studentName,
+                'first_name' => null,
+                'middle_initial' => null,
+            ];
         }
-
-        $nameParts = $this->parseStudentName($studentName);
 
         $amount = (float) (Arr::get($normalized, 'amount', 0) ?? 0);
 
         return [
-            'last_name' => $nameParts['last_name'] ?? $studentName,
-            'first_name' => $nameParts['first_name'] ?? null,
-            'middle_initial' => $nameParts['middle_initial'] ?? null,
+            'last_name' => $nameParts['last_name'],
+            'first_name' => $nameParts['first_name'],
+            'middle_initial' => $nameParts['middle_initial'],
             'course' => Arr::get($normalized, 'course') ?? Arr::get($normalized, 'program'),
             'school_year' => Arr::get($normalized, 'school_year') ?? Arr::get($normalized, 'academic_year') ?? Arr::get($normalized, 'sy'),
             'semester_or_summer' => Arr::get($normalized, 'semester_or_summer')
@@ -477,12 +585,14 @@ class LawSchoolLedgerController extends Controller
 
         return LawSchoolLedger::query()
             ->when($request->input('search'), function ($query, $search) {
-                $search = strtolower($search);
-                $query->whereRaw('LOWER(first_name) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(middle_initial) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(reference_jev_or_number) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(particulars) LIKE ?', ["%{$search}%"]);
+                $query->where(function ($query) use ($search) {
+                    $query->whereRaw('LOWER(first_name) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(middle_initial) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(reference_jev_or_number) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(particulars) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw("LOWER(TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_initial, '')))) LIKE ?", ["%{$search}%"]);
+                });
             })
             ->when($schoolYear, function ($query, $schoolYear) {
                 $query->where('school_year', $schoolYear);

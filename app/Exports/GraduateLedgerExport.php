@@ -9,7 +9,7 @@ use Maatwebsite\Excel\Concerns\WithCustomChunkSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 
-class GraduateLedgerExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSize, WithCustomChunkSize
+class GraduateLedgerExport implements FromQuery, ShouldAutoSize, WithCustomChunkSize, WithHeadings, WithMapping
 {
     public function __construct(
         private readonly Builder $query,

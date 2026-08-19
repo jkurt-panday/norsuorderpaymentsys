@@ -1,7 +1,6 @@
-import { router } from '@inertiajs/react';
-import { useForm } from '@inertiajs/react';
+import { useForm, Head } from '@inertiajs/react';
 import { UploadCloud02 } from '@untitledui/icons';
-import { Mail, User, ClipboardList, File } from 'lucide-react';
+import { Mail, User, ClipboardList, FileText } from 'lucide-react';
 import { useState } from 'react';
 import { FileUpload } from '@/components/application/file-upload/file-upload-base';
 import { Button } from '@/components/ui/button';
@@ -47,7 +46,7 @@ interface Props {
 
 export default function SubmitForm({ memberships, paymentOptions }: Props) {
     // ? form handling
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors, reset, transform } = useForm({
         email: '',
         contact_num: '',
         firstname_or_office: '',
@@ -60,45 +59,24 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
         request_type: '',
         membership_id: '',
         payment_detail_option_id: '',
-        // has_documents: false,
         documents: [] as File[],
     });
     // ? form submit
     // Submit handler with file upload
     const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
         e.preventDefault();
-
-        const formData = new FormData();
-
-        Object.entries(data).forEach(([key, value]) => {
-            if (value !== null && value !== '') {
-                formData.append(key, String(value));
-            }
-        });
-
-        data.documents.forEach((file) => {
-            formData.append(`documents[]`, file);
-        });
-
-        // Debug: Check what's being sent
-        // console.log('FormData entries:');
-
-        // for (const [key, value] of formData.entries()) {
-        //     console.log(key, value);
-        // }
-
-        // Use post with FormData
-        post('/public/form', formData, {
-            onSuccess: (page) => {
-                console.log('Success!', page);
-                reset();
-                // setSupportingDocuments([]);
-            },
-            onError: (errors) => {
-                console.error('Validation errors:', errors);
-            },
+    
+        // Ensures Inertia packages files cleanly
+        // transform((data) => ({
+        //     ...data,
+        //     documents: data.documents,
+        // }));
+    
+        post('/public/form', {
             forceFormData: true,
             preserveState: true,
+            onSuccess: () => console.log('Success'),
+            onError: (errs) => console.error('Validation errors:', errs),
         });
     };
 
@@ -149,6 +127,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
             setDocumentError(
                 `You can upload a maximum of ${MAX_FILES} supporting documents.`,
             );
+
             return;
         }
 
@@ -166,7 +145,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
             data.documents.filter((_, i) => i !== index),
         );
 
-        if (updatedDocuments.length <= MAX_FILES) {
+        if (data.documents.length <= MAX_FILES) {
             setDocumentError('');
         }
 
@@ -184,6 +163,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
     // ? component ui
     return (
         <>
+            <Head title="Order of Payment Form" />
             <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-200 to-white px-6 py-12">
                 <div className="mx-auto max-w-4xl">
                     <div className="mb-10 rounded-2xl border border-blue-100 bg-white px-8 py-8 text-center shadow-md">
@@ -197,7 +177,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                             />
                         </div>
                         <h1 className="text-4xl font-bold tracking-tight text-blue-900">
-                            Order of Payment Request
+                            NORSU Order of Payment - MAIN CAMPUS
                         </h1>
                         <p className="mt-3 text-base text-slate-600">
                             Fill out the form below to submit your request.
@@ -578,7 +558,8 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         >
                                             <ComboboxInput
                                                 placeholder="Select a request type"
-                                                className={enlarge}
+                                                className={`border-slate-300 focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
+
                                                 showClear={!!data.request_type}
                                             />
                                             <ComboboxContent>
@@ -639,7 +620,8 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         >
                                             <ComboboxInput
                                                 placeholder="Select membership"
-                                                className={enlarge}
+                                                className={`border-slate-300 focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
+
                                                 showClear={!!data.membership_id}
                                             />
                                             <ComboboxContent>
@@ -707,7 +689,8 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                 showClear={
                                                     !!data.payment_detail_option_id
                                                 }
-                                                className={enlarge}
+                                                className={`border-slate-300 focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
+
                                             />
                                             <ComboboxContent>
                                                 <ComboboxEmpty>
@@ -738,7 +721,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 </div>
                                 <Separator className="bg-blue-100" />
                                 <CardTitle className="flex items-center gap-3 text-xl font-semibold text-blue-900">
-                                    <File className="h-5 w-5 text-blue-600" />
+                                    <FileText className="h-5 w-5 text-blue-600" />
                                     Supporting Document(s)
                                 </CardTitle>
                                 <p className="mt-3 text-sm text-slate-600">

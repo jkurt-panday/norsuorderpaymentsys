@@ -10,8 +10,14 @@ use App\Http\Controllers\PaymentDetailOptionController;
 use App\Http\Controllers\BankAccountInfoController;
 use App\Http\Controllers\UacsController;
 use App\Http\Controllers\SupportingDocumentController;
+<<<<<<< HEAD
 use App\Http\Controllers\Client\ClientController;
 use Illuminate\Http\Request;
+=======
+use App\Http\Controllers\AssessmentFormController;
+use App\Http\Controllers\UACSController;
+use App\Http\Controllers\CoursesController;
+>>>>>>> a24a816048ecf7d494d97ce04065428e7775bb32
 use Illuminate\Support\Facades\Route;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -20,9 +26,24 @@ use Illuminate\Support\Facades\Route;
 
 
 Route::name('public.')->prefix('public')->group(function () {
+<<<<<<< HEAD
     Route::get('/submit', [FormInputController::class, 'create'])->name('submit');
     Route::post('/submit', [FormInputController::class, 'store'])->name('submit.store');
     Route::get('/success/{referenceNumber?}', [FormInputController::class, 'success'])->name('success');
+=======
+    Route::get('/form', [FormInputController::class, 'create'])->name('submit');
+    Route::post('/form', [FormInputController::class, 'store'])->name('submit.store');
+    
+    Route::get('/success/{reference_number}', [FormInputController::class, 'success'])->name('success');
+    Route::get('/success/{reference_number}/print', [FormInputController::class, 'printReceipt'])->name('print');
+
+    Route::get('/assessmentform', [AssessmentFormController::class, 'create'])->name('assessmentform');
+    Route::post('/assessmentform', [AssessmentFormController::class, 'store']);
+
+    Route::get('/assessment_complete/{assessmentForm:reference_number}', [AssessmentFormController::class, 'complete'])->name('complete');
+    Route::get('/assessment_complete/{assessmentForm:reference_number}/print', [AssessmentFormController::class, 'print'])->name('print_req');
+    
+>>>>>>> a24a816048ecf7d494d97ce04065428e7775bb32
 });
 
 // Root redirect → public submission form
@@ -84,11 +105,25 @@ Route::middleware('auth')->group(function () {
     // ── Law School Ledger ────────────────────────────────────────────────────
     Route::prefix('law-ledger')->name('law-ledger.')->middleware('staff')->group(function () {
         Route::get('/print-select', [LawSchoolLedgerController::class, 'printSelect'])->name('print-select');
+<<<<<<< HEAD
         Route::get('/pdf',          [LawSchoolLedgerController::class, 'generatePdf'])->name('pdf');
         Route::get('/add',          [LawSchoolLedgerController::class, 'create'])->name('create');
         Route::post('/',            [LawSchoolLedgerController::class, 'store'])->name('store');
         Route::post('/import',      [LawSchoolLedgerController::class, 'import'])->name('import');
         Route::get('/',             [LawSchoolLedgerController::class, 'index'])->name('index');
+=======
+        Route::get('/pdf', [LawSchoolLedgerController::class, 'generatePdf'])->name('pdf');
+        Route::get('/export', [LawSchoolLedgerController::class, 'export'])->name('export');
+        Route::get('/students/search', [LawSchoolLedgerController::class, 'searchStudents'])->name('students.search');
+        Route::get('/new-transaction', [LawSchoolLedgerController::class, 'create'])->name('create');
+        Route::redirect('/add', '/law-ledger/new-transaction');
+        Route::post('/', [LawSchoolLedgerController::class, 'store'])->name('store');
+        Route::post('/import', [LawSchoolLedgerController::class, 'import'])->name('import');
+        Route::get('/', [LawSchoolLedgerController::class, 'index'])->name('index');
+        Route::get('/{id}/edit', [LawSchoolLedgerController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [LawSchoolLedgerController::class, 'update'])->name('update');
+        Route::delete('/{id}', [LawSchoolLedgerController::class, 'destroy'])->name('destroy');
+>>>>>>> a24a816048ecf7d494d97ce04065428e7775bb32
     });
 
 });
@@ -123,16 +158,25 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
 
     // ── Requests Management ──────────────────────────────────────────────────
     Route::name('requests.')->prefix('requests')->group(function () {
-        Route::get('/', [StaffInputController::class, 'index'])->name('index');
+    Route::get('/', [StaffInputController::class, 'index'])->name('index');
 
-        // Non-wildcard routes ABOVE wildcard routes to prevent fallback hijacking
-        Route::post('/process', [StaffInputController::class, 'store'])->name('store');
+    // Non-wildcard routes ABOVE wildcard routes to prevent fallback hijacking
+    Route::post('/process', [StaffInputController::class, 'store'])->name('store');
 
+<<<<<<< HEAD
         Route::get('/{formInput}/process', [StaffInputController::class, 'create'])->name('process');
         Route::get('/{formInput}',         [StaffInputController::class, 'show'])->name('show');
         Route::get('/{staffInput}/edit',   [StaffInputController::class, 'edit'])->name('edit');
         Route::put('/{staffInput}',        [StaffInputController::class, 'update'])->name('update');
     });
+=======
+    Route::get('/{formInput}', [StaffInputController::class, 'show'])->name('show');
+    Route::get('/{formInput}/view-op', [StaffInputController::class, 'viewOp'])->name('viewOp');
+    Route::post('/{formInput}/email-op', [StaffInputController::class, 'emailOp'])->name('emailOp');
+    Route::put('/{formInput}/details', [StaffInputController::class, 'updateDetails'])->name('updateDetails');
+    Route::put('/{staffInput}', [StaffInputController::class, 'update'])->name('update');
+});
+>>>>>>> a24a816048ecf7d494d97ce04065428e7775bb32
 
     // ── Master Data (Resource Routes) ───────────────────────────────────────
     // Explicit parameter bindings prevent Laravel's inflector from scrambling singular names.
@@ -161,6 +205,9 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
         Route::delete('/{supportingDocument}',             [SupportingDocumentController::class, 'destroy'])->name('destroy');
     });
 
+    // Courses
+    Route::resource('courses', CoursesController::class)
+        ->parameters(['courses' => 'courses']);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

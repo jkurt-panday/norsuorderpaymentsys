@@ -14,6 +14,7 @@ class StaffInput extends Model
         'form_input_id',
         'fundcluster_id',
         'ref_document_id',
+        'purpose',
         'ref_date',
         'uacs_id',
         'status',
