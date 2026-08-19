@@ -378,7 +378,19 @@ class LawSchoolLedgerController extends Controller
      */
     public function printSelect(Request $request): Response
     {
-        $students = [];
+        $students = LawSchoolLedger::query()
+            ->whereNotNull('last_name')
+            ->where('last_name', '!=', '')
+            ->distinct()
+            ->orderBy('last_name', 'asc')
+            ->get(['last_name', 'first_name', 'middle_initial'])
+            ->map(function ($student) {
+                return trim("$student->last_name, $student->first_name ".($student->middle_initial ? "$student->middle_initial" : ''));
+            })
+            ->unique()
+            ->values()
+            ->map(fn ($name) => ['id' => $name, 'full_name' => $name])
+            ->all();
 
         $selectedStudent = $request->input('student') ?? $request->input('student_id');
         $studentRecords = collect();
@@ -413,8 +425,8 @@ class LawSchoolLedgerController extends Controller
         set_time_limit(300);
 
         $request->validate([
-            'student'      => 'required|string',
-            'student_id'   => 'sometimes|string',
+            'student' => 'required_without:student_id|string',
+            'student_id' => 'required_without:student|string',
         ]);
 
         $studentName = str_replace(['−', '–', '—'], '-', (string) ($request->input('student') ?? $request->input('student_id')));
