@@ -28,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // 🌟 2. ADD THIS ALIAS BLOCK HERE:
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
+                'staff' => \App\Http\Middleware\EnsureUserIsStaff::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

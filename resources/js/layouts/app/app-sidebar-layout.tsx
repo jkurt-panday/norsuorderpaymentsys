@@ -6,10 +6,11 @@ import {
     CreditCard,
     Building,
     Layers,
-    HandCoins,
     Scale,
     ChevronRight,
     LogOut,
+    GraduationCap,
+    Logs
 } from 'lucide-react';
 import React from 'react';
 import AppLogo from '@/components/app-logo';
@@ -67,10 +68,10 @@ const mainNavItems: SidebarItem[] = [
         icon: CreditCard,
     },
     { title: 'Memberships', href: '/staff/memberships', icon: Users },
-    { title: 'UACS', href: '/staff/uacs', icon: Layers },
+    { title: 'UACS', href: '/staff/uacs', icon: Logs },
     {
         title: 'Graduate Ledger',
-        icon: HandCoins,
+        icon: GraduationCap,
         items: [
             { title: 'Ledger Overview', href: '/graduate-ledger' },
             { title: 'Print Statement', href: '/graduate-ledger/print-select' },
@@ -285,11 +286,11 @@ export default function AppSidebarLayout({
 }: AppLayoutProps) {
     return (
         <SidebarProvider>
-            <div className="flex h-screen w-full">
+            <div className="flex h-screen w-full bg-[#FAFAF5]">
                 <AppSidebar />
-                <SidebarInset className="bg-[#FAFAF5]">
+                <SidebarInset className="overflow-hidden bg-[#FAFAF5]">
                     <AppSidebarHeader breadcrumbs={breadcrumbs} />
-                    <main className="flex-1 overflow-auto bg-[#FAFAF5]">
+                    <main className="min-h-0 flex-1 overflow-auto bg-[#FAFAF5] p-4 md:p-8">
                         {children}
                     </main>
                 </SidebarInset>
