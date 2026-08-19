@@ -1,6 +1,7 @@
-import { cn } from "@/utils/cn";
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva  } from "class-variance-authority";
+import type {VariantProps} from "class-variance-authority";
 import type { ComponentProps } from "react";
+import { cn } from "@/utils/cn";
 
 const tableRootStyles = cva(
   "min-w-full border-base-200 border-separate border-spacing-0 overflow-clip text-left",

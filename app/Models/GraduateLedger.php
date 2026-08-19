@@ -26,10 +26,10 @@ class GraduateLedger extends Model
     ];
 
     protected $casts = [
-        'units'                    => 'float',
+        'units' => 'float',
         'tuition_per_unit_or_misc' => 'float',
-        'amount'                   => 'float',
-        'transaction_date'         => 'date:Y-m-d',
+        'amount' => 'float',
+        'transaction_date' => 'date:Y-m-d',
     ];
 
     // ─── Relationships ────────────────────────────────────────────────────────

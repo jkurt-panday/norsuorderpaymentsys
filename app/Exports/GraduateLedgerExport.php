@@ -9,7 +9,7 @@ use Maatwebsite\Excel\Concerns\WithCustomChunkSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 
-class GraduateLedgerExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSize, WithCustomChunkSize
+class GraduateLedgerExport implements FromQuery, ShouldAutoSize, WithCustomChunkSize, WithHeadings, WithMapping
 {
     public function __construct(
         private readonly Builder $query,
@@ -53,14 +53,14 @@ class GraduateLedgerExport implements FromQuery, WithHeadings, WithMapping, Shou
             $studentName = $row->student?->full_name ?? '';
             $courseCode  = $row->course?->code ?? '';
             $schoolYear  = $row->academicTerm?->school_year ?? '';
-            $semShort    = $row->academicTerm?->semester_short ?? '';
+            $semShort    = '';
             $semFull     = $row->academicTerm?->semester ?? '';
             $type        = strtoupper($row->entry_type ?? 'AR');
         } else {
             $studentName = $row->student_name ?? '';
             $courseCode  = $row->course ?? '';
             $schoolYear  = $row->school_year ?? '';
-            $semShort    = $row->semester_short ?: ($row->semester ?? '');
+            $semShort    = '';
             $semFull     = $row->semester ?? '';
             $type        = strtoupper($row->ar_payment ?? 'AR');
         }
