@@ -1,28 +1,57 @@
-import { Link } from '@inertiajs/react';
+import { Link, Head } from '@inertiajs/react';
+import {
+    Card,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+    CardContent,
+    CardFooter,
+} from '@/components/ui/card';
+import { Button } from '@/components/base/buttons/button';
+import { Plus } from 'lucide-react';
 
-interface Course {
-    id: number;
-    course_code: string;
-    course_desc: string;
-}
+// table
+import { columns, type Course } from './columns';
+import { DataTable } from './data-table';
 
-interface Props {
-    courses: Course[];
-}
+// interface Course {
+//     id: number;
+//     course_code: string;
+//     course_desc: string;
+// }
 
-export default function CoursesIndex({ courses }: Props) {
+type CoursesProps = {
+    courses: {
+        data: Course[];
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    };
+};
+
+export default function CoursesIndex({ courses }: CoursesProps) {
     return (
         <>
-            <div className="p-6">
-                <h1 className="mb-6 text-2xl font-bold">Courses List</h1>
+            <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-slate-50 p-3 sm:p-6">
+                <Head title="Courses" />
 
-                <div>
-                    {courses.map((course) => (
-                        <div key={course.id}>
-                            {course.course_code} - {course.course_desc}
-                        </div>
-                    ))}
-                </div>
+                <Card className="rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between p-3">
+                        <CardTitle className="text-xl font-bold text-slate-900">
+                            Courses
+                        </CardTitle>
+
+                        <Button className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700">
+                            <div className="flex flex-row items-center gap-1.5">
+                                <Plus className="h-4 w-4 stroke-[2.5]" />
+                                <span>Add Course</span>
+                            </div>
+                        </Button>
+                    </CardHeader>
+                </Card>
+
+                <DataTable columns={columns} data={courses.data} />
             </div>
         </>
     );
