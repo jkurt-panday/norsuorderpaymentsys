@@ -13,6 +13,8 @@ use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 
+use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
+
 class FortifyServiceProvider extends ServiceProvider
 {
     /**
@@ -20,7 +22,18 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(LoginResponseContract::class, function () {
+            return new class implements LoginResponseContract {
+                public function toResponse($request)
+                {
+                    $user = auth()->user();
+                    if ($user?->role === 'client') {
+                        return redirect()->intended('/client/dashboard');
+                    }
+                    return redirect()->intended('/staff/staffdashboard');
+                }
+            };
+        });
     }
 
     /**

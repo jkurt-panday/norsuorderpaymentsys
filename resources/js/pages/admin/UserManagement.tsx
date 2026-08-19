@@ -17,7 +17,7 @@ export default function UserManagement() {
         name: '',
         email: '',
         password: '',
-        role: 'accountant',
+        role: 'staff',
     });
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -94,7 +94,7 @@ export default function UserManagement() {
                         <div className="space-y-2">
                             <Label htmlFor="role">Access Authorization Clearance</Label>
                             <select id="role" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" value={data.role} onChange={e => setData('role', e.target.value)}>
-                                <option value="accountant">University Accountant</option>
+                                <option value="staff">University Staff</option>
                                 <option value="admin">System Operations Admin</option>
                             </select>
                             {errors.role && <p className="text-xs font-semibold text-destructive">{errors.role}</p>}

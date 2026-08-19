@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('password');
 
             // 🌟 ADDED FOR ACCESS CONTROL:
-            $table->string('role')->default('accountant');
+            $table->string('role')->default('staff');
 
             $table->rememberToken();
             $table->timestamps();

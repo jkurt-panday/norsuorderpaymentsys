@@ -118,7 +118,7 @@ return;
     .join(', ');
 
   return (
-    <div className="min-h-screen bg-[#FAFAF5] p-4 md:p-8">
+    <div className="min-h-full bg-[#FAFAF5] p-4 md:p-8">
       <Head title="Edit Transaction - Law School Ledger" />
       <div className="mx-auto max-w-5xl space-y-6">
         <div className="flex items-center justify-between border-b border-[#CFE3FF] pb-4">
