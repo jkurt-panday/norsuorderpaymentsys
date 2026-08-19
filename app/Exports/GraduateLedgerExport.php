@@ -13,7 +13,6 @@ class GraduateLedgerExport implements FromQuery, ShouldAutoSize, WithCustomChunk
 {
     public function __construct(
         private readonly Builder $query,
-        private readonly bool $isNormalized = true
     ) {
     }
 
@@ -49,21 +48,11 @@ class GraduateLedgerExport implements FromQuery, ShouldAutoSize, WithCustomChunk
 
     public function map($row): array
     {
-        if ($this->isNormalized && $row->relationLoaded('student')) {
-            $studentName = $row->student?->full_name ?? '';
-            $courseCode  = $row->course?->code ?? '';
-            $schoolYear  = $row->academicTerm?->school_year ?? '';
-            $semShort    = '';
-            $semFull     = $row->academicTerm?->semester ?? '';
-            $type        = strtoupper($row->entry_type ?? 'AR');
-        } else {
-            $studentName = $row->student_name ?? '';
-            $courseCode  = $row->course ?? '';
-            $schoolYear  = $row->school_year ?? '';
-            $semShort    = '';
-            $semFull     = $row->semester ?? '';
-            $type        = strtoupper($row->ar_payment ?? 'AR');
-        }
+        $studentName = $row->student?->full_name ?? '';
+        $courseCode  = $row->course?->code ?? '';
+        $schoolYear  = $row->academicTerm?->school_year ?? '';
+        $semFull     = $row->academicTerm?->semester ?? '';
+        $type        = strtoupper($row->entry_type ?? 'AR');
 
         return [
             $studentName,
