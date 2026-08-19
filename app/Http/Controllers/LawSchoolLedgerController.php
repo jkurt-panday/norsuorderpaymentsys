@@ -402,6 +402,7 @@ class LawSchoolLedgerController extends Controller
             'selectedStudent' => $selectedStudent,
             'records' => $studentRecords,
             'summary' => $balanceSummary,
+            'filterOptions' => $this->getFilterOptions(),
         ]);
     }
 
