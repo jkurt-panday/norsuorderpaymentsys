@@ -368,7 +368,7 @@ class LawSchoolLedgerController extends Controller
      */
     public function printSelect(Request $request): Response
     {
-        $students = LawSchoolLedger::query()
+        $studentNames = LawSchoolLedger::query()
             ->whereNotNull('last_name')
             ->where('last_name', '!=', '')
             ->distinct()
@@ -380,7 +380,15 @@ class LawSchoolLedgerController extends Controller
             ->unique()
             ->values();
 
-        $selectedStudent = $request->input('student');
+        // Mirror the Graduate ledger shape: each student exposes an id and a
+        // display name. Law students are identified by their composite name, so
+        // the name doubles as the id used by the select / PDF routes.
+        $students = $studentNames->map(fn ($name) => [
+            'id' => $name,
+            'full_name' => $name,
+        ])->all();
+
+        $selectedStudent = $request->input('student') ?? $request->input('student_id');
         $studentRecords = collect();
         $balanceSummary = [
             'totalCharges' => 0,
@@ -413,10 +421,11 @@ class LawSchoolLedgerController extends Controller
         set_time_limit(300);
 
         $request->validate([
-            'student' => 'required|string',
+            'student'      => 'required|string',
+            'student_id'   => 'sometimes|string',
         ]);
 
-        $studentName = str_replace(['−', '–', '—'], '-', (string) $request->input('student'));
+        $studentName = str_replace(['−', '–', '—'], '-', (string) ($request->input('student') ?? $request->input('student_id')));
 
         $records = $this->queryStudentByName($studentName)
             ->orderBy('id', 'asc')
