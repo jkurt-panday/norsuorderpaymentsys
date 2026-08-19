@@ -260,7 +260,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                     maxLength={13} // 11 digits + 2 spaces
                                                     value={data.contact_num.replace(
                                                         /^(\d{0,4})(\d{0,3})(\d{0,4}).*/,
-                                                        (_, a, b, c) =>
+                                                        (_: string, a: string, b: string, c: string) =>
                                                             [a, b, c]
                                                                 .filter(Boolean)
                                                                 .join(' '),
