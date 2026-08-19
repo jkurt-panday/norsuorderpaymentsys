@@ -135,6 +135,8 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
     date_to:     filters?.date_to     ?? '',
   });
 
+  const [goToPage, setGoToPage] = useState('');
+
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [exportSuccess, setExportSuccess] = useState(false);
@@ -269,6 +271,17 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     applyFilters();
+  };
+
+  const handleGoToPage = (e: React.FormEvent) => {
+    e.preventDefault();
+    const pageNum = parseInt(goToPage, 10);
+    const last = records?.meta?.last_page ?? records?.last_page ?? 1;
+    if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= last) {
+      const currentParams = new URLSearchParams(window.location.search);
+      currentParams.set('page', String(pageNum));
+      router.get(`/graduate-ledger?${currentParams.toString()}`, {}, { preserveState: true, preserveScroll: true });
+    }
   };
 
   const totalStudents = stats?.totalStudents ?? 0;
@@ -568,9 +581,29 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
 
           {paginationLinks.length > 3 && (
             <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#CFE3FF] pt-4 pb-4">
-              <div className="text-xs text-[#5C7A9E]">
-                Page <span className="font-semibold text-[#0B3D91]">{currentPage}</span> of{' '}
-                <span className="font-semibold text-[#0B3D91]">{lastPage}</span>
+              <div className="flex items-center gap-4 text-xs text-[#5C7A9E]">
+                <div>
+                  Page <span className="font-semibold text-[#0B3D91]">{currentPage}</span> of{' '}
+                  <span className="font-semibold text-[#0B3D91]">{lastPage}</span>
+                </div>
+                <form onSubmit={handleGoToPage} className="flex items-center gap-1.5">
+                  <span>Go to:</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={lastPage}
+                    value={goToPage}
+                    onChange={(e) => setGoToPage(e.target.value)}
+                    placeholder={String(currentPage)}
+                    className="w-14 h-7 rounded border border-[#CFE3FF] bg-white px-2 text-center text-xs text-[#0B3D91] font-medium focus:outline-none focus:ring-1 focus:ring-[#0B62E0]"
+                  />
+                  <button
+                    type="submit"
+                    className="h-7 px-2.5 rounded bg-[#EAF2FF] text-[#0B62E0] hover:bg-[#D4E5FF] text-xs font-medium transition-colors"
+                  >
+                    Go
+                  </button>
+                </form>
               </div>
 
               <Pagination className="justify-end w-auto mx-0">

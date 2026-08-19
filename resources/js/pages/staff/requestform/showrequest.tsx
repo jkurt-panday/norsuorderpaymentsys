@@ -1,6 +1,12 @@
-import React, { useState } from 'react';
-import { Link, router, usePage } from '@inertiajs/react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
+import React, { useEffect, useState } from 'react';
 import staff from '@/routes/staff';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface Membership {
     member_code: string;
@@ -8,10 +14,12 @@ interface Membership {
 }
 
 interface PaymentDetailOption {
+    id: number;
     payment_desc: string;
 }
 
 interface BankAccount {
+    id: number;
     account_name: string;
     bank_name: string;
     account_num: string;
@@ -19,6 +27,7 @@ interface BankAccount {
 }
 
 interface Uacs {
+    id: number;
     object_code: string;
     account_title: string;
 }
@@ -36,6 +45,7 @@ interface StaffInput {
     uacs: Uacs | null;
     reference_document: ReferenceDocument | null;
     created_at: string;
+    purpose: string | null;
 }
 
 interface SupportingDocument {
@@ -67,8 +77,18 @@ interface FormInput {
     supportingDocuments?: SupportingDocument[];
 }
 
+interface FlashProps {
+    success?: string;
+    error?: string;
+    warning?: string;
+}
+
 interface PageProps {
     formInput: FormInput;
+    bankAccounts: BankAccount[];
+    uacsList: Uacs[];
+    paymentOptions: PaymentDetailOption[];
+    flash?: FlashProps;
 }
 
 const statusBadgeClass = (status: string) => {
@@ -83,6 +103,90 @@ const statusBadgeClass = (status: string) => {
             return 'bg-amber-100 text-amber-900';
     }
 };
+
+const PlaceholderField = ({
+    label,
+    value = 'Not yet set',
+}: {
+    label: string;
+    value?: string;
+}) => (
+    <div>
+        <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
+            {label}
+        </label>
+        <input
+            type="text"
+            value={value}
+            disabled
+            className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-400 italic outline-none disabled:opacity-100"
+        />
+    </div>
+);
+
+const ReadOnlyRow = ({
+    label,
+    value,
+    valueClass = 'text-slate-900',
+    stacked = false,
+    scrollable = false,
+}: {
+    label: string;
+    value: string | number | null;
+    valueClass?: string;
+    stacked?: boolean;
+    scrollable?: boolean;
+}) => {
+    const valueContent = scrollable ? (
+        <div
+            className={`max-h-30 min-w-0 flex-1 overflow-y-auto rounded-md border border-slate-100 bg-slate-50/60 px-3 py-2 text-sm ${valueClass} break-words whitespace-pre-wrap`}
+        >
+            {value}
+        </div>
+    ) : (
+        <p
+            className={`min-w-0 flex-1 text-sm ${valueClass} break-words whitespace-pre-wrap`}
+        >
+            {value}
+        </p>
+    );
+
+    return stacked ? (
+        <div className="border-b border-slate-100 py-0 last:border-0">
+            <label className="mb-1 block text-sm font-medium text-slate-600">
+                {label}
+            </label>
+            {valueContent}
+        </div>
+    ) : (
+        <div className="flex items-start gap-6 border-b border-slate-100 py-0 last:border-0">
+            <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
+                {label}
+            </label>
+            {valueContent}
+        </div>
+    );
+};
+
+const FormField = ({
+    label,
+    required,
+    error,
+    children,
+}: {
+    label: string;
+    required?: boolean;
+    error?: string;
+    children: React.ReactNode;
+}) => (
+    <div className="mb-4">
+        <label className="mb-1 block text-sm font-medium text-slate-700">
+            {label} {required && <span className="text-rose-500">*</span>}
+        </label>
+        {children}
+        {error && <p className="mt-1 text-xs text-rose-500">{error}</p>}
+    </div>
+);
 
 const formatDateTime = (value: string, withSeconds = true) => {
     const date = new Date(value);
@@ -143,8 +247,48 @@ const formatFileSize = (bytes?: number) => {
 };
 
 export default function ShowRequest() {
-    const { formInput } = usePage().props as unknown as PageProps;
+    const { formInput, bankAccounts, uacsList, paymentOptions, flash } =
+        usePage().props as unknown as PageProps;
     const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+
+    // Toggles the inline "Process Now" form on/off in place of the
+    // empty-state block. Automatically closes itself once formInput.staff_input
+    // exists (i.e. after a successful submit + redirect-back-here).
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    // Toggles the inline edit form for FormInput's own fields (name, amount,
+    // payment option). Always available regardless of processing status —
+    // these fields belong to the original submission, not to staff
+    // processing, so editing them shouldn't be gated behind that.
+    const [isEditingDetails, setIsEditingDetails] = useState(false);
+    const [isAddingPaymentOption, setIsAddingPaymentOption] = useState(false);
+
+    // Toggles the inline edit form for the processed staff_input values.
+    // This keeps the staff processing card on the same page instead of
+    // redirecting to the separate edit screen.
+    const [isEditingStaffInput, setIsEditingStaffInput] = useState(false);
+
+    useEffect(() => {
+        if (formInput.staff_input) {
+            setIsProcessing(false);
+        }
+    }, [formInput.staff_input]);
+
+    // Basic flash handling — swap in your toast lib here if you have one
+    // (e.g. sonner's toast.success / toast.error) instead of console.log.
+    useEffect(() => {
+        if (flash?.success) {
+            console.log(flash.success);
+        }
+
+        if (flash?.error) {
+            console.error(flash.error);
+        }
+
+        if (flash?.warning) {
+            console.warn(flash.warning);
+        }
+    }, [flash]);
 
     const supportingDocuments: SupportingDocument[] =
         formInput.supportingDocuments ??
@@ -163,6 +307,111 @@ export default function ShowRequest() {
         router.delete(staff.documents.destroy.url(deleteTargetId), {
             onFinish: () => setDeleteTargetId(null),
             preserveScroll: true,
+        });
+    };
+
+    // ---- Inline "Edit Details" form (name / amount / payment option) -----
+    const {
+        data: detailsData,
+        setData: setDetailsData,
+        put: putDetails,
+        processing: isSubmittingDetails,
+        errors: detailsErrors,
+        reset: resetDetailsForm,
+    } = useForm({
+        firstname_or_office: formInput.firstname_or_office,
+        middlename_or_project: formInput.middlename_or_project ?? '',
+        lastname_or_agency: formInput.lastname_or_agency,
+        amount: String(formInput.amount),
+        payment_detail_option_id: formInput.payment_detail_option
+            ? String(formInput.payment_detail_option.id)
+            : '',
+        new_payment_option: '',
+    });
+
+    const handleDetailsSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        putDetails(staff.requests.updateDetails.url(formInput.id), {
+            preserveScroll: true,
+            onSuccess: () => setIsEditingDetails(false),
+        });
+    };
+
+    const cancelDetailsEdit = () => {
+        resetDetailsForm();
+        setIsAddingPaymentOption(false);
+        setIsEditingDetails(false);
+    };
+
+    const {
+        data: staffInputData,
+        setData: setStaffInputData,
+        put: putStaffInput,
+        processing: isSubmittingStaffInput,
+        errors: staffInputErrors,
+        reset: resetStaffInputForm,
+    } = useForm({
+        fundcluster_id: formInput.staff_input?.bank_account
+            ? String(formInput.staff_input.bank_account.id)
+            : '',
+        ref_document_id: formInput.staff_input?.reference_document
+            ? String(formInput.staff_input.reference_document.id)
+            : '',
+        ref_date: formInput.staff_input?.ref_date ?? '',
+        uacs_id: formInput.staff_input?.uacs
+            ? String(formInput.staff_input.uacs.id)
+            : '',
+        status: formInput.staff_input?.status ?? 'pending',
+        purpose: formInput.staff_input?.purpose ?? '',
+    });
+
+    const handleStaffInputSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!formInput.staff_input) {
+            return;
+        }
+
+        putStaffInput(staff.requests.update.url(formInput.staff_input.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                resetStaffInputForm();
+                setIsEditingStaffInput(false);
+            },
+        });
+    };
+
+    const cancelStaffInputEdit = () => {
+        resetStaffInputForm();
+        setIsEditingStaffInput(false);
+    };
+
+    // ---- Inline "Process Now" form ----------------------------------------
+    const {
+        data: processData,
+        setData: setProcessData,
+        post: postProcess,
+        processing: isSubmittingProcess,
+        errors: processErrors,
+        reset: resetProcessForm,
+    } = useForm({
+        form_input_id: formInput.id,
+        fundcluster_id: '',
+        ref_document_id: '',
+        ref_date: new Date().toISOString().slice(0, 10),
+        uacs_id: '',
+        status: '',
+        purpose: '',
+    });
+    const [isOpDropdownOpen, setIsOpDropdownOpen] = useState(false);
+    const handleProcessSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        postProcess(staff.requests.store.url(), {
+            preserveScroll: true,
+            onSuccess: () => {
+                resetProcessForm();
+                setIsProcessing(false);
+            },
         });
     };
 
@@ -206,89 +455,227 @@ export default function ShowRequest() {
                 <div className="grid gap-6 lg:grid-cols-2">
                     <div className="space-y-6">
                         {/* Personal Information */}
-                        <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-                            <div className="flex items-center gap-2 border-b border-slate-200 px-6 py-4">
+                        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
                                 <h3 className="text-base font-semibold text-slate-900">
                                     Personal / Office Information
                                 </h3>
+                                {!isEditingDetails && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setDetailsData({
+                                                firstname_or_office:
+                                                    formInput.firstname_or_office,
+                                                middlename_or_project:
+                                                    formInput.middlename_or_project ??
+                                                    '',
+                                                lastname_or_agency:
+                                                    formInput.lastname_or_agency,
+                                                amount: String(
+                                                    formInput.amount,
+                                                ),
+                                                payment_detail_option_id:
+                                                    formInput.payment_detail_option
+                                                        ? String(
+                                                              formInput
+                                                                  .payment_detail_option
+                                                                  .id,
+                                                          )
+                                                        : '',
+                                                new_payment_option: '',
+                                            });
+                                            setIsEditingDetails(true);
+                                        }}
+                                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            className="h-3.5 w-3.5"
+                                        >
+                                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                                        </svg>
+                                        Edit
+                                    </button>
+                                )}
                             </div>
                             <div className="p-6">
-                                <table className="w-full text-sm">
-                                    <tbody className="divide-y divide-slate-100">
-                                        <tr>
-                                            <th className="w-2/5 py-2 text-left font-medium text-slate-500">
-                                                First Name / Office
-                                            </th>
-                                            <td className="py-2 text-slate-800">
-                                                {formInput.firstname_or_office}
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th className="py-2 text-left font-medium text-slate-500">
+                                {isEditingDetails ? (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                                First Name / Office{' '}
+                                                <span className="text-rose-500">
+                                                    *
+                                                </span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                    detailsErrors.firstname_or_office
+                                                        ? 'border-rose-400'
+                                                        : 'border-slate-200'
+                                                }`}
+                                                value={
+                                                    detailsData.firstname_or_office
+                                                }
+                                                onChange={(e) =>
+                                                    setDetailsData(
+                                                        'firstname_or_office',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                required
+                                            />
+                                            {detailsErrors.firstname_or_office && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {
+                                                        detailsErrors.firstname_or_office
+                                                    }
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
                                                 Middle Name / Project
-                                            </th>
-                                            <td className="py-2 text-slate-800">
-                                                {formInput.middlename_or_project ??
-                                                    'N/A'}
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th className="py-2 text-left font-medium text-slate-500">
-                                                Last Name / Agency
-                                            </th>
-                                            <td className="py-2 text-slate-800">
-                                                {formInput.lastname_or_agency}
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th className="py-2 text-left font-medium text-slate-500">
-                                                Office / College
-                                            </th>
-                                            <td className="py-2 text-slate-800">
-                                                {formInput.office_or_college}
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th className="py-2 text-left font-medium text-slate-500">
-                                                Position / Designation
-                                            </th>
-                                            <td className="py-2 text-slate-800">
-                                                {
+                                            </label>
+                                            <input
+                                                type="text"
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                    detailsErrors.middlename_or_project
+                                                        ? 'border-rose-400'
+                                                        : 'border-slate-200'
+                                                }`}
+                                                value={
+                                                    detailsData.middlename_or_project
+                                                }
+                                                onChange={(e) =>
+                                                    setDetailsData(
+                                                        'middlename_or_project',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                            {detailsErrors.middlename_or_project && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {
+                                                        detailsErrors.middlename_or_project
+                                                    }
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                                Last Name / Agency{' '}
+                                                <span className="text-rose-500">
+                                                    *
+                                                </span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                    detailsErrors.lastname_or_agency
+                                                        ? 'border-rose-400'
+                                                        : 'border-slate-200'
+                                                }`}
+                                                value={
+                                                    detailsData.lastname_or_agency
+                                                }
+                                                onChange={(e) =>
+                                                    setDetailsData(
+                                                        'lastname_or_agency',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                required
+                                            />
+                                            {detailsErrors.lastname_or_agency && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {
+                                                        detailsErrors.lastname_or_agency
+                                                    }
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <ReadOnlyRow
+                                                label="First Name  / Office"
+                                                value={
+                                                    formInput.firstname_or_office
+                                                }
+                                                valueClass="text-black-400"
+                                            />
+                                        </div>
+                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <ReadOnlyRow
+                                                label="Middlename / Project"
+                                                value={
+                                                    formInput.middlename_or_project
+                                                }
+                                                valueClass="text-black-400"
+                                            />
+                                        </div>
+                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <ReadOnlyRow
+                                                label="Last Name / Agency"
+                                                value={
+                                                    formInput.lastname_or_agency
+                                                }
+                                                valueClass="text-black-400"
+                                            />
+                                        </div>
+                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <ReadOnlyRow
+                                                label="Office / College"
+                                                value={
+                                                    formInput.office_or_college
+                                                }
+                                                valueClass="text-black-400"
+                                            />
+                                        </div>
+                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <ReadOnlyRow
+                                                label="Position / Desgination"
+                                                value={
                                                     formInput.position_or_designation
                                                 }
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th className="py-2 text-left font-medium text-slate-500">
-                                                Email
-                                            </th>
-                                            <td className="py-2">
-                                                <a
-                                                    href={`mailto:${formInput.email}`}
-                                                    className="text-blue-600 hover:underline"
-                                                >
-                                                    {formInput.email}
-                                                </a>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th className="py-2 text-left font-medium text-slate-500">
-                                                Contact Number
-                                            </th>
-                                            <td className="py-2 text-slate-800">
-                                                {formInput.contact_num}
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th className="py-2 text-left font-medium text-slate-500">
-                                                Address
-                                            </th>
-                                            <td className="py-2 text-slate-800">
-                                                {formInput.address}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                                valueClass="text-black-400"
+                                            />
+                                        </div>
+                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <ReadOnlyRow
+                                                label="Email"
+                                                value={formInput.email}
+                                                valueClass="text-blue-400"
+                                            />
+                                        </div>
+                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <ReadOnlyRow
+                                                label="Contact Number"
+                                                value={formInput.contact_num}
+                                                valueClass="text-blue-400"
+                                            />
+                                        </div>
+                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <ReadOnlyRow
+                                                label="Address"
+                                                value={formInput.address}
+                                                valueClass="text-black-400"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </section>
 
@@ -300,61 +687,238 @@ export default function ShowRequest() {
                                 </h3>
                             </div>
                             <div className="p-6">
-                                <table className="w-full text-sm">
-                                    <tbody className="divide-y divide-slate-100">
-                                        <tr>
-                                            <th className="w-2/5 py-2 text-left font-medium text-slate-500">
-                                                Request Type
-                                            </th>
-                                            <td className="py-2">
-                                                <span className="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-800">
-                                                    {formInput.request_type}
+                                {isEditingDetails ? (
+                                    <form onSubmit={handleDetailsSubmit}>
+                                        <div className="mb-4">
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                                Amount{' '}
+                                                <span className="text-rose-500">
+                                                    *
                                                 </span>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th className="py-2 text-left font-medium text-slate-500">
+                                            </label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                    detailsErrors.amount
+                                                        ? 'border-rose-400'
+                                                        : 'border-slate-200'
+                                                }`}
+                                                value={detailsData.amount}
+                                                onChange={(e) =>
+                                                    setDetailsData(
+                                                        'amount',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                required
+                                            />
+                                            {detailsErrors.amount && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {detailsErrors.amount}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="mb-6">
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                                Payment Option{' '}
+                                                <span className="text-rose-500">
+                                                    *
+                                                </span>
+                                            </label>
+                                            {!isAddingPaymentOption ? (
+                                                <div className="flex gap-2">
+                                                    <select
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                            detailsErrors.payment_detail_option_id
+                                                                ? 'border-rose-400'
+                                                                : 'border-slate-200'
+                                                        }`}
+                                                        value={
+                                                            detailsData.payment_detail_option_id
+                                                        }
+                                                        onChange={(e) =>
+                                                            setDetailsData(
+                                                                'payment_detail_option_id',
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        required
+                                                    >
+                                                        <option value="">
+                                                            Select Payment
+                                                            Option
+                                                        </option>
+                                                        {paymentOptions.map(
+                                                            (option) => (
+                                                                <option
+                                                                    key={
+                                                                        option.id
+                                                                    }
+                                                                    value={
+                                                                        option.id
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        option.payment_desc
+                                                                    }
+                                                                </option>
+                                                            ),
+                                                        )}
+                                                    </select>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setIsAddingPaymentOption(
+                                                                true,
+                                                            )
+                                                        }
+                                                        className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-700"
+                                                    >
+                                                        Add
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex gap-2">
+                                                    <input
+                                                        type="text"
+                                                        value={
+                                                            detailsData.new_payment_option
+                                                        }
+                                                        onChange={(e) =>
+                                                            setDetailsData(
+                                                                'new_payment_option',
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        placeholder="Enter a new payment option"
+                                                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none"
+                                                        autoFocus
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setDetailsData(
+                                                                'new_payment_option',
+                                                                '',
+                                                            );
+                                                            setIsAddingPaymentOption(
+                                                                false,
+                                                            );
+                                                        }}
+                                                        className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-700"
+                                                    >
+                                                        Close
+                                                    </button>
+                                                </div>
+                                            )}
+                                            {detailsErrors.payment_detail_option_id && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {
+                                                        detailsErrors.payment_detail_option_id
+                                                    }
+                                                </p>
+                                            )}
+                                            {detailsErrors.new_payment_option && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {
+                                                        detailsErrors.new_payment_option
+                                                    }
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="flex justify-end gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={cancelDetailsEdit}
+                                                className="rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                disabled={isSubmittingDetails}
+                                                className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:opacity-60"
+                                            >
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2.5"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    className="h-4 w-4"
+                                                >
+                                                    <path d="M20 6 9 17l-5-5" />
+                                                </svg>
+                                                {isSubmittingDetails
+                                                    ? 'Saving...'
+                                                    : 'Save Changes'}
+                                            </button>
+                                        </div>
+                                    </form>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
+                                                Request Type
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={formInput.request_type}
+                                                disabled
+                                                className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                            />
+                                        </div>
+                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
                                                 Amount
-                                            </th>
-                                            <td className="py-2 font-bold text-blue-600">
-                                                {formatCurrency(
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={formatCurrency(
                                                     formInput.amount,
                                                 )}
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th className="py-2 text-left font-medium text-slate-500">
-                                                Membership
-                                            </th>
-                                            <td className="py-2 text-slate-800">
-                                                {formInput.membership
-                                                    ?.member_code ?? 'N/A'}{' '}
-                                                -{' '}
-                                                {formInput.membership
-                                                    ?.member_desc ?? ''}
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th className="py-2 text-left font-medium text-slate-500">
-                                                Payment Option
-                                            </th>
-                                            <td className="py-2 text-slate-800">
-                                                {formInput.payment_detail_option
-                                                    ?.payment_desc ?? 'N/A'}
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th className="py-2 text-left font-medium text-slate-500">
-                                                Date Submitted
-                                            </th>
-                                            <td className="py-2 text-slate-800">
-                                                {formatDateTime(
+                                                disabled
+                                                className="flex-1 border-0 bg-transparent p-0 text-sm text-blue-400 outline-none disabled:opacity-100"
+                                            />
+                                        </div>
+                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <ReadOnlyRow
+                                                label="Membership"
+                                                value={
+                                                    formInput.membership
+                                                        ? `${formInput.membership.member_code} - ${formInput.membership.member_desc}`
+                                                        : 'N/A'
+                                                }
+                                                valueClass="text-black-400"
+                                            />
+                                        </div>
+                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <ReadOnlyRow
+                                                label="Payment Option"
+                                                value={
+                                                    formInput
+                                                        .payment_detail_option
+                                                        ?.payment_desc ?? 'N/A'
+                                                }
+                                                valueClass="text-black-400"
+                                            />
+                                        </div>
+                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <ReadOnlyRow
+                                                label="Submission Date"
+                                                value={formatDateTime(
                                                     formInput.created_at,
                                                 )}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                                valueClass="text-black-400"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </section>
                     </div>
@@ -366,194 +930,816 @@ export default function ShowRequest() {
                                 <h3 className="text-base font-semibold text-slate-900">
                                     Staff Processing
                                 </h3>
-                                {formInput.staff_input && (
-                                    <span
-                                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(formInput.staff_input.status)}`}
-                                    >
-                                        {formInput.staff_input.status
-                                            .charAt(0)
-                                            .toUpperCase() +
-                                            formInput.staff_input.status.slice(
-                                                1,
-                                            )}
-                                    </span>
-                                )}
+                                <div className="flex items-center gap-2">
+                                    {formInput.staff_input && (
+                                        <span
+                                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(formInput.staff_input.status)}`}
+                                        >
+                                            {formInput.staff_input.status
+                                                .charAt(0)
+                                                .toUpperCase() +
+                                                formInput.staff_input.status.slice(
+                                                    1,
+                                                )}
+                                        </span>
+                                    )}
+                                    {/* Inline edit is used here so the staff processing
+                                                fields stay on the same page and behave like the
+                                                left-side request details card. */}
+                                    {formInput.staff_input &&
+                                        !isEditingStaffInput && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setStaffInputData({
+                                                        fundcluster_id:
+                                                            formInput
+                                                                .staff_input
+                                                                ?.bank_account
+                                                                ? String(
+                                                                      formInput
+                                                                          .staff_input
+                                                                          .bank_account
+                                                                          .id,
+                                                                  )
+                                                                : '',
+                                                        ref_document_id:
+                                                            formInput
+                                                                .staff_input
+                                                                ?.reference_document
+                                                                ? String(
+                                                                      formInput
+                                                                          .staff_input
+                                                                          .reference_document
+                                                                          .id,
+                                                                  )
+                                                                : '',
+                                                        ref_date:
+                                                            formInput
+                                                                .staff_input
+                                                                ?.ref_date ??
+                                                            '',
+                                                        uacs_id: formInput
+                                                            .staff_input?.uacs
+                                                            ? String(
+                                                                  formInput
+                                                                      .staff_input
+                                                                      .uacs.id,
+                                                              )
+                                                            : '',
+                                                        status:
+                                                            formInput
+                                                                .staff_input
+                                                                ?.status ??
+                                                            'pending',
+                                                        purpose:
+                                                            formInput
+                                                                .staff_input
+                                                                ?.purpose ?? '',
+                                                    });
+                                                    setIsEditingStaffInput(
+                                                        true,
+                                                    );
+                                                }}
+                                                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100"
+                                            >
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    className="h-3.5 w-3.5"
+                                                >
+                                                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                                                </svg>
+                                                Edit
+                                            </button>
+                                        )}
+                                    {!formInput.staff_input &&
+                                        !isProcessing && (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setIsProcessing(true)
+                                                }
+                                                className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700"
+                                            >
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2.5"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    className="h-3.5 w-3.5"
+                                                >
+                                                    <path d="M20 6 9 17l-5-5" />
+                                                </svg>
+                                                Process Now
+                                            </button>
+                                        )}
+                                </div>
                             </div>
                             <div className="p-6">
                                 {formInput.staff_input ? (
-                                    <table className="w-full text-sm">
-                                        <tbody className="divide-y divide-slate-100">
-                                            <tr>
-                                                <th className="w-2/5 py-2 text-left font-medium text-slate-500">
-                                                    Bank Account
-                                                </th>
-                                                <td className="py-2 text-slate-800">
-                                                    {formInput.staff_input
-                                                        .bank_account
-                                                        ?.account_name ?? 'N/A'}
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <th className="py-2 text-left font-medium text-slate-500">
-                                                    Bank
-                                                </th>
-                                                <td className="py-2 text-slate-800">
-                                                    {formInput.staff_input
-                                                        .bank_account
-                                                        ?.bank_name ?? 'N/A'}
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <th className="py-2 text-left font-medium text-slate-500">
-                                                    Fund Cluster
-                                                </th>
-                                                <td className="py-2 text-slate-800">
-                                                    {formInput.staff_input
-                                                        .bank_account
-                                                        ?.fund_cluster ?? 'N/A'}
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <th className="py-2 text-left font-medium text-slate-500">
-                                                    Account Number
-                                                </th>
-                                                <td className="py-2 text-slate-800">
-                                                    {formInput.staff_input
-                                                        .bank_account
-                                                        ?.account_num ?? 'N/A'}
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <th className="py-2 text-left font-medium text-slate-500">
-                                                    Reference Date
-                                                </th>
-                                                <td className="py-2 text-slate-800">
-                                                    {formInput.staff_input
-                                                        .ref_date
-                                                        ? formatDateOnly(
-                                                              formInput
-                                                                  .staff_input
-                                                                  .ref_date,
-                                                          )
-                                                        : 'N/A'}
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <th className="py-2 text-left font-medium text-slate-500">
-                                                    UACS
-                                                </th>
-                                                <td className="py-2 text-slate-800">
-                                                    {formInput.staff_input.uacs
-                                                        ?.object_code ??
-                                                        'N/A'}{' '}
-                                                    -{' '}
-                                                    {formInput.staff_input.uacs
-                                                        ?.account_title ?? ''}
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <th className="py-2 text-left font-medium text-slate-500">
-                                                    Reference Document
-                                                </th>
-                                                <td className="py-2">
-                                                    {formInput.staff_input
-                                                        ?.reference_document ? (
-                                                        <a
-                                                            href={staff.documents.download.url(
-                                                                formInput
-                                                                    .staff_input
-                                                                    .reference_document
-                                                                    .id,
-                                                            )}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="inline-flex items-center gap-1 text-blue-600 hover:underline"
+                                    isEditingStaffInput ? (
+                                        <form onSubmit={handleStaffInputSubmit}>
+                                            <div className="space-y-4">
+                                                <FormField
+                                                    label="Bank Account"
+                                                    required
+                                                    error={
+                                                        staffInputErrors.fundcluster_id
+                                                    }
+                                                >
+                                                    <select
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                            staffInputErrors.fundcluster_id
+                                                                ? 'border-rose-400'
+                                                                : 'border-slate-200'
+                                                        }`}
+                                                        value={
+                                                            staffInputData.fundcluster_id
+                                                        }
+                                                        onChange={(e) =>
+                                                            setStaffInputData(
+                                                                'fundcluster_id',
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        required
+                                                    >
+                                                        <option value="">
+                                                            Select Bank Account
+                                                        </option>
+                                                        {bankAccounts.map(
+                                                            (account) => (
+                                                                <option
+                                                                    key={
+                                                                        account.id
+                                                                    }
+                                                                    value={
+                                                                        account.id
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        account.fund_cluster
+                                                                    }{' '}
+                                                                    -{' '}
+                                                                    {
+                                                                        account.account_name
+                                                                    }{' '}
+                                                                    -{' '}
+                                                                    {
+                                                                        account.bank_name
+                                                                    }{' '}
+                                                                    (
+                                                                    {
+                                                                        account.account_num
+                                                                    }
+                                                                    )
+                                                                </option>
+                                                            ),
+                                                        )}
+                                                    </select>
+                                                </FormField>
+
+                                                <FormField
+                                                    label="Reference Document"
+                                                    error={
+                                                        staffInputErrors.ref_document_id
+                                                    }
+                                                >
+                                                    <select
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                            staffInputErrors.ref_document_id
+                                                                ? 'border-rose-400'
+                                                                : 'border-slate-200'
+                                                        }`}
+                                                        value={
+                                                            staffInputData.ref_document_id
+                                                        }
+                                                        onChange={(e) =>
+                                                            setStaffInputData(
+                                                                'ref_document_id',
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                    >
+                                                        <option value="">
+                                                            Select Reference
+                                                            Document (Optional)
+                                                        </option>
+                                                        {supportingDocuments.map(
+                                                            (document) => (
+                                                                <option
+                                                                    key={
+                                                                        document.id
+                                                                    }
+                                                                    value={
+                                                                        document.id
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        document.original_filename
+                                                                    }
+                                                                </option>
+                                                            ),
+                                                        )}
+                                                    </select>
+                                                </FormField>
+                                                <FormField
+                                                    label="Reference Date"
+                                                    required
+                                                    error={
+                                                        staffInputErrors.ref_date
+                                                    }
+                                                >
+                                                    <input
+                                                        type="date"
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                            staffInputErrors.ref_date
+                                                                ? 'border-rose-400'
+                                                                : 'border-slate-200'
+                                                        }`}
+                                                        value={
+                                                            staffInputData.ref_date
+                                                        }
+                                                        onChange={(e) =>
+                                                            setStaffInputData(
+                                                                'ref_date',
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        required
+                                                    />
+                                                </FormField>
+                                                <FormField
+                                                    label="UACS"
+                                                    required
+                                                    error={
+                                                        staffInputErrors.uacs_id
+                                                    }
+                                                >
+                                                    <select
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                            staffInputErrors.uacs_id
+                                                                ? 'border-rose-400'
+                                                                : 'border-slate-200'
+                                                        }`}
+                                                        value={
+                                                            staffInputData.uacs_id
+                                                        }
+                                                        onChange={(e) =>
+                                                            setStaffInputData(
+                                                                'uacs_id',
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        required
+                                                    >
+                                                        <option value="">
+                                                            Select UACS
+                                                        </option>
+                                                        {uacsList.map(
+                                                            (uacs) => (
+                                                                <option
+                                                                    key={
+                                                                        uacs.id
+                                                                    }
+                                                                    value={
+                                                                        uacs.id
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        uacs.object_code
+                                                                    }{' '}
+                                                                    -{' '}
+                                                                    {
+                                                                        uacs.account_title
+                                                                    }
+                                                                </option>
+                                                            ),
+                                                        )}
+                                                    </select>
+                                                </FormField>
+                                                <FormField
+                                                    label="Status"
+                                                    required
+                                                    error={
+                                                        staffInputErrors.status
+                                                    }
+                                                >
+                                                    <select
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                            staffInputErrors.status
+                                                                ? 'border-rose-400'
+                                                                : 'border-slate-200'
+                                                        }`}
+                                                        value={
+                                                            staffInputData.status
+                                                        }
+                                                        onChange={(e) =>
+                                                            setStaffInputData(
+                                                                'status',
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        required
+                                                    >
+                                                        <option value="pending">
+                                                            Pending
+                                                        </option>
+                                                        <option value="approved">
+                                                            Approved
+                                                        </option>
+                                                        <option value="cancelled">
+                                                            Cancelled
+                                                        </option>
+                                                    </select>
+                                                </FormField>
+                                                <FormField
+                                                    label="Purpose"
+                                                    error={
+                                                        staffInputErrors.purpose
+                                                    }
+                                                >
+                                                    <textarea
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                            staffInputErrors.purpose
+                                                                ? 'border-rose-400'
+                                                                : 'border-slate-200'
+                                                        }`}
+                                                        value={
+                                                            staffInputData.purpose
+                                                        }
+                                                        onChange={(e) =>
+                                                            setStaffInputData(
+                                                                'purpose',
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                    />
+                                                </FormField>
+
+                                                <div className="flex justify-end gap-2 pt-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={
+                                                            cancelStaffInputEdit
+                                                        }
+                                                        className="rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button
+                                                        type="submit"
+                                                        disabled={
+                                                            isSubmittingStaffInput
+                                                        }
+                                                        className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-60"
+                                                    >
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="2.5"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            className="h-4 w-4"
                                                         >
-                                                            <svg
-                                                                xmlns="http://www.w3.org/2000/svg"
-                                                                viewBox="0 0 24 24"
-                                                                fill="none"
-                                                                stroke="currentColor"
-                                                                strokeWidth="2"
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                className="h-4 w-4"
-                                                            >
-                                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                                                <path d="M14 2v6h6" />
-                                                            </svg>
-                                                            {
-                                                                formInput
-                                                                    .staff_input
-                                                                    .reference_document
-                                                                    .original_filename
-                                                            }
-                                                        </a>
-                                                    ) : (
+                                                            <path d="M20 6 9 17l-5-5" />
+                                                        </svg>
+                                                        {isSubmittingStaffInput
+                                                            ? 'Saving...'
+                                                            : 'Save Changes'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                                <ReadOnlyRow
+                                                    label="Bank Account"
+                                                    value={
+                                                        formInput.staff_input
+                                                            ?.bank_account
+                                                            ?.account_name ??
                                                         'N/A'
-                                                    )}
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <th className="py-2 text-left font-medium text-slate-500">
-                                                    Processed By
-                                                </th>
-                                                <td className="py-2 text-slate-800">
-                                                    Staff User
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <th className="py-2 text-left font-medium text-slate-500">
-                                                    Processed Date
-                                                </th>
-                                                <td className="py-2 text-slate-800">
-                                                    {formatDateTime(
+                                                    }
+                                                    valueClass="text-black-400"
+                                                />
+                                            </div>
+                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                                <ReadOnlyRow
+                                                    label="Bank"
+                                                    value={
+                                                        formInput.staff_input
+                                                            .bank_account
+                                                            ?.bank_name ?? 'N/A'
+                                                    }
+                                                    valueClass="text-black-400"
+                                                />
+                                            </div>
+                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                                <ReadOnlyRow
+                                                    label="Fund Cluster"
+                                                    value={
+                                                        formInput.staff_input
+                                                            .bank_account
+                                                            ?.fund_cluster ??
+                                                        'N/A'
+                                                    }
+                                                    valueClass="text-black-400"
+                                                />
+                                            </div>
+                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                                <ReadOnlyRow
+                                                    label="Account Number"
+                                                    value={
+                                                        formInput.staff_input
+                                                            .bank_account
+                                                            ?.account_num ??
+                                                        'N/A'
+                                                    }
+                                                    valueClass="text-black-400"
+                                                />
+                                            </div>
+                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                                <ReadOnlyRow
+                                                    label="Reference Date"
+                                                    value={
+                                                        formInput.staff_input
+                                                            .ref_date
+                                                            ? formatDateOnly(
+                                                                  formInput
+                                                                      .staff_input
+                                                                      .ref_date,
+                                                              )
+                                                            : 'N/A'
+                                                    }
+                                                    valueClass="text-black-400"
+                                                />
+                                            </div>
+                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                                <ReadOnlyRow
+                                                    label="UACS"
+                                                    value={
+                                                        formInput.staff_input
+                                                            .uacs
+                                                            ? `${formInput.staff_input.uacs.object_code} - ${formInput.staff_input.uacs.account_title}`
+                                                            : 'N/A'
+                                                    }
+                                                    valueClass="text-black-400"
+                                                />
+                                            </div>
+                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                                <ReadOnlyRow
+                                                    label="Reference Document"
+                                                    value={
+                                                        formInput.staff_input
+                                                            .reference_document
+                                                            ?.original_filename ??
+                                                        'N/A'
+                                                    }
+                                                    valueClass="text-black-400"
+                                                />
+                                            </div>
+                                            <div className="w-full border-b border-slate-100 py-3 last:border-0">
+                                                <ReadOnlyRow
+                                                    label="Purpose"
+                                                    value={
+                                                        formInput.staff_input
+                                                            .purpose ?? 'N/A'
+                                                    }
+                                                    valueClass="text-black-400"
+                                                    scrollable
+                                                />
+                                            </div>
+                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                                <ReadOnlyRow
+                                                    label="Processed By"
+                                                    value="Staff User"
+                                                    valueClass="text-black-400"
+                                                />
+                                            </div>
+                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                                <ReadOnlyRow
+                                                    label="Processed Date"
+                                                    value={formatDateTime(
                                                         formInput.staff_input
                                                             .created_at,
                                                     )}
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                ) : (
-                                    <div className="py-6 text-center">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            className="mx-auto mb-2 h-8 w-8 text-amber-400"
-                                        >
-                                            <circle cx="12" cy="12" r="10" />
-                                            <path d="M12 6v6l4 2" />
-                                        </svg>
-                                        <p className="mb-4 text-sm text-slate-500">
-                                            This request has not been processed
-                                            yet.
-                                        </p>
-                                        <Link
-                                            href={staff.requests.process.url(
-                                                formInput.id,
-                                            )}
-                                            className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
-                                        >
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="2.5"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                className="h-4 w-4"
+                                                    valueClass="text-black-400"
+                                                />
+                                            </div>
+                                        </div>
+                                    )
+                                ) : isProcessing ? (
+                                    /* ---- Inline Process Form ---- */
+                                    <form onSubmit={handleProcessSubmit}>
+                                        <input
+                                            type="hidden"
+                                            name="form_input_id"
+                                            value={processData.form_input_id}
+                                        />
+
+                                        <div className="mb-4">
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                                Bank Account{' '}
+                                                <span className="text-rose-500">
+                                                    *
+                                                </span>
+                                            </label>
+                                            <select
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                    processErrors.fundcluster_id
+                                                        ? 'border-rose-400'
+                                                        : 'border-slate-200'
+                                                }`}
+                                                value={
+                                                    processData.fundcluster_id
+                                                }
+                                                onChange={(e) =>
+                                                    setProcessData(
+                                                        'fundcluster_id',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                required
                                             >
-                                                <path d="M20 6 9 17l-5-5" />
-                                            </svg>
-                                            Process Now
-                                        </Link>
+                                                <option value="">
+                                                    Select Bank Account
+                                                </option>
+                                                {bankAccounts.map((account) => (
+                                                    <option
+                                                        key={account.id}
+                                                        value={account.id}
+                                                    >
+                                                        {account.fund_cluster} -{' '}
+                                                        {account.account_name} -{' '}
+                                                        {account.bank_name} (
+                                                        {account.account_num})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {processErrors.fundcluster_id && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {
+                                                        processErrors.fundcluster_id
+                                                    }
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="mb-4">
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                                Reference Document
+                                            </label>
+                                            <select
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                    processErrors.ref_document_id
+                                                        ? 'border-rose-400'
+                                                        : 'border-slate-200'
+                                                }`}
+                                                value={
+                                                    processData.ref_document_id
+                                                }
+                                                onChange={(e) =>
+                                                    setProcessData(
+                                                        'ref_document_id',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            >
+                                                <option value="">
+                                                    Select Reference Document
+                                                    (Optional)
+                                                </option>
+                                                {supportingDocuments.map(
+                                                    (document) => (
+                                                        <option
+                                                            key={document.id}
+                                                            value={document.id}
+                                                        >
+                                                            {
+                                                                document.original_filename
+                                                            }
+                                                        </option>
+                                                    ),
+                                                )}
+                                            </select>
+                                            {processErrors.ref_document_id && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {
+                                                        processErrors.ref_document_id
+                                                    }
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="mb-4">
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                                Reference Date{' '}
+                                                <span className="text-rose-500">
+                                                    *
+                                                </span>
+                                            </label>
+                                            <input
+                                                type="date"
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                    processErrors.ref_date
+                                                        ? 'border-rose-400'
+                                                        : 'border-slate-200'
+                                                }`}
+                                                value={processData.ref_date}
+                                                onChange={(e) =>
+                                                    setProcessData(
+                                                        'ref_date',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                required
+                                            />
+                                            {processErrors.ref_date && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {processErrors.ref_date}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="mb-4">
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                                UACS{' '}
+                                                <span className="text-rose-500">
+                                                    *
+                                                </span>
+                                            </label>
+                                            <select
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                    processErrors.uacs_id
+                                                        ? 'border-rose-400'
+                                                        : 'border-slate-200'
+                                                }`}
+                                                value={processData.uacs_id}
+                                                onChange={(e) =>
+                                                    setProcessData(
+                                                        'uacs_id',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                required
+                                            >
+                                                <option value="">
+                                                    Select UACS
+                                                </option>
+                                                {uacsList.map((uacs) => (
+                                                    <option
+                                                        key={uacs.id}
+                                                        value={uacs.id}
+                                                    >
+                                                        {uacs.object_code} -{' '}
+                                                        {uacs.account_title}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {processErrors.uacs_id && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {processErrors.uacs_id}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="mb-6">
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                                Status{' '}
+                                                <span className="text-rose-500">
+                                                    *
+                                                </span>
+                                            </label>
+                                            <select
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                    processErrors.status
+                                                        ? 'border-rose-400'
+                                                        : 'border-slate-200'
+                                                }`}
+                                                value={processData.status}
+                                                onChange={(e) =>
+                                                    setProcessData(
+                                                        'status',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                required
+                                            >
+                                                <option value="">
+                                                    Select Status
+                                                </option>
+                                                <option value="pending">
+                                                    Pending
+                                                </option>
+                                                <option value="approved">
+                                                    Approved
+                                                </option>
+                                                <option value="cancelled">
+                                                    Cancelled
+                                                </option>
+                                            </select>
+                                            {processErrors.status && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {processErrors.status}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="mb-6">
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                                Purpose
+                                            </label>
+                                            <textarea
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                    processErrors.purpose
+                                                        ? 'border-rose-400'
+                                                        : 'border-slate-200'
+                                                }`}
+                                                value={processData.purpose}
+                                                onChange={(e) =>
+                                                    setProcessData(
+                                                        'purpose',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                            {processErrors.purpose && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {processErrors.purpose}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="flex justify-end gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setIsProcessing(false)
+                                                }
+                                                className="rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                disabled={isSubmittingProcess}
+                                                className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-60"
+                                            >
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2.5"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    className="h-4 w-4"
+                                                >
+                                                    <path d="M20 6 9 17l-5-5" />
+                                                </svg>
+                                                {isSubmittingProcess
+                                                    ? 'Processing...'
+                                                    : 'Process Request'}
+                                            </button>
+                                        </div>
+                                    </form>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {[
+                                            'Bank Account',
+                                            'Bank',
+                                            'Reference Date',
+                                            'UACS',
+                                            'Reference Document',
+                                        ].map((label) => (
+                                            <PlaceholderField
+                                                key={label}
+                                                label={label}
+                                            />
+                                        ))}
+                                        <div>
+                                            <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
+                                                Status
+                                            </label>
+                                            <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
+                                                Unprocessed
+                                            </span>
+                                        </div>
+                                        <PlaceholderField
+                                            label="Purpose"
+                                            value="To be filled"
+                                        />
                                     </div>
                                 )}
                             </div>
@@ -637,6 +1823,31 @@ export default function ShowRequest() {
                                                             <path d="M12 15V3" />
                                                         </svg>
                                                     </a>
+                                                    <button
+                                                        type="button"
+                                                        title="Delete"
+                                                        onClick={() =>
+                                                            confirmDelete(
+                                                                document.id,
+                                                            )
+                                                        }
+                                                        className="flex h-8 w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition-colors hover:bg-rose-50"
+                                                    >
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="2"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            className="h-4 w-4"
+                                                        >
+                                                            <path d="M3 6h18" />
+                                                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                                        </svg>
+                                                    </button>
                                                 </div>
                                             </div>
                                         ))}
@@ -651,7 +1862,96 @@ export default function ShowRequest() {
                     </div>
                 </div>
             </div>
+            {formInput.staff_input && (
+                <div className="mx-auto mt-6 flex max-w-6xl justify-end gap-2">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button
+                                type="button"
+                                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="h-4 w-4"
+                                >
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg>
+                                View OP
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="h-3.5 w-3.5"
+                                >
+                                    <path d="m6 9 6 6 6-6" />
+                                </svg>
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuItem asChild>
+                                <a
+                                    href={`${staff.requests.viewOp.url(formInput.id)}?layout=portrait`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="cursor-pointer"
+                                >
+                                    Portrait (3 Pages)
+                                </a>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <a
+                                    href={`${staff.requests.viewOp.url(formInput.id)}?layout=landscape`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="cursor-pointer"
+                                >
+                                    Landscape (1 Page)
+                                </a>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
 
+                    <button
+                        type="button"
+                        onClick={() =>
+                            router.post(
+                                staff.requests.emailOp.url(formInput.id),
+                                {},
+                                {
+                                    preserveScroll: true,
+                                },
+                            )
+                        }
+                        className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-4 w-4"
+                        >
+                            <rect width="20" height="16" x="2" y="4" rx="2" />
+                            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                        </svg>
+                        Send to Email
+                    </button>
+                </div>
+            )}
             {/* Delete Document Confirmation Modal */}
             {deleteTargetId !== null && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">

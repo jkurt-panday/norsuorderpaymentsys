@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -24,6 +25,8 @@ class LawSchoolLedgerController extends Controller
      */
     public function index(Request $request): Response
     {
+        set_time_limit(300);
+
         $query = $this->buildFilteredQuery($request);
 
         // 1. Calculate overall metrics using a cloned query BEFORE pagination
@@ -73,6 +76,36 @@ class LawSchoolLedgerController extends Controller
             ],
             'filterOptions' => $this->getFilterOptions(),
         ]);
+    }
+
+    public function searchStudents(Request $request)
+    {
+        $search = trim((string) $request->query('q', ''));
+
+        $query = LawSchoolLedger::query()
+            ->whereNotNull('last_name')
+            ->where('last_name', '!=', '');
+
+        if ($search !== '') {
+            $searchLower = strtolower($search);
+            $query->where(function ($q) use ($searchLower) {
+                $q->whereRaw('LOWER(last_name) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw('LOWER(first_name) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw('LOWER(middle_initial) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw("LOWER(TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_initial, '')))) LIKE ?", ["%{$searchLower}%"]);
+            });
+        }
+
+        $students = $query
+            ->get(['last_name', 'first_name', 'middle_initial'])
+            ->map(function ($student) {
+                return trim("$student->last_name, $student->first_name ".($student->middle_initial ? "$student->middle_initial" : ''));
+            })
+            ->unique()
+            ->values()
+            ->all();
+
+        return response()->json($students);
     }
 
     /**
@@ -216,7 +249,16 @@ class LawSchoolLedgerController extends Controller
     public function import(Request $request): RedirectResponse
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,csv,xls'],
+            'file' => [
+                'required',
+                'file',
+                function ($attribute, $value, $fail) {
+                    $extension = strtolower($value->getClientOriginalExtension());
+                    if (! in_array($extension, ['csv', 'xlsx', 'xls'])) {
+                        $fail('The file must be a file of type: csv, xlsx, xls.');
+                    }
+                },
+            ],
         ]);
 
         set_time_limit(0);
@@ -368,6 +410,8 @@ class LawSchoolLedgerController extends Controller
      */
     public function generatePdf(Request $request)
     {
+        set_time_limit(300);
+
         $request->validate([
             'student' => 'required|string',
         ]);
@@ -380,11 +424,17 @@ class LawSchoolLedgerController extends Controller
 
         $summary = $this->calculateStudentBalance($records);
 
+        $logoPath = public_path('norsu.png');
+        $logoDataUri = file_exists($logoPath)
+            ? 'data:image/png;base64,'.base64_encode(file_get_contents($logoPath))
+            : null;
+
         $pdf = Pdf::loadView('pdf.law-student-ledger-statement', [
             'studentName' => $studentName,
             'records' => $records,
             'summary' => $summary,
-            'generatedAt' => now()->format('Y-m-d h:i A'),
+            'generatedAt' => now()->timezone('Asia/Manila')->format('Y-m-d h:i A'),
+            'logoDataUri' => $logoDataUri,
         ])
             ->setPaper('a4', 'portrait')
             ->setOption('defaultFont', 'DejaVu Sans')
@@ -405,27 +455,44 @@ class LawSchoolLedgerController extends Controller
             $normalized[Str::slug((string) $key, '_')] = $value;
         }
 
-        // Handles "NAME\n(Last Name, First Name, M.I.)" and standard variations
-        $studentName = Arr::get($normalized, 'name_last_name_first_name_m_i')
-            ?? Arr::get($normalized, 'name_last_name_first_name_mi')
-            ?? Arr::get($normalized, 'student_name')
-            ?? Arr::get($normalized, 'student')
-            ?? Arr::get($normalized, 'name');
+        // LAW_SCHOOL_Ledger.csv uses separate name columns; older exports may use
+        // a combined name field. Handle both formats.
+        $lastName = Arr::get($normalized, 'last_name');
+        $firstName = Arr::get($normalized, 'first_name');
+        $middleInitial = Arr::get($normalized, 'middle_initial');
 
-        $studentName = is_string($studentName) ? trim($studentName) : null;
+        if ($lastName || $firstName) {
+            $nameParts = [
+                'last_name' => is_string($lastName) ? trim($lastName) : null,
+                'first_name' => is_string($firstName) ? trim($firstName) : null,
+                'middle_initial' => is_string($middleInitial) ? rtrim(trim($middleInitial), '.') : null,
+            ];
+        } else {
+            $studentName = Arr::get($normalized, 'name_last_name_first_name_m_i')
+                ?? Arr::get($normalized, 'name_last_name_first_name_mi')
+                ?? Arr::get($normalized, 'student_name')
+                ?? Arr::get($normalized, 'student')
+                ?? Arr::get($normalized, 'name');
 
-        if (blank($studentName)) {
-            return null;
+            $studentName = is_string($studentName) ? trim($studentName) : null;
+
+            if (blank($studentName)) {
+                return null;
+            }
+
+            $nameParts = $this->parseStudentName($studentName) ?? [
+                'last_name' => $studentName,
+                'first_name' => null,
+                'middle_initial' => null,
+            ];
         }
-
-        $nameParts = $this->parseStudentName($studentName);
 
         $amount = (float) (Arr::get($normalized, 'amount', 0) ?? 0);
 
         return [
-            'last_name' => $nameParts['last_name'] ?? $studentName,
-            'first_name' => $nameParts['first_name'] ?? null,
-            'middle_initial' => $nameParts['middle_initial'] ?? null,
+            'last_name' => $nameParts['last_name'],
+            'first_name' => $nameParts['first_name'],
+            'middle_initial' => $nameParts['middle_initial'],
             'course' => Arr::get($normalized, 'course') ?? Arr::get($normalized, 'program'),
             'school_year' => Arr::get($normalized, 'school_year') ?? Arr::get($normalized, 'academic_year') ?? Arr::get($normalized, 'sy'),
             'semester_or_summer' => Arr::get($normalized, 'semester_or_summer')
@@ -477,12 +544,14 @@ class LawSchoolLedgerController extends Controller
 
         return LawSchoolLedger::query()
             ->when($request->input('search'), function ($query, $search) {
-                $search = strtolower($search);
-                $query->whereRaw('LOWER(first_name) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(middle_initial) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(reference_jev_or_number) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(particulars) LIKE ?', ["%{$search}%"]);
+                $query->where(function ($query) use ($search) {
+                    $query->whereRaw('LOWER(first_name) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(middle_initial) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(reference_jev_or_number) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(particulars) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw("LOWER(TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_initial, '')))) LIKE ?", ["%{$search}%"]);
+                });
             })
             ->when($schoolYear, function ($query, $schoolYear) {
                 $query->where('school_year', $schoolYear);
