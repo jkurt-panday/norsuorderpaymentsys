@@ -1,3 +1,4 @@
+import { Plus, Pencil, Trash2, CheckCircle2, Activity } from 'lucide-react';
 import React from 'react';
 import {
     Bar,
@@ -14,12 +15,13 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
-import { Plus, Pencil, Trash2, CheckCircle2, Activity } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export function getDayLabel(dateString?: string | null): string | null {
-    if (!dateString) return null;
+    if (!dateString) {
+return null;
+}
 
     const date = new Date(dateString);
     const today = new Date();
@@ -28,9 +30,13 @@ export function getDayLabel(dateString?: string | null): string | null {
 
     const diffDays = Math.round((today.getTime() - date.getTime()) / 86400000);
 
-    if (diffDays <= 0) return 'Today';
+    if (diffDays <= 0) {
+return 'Today';
+}
 
-    if (diffDays === 1) return '1 day ago';
+    if (diffDays === 1) {
+return '1 day ago';
+}
 
     return `${diffDays} days ago`;
 }
@@ -104,11 +110,15 @@ function renderLineDot(yKey: string, color: string) {
     }) => {
         const { cx, cy, payload } = props;
 
-        if (cx === undefined || cy === undefined || !payload) return <></>;
+        if (cx === undefined || cy === undefined || !payload) {
+return <></>;
+}
 
         const value = Number(payload[yKey] ?? 0);
 
-        if (value <= 0) return <></>;
+        if (value <= 0) {
+return <></>;
+}
 
         return <circle cx={cx} cy={cy} r={3} fill={color} />;
     };
@@ -396,6 +406,7 @@ export function ActivityLogList({
                                 badgeClass,
                                 label,
                             } = getEventConfig(log.event);
+
                             return (
                                 <li
                                     key={log.id}

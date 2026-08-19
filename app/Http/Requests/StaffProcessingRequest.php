@@ -17,9 +17,10 @@ class StaffProcessingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'form_input_id' => ['required', 'exists:form_inputs,id'],
-            'fundcluster_id' => ['required', 'exists:bankaccount_infos,id'],
+            'form_input_id' => [$this->isMethod('post') ? 'required' : 'sometimes', 'exists:form_inputs,id'],
+            'fundcluster_id' => 'required|exists:bankaccount_infos,id',
             'ref_document_id' => ['nullable', 'exists:supporting_documents,id'],
+            'purpose' => 'nullable|string|max:255',
             'ref_date' => ['required', 'date', 'date_format:Y-m-d', 'before_or_equal:today'],
             'uacs_id' => ['required', 'exists:uacs,id'],
             'status' => ['required', Rule::in(['pending', 'approved', 'cancelled'])],

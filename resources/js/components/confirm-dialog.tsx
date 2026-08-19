@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -7,7 +8,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 
 export interface ConfirmOptions {
     title?: string;
@@ -96,8 +96,10 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
  */
 export function useConfirm(): ConfirmFn {
     const ctx = useContext(ConfirmContext);
+
     if (!ctx) {
         throw new Error('useConfirm must be used within a <ConfirmProvider>');
     }
+
     return ctx;
 }
