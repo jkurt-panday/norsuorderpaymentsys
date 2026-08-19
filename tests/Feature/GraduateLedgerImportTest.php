@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Student;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -33,10 +34,14 @@ class GraduateLedgerImportTest extends TestCase
         ]);
 
         $response->assertRedirect('/graduate-ledger');
+
+        $student = Student::where('raw_name_from_csv', 'Juan Dela Cruz')->first();
+        $this->assertNotNull($student);
         $this->assertDatabaseHas('graduate_ledgers', [
-            'student_name' => 'Juan Dela Cruz',
+            'student_id'              => $student->id,
+            'entry_type'              => 'ar',
             'reference_or_jev_number' => 'OR-001',
-            'amount' => '1350.00',
+            'amount'                  => '1350.00',
         ]);
 
         unlink($file);

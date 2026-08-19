@@ -13,8 +13,8 @@ class GraduateLedgerExport implements FromQuery, ShouldAutoSize, WithCustomChunk
 {
     public function __construct(
         private readonly Builder $query,
-        private readonly bool $isNormalized
-    ) {}
+    ) {
+    }
 
     public function chunkSize(): int
     {
@@ -29,68 +29,43 @@ class GraduateLedgerExport implements FromQuery, ShouldAutoSize, WithCustomChunk
     public function headings(): array
     {
         return [
-            'Student Name',
-            'Last Name',
-            'First Name',
-            'Middle Name',
-            'Course',
-            'School Year',
-            'Semester',
-            'Units',
-            'Transaction Date',
-            'Reference/JEV Number',
-            'Particulars',
-            'Tuition/Unit or Fee',
-            'Type (AR/Payment)',
-            'Amount',
-            'Remarks',
-            'Input By',
+            'FF',
+            'COURSE',
+            'SCHOOL YEAR',
+            '',
+            "SEMESTER/\nSUMMER",
+            'UNITS',
+            'TRANSACTION DATE',
+            'Reference JEV  / O.R. NUMBER',
+            'PARTICULARS',
+            'TUITION per UNIT/ Reg. and Miscellaneous per semester',
+            'AR/PAYMENT',
+            'AMOUNT',
+            'REMARKS',
+            'INPUT BY:',
         ];
     }
 
     public function map($row): array
     {
-        if ($this->isNormalized) {
-            $student = $row->student;
-            $courseCode = $row->course?->code ?? '';
-            $schoolYear = $row->academicTerm?->school_year ?? '';
-            $semester = $row->academicTerm?->semester_short ?? ($row->academicTerm?->semester ?? '');
-            $type = strtoupper($row->entry_type ?? 'AR');
-
-            return [
-                $student?->full_name ?? '',
-                $student?->last_name ?? '',
-                $student?->first_name ?? '',
-                $student?->middle_name ?? '',
-                $courseCode,
-                $schoolYear,
-                $semester,
-                (float) ($row->units ?? 0),
-                $row->transaction_date ? (string) $row->transaction_date : '',
-                $row->reference_or_jev_number ?? '',
-                $row->particulars ?? '',
-                (float) ($row->tuition_per_unit_or_misc ?? 0),
-                $type,
-                (float) ($row->amount ?? 0),
-                $row->remarks ?? '',
-                $row->input_by ?? '',
-            ];
-        }
+        $studentName = $row->student?->full_name ?? '';
+        $courseCode  = $row->course?->code ?? '';
+        $schoolYear  = $row->academicTerm?->school_year ?? '';
+        $semFull     = $row->academicTerm?->semester ?? '';
+        $type        = strtoupper($row->entry_type ?? 'AR');
 
         return [
-            $row->student_name ?? '',
-            '',
-            '',
-            '',
-            $row->course ?? '',
-            $row->school_year ?? '',
-            $row->semester_short ?: ($row->semester ?? ''),
+            $studentName,
+            $courseCode,
+            $schoolYear,
+            $semShort,
+            $semFull,
             (float) ($row->units ?? 0),
             $row->transaction_date ? (string) $row->transaction_date : '',
             $row->reference_or_jev_number ?? '',
             $row->particulars ?? '',
             (float) ($row->tuition_per_unit_or_misc ?? 0),
-            $row->ar_payment ?? '',
+            $type,
             (float) ($row->amount ?? 0),
             $row->remarks ?? '',
             $row->input_by ?? '',
