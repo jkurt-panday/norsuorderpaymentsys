@@ -16,6 +16,16 @@ import {
   Download,
 } from 'lucide-react';
 import React, { useState } from 'react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -142,6 +152,7 @@ interface IndexProps {
     totalAssessments?: number;
     totalPayments?: number;
     outstandingBalance?: number;
+    statusCounts?: Record<string, number>;
   };
   filterOptions?: {
     courses: string[];
@@ -159,6 +170,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [importSuccess, setImportSuccess] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string | number; name: string } | null>(null);
 
   const handleImportFile = (file: File | null, inputEl: HTMLInputElement) => {
     if (!file || isImporting) return;
@@ -388,62 +400,67 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
         {/* Summary Analytics */}
         <Card className="border border-[#CFE3FF] bg-white">
           <CardContent className="pt-6">
-            <div className="space-y-2">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-600">Outstanding Balance</span>
-                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                <span className="text-sm font-medium text-slate-700">Status Breakdown</span>
               </div>
-              <p className="text-xl font-bold text-slate-900">{currency(outstandingBalance)}</p>
-              <div className="h-2 bg-orange-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-orange-500 rounded-full transition-all duration-500"
-                  style={{
-                    width: `${totalAssessments > 0 ? Math.min((outstandingBalance / totalAssessments) * 100, 100) : 0}%`
-                  }}
-                />
-              </div>
-            </div>
-
-            <Separator className="my-6" />
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-4 bg-white rounded-lg border border-slate-200">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">Collection Rate</span>
-                  <span className="text-sm font-medium text-slate-900">
-                    {totalAssessments > 0
-                      ? `${((totalPayments / totalAssessments) * 100).toFixed(1)}%`
-                      : '0.0%'}
-                  </span>
-                </div>
-                <div className="mt-2 h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${totalAssessments > 0 ? Math.min((totalPayments / totalAssessments) * 100, 100) : 0}%`
-                    }}
-                  />
-                </div>
+              <div className="flex flex-wrap gap-2">
+                {(stats?.statusCounts && Object.keys(stats.statusCounts).length > 0)
+                  ? Object.entries(stats.statusCounts).map(([status, count]) => (
+                      <Badge
+                        key={status}
+                        variant="outline"
+                        className={`${statusBadgeVariant(status)} border`}
+                      >
+                        {status}: {count}
+                      </Badge>
+                    ))
+                  : (
+                    <span className="text-sm text-slate-500">No status data available.</span>
+                  )}
               </div>
 
-              <div className="p-4 bg-white rounded-lg border border-slate-200">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">Average Transaction</span>
-                  <span className="text-sm font-medium text-slate-900">
-                    {totalRecordCount > 0
-                      ? currency((totalAssessments + totalPayments) / totalRecordCount)
-                      : '₱0.00'}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 mt-1">Per record</p>
-              </div>
+              <Separator className="my-4" />
 
-              <div className="p-4 bg-white rounded-lg border border-slate-200">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">Records This Page</span>
-                  <span className="text-sm font-medium text-slate-900">{rows.length}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 bg-white rounded-lg border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">Collection Rate</span>
+                    <span className="text-sm font-medium text-slate-900">
+                      {totalAssessments > 0
+                        ? `${((totalPayments / totalAssessments) * 100).toFixed(1)}%`
+                        : '0.0%'}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${totalAssessments > 0 ? Math.min((totalPayments / totalAssessments) * 100, 100) : 0}%`
+                      }}
+                    />
+                  </div>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">of {totalRecordCount.toLocaleString()} total</p>
+
+                <div className="p-4 bg-white rounded-lg border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">Average Assessment per Student</span>
+                    <span className="text-sm font-medium text-slate-900">
+                      {totalStudents > 0
+                        ? currency(totalAssessments / totalStudents)
+                        : '₱0.00'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">Per unique student</p>
+                </div>
+
+                <div className="p-4 bg-white rounded-lg border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">Records This Page</span>
+                    <span className="text-sm font-medium text-slate-900">{rows.length}</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">of {totalRecordCount.toLocaleString()} total</p>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -647,10 +664,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                         </button>
                         <button
                           onClick={() =>
-                            handleDelete(
-                              r.id,
-                              r.name,
-                            )
+                            setDeleteTarget({ id: r.id, name: r.name })
                           }
                           className="inline-flex items-center justify-center rounded p-1.5 text-red-500 transition-colors hover:bg-red-50"
                           title="Delete"
@@ -810,12 +824,42 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
         </div>
       )}
 
-      </div>
-  );
-}
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Transaction</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the transaction for &quot;{deleteTarget?.name}&quot;? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!deleteTarget) {
+                  return;
+                }
 
-function handleDelete(id: string | number, name: string) {
-  if (confirm(`Delete transaction for ${name}?`)) {
-    router.delete(`/law-ledger/${id}`);
+                router.delete(`/law-ledger/${deleteTarget.id}`);
+                setDeleteTarget(null);
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      </div>
+    );
   }
-}

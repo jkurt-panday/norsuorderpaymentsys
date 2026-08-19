@@ -9,6 +9,14 @@ import {
     CardTitle,
     CardDescription,
 } from '@/components/ui/card';
+import {
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+} from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 
 const courseOptions = ['JD', 'LLM', 'JSD'];
@@ -258,19 +266,34 @@ export default function AddTransaction({ studentNames, authUserName }: Props) {
                                 <label className="text-sm text-[#334E68]">
                                     Particulars
                                 </label>
-                                <select
+                                <Combobox
+                                    items={particularsOptions}
                                     value={data.particulars}
-                                    onChange={(e) =>
-                                        setData('particulars', e.target.value)
+                                    onValueChange={(value) =>
+                                        setData('particulars', value || '')
                                     }
-                                    className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
                                 >
-                                    {particularsOptions.map((option) => (
-                                        <option key={option} value={option}>
-                                            {option}
-                                        </option>
-                                    ))}
-                                </select>
+                                    <ComboboxInput
+                                        placeholder="Select or type particulars"
+                                        showClear={!!data.particulars}
+                                        className="border-[#CFE3FF] focus-within:border-[#0F6FFF] focus-within:ring-2 focus-within:ring-[#0F6FFF]/30"
+                                    />
+                                    <ComboboxContent>
+                                        <ComboboxEmpty>
+                                            No items found.
+                                        </ComboboxEmpty>
+                                        <ComboboxList>
+                                            {particularsOptions.map((option) => (
+                                                <ComboboxItem
+                                                    key={option}
+                                                    value={option}
+                                                >
+                                                    {option}
+                                                </ComboboxItem>
+                                            ))}
+                                        </ComboboxList>
+                                    </ComboboxContent>
+                                </Combobox>
                             </div>
 
                             <div>
