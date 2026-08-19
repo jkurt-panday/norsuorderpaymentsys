@@ -53,7 +53,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
     const { data, setData, post, processing, errors, reset } = useForm({
         email: user?.email || '',
         contact_num: profile?.contact_num || '',
-        firstname_or_office: profile?.firstname_or_office || user?.name || '',
+        firstname_or_office: profile?.firstname_or_office || '',
         middlename_or_project: profile?.middlename_or_project || '',
         lastname_or_agency: profile?.lastname_or_agency || '',
         office_or_college: profile?.office_or_college || '',

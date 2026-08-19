@@ -15,9 +15,14 @@ class EnsureUserIsStaff
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! in_array($request->user()?->role, ['staff', 'admin'])) {
-            abort(403);
+        if (in_array($request->user()?->role, ['staff', 'admin'])) {
+            return $next($request);
         }
-        return $next($request);
+
+        if (! $request->user()) {
+            return redirect()->route('login')->with('error', 'Please log in to access this area.');
+        }
+
+        return redirect()->route('client.dashboard')->with('error', 'Unauthorized access. Staff privileges required.');
     }
 }

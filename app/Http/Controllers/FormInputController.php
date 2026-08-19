@@ -165,7 +165,7 @@ class FormInputController extends Controller
             }
 
             return redirect()->route('public.success', [
-                'reference_number' => $formInput->reference_number
+                'referenceNumber' => $formInput->reference_number
             ]);
 
         } catch (\Throwable $e) {
