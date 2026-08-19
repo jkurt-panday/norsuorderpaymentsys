@@ -10,7 +10,8 @@ import {
     ChevronRight,
     LogOut,
     GraduationCap,
-    Logs
+    Logs,
+    School
 } from 'lucide-react';
 import React from 'react';
 import AppLogo from '@/components/app-logo';
@@ -69,6 +70,7 @@ const mainNavItems: SidebarItem[] = [
     },
     { title: 'Memberships', href: '/staff/memberships', icon: Users },
     { title: 'UACS', href: '/staff/uacs', icon: Logs },
+    { title: 'Course', href: '/staff/courses', icon: School },
     {
         title: 'Graduate Ledger',
         icon: GraduationCap,
