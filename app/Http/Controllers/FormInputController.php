@@ -15,6 +15,7 @@ use App\Services\ReceiptPDFService;
 // use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class FormInputController extends Controller
 {
