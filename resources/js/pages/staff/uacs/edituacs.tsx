@@ -1,5 +1,5 @@
 import React from 'react';
-import { update, index } from '@/actions/App/Http/Controllers/UacsController';
+import { update, index } from '@/actions/App/Http/Controllers/UACSController';
 import ResourceForm from '@/components/ResourceForm';
 
 // ============ TYPE DEFINITIONS ============

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\FormInputController;
+use App\Http\Controllers\LawSchoolLedgerController;
 use App\Http\Controllers\StaffInputController;
 use Illuminate\Support\Facades\Route;
 

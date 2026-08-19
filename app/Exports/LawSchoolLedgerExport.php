@@ -8,12 +8,11 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 
-class LawSchoolLedgerExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSize
+class LawSchoolLedgerExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapping
 {
     public function __construct(
         private readonly Builder $query
-    ) {
-    }
+    ) {}
 
     public function query(): Builder
     {

@@ -2,7 +2,8 @@ packages:
   - '.'
 
 allowBuilds:
-  core-js: set this to true or false
+  core-js: true
+  puppeteer: true
   unrs-resolver: false
 
 publicHoistPattern:
