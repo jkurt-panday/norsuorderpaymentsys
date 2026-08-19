@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('staff_inputs', function (Blueprint $table) {
-            $table->string('purpose', 400)->nullable()->after('ref_document_id');
+            $table->string('purpose', 300)->nullable()->after('ref_document_id');
         });
     }
 

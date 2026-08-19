@@ -269,7 +269,7 @@ class StaffInputController extends Controller
             'middlename_or_project' => 'nullable|string|max:100',
             'lastname_or_agency' => 'required|string|max:100',
             'amount' => 'required|numeric|min:0',
-            'purpose' => 'nullable|string|max:400',
+            'purpose' => 'nullable|string|max:350',
             'payment_detail_option_id' => ['nullable', 'exists:payment_detail_options,id'],
             'new_payment_option' => 'nullable|string|max:255',
         ]);
@@ -348,7 +348,7 @@ class StaffInputController extends Controller
 
     public function viewOp(FormInput $formInput, Request $request)
     {
-        $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument',]);
+        $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument']);
 
         $copyLabels = self::OP_COPY_LABELS;
 
@@ -356,7 +356,7 @@ class StaffInputController extends Controller
 
         $pdf = $layout === 'landscape'
             ? Pdf::loadView('pdf.op-landscape', compact('formInput', 'copyLabels'))->setPaper('legal', 'landscape')
-            : Pdf::loadView('pdf.op-portrait', compact('formInput', 'copyLabels'))->setPaper('a5', 'portrait');
+            : Pdf::loadView('pdf.op-a6', compact('formInput', 'copyLabels'))->setPaper('a6', 'portrait');
 
         return $pdf->stream("OP-{$formInput->reference_number}.pdf");
     }
