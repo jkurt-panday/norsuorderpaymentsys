@@ -1,6 +1,7 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
 import staff from '@/routes/staff';
+import { flashToast } from '@/utils/flashToast';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -277,17 +278,9 @@ export default function ShowRequest() {
     // Basic flash handling — swap in your toast lib here if you have one
     // (e.g. sonner's toast.success / toast.error) instead of console.log.
     useEffect(() => {
-        if (flash?.success) {
-            console.log(flash.success);
-        }
-
-        if (flash?.error) {
-            console.error(flash.error);
-        }
-
-        if (flash?.warning) {
-            console.warn(flash.warning);
-        }
+        flashToast('success', flash?.success);
+        flashToast('error', flash?.error);
+        flashToast('warning', flash?.warning);
     }, [flash]);
 
     const supportingDocuments: SupportingDocument[] =

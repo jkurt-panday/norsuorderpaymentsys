@@ -247,7 +247,7 @@ class StaffInputController extends Controller
             DB::commit();
 
             return redirect()->route('staff.requests.show', $staffInput->formInput)
-                ->with('success', 'Processing updated successfully! New status: '.ucfirst($staffInput->status));
+                ->with('success', 'Processing updated successfully! Current status: '.ucfirst($staffInput->status));
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -269,7 +269,7 @@ class StaffInputController extends Controller
             'middlename_or_project' => 'nullable|string|max:100',
             'lastname_or_agency' => 'required|string|max:100',
             'amount' => 'required|numeric|min:0',
-            'purpose' => 'nullable|string|max:250',
+            'purpose' => 'nullable|string|max:400',
             'payment_detail_option_id' => ['nullable', 'exists:payment_detail_options,id'],
             'new_payment_option' => 'nullable|string|max:255',
         ]);
