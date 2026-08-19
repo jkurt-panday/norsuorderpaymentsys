@@ -170,7 +170,10 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [importSuccess, setImportSuccess] = useState(false);
+<<<<<<< HEAD
   const [deleteTarget, setDeleteTarget] = useState<{ id: string | number; name: string } | null>(null);
+=======
+>>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703
 
   const handleImportFile = (file: File | null, inputEl: HTMLInputElement) => {
     if (!file || isImporting) return;
@@ -404,6 +407,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-slate-700">Status Breakdown</span>
               </div>
+<<<<<<< HEAD
               <div className="flex flex-wrap gap-2">
                 {(stats?.statusCounts && Object.keys(stats.statusCounts).length > 0)
                   ? Object.entries(stats.statusCounts).map(([status, count]) => (
@@ -421,6 +425,52 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
               </div>
 
               <Separator className="my-4" />
+=======
+              <p className="text-xl font-bold text-slate-900">{currency(outstandingBalance)}</p>
+              <div className="h-2 bg-orange-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-orange-500 rounded-full transition-all duration-500"
+                  style={{
+                    width: `${totalAssessments > 0 ? Math.min((outstandingBalance / totalAssessments) * 100, 100) : 0}%`
+                  }}
+                />
+              </div>
+            </div>
+
+            <Separator className="my-6" />
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 bg-white rounded-lg border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-600">Collection Rate</span>
+                  <span className="text-sm font-medium text-slate-900">
+                    {totalAssessments > 0
+                      ? `${((totalPayments / totalAssessments) * 100).toFixed(1)}%`
+                      : '0.0%'}
+                  </span>
+                </div>
+                <div className="mt-2 h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${totalAssessments > 0 ? Math.min((totalPayments / totalAssessments) * 100, 100) : 0}%`
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 bg-white rounded-lg border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-600">Average Transaction</span>
+                  <span className="text-sm font-medium text-slate-900">
+                    {totalRecordCount > 0
+                      ? currency((totalAssessments + totalPayments) / totalRecordCount)
+                      : '₱0.00'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">Per record</p>
+              </div>
+>>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="p-4 bg-white rounded-lg border border-slate-200">
@@ -664,7 +714,14 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                         </button>
                         <button
                           onClick={() =>
+<<<<<<< HEAD
                             setDeleteTarget({ id: r.id, name: r.name })
+=======
+                            handleDelete(
+                              r.id,
+                              r.name,
+                            )
+>>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703
                           }
                           className="inline-flex items-center justify-center rounded p-1.5 text-red-500 transition-colors hover:bg-red-50"
                           title="Delete"
@@ -824,6 +881,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
         </div>
       )}
 
+<<<<<<< HEAD
       <AlertDialog
         open={!!deleteTarget}
         onOpenChange={(open) => {
@@ -863,3 +921,14 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
       </div>
     );
   }
+=======
+      </div>
+  );
+}
+
+function handleDelete(id: string | number, name: string) {
+  if (confirm(`Delete transaction for ${name}?`)) {
+    router.delete(`/law-ledger/${id}`);
+  }
+}
+>>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703

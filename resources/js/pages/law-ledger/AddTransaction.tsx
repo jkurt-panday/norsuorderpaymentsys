@@ -9,6 +9,7 @@ import {
     CardTitle,
     CardDescription,
 } from '@/components/ui/card';
+<<<<<<< HEAD
 import {
     Combobox,
     ComboboxContent,
@@ -17,6 +18,8 @@ import {
     ComboboxItem,
     ComboboxList,
 } from '@/components/ui/combobox';
+=======
+>>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703
 import { Input } from '@/components/ui/input';
 
 const courseOptions = ['JD', 'LLM', 'JSD'];
@@ -266,6 +269,7 @@ export default function AddTransaction({ studentNames, authUserName }: Props) {
                                 <label className="text-sm text-[#334E68]">
                                     Particulars
                                 </label>
+<<<<<<< HEAD
                                 <Combobox
                                     items={particularsOptions}
                                     value={data.particulars}
@@ -294,6 +298,21 @@ export default function AddTransaction({ studentNames, authUserName }: Props) {
                                         </ComboboxList>
                                     </ComboboxContent>
                                 </Combobox>
+=======
+                                <select
+                                    value={data.particulars}
+                                    onChange={(e) =>
+                                        setData('particulars', e.target.value)
+                                    }
+                                    className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                >
+                                    {particularsOptions.map((option) => (
+                                        <option key={option} value={option}>
+                                            {option}
+                                        </option>
+                                    ))}
+                                </select>
+>>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703
                             </div>
 
                             <div>

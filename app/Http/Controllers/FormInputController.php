@@ -7,6 +7,10 @@ use App\Models\FormInput;
 use App\Models\Membership;
 // use App\Models\SupportingDocument;
 use App\Models\PaymentDetailOption;
+<<<<<<< HEAD
+=======
+use App\Models\UserProfile;
+>>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703
 use App\Services\FileUploadService;
 use App\Services\ReferenceNumberService;
 use App\Services\ReceiptPDFService;
@@ -15,7 +19,11 @@ use App\Services\ReceiptPDFService;
 // use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+<<<<<<< HEAD
 
+=======
+use Inertia\Response;
+>>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703
 class FormInputController extends Controller
 {
     protected FileUploadService $fileUploadService;
@@ -147,6 +155,7 @@ class FormInputController extends Controller
 
             DB::commit();
 
+<<<<<<< HEAD
             // Eager-load relations before rendering, so the Success page
             // receives formInput.membership and formInput.paymentDetailOption
             // as populated nested objects instead of undefined.
@@ -161,6 +170,26 @@ class FormInputController extends Controller
             // 
             return redirect()->route('public.success', [
                 'reference_number' => $formInput->reference_number
+=======
+            // If user is authenticated, save/update their profile preferences for next time
+            if (auth()->check()) {
+                UserProfile::updateOrCreate(
+                    ['user_id' => auth()->id()],
+                    [
+                        'firstname_or_office'     => $validated['firstname_or_office'],
+                        'middlename_or_project'   => $validated['middlename_or_project'] ?? null,
+                        'lastname_or_agency'      => $validated['lastname_or_agency'],
+                        'contact_num'             => $validated['contact_num'],
+                        'office_or_college'       => $validated['office_or_college'],
+                        'position_or_designation' => $validated['position_or_designation'],
+                        'address'                 => $validated['address'],
+                    ]
+                );
+            }
+
+            return redirect()->route('public.success', [
+                'referenceNumber' => $formInput->reference_number
+>>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703
             ]);
 
         } catch (\Throwable $e) {
