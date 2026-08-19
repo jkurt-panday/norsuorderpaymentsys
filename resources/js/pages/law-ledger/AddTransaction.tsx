@@ -9,17 +9,6 @@ import {
     CardTitle,
     CardDescription,
 } from '@/components/ui/card';
-<<<<<<< HEAD
-import {
-    Combobox,
-    ComboboxContent,
-    ComboboxEmpty,
-    ComboboxInput,
-    ComboboxItem,
-    ComboboxList,
-} from '@/components/ui/combobox';
-=======
->>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703
 import { Input } from '@/components/ui/input';
 
 const courseOptions = ['JD', 'LLM', 'JSD'];
@@ -269,36 +258,6 @@ export default function AddTransaction({ studentNames, authUserName }: Props) {
                                 <label className="text-sm text-[#334E68]">
                                     Particulars
                                 </label>
-<<<<<<< HEAD
-                                <Combobox
-                                    items={particularsOptions}
-                                    value={data.particulars}
-                                    onValueChange={(value) =>
-                                        setData('particulars', value || '')
-                                    }
-                                >
-                                    <ComboboxInput
-                                        placeholder="Select or type particulars"
-                                        showClear={!!data.particulars}
-                                        className="border-[#CFE3FF] focus-within:border-[#0F6FFF] focus-within:ring-2 focus-within:ring-[#0F6FFF]/30"
-                                    />
-                                    <ComboboxContent>
-                                        <ComboboxEmpty>
-                                            No items found.
-                                        </ComboboxEmpty>
-                                        <ComboboxList>
-                                            {particularsOptions.map((option) => (
-                                                <ComboboxItem
-                                                    key={option}
-                                                    value={option}
-                                                >
-                                                    {option}
-                                                </ComboboxItem>
-                                            ))}
-                                        </ComboboxList>
-                                    </ComboboxContent>
-                                </Combobox>
-=======
                                 <select
                                     value={data.particulars}
                                     onChange={(e) =>
@@ -312,7 +271,6 @@ export default function AddTransaction({ studentNames, authUserName }: Props) {
                                         </option>
                                     ))}
                                 </select>
->>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703
                             </div>
 
                             <div>
