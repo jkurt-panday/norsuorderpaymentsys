@@ -557,6 +557,11 @@ class LawSchoolLedgerController extends Controller
 
         return LawSchoolLedger::query()
             ->when($request->input('search'), function ($query, $search) {
+                // Lowercase the search term to match the LOWER() applied to columns.
+                // PostgreSQL's LIKE is case-sensitive, so "Juan" won't match "juan"
+                // unless the search value is also lowercased. This mirrors the
+                // pattern used in searchStudents() and StaffInputController::index().
+                $search = strtolower($search);
                 $query->where(function ($query) use ($search) {
                     $query->whereRaw('LOWER(first_name) LIKE ?', ["%{$search}%"])
                         ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$search}%"])
