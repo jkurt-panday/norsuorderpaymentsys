@@ -39,6 +39,16 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory,Notifiable, TwoFactorAuthenticatable;
 
+    protected $with = ['profile'];
+
+    /**
+     * Get the user's profile information.
+     */
+    public function profile()
+    {
+        return $this->hasOne(UserProfile::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *

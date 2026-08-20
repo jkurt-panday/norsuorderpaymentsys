@@ -50,6 +50,7 @@
         "@radix-ui/react-tooltip": "^1.1.8",
         "@supabase/supabase-js": "^2.112.0",
         "@tailwindcss/vite": "^4.3.2",
+        "@tanstack/react-table": "^9.1.2",
         "@types/react": "^19.2.0",
         "@types/react-dom": "^19.2.0",
         "@untitledui/file-icons": "^0.0.9",

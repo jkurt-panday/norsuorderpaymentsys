@@ -2,6 +2,7 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { ArrowLeft, Trash2, Search, Check, ChevronsUpDown, X } from 'lucide-react';
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import {
     Card,
     CardContent,
@@ -19,7 +20,7 @@ const semesterOptions = [
     { short: 'Summer',   full: 'Summer' },
 ];
 
-const particularsOptions = ['Registration', 'Tuition', 'Miscellaneous'];
+const particularsOptions = ['Registration', 'Tuition', 'Miscellaneous', 'Adjustment'];
 
 const entryTypeOptions = [
     { value: 'ar',          label: 'AR' },
@@ -254,10 +255,15 @@ export default function EditTransaction({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        const finalAmount = shouldAutoComputeAmount ? computedAmount.toFixed(2) : data.amount;
 
-        router.put(`/graduate-ledger/${record.id}`, {
-            ...data,
-            amount: displayedAmount,
+        setData(prev => ({
+            ...prev,
+            amount: finalAmount,
+        }));
+
+        put(`/graduate-ledger/${record.id}`, {
+            preserveScroll: true,
         });
     };
 
@@ -583,7 +589,14 @@ return;
                                     disabled={processing}
                                     className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB] disabled:opacity-60"
                                 >
-                                    {processing ? 'Saving...' : 'Update Transaction'}
+                                    {processing ? (
+                                        <span className="flex items-center gap-2">
+                                            <Spinner className="h-4 w-4" />
+                                            Saving...
+                                        </span>
+                                    ) : (
+                                        'Update Transaction'
+                                    )}
                                 </Button>
                             </div>
                         </form>
