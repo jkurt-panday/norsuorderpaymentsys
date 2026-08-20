@@ -209,11 +209,8 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
     date_to:     filters?.date_to     ?? '',
   });
 
-<<<<<<< HEAD
   const [goToPage, setGoToPage] = useState('');
 
-=======
->>>>>>> 0310891dccb2e2f7ee1ae0e7078cbe447598976d
   const searchQuery      = filterState.search;
   const schoolYear       = filterState.school_year;
   const semester         = filterState.semester_or_summer;
@@ -245,7 +242,6 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
     applyFilters();
   };
 
-<<<<<<< HEAD
   const handleGoToPage = (e: React.FormEvent) => {
     e.preventDefault();
     const pageNum = parseInt(goToPage, 10);
@@ -257,8 +253,6 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
     }
   };
 
-=======
->>>>>>> 0310891dccb2e2f7ee1ae0e7078cbe447598976d
   const totalStudents = stats?.totalStudents ?? 0;
   const totalAssessments = stats?.totalAssessments ?? 0;
   const totalPayments = stats?.totalPayments ?? 0;
