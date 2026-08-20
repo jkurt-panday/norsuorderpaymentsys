@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Http\RedirectResponse;
 
 class CoursesController extends Controller
 {
@@ -70,16 +71,16 @@ class CoursesController extends Controller
 
             // 2. Create the record
             Courses::create([
-                'course_code' => strtoupper($validated['course_code']), // Normalizes code to UPPERCASE (e.g., bsit -> BSIT)
+                'course_code' => $validated['course_code'], // Normalizes code to UPPERCASE (e.g., bsit -> BSIT)
                 'course_desc' => $validated['course_desc'],
             ]);
 
             DB::commit();
 
             // 3. Return back to Inertia view with success state
-            return redirect()->back()->with('success', 'Course created successfully!');
+            return redirect()->route('staff.courses.index')->with('success', 'Course created successfully!');
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
 
             Log::error('Failed to create course: ' . $e->getMessage());
@@ -111,7 +112,7 @@ class CoursesController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Courses $courses): InertiaResponse
+    public function update(Request $request, Courses $courses): RedirectResponse
     {
         // 1. Validate the input fields
         $validated = $request->validate([
@@ -131,15 +132,15 @@ class CoursesController extends Controller
 
             // 2. Update record
             $courses->update([
-                'course_code' => strtoupper($validated['course_code']),
+                'course_code' => $validated['course_code'],
                 'course_desc' => $validated['course_desc'],
             ]);
 
             DB::commit();
 
-            return redirect()->back()->with('success', 'Course updated successfully!');
+            return redirect()->route('staff.courses.index')->with('success', 'Course updated successfully.');
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
 
             Log::error('Failed to update course ID ' . $courses->id . ': ' . $e->getMessage());
