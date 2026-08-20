@@ -1,8 +1,9 @@
 import type { ColumnDef, TableFeatures } from '@tanstack/react-table';
 import { Pencil, Trash2 } from 'lucide-react';
-
-import { Button } from '@/components/ui/button';
+import { createColumnHelper } from '@tanstack/react-table';
 import { Link } from '@inertiajs/react';
+
+import type { DataTableFeatures } from './data-table-features';
 
 export type Course = {
     id: number;
@@ -12,28 +13,24 @@ export type Course = {
     updated_at: string;
 };
 
-export const columns: ColumnDef<TableFeatures, Course>[] = [
-    // {
-    //     accessorKey: 'id',
-    //     header: 'ID',
-    // },
-    {
+const columnHelper = createColumnHelper<DataTableFeatures, Course>();
+
+export const columns = columnHelper.columns([
+    columnHelper.display({
         id: 'row_number',
         header: 'ID',
         cell: ({ row }) => row.index + 1,
-    },
+    }),
 
-    {
-        accessorKey: 'course_code',
+    columnHelper.accessor('course_code', {
         header: 'Course Code',
-    },
+    }),
 
-    {
-        accessorKey: 'course_desc',
+    columnHelper.accessor('course_desc', {
         header: 'Course Description',
-    },
+    }),
 
-    {
+    columnHelper.display({
         id: 'actions',
         header: 'Actions',
         cell: ({ row }) => {
@@ -42,20 +39,22 @@ export const columns: ColumnDef<TableFeatures, Course>[] = [
             return (
                 <div className="grid w-max grid-cols-2">
                     <Link
-                          href={`/staff/courses/${course.id}/edit`}
-                    className="flex h-8 w-8 items-center justify-center rounded-l-2xl bg-amber-400 text-white transition-colors hover:bg-amber-500"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Link>
-                
-                  <Link
-                    className="flex h-8 w-8 items-center justify-center rounded-r-2xl border-white/20 bg-red-600 text-white transition-colors hover:bg-red-700"
-                    onClick={() => console.log(course)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Link>
+                        href={`/staff/courses/${course.id}/edit`}
+                        className="flex h-8 w-8 items-center justify-center rounded-l-2xl bg-amber-400 text-white transition-colors hover:bg-amber-500"
+                    >
+                        <Pencil className="h-4 w-4" />
+                    </Link>
+
+                    <Link
+                        as="button"
+                        method="delete"
+                        href={`/staff/courses/${course.id}`}
+                        className="flex h-8 w-8 items-center justify-center rounded-r-2xl border-white/20 bg-red-600 text-white transition-colors hover:bg-red-700"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Link>
                 </div>
             );
         },
-    },
-];
+    }),
+]);
