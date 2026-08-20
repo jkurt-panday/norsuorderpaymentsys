@@ -1,9 +1,5 @@
-import {
-    flexRender,
-    TableFeatures,
-    useTable,
-    type ColumnDef,
-} from '@tanstack/react-table';
+import { useTable, type ColumnDef, type RowData } from '@tanstack/react-table';
+import { features, type DataTableFeatures } from './data-table-features';
 
 import {
     Table,
@@ -16,16 +12,17 @@ import {
 
 import type { Course } from './columns';
 
-interface DataTableProps {
-    columns: ColumnDef<TableFeatures, Course>[];
-    data: Course[];
+interface DataTableProps<TData extends RowData> {
+    columns: ColumnDef<DataTableFeatures, TData>[];
+    data: TData[];
 }
 
-export function DataTable({
+export function DataTable<TData extends RowData>({
     columns,
     data,
-}: DataTableProps) {
+}: DataTableProps<TData>) {
     const table = useTable({
+        features,
         data,
         columns,
     });
@@ -38,12 +35,9 @@ export function DataTable({
                         <TableRow key={headerGroup.id}>
                             {headerGroup.headers.map((header) => (
                                 <TableHead key={header.id}>
-                                    {header.isPlaceholder
-                                        ? null
-                                        : flexRender(
-                                              header.column.columnDef.header,
-                                              header.getContext(),
-                                          )}
+                                    {header.isPlaceholder ? null : (
+                                        <table.FlexRender header={header} />
+                                    )}
                                 </TableHead>
                             ))}
                         </TableRow>
@@ -56,10 +50,7 @@ export function DataTable({
                             <TableRow key={row.id}>
                                 {row.getAllCells().map((cell) => (
                                     <TableCell key={cell.id}>
-                                        {flexRender(
-                                            cell.column.columnDef.cell,
-                                            cell.getContext(),
-                                        )}
+                                        <table.FlexRender cell={cell} />
                                     </TableCell>
                                 ))}
                             </TableRow>
