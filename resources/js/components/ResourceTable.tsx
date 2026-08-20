@@ -92,7 +92,7 @@ const formatCurrency = (amount: number) => {
 };
 
 export default function ClientDashboard() {
-    const { auth, submissions } = usePage().props as unknown as PageProps;
+    const { auth, submissions } = usePage<PageProps>().props;
     const user = auth?.user;
 
     // Keeps the submissions table live — a staff member could approve/
@@ -101,6 +101,8 @@ export default function ClientDashboard() {
     // means each poll re-fetches just this prop, not the whole page.
     usePoll(5000, {
         only: ['submissions'],
+        preserveScroll: true,
+        preserveState: true,
     });
 
     return (
