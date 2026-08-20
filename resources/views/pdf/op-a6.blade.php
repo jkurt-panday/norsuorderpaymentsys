@@ -17,9 +17,9 @@
 
     .op-copy {
         border: 1px solid #000;
-        padding: 8px 3px;
-        font-size: 7.5px;
-        line-height: 1.40;
+        padding: 0px 1px ;
+        font-size: 6.7px;
+        line-height: 1.55;
         width: 100%;
 
         /* One copy = one page. Never let a copy's box straddle two pages —
@@ -78,8 +78,8 @@
             <p style="margin:0;">The Collecting Officer</p>
             <p style="margin:0 0 3px;">Cash / Treasury Unit</p>
 
-            <p style="text-align:center; margin:0 0 2px;">Please issue Official Receipt in favor of:</p>
-            <p style="text-align:center; margin:0 0 1px; font-weight:bold; word-wrap:break-word; overflow-wrap:break-word; text-transform: uppercase;">
+            <p style="text-align:center; margin:0 0 0;">Please issue Official Receipt in favor of:</p>
+            <p style="text-align:center; margin:0 0 0; font-weight:bold; word-wrap:break-word; overflow-wrap:break-word; text-transform: uppercase;">
                  {{ $formInput->firstname_or_office }} {{ $formInput->middlename_or_project }} {{ $formInput->lastname_or_agency }} 
             </p>
             <p style="text-align:center; margin:0 0 1px; text-decoration:underline; word-wrap:break-word; overflow-wrap:break-word;">{{ $formInput->address }}</p>
@@ -101,35 +101,58 @@
                 </tr>
             </table>
 
-            <p style="margin:2px 0 1px;">for payment of</p>
-            <p style="margin:0 0 2px; font-size:5.2px;">(Purpose)</p>
+<p style="margin:2px 0 1px;">for payment of</p>
+<p style="margin:0 0 2px; font-size:5.2px;">(Purpose)</p>
 
-            @php
-                $purposeRaw = trim(($formInput->membership->member_desc ?? '') . ' - ' . '₱' . number_format($formInput->amount, 2) . ' - ' . ($formInput->staffInput->purpose ?? ''));
-                $purposeText = preg_replace('/\s+/u', ' ', $purposeRaw);
+@php
+    $purposeText = ($formInput->membership->member_desc ?? '') . ' - ' . '₱' . number_format($formInput->amount, 2) . ' - ' . ($formInput->staffInput->purpose ?? '');
 
-                // Calibrated for this page's width, much tighter than the
-                // landscape/legal version since the box itself is far
-                // narrower here.
-                $purposeFontSize = 6.3;
-                $minFontSize = 4.2;
-                $baseCharsPerLine = 100;
+    $purposeFontSize = 6.5;
+    $minFontSize = 5.2;
+    $maxLines = 4;
+    $baseCharsPerLine = 100;
 
-                $wrapWidth = (int) round(($baseCharsPerLine * 6.3) / $purposeFontSize);
-                $purposeLines = wrapToLines($purposeText, $wrapWidth);
+    // Wraps the FULL text (respecting real \n breaks) into actual line
+    // strings — not just a count this time, since we need the real lines
+    // to render each one in its own bordered <p>.
+    $wrapAll = function (string $text, float $fontSize) use ($baseCharsPerLine): array {
+        $wrapWidth = (int) round(($baseCharsPerLine * 6.3) / $fontSize);
+        $lines = [];
 
-                while (count($purposeLines) > 3 && $purposeFontSize > $minFontSize) {
-                    $purposeFontSize = round($purposeFontSize - 0.2, 2);
-                    $wrapWidth = (int) round(($baseCharsPerLine * 6.3) / $purposeFontSize);
-                    $purposeLines = wrapToLines($purposeText, $wrapWidth);
-                }
-            @endphp
-            @foreach ($purposeLines as $line)
-                <p style="text-align:center; margin:0; padding:0 1px 1px; font-size:{{ $purposeFontSize }}px; border-bottom:1px solid #000; min-height:{{ $purposeFontSize + 0.3 }}px;">
-                    {{ $line }}
-                </p>
-            @endforeach
+        foreach (explode("\n", $text) as $segment) {
+            $wrapped = wrapToLines($segment, $wrapWidth);
+            $lines = array_merge($lines, $wrapped ?: ['']);
+        }
 
+        return $lines;
+    };
+
+    $purposeLines = $wrapAll($purposeText, $purposeFontSize);
+
+    while (count($purposeLines) > $maxLines && $purposeFontSize > $minFontSize) {
+        $purposeFontSize = round($purposeFontSize - 0.2, 2);
+        $purposeLines = $wrapAll($purposeText, $purposeFontSize);
+    }
+
+    $lineHeightPx = round($purposeFontSize * 1.3, 1);
+
+    // Reserved height stays fixed at $maxLines' worth for normal input —
+    // only grows past that in the rare case content still needs more
+    // lines even at the smallest font (so nothing is ever hidden).
+    $slotCount = max($maxLines, count($purposeLines));
+    $purposeBoxHeight = round($lineHeightPx * $slotCount, 1);
+@endphp
+
+{{-- flex + justify-content:flex-end anchors the lines to the BOTTOM of this
+    reserved space — so short purpose text sits right above "Per Reference
+    Doc." instead of floating near the top with empty space below it. --}}
+<div style="display:flex; flex-direction:column; justify-content:flex-end; height:{{ $purposeBoxHeight }}px; box-sizing:border-box;">
+    @foreach ($purposeLines as $line)
+        <p style="text-align:center; margin:0; padding:0 0; font-size:{{ $purposeFontSize }}px; line-height:{{ $lineHeightPx }}px; width:100%; box-sizing:border-box; word-wrap:break-word; overflow-wrap:break-word;">
+            {{ $line }}
+        </p>
+    @endforeach
+</div>
             {{-- Per Reference Doc / UACS --}}
             <table class="op-table" style="margin-bottom:10px; margin-top:15px;">
                 <tr>
@@ -152,16 +175,16 @@
 
             {{-- Bank Account table --}}
             <p style="margin:2px 0 1px;">Please deposit the collections under Bank Account/s:</p>
-            <table class="op-table" border="1" style="margin-bottom:2px; table-layout:fixed;">
+            <table class="op-table" border="1" style="margin-bottom:2px; margin-top: 5px; table-layout:fixed;">
                 <colgroup>
                     <col style="width:25%;">
                     <col style="width:45%;">
                     <col style="width:30%;">
                 </colgroup>
                 <tr>
-                    <th style="padding:1.5px 2px; font-size:5.2px;">No.</th>
-                    <th style="padding:1.5px 2px; font-size:5.2px;">Name of Bank</th>
-                    <th style="padding:1.5px 2px; font-size:5.2px;">Amount</th>
+                    <th style="padding:1.5px 2px; font-size:6.2px;">No.</th>
+                    <th style="padding:1.5px 2px; font-size:6.2px;">Name of Bank</th>
+                    <th style="padding:1.5px 2px; font-size:6.2px;">Amount</th>
                 </tr>
                 <tr>
                     <td style="padding:1.5px 2px; text-align:center; word-wrap:break-word; overflow-wrap:break-word;">{{ $formInput->staffInput->bankAccount->account_num ?? 'N/A' }}</td>
@@ -171,7 +194,7 @@
             </table>
 
             {{-- Total --}}
-            <table class="op-table" style="margin-top: 15px; margin-bottom:3px;">
+            <table class="op-table" style="margin-top: 15px; margin-bottom:1px;">
                 <tr>
                     <td style="text-align:right; padding:1px 3px 2px 0;"><strong>TOTAL</strong></td>
                     <td style="width:35%; text-align:right; padding:1px 3px 2px; border-bottom:1px solid #000;">
@@ -194,7 +217,7 @@
                             </tr>
                         </table>
 
-            <p style="margin:3px 0 0;">OR No.: ______________________</p>
+            <p style="margin:3px 0px 6px 0px;">OR No.: ______________________</p>
         </div>
     @endforeach
 </body>

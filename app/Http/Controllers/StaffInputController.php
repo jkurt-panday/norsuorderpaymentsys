@@ -368,13 +368,20 @@ class StaffInputController extends Controller
 
         $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument']);
 
-        $pdf = Pdf::loadView('pdf.op-portrait', [
-            'formInput' => $formInput,
-            'copyLabels' => ['Accounting Units Copy', "Payor's Copy", 'Cash Units Copy'],
-        ])->setPaper('a5', 'portrait');
+        $copyLabels = self::OP_COPY_LABELS;
+
+        $portraitPdf = Pdf::loadView('pdf.op-a6', compact('formInput', 'copyLabels'))
+            ->setPaper('a5', 'portrait');
+
+        $landscapePdf = Pdf::loadView('pdf.op-landscape', compact('formInput', 'copyLabels'))
+            ->setPaper('legal', 'landscape');
 
         \Mail::to($formInput->email)->send(
-            new OrderOfPaymentMail($formInput, $pdf->output())
+            new OrderOfPaymentMail(
+                $formInput,
+                $portraitPdf->output(),
+                $landscapePdf->output(),
+            )
         );
 
         return back()->with('success', 'Order of Payment emailed successfully.');
