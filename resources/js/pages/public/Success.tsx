@@ -1,9 +1,5 @@
 // /home/kurt_/norsuorderpaymentsys/resources/js/pages/public/Success.tsx
-<<<<<<< HEAD
-import { Link } from '@inertiajs/react';
-=======
 import { Link, usePage } from '@inertiajs/react';
->>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703
 import {
     CheckCircle,
     FileText,
@@ -409,15 +405,6 @@ export default function Success({ reference_number, formInput }: Props) {
                                 </div>
                             </CardContent>
 
-<<<<<<< HEAD
-                            <CardFooter className="print-hidden no-print flex flex-col gap-4 border-t px-4 sm:px-6 pt-6 pb-6 sm:pb-8">
-                                <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3 sm:gap-4 justify-center">
-                                    <Button className="h-11 sm:h-12 w-full sm:w-auto rounded-xl bg-blue-700 px-6 sm:px-8 text-sm sm:text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-800 hover:shadow-lg active:scale-[0.98]">
-                                        <Link
-                                            href="/public/form"
-                                            className="w-full h-full flex items-center justify-center"
-                                        >
-=======
                             <CardFooter className="print-hidden no-print flex flex-col gap-6 border-t px-4 sm:px-6 pt-6 pb-6 sm:pb-8">
                                 {!auth?.user && (
                                     <div className="w-full p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
@@ -453,7 +440,6 @@ export default function Success({ reference_number, formInput }: Props) {
                                 <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3 sm:gap-4 justify-center">
                                     <Button asChild className="h-11 sm:h-12 w-full sm:w-auto rounded-xl bg-blue-700 px-6 sm:px-8 text-sm sm:text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-800 hover:shadow-lg active:scale-[0.98]">
                                         <Link href="/public/form">
->>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703
                                             Submit Another Request
                                         </Link>
                                     </Button>

@@ -3,31 +3,22 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-<<<<<<< HEAD
-use App\Models\User;
-=======
 use App\Models\FormInput;
 use App\Models\User;
 use App\Models\UserProfile;
 use Illuminate\Http\Request;
->>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 
 class GoogleController extends Controller
 {
-<<<<<<< HEAD
-    public function redirect()
-    {
-=======
     public function redirect(Request $request)
     {
         if ($request->has('ref')) {
             session(['pending_reference_number' => $request->query('ref')]);
         }
 
->>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703
         return Socialite::driver('google')->redirect();
     }
 
@@ -52,10 +43,6 @@ class GoogleController extends Controller
             ]);
         }
 
-<<<<<<< HEAD
-        Auth::login($user);
-
-=======
         // Link pending form submission profile info if user logged in via post-submission prompt
         $pendingRef = session('pending_reference_number');
         if ($pendingRef) {
@@ -83,7 +70,6 @@ class GoogleController extends Controller
             return redirect()->route('public.submit')->with('success', 'Account linked! Your details have been saved for future submissions.');
         }
 
->>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703
         return redirect()->route('dashboard');
     }
 }
