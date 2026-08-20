@@ -39,10 +39,14 @@ class GraduateLedgerController extends Controller
             ->sum('amount');
 
         $totalPayments = (float) (clone $query)
-            ->whereIn('entry_type', ['payment', 'adjustment'])
+            ->where('entry_type', 'payment')
             ->sum('amount');
 
-        $outstandingBalance = $totalAssessments - $totalPayments;
+        $totalAdjustments = (float) (clone $query)
+            ->where('entry_type', 'adjustment')
+            ->sum('amount');
+
+        $outstandingBalance = $totalAssessments - $totalPayments - $totalAdjustments;
 
         $records = $query->paginate(15)->withQueryString();
         $records->through(fn ($r) => $this->transformRecord($r));
@@ -51,9 +55,10 @@ class GraduateLedgerController extends Controller
             'records' => $records,
             'filters' => $request->only(['search', 'school_year', 'semester', 'course', 'date_from', 'date_to']),
             'stats' => [
-                'totalStudents' => $totalStudents,
+                'totalStudents'    => $totalStudents,
                 'totalAssessments' => $totalAssessments,
-                'totalPayments' => $totalPayments,
+                'totalPayments'    => $totalPayments,
+                'totalAdjustments' => $totalAdjustments,
                 'outstandingBalance' => $outstandingBalance,
             ],
             'filterOptions' => $this->getFilterOptions(),
@@ -160,7 +165,7 @@ class GraduateLedgerController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'student_id'               => ['required', 'exists:graduate_student,id'],
+            'student_id'               => ['nullable', 'required_without:new_student', 'exists:graduate_student,id'],
             'new_student'              => ['nullable', 'array'],
             'new_student.last_name'    => ['required_with:new_student', 'string', 'max:255'],
             'new_student.first_name'   => ['required_with:new_student', 'string', 'max:255'],
@@ -168,7 +173,8 @@ class GraduateLedgerController extends Controller
             'course_id'                => ['nullable', 'exists:graduate_course,id'],
             'academic_term_id'         => ['nullable', 'exists:graduate_academic_term,id'],
             'school_year'              => ['nullable', 'string', 'max:20'],
-            'semester'                 => ['nullable', 'in:First Semester,Second Semester,Summer'],
+            'semester'                 => ['nullable', 'string', 'max:50'],
+            'semester_short'           => ['nullable', 'string', 'max:50'],
             'entry_type'               => ['nullable', 'in:ar,payment,adjustment'],
             'units'                    => ['nullable', 'numeric', 'min:0'],
             'transaction_date'         => ['nullable', 'date'],
@@ -190,9 +196,10 @@ class GraduateLedgerController extends Controller
             $data['student_id'] = $student->id;
         }
 
-        // Resolve academic_term_id from school_year + semester if not provided directly
-        if (empty($data['academic_term_id']) && !empty($data['school_year']) && !empty($data['semester'])) {
-            $canonical = AcademicTerm::normalizeSemester($data['semester']);
+        // Resolve academic_term_id from school_year + semester / semester_short if not provided directly
+        $rawSem = $data['semester'] ?? ($data['semester_short'] ?? null);
+        if (empty($data['academic_term_id']) && !empty($data['school_year']) && !empty($rawSem)) {
+            $canonical = AcademicTerm::normalizeSemester($rawSem);
             $term = AcademicTerm::firstOrCreate(
                 ['school_year' => $data['school_year'], 'semester' => $canonical],
                 ['sort_order' => AcademicTerm::sortOrder($canonical)]
@@ -204,10 +211,10 @@ class GraduateLedgerController extends Controller
             $data['amount'] = ($data['units'] ?? 0) * ($data['tuition_per_unit_or_misc'] ?? 0);
         }
 
-        unset($data['new_student'], $data['school_year'], $data['semester']);
+        unset($data['new_student'], $data['school_year'], $data['semester'], $data['semester_short']);
         GraduateLedger::create($data);
 
-        return redirect()->route('graduate-ledger.index');
+        return redirect()->route('graduate-ledger.index')->with('success', 'Transaction created successfully.');
     }
 
     // ─── Edit / Update ────────────────────────────────────────────────────────
@@ -409,7 +416,7 @@ class GraduateLedgerController extends Controller
     {
         $path   = $uploadedFile->getRealPath();
         $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($path);
-        $reader->setReadDataOnly(true);
+        $reader->setReadDataOnly(false); // must be false to evaluate =J*F formulas in col L
 
         $spreadsheet = $reader->load($path);
         $sheet       = $spreadsheet->getActiveSheet();
@@ -466,7 +473,7 @@ class GraduateLedgerController extends Controller
                 $sheet->getCell("I{$r}")->getValue(),
                 $sheet->getCell("J{$r}")->getValue(),
                 $sheet->getCell("K{$r}")->getValue(),
-                $sheet->getCell("L{$r}")->getValue(),
+                $sheet->getCell("L{$r}")->getCalculatedValue(), // formula-safe: evaluates =J*F etc.
                 $sheet->getCell("M{$r}")->getValue(),
                 $sheet->getCell("N{$r}")->getValue(),
             ];
@@ -857,19 +864,23 @@ class GraduateLedgerController extends Controller
     /** Normalizes raw import type string → new enum value ('ar'/'payment'/'adjustment') */
     private function normalizeEntryType(?string $rawType, bool $isParenthesesNegative): string
     {
-        $type = strtoupper(trim($rawType ?? ''));
-
-        if ($type === 'AR') {
-            return 'ar';
-        }
-        if ($type === 'ADJUSTMENT' || $type === 'ADJ') {
-            return 'adjustment';
-        }
-        if (in_array($type, ['PAYMENT', 'P', 'PAYMENR', 'SETTLED']) || $isParenthesesNegative) {
+        // 1. All payments in Excel are enclosed in parentheses () e.g. (1,000.00)
+        if ($isParenthesesNegative) {
             return 'payment';
         }
 
-        return 'payment';
+        $type = strtoupper(trim($rawType ?? ''));
+
+        // 2. Explicit Type Column checks
+        if ($type === 'ADJUSTMENT' || $type === 'ADJ' || str_contains($type, 'ADJUST')) {
+            return 'adjustment';
+        }
+        if (in_array($type, ['PAYMENT', 'P', 'PAYMENR', 'SETTLED'])) {
+            return 'payment';
+        }
+
+        // 3. Default for all positive numbers (including blank col K) is AR / Assessment
+        return 'ar';
     }
 
     /** Converts entry_type enum value → UI display label */
@@ -916,8 +927,10 @@ class GraduateLedgerController extends Controller
     private function cleanAmount($rawAmount): float
     {
         $str = trim((string) ($rawAmount ?? ''));
+
+        // If somehow a raw formula string still arrives (e.g. from CSV), strip the = and try to parse the number
         if (str_starts_with($str, '=')) {
-            return 0.0;
+            $str = ltrim($str, '=');
         }
 
         $cleaned = (float) preg_replace('/[^\d.]/', '', $str);
