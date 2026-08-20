@@ -66,10 +66,6 @@ class GoogleController extends Controller
 
         Auth::login($user);
 
-        if ($user->role === 'client') {
-            return redirect()->route('public.submit')->with('success', 'Account linked! Your details have been saved for future submissions.');
-        }
-
-        return redirect()->route('dashboard');
+        return redirect()->route('dashboard')->with('success', 'Logged in successfully!');
     }
 }

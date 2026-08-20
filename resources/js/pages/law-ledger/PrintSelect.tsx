@@ -88,10 +88,14 @@ export default function PrintSelect({
     records = [],
     summary,
 }: PrintSelectProps) {
-    const [selected, setSelected] = useState<string | number>(selectedStudent || '');
+    const [selected, setSelected] = useState<string | number>(
+        selectedStudent || '',
+    );
     const [search, setSearch] = useState('');
 
-    const isNumericId = typeof selected === 'number' || (typeof selected === 'string' && /^\d+$/.test(selected));
+    const isNumericId =
+        typeof selected === 'number' ||
+        (typeof selected === 'string' && /^\d+$/.test(selected));
 
     const filteredStudents = useMemo(() => {
         const term = search.trim().toLowerCase();
@@ -99,7 +103,9 @@ export default function PrintSelect({
         if (!term) {
             return students;
         }
-        const matched = students.filter((s) => s.full_name.toLowerCase().includes(term));
+        const matched = students.filter((s) =>
+            s.full_name.toLowerCase().includes(term),
+        );
         // starts-with results float to top, contains-only results follow
         return matched.sort((a, b) => {
             const aStarts = a.full_name.toLowerCase().startsWith(term) ? 0 : 1;
@@ -118,11 +124,7 @@ export default function PrintSelect({
             params.student = idOrName;
         }
 
-        router.get(
-            '/law-ledger/print-select',
-            params,
-            { preserveState: true },
-        );
+        router.get('/law-ledger/print-select', params, { preserveState: true });
     };
 
     const handleStudentSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -164,7 +166,8 @@ export default function PrintSelect({
                             </h1>
                         </div>
                         <p className="mt-1 text-sm text-[#5C7A9E]">
-                            Select a law school student to review their transaction breakdown and print a formal SOA PDF.
+                            Select a law school student to review their
+                            transaction breakdown and print a formal SOA PDF.
                         </p>
                     </div>
                 </div>
@@ -182,18 +185,18 @@ export default function PrintSelect({
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="relative">
-                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#8AA8CC]" />
+                                <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-[#8AA8CC]" />
                                 <Input
                                     type="text"
                                     placeholder="Type to filter list..."
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
-                                    className="pl-9 pr-8"
+                                    className="pr-8 pl-9"
                                 />
                                 {search && (
                                     <button
                                         onClick={() => setSearch('')}
-                                        className="absolute right-2.5 top-2.5 text-[#8AA8CC] hover:text-[#0B3D91]"
+                                        className="absolute top-2.5 right-2.5 text-[#8AA8CC] hover:text-[#0B3D91]"
                                     >
                                         <X className="h-4 w-4" />
                                     </button>
@@ -207,7 +210,9 @@ export default function PrintSelect({
                                     onChange={handleStudentSelect}
                                     className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
                                 >
-                                    <option value="">-- Choose Student --</option>
+                                    <option value="">
+                                        -- Choose Student --
+                                    </option>
                                     {filteredStudents.map((s) => (
                                         <option key={s.id} value={String(s.id)}>
                                             {s.full_name}
@@ -217,7 +222,7 @@ export default function PrintSelect({
                             </div>
 
                             {/* List for Desktop */}
-                            <div className="hidden max-h-[380px] overflow-y-auto border border-[#EAF2FF] rounded-md md:block">
+                            <div className="hidden max-h-[380px] overflow-y-auto rounded-md border border-[#EAF2FF] md:block">
                                 {filteredStudents.length === 0 ? (
                                     <p className="p-4 text-center text-xs text-[#8AA8CC]">
                                         No students found.
@@ -225,13 +230,17 @@ export default function PrintSelect({
                                 ) : (
                                     <div className="divide-y divide-[#EAF2FF]">
                                         {filteredStudents.map((s) => {
-                                            const isActive = String(selected) === String(s.id);
+                                            const isActive =
+                                                String(selected) ===
+                                                String(s.id);
                                             return (
                                                 <button
                                                     key={s.id}
                                                     type="button"
-                                                    onClick={() => handleSelect(s.id)}
-                                                    className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[#F3F8FF] ${
+                                                    onClick={() =>
+                                                        handleSelect(s.id)
+                                                    }
+                                                    className={`w-full px-3 py-2 text-left text-xs transition-colors hover:bg-[#F3F8FF] ${
                                                         isActive
                                                             ? 'bg-[#EAF2FF] font-medium text-[#0B3D91]'
                                                             : 'text-[#334E68]'
@@ -248,7 +257,7 @@ export default function PrintSelect({
                     </Card>
 
                     {/* Right: Detailed SOA preview */}
-                    <div className="md:col-span-2 space-y-6">
+                    <div className="space-y-6 md:col-span-2">
                         {selected ? (
                             <div className="space-y-6">
                                 {/* Stats Row */}
@@ -274,7 +283,9 @@ export default function PrintSelect({
                                             Outstanding Balance
                                         </p>
                                         <h3 className="mt-1 text-base font-bold text-[#0B3D91]">
-                                            {currency(summary.outstandingBalance)}
+                                            {currency(
+                                                summary.outstandingBalance,
+                                            )}
                                         </h3>
                                     </Card>
                                 </div>
@@ -283,70 +294,107 @@ export default function PrintSelect({
                                     <CardHeader className="flex flex-row items-center justify-between pb-3">
                                         <div>
                                             <CardTitle className="text-lg font-bold text-[#0B3D91]">
-                                                {records[0]?.name || 'Student Record'}
+                                                {records[0]?.name ||
+                                                    'Student Record'}
                                             </CardTitle>
                                             <CardDescription className="text-xs text-[#7FA6D6]">
-                                                {records.length} transactions on ledger
+                                                {records.length} transactions on
+                                                ledger
                                             </CardDescription>
                                         </div>
                                         <Button
                                             onClick={handleOpenPdf}
-                                            className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white"
+                                            className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
                                             size="sm"
                                         >
-                                            <Printer className="mr-1.5 h-4 w-4" /> Print Statement
+                                            <Printer className="mr-1.5 h-4 w-4" />{' '}
+                                            Print Statement
                                         </Button>
                                     </CardHeader>
                                     <CardContent className="overflow-x-auto">
                                         <table className="w-full border-collapse text-left text-xs">
                                             <thead>
-                                                <tr className="border-b border-[#CFE3FF] bg-[#F7FAFE] text-[#0B3D91] font-semibold">
-                                                    <th className="py-3 px-3">Date</th>
-                                                    <th className="py-3 px-3">S.Y. / Term</th>
-                                                    <th className="py-3 px-3">Ref / OR #</th>
-                                                    <th className="py-3 px-3">Particulars</th>
-                                                    <th className="py-3 px-3">Type</th>
-                                                    <th className="py-3 px-3 text-right">Amount</th>
+                                                <tr className="border-b border-[#CFE3FF] bg-[#F7FAFE] font-semibold text-[#0B3D91]">
+                                                    <th className="px-3 py-3">
+                                                        Date
+                                                    </th>
+                                                    <th className="px-3 py-3">
+                                                        S.Y. / Term
+                                                    </th>
+                                                    <th className="px-3 py-3">
+                                                        Ref / OR #
+                                                    </th>
+                                                    <th className="px-3 py-3">
+                                                        Particulars
+                                                    </th>
+                                                    <th className="px-3 py-3">
+                                                        Type
+                                                    </th>
+                                                    <th className="px-3 py-3 text-right">
+                                                        Amount
+                                                    </th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {records.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={6} className="text-center py-6 text-[#8AA8CC]">
-                                                            No records found for this student.
+                                                        <td
+                                                            colSpan={6}
+                                                            className="py-6 text-center text-[#8AA8CC]"
+                                                        >
+                                                            No records found for
+                                                            this student.
                                                         </td>
                                                     </tr>
                                                 ) : (
                                                     records.map((r) => (
-                                                        <tr key={r.id} className="border-b border-[#EAF2FF] hover:bg-[#F3F8FF]">
-                                                            <td className="py-2 px-3 text-[#334E68]">
-                                                                {formatTransactionDate(r.transactionDate)}
+                                                        <tr
+                                                            key={r.id}
+                                                            className="border-b border-[#EAF2FF] hover:bg-[#F3F8FF]"
+                                                        >
+                                                            <td className="px-3 py-2 text-[#334E68]">
+                                                                {formatTransactionDate(
+                                                                    r.transactionDate,
+                                                                )}
                                                             </td>
-                                                            <td className="py-2 px-3 text-[#334E68]">
-                                                                {r.schoolYear} ({r.semesterOrSummer ?? '-'})
+                                                            <td className="px-3 py-2 text-[#334E68]">
+                                                                {r.schoolYear} (
+                                                                {r.semesterOrSummer ??
+                                                                    '-'}
+                                                                )
                                                             </td>
-                                                            <td className="py-2 px-3 text-[#334E68]">
-                                                                {r.referenceNo || '-'}
+                                                            <td className="px-3 py-2 text-[#334E68]">
+                                                                {r.referenceNo ||
+                                                                    '-'}
                                                             </td>
-                                                            <td className="py-2 px-3 text-[#334E68]">
-                                                                {r.particulars || '-'}
+                                                            <td className="px-3 py-2 text-[#334E68]">
+                                                                {r.particulars ||
+                                                                    '-'}
                                                             </td>
-                                                            <td className="py-2 px-3">
+                                                            <td className="px-3 py-2">
                                                                 <Badge
                                                                     variant={
-                                                                        r.arOrPayment === 'AR'
+                                                                        r.arOrPayment ===
+                                                                        'AR'
                                                                             ? 'outline'
-                                                                            : r.arOrPayment === 'Payment'
-                                                                                ? 'secondary'
-                                                                                : 'destructive'
+                                                                            : r.arOrPayment ===
+                                                                                'Payment'
+                                                                              ? 'secondary'
+                                                                              : 'destructive'
                                                                     }
                                                                     className="text-[10px]"
                                                                 >
-                                                                    {r.arOrPayment}
+                                                                    {
+                                                                        r.arOrPayment
+                                                                    }
                                                                 </Badge>
                                                             </td>
-                                                            <td className="py-2 px-3 text-right font-medium text-[#0B3D91]">
-                                                                {currency(absAmount(r.amount))}
+                                                            <td className="px-3 py-2 text-right font-medium text-[#0B3D91]">
+                                                                {currency(
+                                                                    absAmount(
+                                                                        r.amount,
+                                                                    ),
+                                                                )}
                                                             </td>
                                                         </tr>
                                                     ))
@@ -357,13 +405,15 @@ export default function PrintSelect({
                                 </Card>
                             </div>
                         ) : (
-                            <Card className="border-dashed border-[#CFE3FF] bg-white flex flex-col items-center justify-center p-12 text-center">
-                                <Printer className="h-12 w-12 text-[#8AA8CC] mb-4" />
+                            <Card className="flex flex-col items-center justify-center border-dashed border-[#CFE3FF] bg-white p-12 text-center">
+                                <Printer className="mb-4 h-12 w-12 text-[#8AA8CC]" />
                                 <h3 className="text-lg font-semibold text-[#0B3D91]">
                                     No Student Selected
                                 </h3>
-                                <p className="text-sm text-[#7FA6D6] mt-1 max-w-sm">
-                                    Choose a law school student from the left panel to preview their statement and generate a print-ready SOA PDF.
+                                <p className="mt-1 max-w-sm text-sm text-[#7FA6D6]">
+                                    Choose a law school student from the left
+                                    panel to preview their statement and
+                                    generate a print-ready SOA PDF.
                                 </p>
                             </Card>
                         )}

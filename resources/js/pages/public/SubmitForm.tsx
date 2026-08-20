@@ -69,16 +69,15 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
     // Submit handler with file upload
     const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
         e.preventDefault();
-    
+
         // Ensures Inertia packages files cleanly
         // transform((data) => ({
         //     ...data,
         //     documents: data.documents,
         // }));
-    
+
         post('/public/form', {
             forceFormData: true,
-            preserveState: true,
             onSuccess: () => console.log('Success'),
             onError: (errs) => console.error('Validation errors:', errs),
         });
@@ -192,7 +191,12 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                         <div className="mb-6 flex items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4 text-sm text-blue-800">
                             <span className="inline-block h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-blue-600" />
                             <span>
-                                Logged in as <strong className="font-semibold">{user.email}</strong> — your saved details have been auto-filled. You can still edit them before submitting.
+                                Logged in as{' '}
+                                <strong className="font-semibold">
+                                    {user.email}
+                                </strong>{' '}
+                                — your saved details have been auto-filled. You
+                                can still edit them before submitting.
                             </span>
                         </div>
                     )}
@@ -260,7 +264,12 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                     maxLength={13} // 11 digits + 2 spaces
                                                     value={data.contact_num.replace(
                                                         /^(\d{0,4})(\d{0,3})(\d{0,4}).*/,
-                                                        (_: string, a: string, b: string, c: string) =>
+                                                        (
+                                                            _: string,
+                                                            a: string,
+                                                            b: string,
+                                                            c: string,
+                                                        ) =>
                                                             [a, b, c]
                                                                 .filter(Boolean)
                                                                 .join(' '),
@@ -704,7 +713,6 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                                     !!data.payment_detail_option_id
                                                 }
                                                 className={`border-slate-300 focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
-
                                             />
                                             <ComboboxContent>
                                                 <ComboboxEmpty>
