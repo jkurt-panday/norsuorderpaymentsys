@@ -40,8 +40,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 }
 
                 $targetRoute = match ($user->role) {
-                    'admin' => 'admin.users.index',
-                    'staff' => 'staff.dashboard',
+                    'admin' => 'admin.staffdashboard',
+                    'staff' => 'staff.staffdashboard',
                     default => 'client.dashboard',
                 };
 
