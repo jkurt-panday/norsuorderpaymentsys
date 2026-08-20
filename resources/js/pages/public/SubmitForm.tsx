@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import { useForm, Head } from '@inertiajs/react';
-=======
 import { useForm, Head, usePage } from '@inertiajs/react';
->>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703
 import { UploadCloud02 } from '@untitledui/icons';
 import { Mail, User, ClipboardList, FileText } from 'lucide-react';
 import { useState } from 'react';
@@ -54,17 +50,6 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
     const profile = user?.profile;
 
     // ? form handling
-<<<<<<< HEAD
-    const { data, setData, post, processing, errors, reset, transform } = useForm({
-        email: '',
-        contact_num: '',
-        firstname_or_office: '',
-        middlename_or_project: '',
-        lastname_or_agency: '',
-        office_or_college: '',
-        position_or_designation: '',
-        address: '',
-=======
     const { data, setData, post, processing, errors, reset } = useForm({
         email: user?.email || '',
         contact_num: profile?.contact_num || '',
@@ -74,7 +59,6 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
         office_or_college: profile?.office_or_college || '',
         position_or_designation: profile?.position_or_designation || '',
         address: profile?.address || '',
->>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703
         amount: '',
         request_type: '',
         membership_id: '',
