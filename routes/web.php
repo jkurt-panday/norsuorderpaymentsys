@@ -13,7 +13,7 @@ use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\PaymentDetailOptionController;
 use App\Http\Controllers\StaffInputController;
 use App\Http\Controllers\SupportingDocumentController;
-use App\Http\Controllers\UacsController;
+use App\Http\Controllers\UACSController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -27,8 +27,8 @@ Route::name('public.')->prefix('public')->group(function () {
     Route::get('/form', [FormInputController::class, 'create']);
     Route::post('/form', [FormInputController::class, 'store']);
 
-    Route::get('/success/{referenceNumber?}', [FormInputController::class, 'success'])->name('success');
-    Route::get('/success/{referenceNumber}/print', [FormInputController::class, 'printReceipt'])->name('print');
+    Route::get('/success/{reference_number}', [FormInputController::class, 'success'])->name('success');
+    Route::get('/success/{reference_number}/print', [FormInputController::class, 'printReceipt'])->name('print');
 
     Route::get('/assessmentform', [AssessmentFormController::class, 'create'])->name('assessmentform');
     Route::post('/assessmentform', [AssessmentFormController::class, 'store']);
@@ -156,7 +156,7 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
         ->except(['show'])
         ->parameters(['bank-accounts' => 'bankAccount']);
 
-    Route::resource('uacs', UacsController::class)
+    Route::resource('uacs', UACSController::class)
         ->except(['show'])
         ->parameters(['uacs' => 'uacs']);
 

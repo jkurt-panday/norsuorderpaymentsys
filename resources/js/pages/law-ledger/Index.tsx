@@ -209,8 +209,6 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
     date_to:     filters?.date_to     ?? '',
   });
 
-  const [goToPage, setGoToPage] = useState('');
-
   const searchQuery      = filterState.search;
   const schoolYear       = filterState.school_year;
   const semester         = filterState.semester_or_summer;
@@ -240,17 +238,6 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     applyFilters();
-  };
-
-  const handleGoToPage = (e: React.FormEvent) => {
-    e.preventDefault();
-    const pageNum = parseInt(goToPage, 10);
-    const last = records?.meta?.last_page ?? records?.last_page ?? 1;
-    if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= last) {
-      const currentParams = new URLSearchParams(window.location.search);
-      currentParams.set('page', String(pageNum));
-      router.get(`/law-ledger?${currentParams.toString()}`, {}, { preserveState: true, preserveScroll: true });
-    }
   };
 
   const totalStudents = stats?.totalStudents ?? 0;
