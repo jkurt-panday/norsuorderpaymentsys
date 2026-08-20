@@ -8,18 +8,36 @@ use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Http\RedirectResponse;
 
 class CoursesController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(): InertiaResponse
+    public function index(Request $request): InertiaResponse
     {
-        $courses = Courses::orderBy('course_code', 'asc')->get();
-        
+        $courses = Courses::query()
+            ->when($request->search, function ($query, $search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('course_code', 'ilike', "%{$search}%")
+                        ->orWhere('course_desc', 'ilike', "%{$search}%");
+                });
+            })
+            ->orderBy(
+                $request->input('sort', 'course_code'),
+                $request->input('direction', 'asc')
+            )
+            ->paginate(10)
+            ->withQueryString();
+
         return Inertia::render('staff/courses/coursesIndex', [
-            'courses' => $courses
+            'courses' => $courses,
+            'filters' => [
+                'search' => $request->input('search', ''),
+                'sort' => $request->input('sort', 'course_code'),
+                'direction' => $request->input('direction', 'asc'),
+            ],
         ]);
     }
 
@@ -47,26 +65,26 @@ class CoursesController extends Controller
             'course_desc.required' => 'Please enter a course description or full name.',
             'course_desc.max'      => 'Course description must not exceed 255 characters.',
         ]);
-    
+
         try {
             DB::beginTransaction();
-    
+
             // 2. Create the record
             Courses::create([
-                'course_code' => strtoupper($validated['course_code']), // Normalizes code to UPPERCASE (e.g., bsit -> BSIT)
+                'course_code' => $validated['course_code'], // Normalizes code to UPPERCASE (e.g., bsit -> BSIT)
                 'course_desc' => $validated['course_desc'],
             ]);
-    
+
             DB::commit();
-    
+
             // 3. Return back to Inertia view with success state
-            return redirect()->back()->with('success', 'Course created successfully!');
-    
-        } catch (\Exception $e) {
+            return redirect()->route('staff.courses.index')->with('success', 'Course created successfully!');
+
+        } catch (\Throwable $e) {
             DB::rollBack();
-    
+
             Log::error('Failed to create course: ' . $e->getMessage());
-    
+
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Failed to create course. Please try again.');
@@ -94,7 +112,7 @@ class CoursesController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Courses $courses): InertiaResponse
+    public function update(Request $request, Courses $courses): RedirectResponse
     {
         // 1. Validate the input fields
         $validated = $request->validate([
@@ -108,25 +126,25 @@ class CoursesController extends Controller
             'course_desc.required' => 'Please enter a course description.',
             'course_desc.max'      => 'Course description must not exceed 255 characters.',
         ]);
-    
+
         try {
             DB::beginTransaction();
-    
+
             // 2. Update record
             $courses->update([
-                'course_code' => strtoupper($validated['course_code']),
+                'course_code' => $validated['course_code'],
                 'course_desc' => $validated['course_desc'],
             ]);
-    
+
             DB::commit();
-    
-            return redirect()->back()->with('success', 'Course updated successfully!');
-    
-        } catch (\Exception $e) {
+
+            return redirect()->route('staff.courses.index')->with('success', 'Course updated successfully.');
+
+        } catch (\Throwable $e) {
             DB::rollBack();
-    
+
             Log::error('Failed to update course ID ' . $courses->id . ': ' . $e->getMessage());
-    
+
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Failed to update course. Please try again.');
