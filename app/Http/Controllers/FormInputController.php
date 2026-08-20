@@ -17,10 +17,7 @@ use App\Services\ReceiptPDFService;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
-<<<<<<< HEAD
-=======
 
->>>>>>> 0310891dccb2e2f7ee1ae0e7078cbe447598976d
 class FormInputController extends Controller
 {
     protected FileUploadService $fileUploadService;
@@ -90,7 +87,6 @@ class FormInputController extends Controller
 
             DB::commit();
 
-<<<<<<< HEAD
             // If user is authenticated, save/update their profile preferences for next time
             if (auth()->check()) {
                 UserProfile::updateOrCreate(
@@ -108,11 +104,7 @@ class FormInputController extends Controller
             }
 
             return redirect()->route('public.success', [
-                'referenceNumber' => $formInput->reference_number
-=======
-            return redirect()->route('public.success', [
-                'reference_number' => $formInput->reference_number      // '' must be the same in the web.php
->>>>>>> 0310891dccb2e2f7ee1ae0e7078cbe447598976d
+                'reference_number' => $formInput->reference_number
             ]);
 
         } catch (\Throwable $e) {
