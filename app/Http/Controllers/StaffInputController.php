@@ -360,30 +360,39 @@ class StaffInputController extends Controller
 
         return $pdf->stream("OP-{$formInput->reference_number}.pdf");
     }
-    public function emailOp(FormInput $formInput)
-    {
-        if (! $formInput->staffInput) {
-            abort(404);
-        }
-
-        $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument']);
-
-        $copyLabels = self::OP_COPY_LABELS;
-
-        $portraitPdf = Pdf::loadView('pdf.op-a6', compact('formInput', 'copyLabels'))
-            ->setPaper('a5', 'portrait');
-
-        $landscapePdf = Pdf::loadView('pdf.op-landscape', compact('formInput', 'copyLabels'))
-            ->setPaper('legal', 'landscape');
-
-        \Mail::to($formInput->email)->send(
-            new OrderOfPaymentMail(
-                $formInput,
-                $portraitPdf->output(),
-                $landscapePdf->output(),
-            )
-        );
-
-        return back()->with('success', 'Order of Payment emailed successfully.');
+public function emailOp(FormInput $formInput, Request $request)
+{
+    if (! $formInput->staffInput) {
+        abort(404);
     }
+
+    $validated = $request->validate([
+        'subject' => 'nullable|string|max:255',
+        'recipient_name' => 'nullable|string|max:255',
+        'note' => 'nullable|string|max:2000',
+    ]);
+
+    $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument']);
+
+    $copyLabels = self::OP_COPY_LABELS;
+
+    $portraitPdf = Pdf::loadView('pdf.op-a6', compact('formInput', 'copyLabels'))
+        ->setPaper('a5', 'portrait');
+
+    $landscapePdf = Pdf::loadView('pdf.op-landscape', compact('formInput', 'copyLabels'))
+        ->setPaper('legal', 'landscape');
+
+    \Mail::to($formInput->email)->send(
+        new OrderOfPaymentMail(
+            $formInput,
+            $portraitPdf->output(),
+            $landscapePdf->output(),
+            $validated['subject'] ?? null,
+            $validated['recipient_name'] ?? null,
+            $validated['note'] ?? null,
+        )
+    );
+
+    return back()->with('success', 'Order of Payment emailed successfully.');
+}
 }

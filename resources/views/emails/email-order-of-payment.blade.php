@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; color: #1e293b;">
-    <p>Dear {{ $formInput->firstname_or_office }} {{ $formInput->lastname_or_agency }},</p>
+    <p>Dear {{ $recipientName ?? ($formInput->firstname_or_office . ' ' . $formInput->lastname_or_agency) }},</p>
 
     <p>
         Please find attached your Order of Payment
         (Reference No. <strong>{{ $formInput->reference_number }}</strong>)
         for the amount of <strong>₱{{ number_format($formInput->amount, 2) }}</strong>.
     </p>
+
+    @if (!empty($note))
+        <p>{!! nl2br(e($note)) !!}</p>
+    @endif
 
     <p>Two copies are attached:</p>
     <ul>
