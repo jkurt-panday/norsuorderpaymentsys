@@ -19,7 +19,7 @@ const semesterOptions = [
     { short: 'Summer',   full: 'Summer' },
 ];
 
-const particularsOptions = ['Registration', 'Tuition', 'Miscellaneous'];
+const particularsOptions = ['Registration', 'Tuition', 'Miscellaneous', 'Adjustment'];
 
 const entryTypeOptions = [
     { value: 'ar',          label: 'AR' },
