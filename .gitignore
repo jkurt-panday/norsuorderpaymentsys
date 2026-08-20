@@ -27,4 +27,6 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
-.xlsx
+*.xlsx
+*.xls
+*.csv
