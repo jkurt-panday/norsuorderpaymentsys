@@ -71,9 +71,12 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.3.2
         version: 4.3.3(vite@8.2.0(@types/node@22.20.1)(jiti@2.7.0))
+<<<<<<< HEAD
+=======
       '@tanstack/react-table':
         specifier: ^9.1.2
         version: 9.1.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+>>>>>>> 6bceb3127b1739b40db413cc77173d49ac836f6f
       '@types/react':
         specifier: ^19.2.0
         version: 19.2.18
@@ -1320,6 +1323,8 @@ packages:
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7 || ^8
 
+<<<<<<< HEAD
+=======
   '@tanstack/react-store@0.11.1':
     resolution: {integrity: sha512-HaIGKI3YLmjBYIvy5DFDY23oNaYZIsTZfngey07Uh5iLVJgM3bIGCnZeOFOqzjFld9JHWcaHJnasD/bKoGKwJQ==}
     peerDependencies:
@@ -1339,6 +1344,7 @@ packages:
     resolution: {integrity: sha512-ONpWQeass1sfg80CWF1NSwQ8r3GiqxA2lT/EdqIcrDEPZ0Z+0mM94eQoFYLPN0Kztzj8TQVb2+PrSZSItqA61g==}
     engines: {node: '>=20'}
 
+>>>>>>> 6bceb3127b1739b40db413cc77173d49ac836f6f
   '@ts-morph/common@0.27.0':
     resolution: {integrity: sha512-Wf29UqxWDpc+i61k3oIOzcUfQt79PIT9y/MWfAGlrkjg6lBC1hwDECLXPVJAhWjiGbfBCxZd65F/LIZF3+jeJQ==}
 
@@ -5295,6 +5301,8 @@ snapshots:
       tailwindcss: 4.3.3
       vite: 8.2.0(@types/node@22.20.1)(jiti@2.7.0)
 
+<<<<<<< HEAD
+=======
   '@tanstack/react-store@0.11.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@tanstack/store': 0.11.1
@@ -5316,6 +5324,7 @@ snapshots:
     dependencies:
       '@tanstack/store': 0.11.1
 
+>>>>>>> 6bceb3127b1739b40db413cc77173d49ac836f6f
   '@ts-morph/common@0.27.0':
     dependencies:
       fast-glob: 3.3.3

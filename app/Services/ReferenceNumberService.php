@@ -6,7 +6,11 @@ use App\Models\AssessmentForm;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use App\Models\YearSequence;
+<<<<<<< HEAD
+use Illuminate\Support\Facades\DB;
+=======
 
+>>>>>>> 1c0c01473aaa7337a8c0deb7fca3a03823e4c703
 
 class ReferenceNumberService
 {

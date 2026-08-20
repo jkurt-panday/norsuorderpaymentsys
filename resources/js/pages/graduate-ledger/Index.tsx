@@ -98,6 +98,17 @@ function formatTransactionDate(value?: string | null) {
   });
 }
 
+function getEntryTypeBadge(type?: string): string {
+  const normalized = (type ?? '').trim().toUpperCase();
+  if (normalized === 'PAYMENT' || normalized === 'P') {
+    return 'bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold';
+  }
+  if (normalized === 'ADJUSTMENT' || normalized === 'ADJ' || normalized.includes('ADJUST')) {
+    return 'bg-purple-50 text-purple-700 border-purple-200 font-semibold';
+  }
+  return 'bg-[#EAF2FF] text-[#0B62E0] border-[#B9D8FF] font-semibold';
+}
+
 interface IndexProps {
   records?: LedgerPaginator;
   filters?: {
@@ -299,6 +310,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
       <div className="max-w-7xl mx-auto space-y-6">
       <Head title="Graduate School Ledger" />
 
+        {/* Top Header / Action Bar */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#CFE3FF] pb-5">
           <div>
             <div className="flex items-center gap-2">
@@ -310,143 +322,50 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
             <p className="text-sm text-[#5C7A9E] mt-0.5">Tuition, fees, and payment transactions for graduate students.</p>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 w-full md:w-auto">
-            <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#7FA6D6]" />
-                <Input
-                  type="search"
-                  placeholder="Search name, course, or ref #..."
-                  className="pl-8 h-9 bg-white border-[#CFE3FF] focus-visible:ring-[#0F6FFF]"
-                  value={searchQuery}
-                  onChange={(e) =>
-                    setFilterState((prev) => ({ ...prev, search: e.target.value }))
-                  }
-                />
-              </div>
-
-              <Button
-                type="submit"
-                size="sm"
-                className="h-9 bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white"
-              >
-                <Search className="h-4 w-4 mr-1.5" /> Search
-              </Button>
-
-              <select
-                value={schoolYear}
-                onChange={(e) => applyFilters({ school_year: e.target.value })}
-                className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
-              >
-                <option value="">All School Years</option>
-                {(filterOptions?.schoolYears ?? []).map((sy) => (
-                  <option key={sy} value={sy}>{sy}</option>
-                ))}
-              </select>
-
-              <select
-                value={semester}
-                onChange={(e) => applyFilters({ semester: e.target.value })}
-                className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
-              >
-                <option value="">All Semesters</option>
-                {(filterOptions?.semesters ?? []).map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-
-              <select
-                value={course}
-                onChange={(e) => applyFilters({ course: e.target.value })}
-                className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
-              >
-                <option value="">All Courses</option>
-                {(filterOptions?.courses ?? []).map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <label className={`inline-flex items-center rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm font-medium text-[#0B3D91] transition-colors ${isImporting ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-[#F3F8FF]'}`}>
               <input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => applyFilters({ date_from: e.target.value })}
-                className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
-                placeholder="Date from"
-              />
-
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(e) => applyFilters({ date_to: e.target.value })}
-                className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
-                placeholder="Date to"
-              />
-
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
-                onClick={() => {
-                  setFilterState({
-                    search: '',
-                    school_year: '',
-                    semester: '',
-                    course: '',
-                    date_from: '',
-                    date_to: '',
-                  });
-                  router.get('/graduate-ledger');
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                disabled={isImporting}
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  handleImportFile(file, e.target);
                 }}
-              >
-                <XCircle className="h-4 w-4 mr-1.5" />
-                Clear Filters
-              </Button>
-            </form>
-
-            <div className="flex flex-wrap items-center justify-end gap-2 ml-auto">
-              <label className={`inline-flex items-center rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm font-medium text-[#0B3D91] transition-colors ${isImporting ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-[#F3F8FF]'}`}>
-                <input
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  disabled={isImporting}
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] ?? null;
-                    handleImportFile(file, e.target);
-                  }}
-                />
-                {isImporting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin text-[#0F6FFF]" />
-                    Importing...
-                  </>
-                ) : (
-                  'Import Excel/CSV'
-                )}
-              </label>
-
-              <Button
-                variant="outline"
-                disabled={isExporting}
-                className="border-[#0F6FFF] text-[#0F6FFF] hover:bg-[#E8F0FE]"
-                onClick={handleExport}
-              >
-                {isExporting ? (
+              />
+              {isImporting ? (
+                <>
                   <Loader2 className="h-4 w-4 mr-1.5 animate-spin text-[#0F6FFF]" />
-                ) : (
-                  <Download className="h-4 w-4 mr-1.5" />
-                )}
-                {isExporting ? 'Exporting...' : 'Export Excel'}
-              </Button>
+                  Importing...
+                </>
+              ) : (
+                'Import Excel/CSV'
+              )}
+            </label>
 
-              <Button className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white" onClick={() => router.get('/graduate-ledger/add')}>
-                <PlusCircle className="h-4 w-4 mr-1.5" />
-                New Transaction
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              disabled={isExporting}
+              className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
+              onClick={handleExport}
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 mr-1.5 animate-spin text-[#0F6FFF]" />
+              ) : (
+                <Download className="h-4 w-4 mr-1.5" />
+              )}
+              {isExporting ? 'Exporting...' : 'Export Excel'}
+            </Button>
+
+            <Button className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white" onClick={() => router.get('/graduate-ledger/add')}>
+              <PlusCircle className="h-4 w-4 mr-1.5" />
+              New Transaction
+            </Button>
           </div>
         </div>
 
+        {/* Metrics Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="shadow-xs border border-[#CFE3FF] bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -493,12 +412,109 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
           </Card>
         </div>
 
+        {/* Transaction Ledger Table with Filter Bar */}
         <Card className="border border-[#CFE3FF] bg-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-md text-[#0B3D91]">Transaction Ledger</CardTitle>
-            <CardDescription className="text-[#7FA6D6]">
-              Showing {rows.length} of {totalRecordCount} record{totalRecordCount === 1 ? '' : 's'}
-            </CardDescription>
+          <CardHeader className="border-b border-[#CFE3FF] pb-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <CardTitle className="text-md text-[#0B3D91]">Transaction Ledger</CardTitle>
+                <CardDescription className="text-[#7FA6D6] mt-0.5">
+                  Showing {rows.length} of {totalRecordCount} record{totalRecordCount === 1 ? '' : 's'}
+                </CardDescription>
+              </div>
+
+              <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center gap-2">
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#7FA6D6]" />
+                  <Input
+                    type="search"
+                    placeholder="Search name, course, or ref #..."
+                    className="pl-8 h-9 bg-white border-[#CFE3FF] focus-visible:ring-[#0F6FFF]"
+                    value={searchQuery}
+                    onChange={(e) =>
+                      setFilterState((prev) => ({ ...prev, search: e.target.value }))
+                    }
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="h-9 bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white"
+                >
+                  <Search className="h-4 w-4 mr-1.5" /> Search
+                </Button>
+
+                <select
+                  value={schoolYear}
+                  onChange={(e) => applyFilters({ school_year: e.target.value })}
+                  className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                >
+                  <option value="">All School Years</option>
+                  {(filterOptions?.schoolYears ?? []).map((sy) => (
+                    <option key={sy} value={sy}>{sy}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={semester}
+                  onChange={(e) => applyFilters({ semester: e.target.value })}
+                  className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                >
+                  <option value="">All Semesters</option>
+                  {(filterOptions?.semesters ?? []).map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={course}
+                  onChange={(e) => applyFilters({ course: e.target.value })}
+                  className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                >
+                  <option value="">All Courses</option>
+                  {(filterOptions?.courses ?? []).map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => applyFilters({ date_from: e.target.value })}
+                  className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                  placeholder="Date from"
+                />
+
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => applyFilters({ date_to: e.target.value })}
+                  className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                  placeholder="Date to"
+                />
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
+                  onClick={() => {
+                    setFilterState({
+                      search: '',
+                      school_year: '',
+                      semester: '',
+                      course: '',
+                      date_from: '',
+                      date_to: '',
+                    });
+                    router.get('/graduate-ledger');
+                  }}
+                >
+                  <XCircle className="h-4 w-4 mr-1.5" />
+                  Clear Filters
+                </Button>
+              </form>
+            </div>
           </CardHeader>
           <CardContent className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
@@ -540,7 +556,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                       <td className="py-2 pr-4 text-[#334E68]">{r.particulars}</td>
                       <td className="py-2 pr-4 text-right text-[#334E68]">{currency(r.tuitionPerUnitOrFeePerSemester)}</td>
                       <td className="py-2 pr-4">
-                        <Badge variant="outline" className="border-[#B9D8FF] text-[#0B62E0] bg-[#EAF2FF]">
+                        <Badge variant="outline" className={getEntryTypeBadge(r.arPayment)}>
                           {r.arPayment}
                         </Badge>
                       </td>
@@ -595,7 +611,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                     value={goToPage}
                     onChange={(e) => setGoToPage(e.target.value)}
                     placeholder={String(currentPage)}
-                    className="w-14 h-7 rounded border border-[#CFE3FF] bg-white px-2 text-center text-xs text-[#0B3D91] font-medium focus:outline-none focus:ring-1 focus:ring-[#0B62E0]"
+                    className="w-14 h-7 rounded border border-[#CFE3FF] bg-white px-2 text-center text-xs text-[#0B3D91] font-semibold focus:bg-white focus:text-[#0B3D91] focus:border-[#0B62E0] focus:outline-none focus:ring-1 focus:ring-[#0B62E0] [color-scheme:light]"
                   />
                   <button
                     type="submit"
@@ -669,8 +685,10 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                               router.get(link.url, {}, { preserveState: true, preserveScroll: true });
                             }
                           }}
-                          className={`cursor-pointer ${
-                            link.active ? 'bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]' : 'text-[#0B3D91]'
+                          className={`cursor-pointer font-medium ${
+                            link.active
+                              ? '!bg-[#0F6FFF] !text-white font-bold hover:!bg-[#0B3D91] hover:!text-white shadow-sm'
+                              : 'text-[#334E68] hover:bg-[#EAF2FF] hover:text-[#0B62E0]'
                           }`}
                         >
                           {link.label}
