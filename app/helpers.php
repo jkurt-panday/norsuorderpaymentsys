@@ -1,7 +1,7 @@
 <?php
 
 if (!function_exists('wrapToLines')) {
-    function wrapToLines(string $text, int $charsPerLine = 50): array
+    function wrapToLines(string $text, int $charsPerLine = 60): array
     {
         if (trim($text) === '') {
             return [''];
