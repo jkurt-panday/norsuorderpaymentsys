@@ -137,8 +137,25 @@ class CoursesController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Courses $courses)
+    public function destroy(Courses $courses): RedirectResponse
     {
-        //
+        try {
+            DB::beginTransaction();
+
+            $courses->deleteOrFail();
+
+            DB::commit();
+
+            return redirect()->route('staff.courses.index')->with('success', 'Course deleted successfully.');
+            
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            Log::error('Failed to delete course ID ' . $courses->id . ': ' . $e->getMessage());
+
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Failed to delete course. Please try again.');
+        }
     }
 }
