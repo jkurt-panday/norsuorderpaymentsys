@@ -111,27 +111,16 @@ export function ClientDataTable<TData extends RowData>({
                             >
                                 <Search className="h-4 w-4" />
                             </button>
+                            <button
+                                type="button"
+                                onClick={resetAll}
+                                title="Reset table"
+                                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50"
+                            >
+                                <RotateCw className="h-4 w-4" />
+                            </button>
                         </>
                     )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={() => setSorting([])}
-                        title="Clear sorting"
-                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50"
-                    >
-                        <ArrowUpDown className="h-4 w-4" />
-                    </button>
-                    <button
-                        type="button"
-                        onClick={resetAll}
-                        title="Reset table"
-                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50"
-                    >
-                        <RotateCw className="h-4 w-4" />
-                    </button>
                 </div>
             </div>
 
