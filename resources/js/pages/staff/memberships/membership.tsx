@@ -6,7 +6,7 @@ import {
     destroy,
 } from '@/actions/App/Http/Controllers/MembershipController';
 import ResourceTable from '@/components/ResourceTable';
-import type {PaginatedData, ColumnDef} from '@/components/ResourceTable';
+import type { PaginatedData, ColumnDef } from '@/components/ResourceTable';
 import { flashToast } from '@/utils/flashToast';
 
 // ============ TYPE DEFINITIONS ============
@@ -47,12 +47,12 @@ export default function MembershipsIndex({
     // redirects back with no visible feedback to the user.
     useEffect(() => {
         if (flash?.success) {
-flashToast('success', flash.success);
-}
+            flashToast('success', flash.success);
+        }
 
         if (flash?.error) {
-flashToast('error', flash.error);
-}
+            flashToast('error', flash.error);
+        }
     }, [flash]);
 
     // ============ COLUMNS ============

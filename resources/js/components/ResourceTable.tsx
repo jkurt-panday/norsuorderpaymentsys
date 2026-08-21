@@ -11,10 +11,9 @@ import {
     ArrowUp,
     ArrowDown,
     Check,
-    RefreshCw
-    
+    RefreshCw,
 } from 'lucide-react';
-import type {LucideIcon} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useConfirm } from '@/components/confirm-dialog';
@@ -133,16 +132,16 @@ export default function ResourceTable<T extends { id: number }>({
 
     function compareValues(a: unknown, b: unknown): number {
         if (a === b) {
-return 0;
-}
+            return 0;
+        }
 
         if (a === null || a === undefined) {
-return -1;
-}
+            return -1;
+        }
 
         if (b === null || b === undefined) {
-return 1;
-}
+            return 1;
+        }
 
         const aNum = typeof a === 'number' ? a : Number(a);
         const bNum = typeof b === 'number' ? b : Number(b);
@@ -212,8 +211,8 @@ return 1;
                 const existing = highlightTimers.current.get(id);
 
                 if (existing) {
-clearTimeout(existing);
-}
+                    clearTimeout(existing);
+                }
 
                 const timer = setTimeout(() => {
                     setHighlightedIds((prev) => {
@@ -250,8 +249,8 @@ clearTimeout(existing);
 
     useEffect(() => {
         if (!pollInterval) {
-return;
-}
+            return;
+        }
 
         if (process.env.NODE_ENV !== 'production' && !resourceKey) {
             console.warn(
@@ -267,8 +266,8 @@ return;
 
     const handleDeleteClick = async (id: number) => {
         if (pollInterval) {
-stop();
-}
+            stop();
+        }
 
         const ok = await confirm({
             title: 'Confirm Delete',
@@ -279,8 +278,8 @@ stop();
 
         if (!ok) {
             if (pollInterval) {
-start();
-}
+                start();
+            }
 
             return;
         }
@@ -292,8 +291,8 @@ start();
             },
             onFinish: () => {
                 if (pollInterval) {
-start();
-}
+                    start();
+                }
             },
         });
     };
@@ -342,8 +341,8 @@ start();
 
     const [internalSearch, setInternalSearch] = useState<string>(() => {
         if (typeof window === 'undefined') {
-return '';
-}
+            return '';
+        }
 
         return new URLSearchParams(window.location.search).get('search') ?? '';
     });
