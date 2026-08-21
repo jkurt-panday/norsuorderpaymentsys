@@ -42,7 +42,7 @@ export default function CoursesIndex({ courses }: CoursesProps) {
                     </CardHeader>
                 </Card>
 
-                <div className="rounded-2xl border-2 border-red-500 pt-2">
+                <div className="rounded-2xl">
                     <ClientDataTable
                         columns={columns}
                         data={courses}
