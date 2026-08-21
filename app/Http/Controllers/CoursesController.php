@@ -17,27 +17,10 @@ class CoursesController extends Controller
      */
     public function index(Request $request): InertiaResponse
     {
-        $courses = Courses::query()
-            ->when($request->search, function ($query, $search) {
-                $query->where(function ($query) use ($search) {
-                    $query->where('course_code', 'ilike', "%{$search}%")
-                        ->orWhere('course_desc', 'ilike', "%{$search}%");
-                });
-            })
-            ->orderBy(
-                $request->input('sort', 'course_code'),
-                $request->input('direction', 'asc')
-            )
-            ->paginate(10)
-            ->withQueryString();
-
+        $courses = Courses::query()->orderBy('course_code')->get();
+        
         return Inertia::render('staff/courses/coursesIndex', [
             'courses' => $courses,
-            'filters' => [
-                'search' => $request->input('search', ''),
-                'sort' => $request->input('sort', 'course_code'),
-                'direction' => $request->input('direction', 'asc'),
-            ],
         ]);
     }
 
@@ -52,7 +35,7 @@ class CoursesController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): InertiaResponse
+    public function store(Request $request): RedirectResponse
     {
         // 1. Validate the input fields
         $validated = $request->validate ([
