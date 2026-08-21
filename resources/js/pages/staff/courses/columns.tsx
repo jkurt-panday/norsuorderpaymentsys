@@ -3,9 +3,9 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { Link } from '@inertiajs/react';
 
-import type { DataTableFeatures } from './data-table-features';
+import type { DataTableFeatures } from '@/components/data-table/data-table-features';
 
-export type Course = {
+export type CourseType = {
     id: number;
     course_code: string;
     course_desc: string;
@@ -13,7 +13,7 @@ export type Course = {
     updated_at: string;
 };
 
-const columnHelper = createColumnHelper<DataTableFeatures, Course>();
+const columnHelper = createColumnHelper<DataTableFeatures, CourseType>();
 
 export const columns = columnHelper.columns([
     columnHelper.display({
