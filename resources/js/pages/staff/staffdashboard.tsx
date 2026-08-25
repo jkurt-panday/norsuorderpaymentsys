@@ -4,10 +4,9 @@ import {
     StatCard,
     ChartCard,
     ActivityLogList,
-    getDayLabel
-    
+    getDayLabel,
 } from '@/components/Reusable';
-import type {ActivityLogItem} from '@/components/Reusable';
+import type { ActivityLogItem } from '@/components/Reusable';
 
 interface RecentRequest {
     id: number;
@@ -63,8 +62,8 @@ const formatDate = (value?: string | null) => {
     const date = new Date(value);
 
     if (Number.isNaN(date.getTime())) {
-return value;
-}
+        return value;
+    }
 
     return date.toLocaleDateString('en-US', {
         month: 'short',
@@ -186,7 +185,7 @@ export default function Dashboard() {
                 {/* Charts */}
                 <div className="mt-6 grid gap-4 lg:grid-cols-3">
                     <ChartCard
-                        title="Requests by Status"
+                        title="OP Requests by Status"
                         description="Current breakdown of all requests"
                         type="pie"
                         data={statusBreakdown}
@@ -196,7 +195,7 @@ export default function Dashboard() {
                     />
                     <div className="lg:col-span-2">
                         <ChartCard
-                            title="Requests Over the Last 30 Days"
+                            title="OP Requests Over the Last 30 Days"
                             description="Daily request volume, rolling window"
                             type="line"
                             data={requestsOverTime}
@@ -208,7 +207,7 @@ export default function Dashboard() {
 
                 <div className="mt-4">
                     <ChartCard
-                        title="Requests by Membership"
+                        title="OP Requests by Membership"
                         description="Total requests submitted per membership type"
                         type="bar"
                         data={requestsByMembership}

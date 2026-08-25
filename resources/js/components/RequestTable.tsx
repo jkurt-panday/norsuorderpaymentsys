@@ -254,8 +254,8 @@ export default function RequestTable<T extends { id: number | string }>({
                 const existing = highlightTimers.current.get(id);
 
                 if (existing) {
-clearTimeout(existing);
-}
+                    clearTimeout(existing);
+                }
 
                 const timer = setTimeout(() => {
                     setHighlightedIds((prev) => {
@@ -292,8 +292,8 @@ clearTimeout(existing);
 
     React.useEffect(() => {
         if (!pollInterval) {
-return;
-}
+            return;
+        }
 
         if (process.env.NODE_ENV !== 'production' && !resourceKey) {
             console.warn(
@@ -323,6 +323,8 @@ return;
             url.searchParams.delete('page');
         }
 
+        stop(); // pause polling so a stale in-flight poll can't overwrite this navigation
+
         router.get(
             url.pathname + url.search,
             {},
@@ -333,7 +335,10 @@ return;
                 only: resourceKey ? [resourceKey] : undefined,
                 showProgress: false,
                 onStart: () => setIsNavigating(true),
-                onFinish: () => setIsNavigating(false),
+                onFinish: () => {
+                    setIsNavigating(false);
+                    start(); // resume polling now that we're settled on the new page
+                },
             },
         );
     };
@@ -367,6 +372,8 @@ return;
 
         url.searchParams.delete('page');
 
+        stop();
+
         router.get(
             url.pathname + url.search,
             {},
@@ -377,7 +384,10 @@ return;
                 only: resourceKey ? [resourceKey] : undefined,
                 showProgress: false,
                 onStart: () => setIsNavigating(true),
-                onFinish: () => setIsNavigating(false),
+                onFinish: () => {
+                    setIsNavigating(false);
+                    start();
+                },
             },
         );
     };
@@ -720,7 +730,7 @@ return;
                             {resource.total} results
                         </p>
 
-                        {resource.last_page > 5 ? (
+                        {resource.last_page > 3 ? (
                             (() => {
                                 const prevLink = resource.links.find((l) =>
                                     l.label
