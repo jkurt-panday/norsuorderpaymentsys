@@ -48,6 +48,7 @@ import {
     SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 import type { AppLayoutProps } from '@/types';
+import { Paperclip } from '@untitledui/icons';
 
 interface SidebarItem {
     title: string;
@@ -86,6 +87,10 @@ const mainNavItems: SidebarItem[] = [
             { title: 'Law Overview', href: '/law-ledger' },
             { title: 'Print Statement', href: '/law-ledger/print-select' },
         ],
+    },
+    {
+        title: 'Activity Logs',
+        icon: Paperclip,
     },
 ];
 

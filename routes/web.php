@@ -130,6 +130,8 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
 
     Route::get('/staffdashboard', [StaffInputController::class, 'dashboard'])->name('dashboard');
 
+    Route::get('/activity-log', [StaffInputController::class, 'activityLog'])->name('activity-log');
+
     // ── Requests Management ──────────────────────────────────────────────────
     Route::name('requests.')->prefix('requests')->group(function () {
         Route::get('/',                      [StaffInputController::class, 'index'])->name('index');

@@ -1,13 +1,5 @@
 import { Link } from '@inertiajs/react';
-import {
-    Home,
-    FileText,
-    Users,
-    CreditCard,
-    Landmark,
-    ListTree,
-    LogOut,
-} from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { NavMain } from '@/components/nav-main';
 import {
     Sidebar,
@@ -16,6 +8,8 @@ import {
     SidebarHeader,
     useSidebar,
 } from '@/components/ui/sidebar';
+import graduateLedger from '@/routes/graduate-ledger';
+import lawLedger from '@/routes/law-ledger';
 import staff from '@/routes/staff';
 import type { NavItem } from '@/types';
 
@@ -45,6 +39,18 @@ const mainNavItems: NavItem[] = [
         title: 'UACS',
         href: staff.uacs.index(),
         separatorBefore: true,
+    },
+    {
+        title: 'Law Ledger',
+        href: lawLedger.index(),
+    },
+    {
+        title: 'Activity Log',
+        href: staff.activityLog(),
+    },
+    {
+        title: 'Graduate Ledger',
+        href: graduateLedger.index(),
     },
 ];
 

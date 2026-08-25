@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\LawSchoolLedgerExport;
+use App\Models\ActivityLog;
 use App\Models\LawSchoolLedger;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -314,6 +315,8 @@ class LawSchoolLedgerController extends Controller
             }
             fclose($handle);
 
+            ActivityLog::recordImport(LawSchoolLedger::class, $imported, 'Law School Ledger');
+
             return redirect()->route('law-ledger.index')->with('success', "Import complete: {$imported} records imported.");
         }
 
@@ -369,6 +372,8 @@ class LawSchoolLedgerController extends Controller
 
         $spreadsheet->disconnectWorksheets();
         unset($spreadsheet);
+
+        ActivityLog::recordImport(LawSchoolLedger::class, $imported, 'Law School Ledger');
 
         return redirect()->route('law-ledger.index')->with('success', "Import complete: {$imported} records imported.");
     }
