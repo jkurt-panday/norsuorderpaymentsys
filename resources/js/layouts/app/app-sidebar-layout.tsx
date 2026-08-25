@@ -74,9 +74,9 @@ const mainNavItems: SidebarItem[] = [
     { title: 'UACS', href: '/staff/uacs', icon: Logs },
     { title: 'Course', href: '/staff/courses', icon: School },
     {
-        title: 'Assessment', icon: FileSearchIcon, items: [
-            { title: 'Dashboard', href: '' },
-            { title: 'Assessments', href: '' },
+        title: 'Assessments', icon: FileSearchIcon, items: [
+            { title: 'Dashboard', href: '/staff/assessments/dashboard' },
+            { title: 'Assessments', href: '/staff/assessments/' },
     ]},
     {
         title: 'Graduate Ledger',
