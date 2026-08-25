@@ -20,7 +20,7 @@ class AssessmentController extends Controller
             ? $request->input('sort')
             : 'created_at';
 
-        $direction = $request->input('direction') === 'desc' ? 'desc' : 'asc';
+        $direction = $request->input('direction') === 'asc' ? 'asc' : 'desc';
 
         $assessments = AssessmentForm::query()
             ->with('course') // needed for row.original.course.course_code in columns.tsx
