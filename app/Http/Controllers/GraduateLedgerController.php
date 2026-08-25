@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\GraduateLedgerExport;
 use App\Models\AcademicTerm;
 use App\Models\Course;
+use App\Models\FormInput;
 use App\Models\GraduateLedger;
 use App\Models\Student;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -62,6 +63,10 @@ class GraduateLedgerController extends Controller
                 'outstandingBalance' => $outstandingBalance,
             ],
             'filterOptions' => $this->getFilterOptions(),
+            'pendingOpItems' => $this->getPendingOpItems(),
+            'studentOptions' => $this->studentList(),
+            'courseList' => $this->courseList(),
+            'academicTermList' => $this->academicTermList(),
         ]);
     }
 
@@ -656,10 +661,13 @@ class GraduateLedgerController extends Controller
             ->pluck('last_course_id', 'student_id')
             ->toArray();
 
-        return Student::orderBy('last_name')
-            ->get(['id', 'last_name', 'first_name', 'middle_name'])
+        return Student::orderBy('raw_name_from_csv')
+            ->orderBy('last_name')
+            ->get(['id', 'last_name', 'first_name', 'middle_name', 'raw_name_from_csv'])
             ->map(fn ($s) => [
                 'id'             => $s->id,
+                'name'           => $s->raw_name_from_csv ?: trim("{$s->last_name}, {$s->first_name} {$s->middle_name}"),
+                'raw_name_from_csv' => $s->raw_name_from_csv,
                 'last_name'      => $s->last_name,
                 'first_name'     => $s->first_name,
                 'middle_name'    => $s->middle_name,
@@ -963,5 +971,176 @@ class GraduateLedgerController extends Controller
             'totalPayments' => $totalPayments,
             'outstandingBalance' => $totalCharges - $totalPayments,
         ];
+    }
+
+    /**
+     * Verify and post a pending Order of Payment item into the Graduate Ledger.
+     */
+    public function postOpItem(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'student_id' => 'nullable|required_without:new_student|exists:graduate_student,id',
+            'new_student' => 'nullable|string|max:255',
+            'course_id' => 'required|exists:graduate_course,id',
+            'academic_term_id' => 'required|exists:graduate_academic_term,id',
+            'entry_type' => 'required|in:ar,payment,adjustment',
+            'particulars' => 'required|string|max:255',
+            'amount' => 'required|numeric|min:0.01',
+            'reference_or_jev_number' => 'nullable|string|max:255',
+        ]);
+
+        DB::transaction(function () use ($validated, $request) {
+            $studentId = $validated['student_id'] ?? null;
+
+            if (!$studentId && !empty($validated['new_student'])) {
+                $parsed = Student::parseRawName($validated['new_student']);
+                $newSt = Student::create(array_merge($parsed, [
+                    'raw_name_from_csv' => $validated['new_student'],
+                ]));
+                $studentId = $newSt->id;
+            }
+
+            GraduateLedger::create([
+                'student_id' => $studentId,
+                'course_id' => $validated['course_id'],
+                'academic_term_id' => $validated['academic_term_id'],
+                'entry_type' => $validated['entry_type'],
+                'particulars' => $validated['particulars'],
+                'amount' => $validated['amount'],
+                'reference_or_jev_number' => $validated['reference_or_jev_number'] ?? null,
+                'transaction_date' => now()->toDateString(),
+                'input_by' => $request->user()?->name ?? 'Staff Verification',
+            ]);
+        });
+
+        return back()->with('success', 'Order of Payment transaction successfully verified and posted to Graduate Ledger!');
+    }
+
+    /**
+     * Fetch Order of Payment (OP) requests containing Tuition or Miscellaneous fees
+     * that have been processed by staff but not yet verified into the Graduate Ledger.
+     */
+    private function getPendingOpItems(): array
+    {
+        try {
+            $exactGradOptions = [
+                'Payment for Graduate School - Balance in full',
+                'Payment of Graduate School - Down payment',
+                'Comprehensive Exam - Doctorate',
+                'Comprehensive Exam-Doctorate',
+                'Comprehensive Exam - Masters',
+                'Comprehensive Exam-Masters',
+                'Payment for Off Semester/Summer/Special Class',
+            ];
+
+            // Collect all reference numbers / O.R. numbers already posted in graduate_ledgers
+            $postedRefs = GraduateLedger::whereNotNull('reference_or_jev_number')
+                ->pluck('reference_or_jev_number')
+                ->toArray();
+
+            $opItems = FormInput::with(['staffInput', 'paymentDetailOption'])
+                ->whereHas('staffInput')
+                ->where(function ($q) use ($exactGradOptions) {
+                    $q->whereHas('paymentDetailOption', function ($pq) use ($exactGradOptions) {
+                        $pq->whereIn('payment_desc', $exactGradOptions)
+                           ->orWhereRaw("LOWER(payment_desc) LIKE '%graduate%'");
+                    })
+                    ->orWhereRaw("LOWER(office_or_college) LIKE '%graduate%'");
+                })
+                ->latest()
+                ->take(100)
+                ->get()
+                ->reject(function ($item) use ($postedRefs) {
+                    $refNum = (string) $item->reference_number;
+                    $opRefNum = 'OP-' . $refNum;
+                    $staffRefDoc = (string) ($item->staffInput?->ref_document_id ?? '');
+
+                    return in_array($refNum, $postedRefs, true) ||
+                           in_array($opRefNum, $postedRefs, true) ||
+                           (!empty($staffRefDoc) && in_array($staffRefDoc, $postedRefs, true));
+                })
+                ->values();
+
+            $students = Student::select('id', 'raw_name_from_csv', 'last_name', 'first_name')->get();
+
+            return $opItems->map(function ($item) use ($students) {
+                $rawFullName = $item->full_name;
+                $bestStudentId = $this->findBestStudentMatch($rawFullName, $students);
+                $rawDesc = $item->paymentDetailOption?->payment_desc ?? '';
+
+                return [
+                    'id' => $item->id,
+                    'reference_number' => $item->reference_number,
+                    'full_name' => $rawFullName,
+                    'email' => $item->email,
+                    'college' => $item->office_or_college,
+                    'particulars' => $this->normalizeParticulars($rawDesc),
+                    'raw_op_desc' => $rawDesc,
+                    'amount' => (float) $item->amount,
+                    'ref_document_or_number' => $item->staffInput?->ref_document_id ?? ('OP-' . $item->reference_number),
+                    'status' => $item->staffInput?->status ?? 'pending',
+                    'created_at' => $item->created_at ? $item->created_at->format('M d, Y') : '',
+                    'matched_student_id' => $bestStudentId,
+                ];
+            })->toArray();
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Normalize Order of Payment description to canonical Particulars (Tuition, Miscellaneous, etc.)
+     */
+    private function normalizeParticulars(?string $rawDesc): string
+    {
+        $desc = strtolower(trim($rawDesc ?? ''));
+        if (empty($desc)) return 'Tuition';
+
+        if (str_contains($desc, 'down payment') || str_contains($desc, 'balance in full') || str_contains($desc, 'tuition') || str_contains($desc, 'special class')) {
+            return 'Tuition';
+        }
+
+        if (str_contains($desc, 'comprehensive exam')) {
+            return 'Comprehensive Exam';
+        }
+
+        if (str_contains($desc, 'misc') || str_contains($desc, 'miscellaneous')) {
+            return 'Miscellaneous';
+        }
+
+        if (str_contains($desc, 'registration') || str_contains($desc, 'reg')) {
+            return 'Registration';
+        }
+
+        return 'Tuition';
+    }
+
+    /**
+     * Helper to find the best student match by fuzzy name similarity.
+     */
+    private function findBestStudentMatch(string $fullName, $students): ?int
+    {
+        $cleanTarget = strtolower(preg_replace('/[^a-zA-Z]/', '', $fullName));
+        if (empty($cleanTarget)) return null;
+
+        $bestId = null;
+        $highestPercent = 0;
+
+        foreach ($students as $st) {
+            $raw = strtolower(preg_replace('/[^a-zA-Z]/', '', $st->raw_name_from_csv ?? ($st->first_name . ' ' . $st->last_name)));
+            if (empty($raw)) continue;
+
+            if ($raw === $cleanTarget) {
+                return $st->id;
+            }
+
+            similar_text($cleanTarget, $raw, $percent);
+            if ($percent > 70 && $percent > $highestPercent) {
+                $highestPercent = $percent;
+                $bestId = $st->id;
+            }
+        }
+
+        return $bestId;
     }
 }

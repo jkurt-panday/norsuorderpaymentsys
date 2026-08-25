@@ -109,9 +109,40 @@ function getEntryTypeBadge(type?: string): string {
   return 'bg-[#EAF2FF] text-[#0B62E0] border-[#B9D8FF] font-semibold';
 }
 
-interface IndexProps {
-  records?: LedgerPaginator;
-  filters?: {
+export interface PendingOpItem {
+  id: number;
+  reference_number: string;
+  full_name: string;
+  email?: string;
+  college?: string;
+  particulars: string;
+  amount: number;
+  ref_document_or_number?: string;
+  status: string;
+  created_at: string;
+  matched_student_id?: number | null;
+}
+
+export interface StudentOption {
+  id: number;
+  name: string;
+  raw_name_from_csv?: string;
+}
+
+export interface CourseOption {
+  id: number;
+  code: string;
+}
+
+export interface TermOption {
+  id: number;
+  school_year: string;
+  semester: string;
+}
+
+export interface IndexProps {
+  records: LedgerPaginator;
+  filters: {
     search?: string;
     school_year?: string;
     semester?: string;
@@ -119,22 +150,200 @@ interface IndexProps {
     date_from?: string;
     date_to?: string;
   };
-  stats?: {
-    totalStudents?: number;
-    totalAssessments?: number;
-    totalPayments?: number;
-    outstandingBalance?: number;
+  stats: {
+    totalStudents: number;
+    totalAssessments: number;
+    totalPayments: number;
+    totalAdjustments: number;
+    outstandingBalance: number;
   };
-  filterOptions?: {
+  filterOptions: {
     courses: string[];
     schoolYears: string[];
     semesters: string[];
   };
+  pendingOpItems?: PendingOpItem[];
+  studentOptions?: StudentOption[];
+  courseList?: CourseOption[];
+  academicTermList?: TermOption[];
 }
 
-export default function Index({ records, filters, stats, filterOptions }: IndexProps) {
+function PendingOpRow({
+  item,
+  studentOptions,
+  courseList,
+  academicTermList,
+}: {
+  item: PendingOpItem;
+  studentOptions: StudentOption[];
+  courseList: CourseOption[];
+  academicTermList: TermOption[];
+}) {
+  const [selectedStudentId, setSelectedStudentId] = useState<string>(
+    item.matched_student_id ? String(item.matched_student_id) : 'new'
+  );
+  const [newStudentName, setNewStudentName] = useState<string>(
+    selectedStudentId === 'new' ? item.full_name : ''
+  );
+  const [selectedCourseId, setSelectedCourseId] = useState<string>(
+    courseList[0]?.id ? String(courseList[0].id) : ''
+  );
+  const [selectedTermId, setSelectedTermId] = useState<string>(
+    academicTermList[0]?.id ? String(academicTermList[0].id) : ''
+  );
+  const [particulars, setParticulars] = useState<string>(item.particulars || 'Tuition');
+  const [entryType, setEntryType] = useState<'ar' | 'payment' | 'adjustment'>('payment');
+  const [isPosting, setIsPosting] = useState(false);
+
+  const handlePost = () => {
+    if (isPosting) return;
+    setIsPosting(true);
+
+    router.post(
+      '/graduate-ledger/post-op-item',
+      {
+        student_id: selectedStudentId === 'new' ? null : selectedStudentId,
+        new_student: selectedStudentId === 'new' ? newStudentName : null,
+        course_id: selectedCourseId,
+        academic_term_id: selectedTermId,
+        entry_type: entryType,
+        particulars: particulars,
+        amount: item.amount,
+        reference_or_jev_number: item.ref_document_or_number,
+      },
+      {
+        preserveScroll: true,
+        onFinish: () => setIsPosting(false),
+      }
+    );
+  };
+
+  return (
+    <tr className="hover:bg-[#F8FAFC] border-b border-[#E2E8F0] text-xs text-[#1E293B]">
+      <td className="p-3 font-semibold text-[#0B3D91]">
+        <div>{item.full_name}</div>
+        <div className="text-[10px] font-normal text-gray-500">{item.email}</div>
+      </td>
+
+      <td className="p-3">
+        <select
+          value={selectedStudentId}
+          onChange={(e) => {
+            setSelectedStudentId(e.target.value);
+            if (e.target.value === 'new') {
+              setNewStudentName(item.full_name);
+            }
+          }}
+          className="w-full text-xs rounded border border-[#CFE3FF] p-1.5 bg-white text-[#0B3D91] font-medium"
+        >
+          <option value="new">+ Create New Student ({item.full_name})</option>
+          {studentOptions.map((st) => {
+            const displayName = (st.raw_name_from_csv || st.name || `${st.last_name || ''}, ${st.first_name || ''}`).trim();
+            return (
+              <option key={st.id} value={st.id}>
+                {displayName && displayName !== ',' ? displayName : `Student #${st.id}`}
+              </option>
+            );
+          })}
+        </select>
+        {selectedStudentId === 'new' && (
+          <Input
+            value={newStudentName}
+            onChange={(e) => setNewStudentName(e.target.value)}
+            className="mt-1 h-7 text-xs border-[#CFE3FF]"
+            placeholder="Student Name"
+          />
+        )}
+      </td>
+
+      <td className="p-3">
+        <select
+          value={selectedCourseId}
+          onChange={(e) => setSelectedCourseId(e.target.value)}
+          className="text-xs rounded border border-[#CFE3FF] p-1.5 bg-white"
+        >
+          {courseList.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.code}
+            </option>
+          ))}
+        </select>
+      </td>
+
+      <td className="p-3">
+        <select
+          value={selectedTermId}
+          onChange={(e) => setSelectedTermId(e.target.value)}
+          className="text-xs rounded border border-[#CFE3FF] p-1.5 bg-white"
+        >
+          {academicTermList.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.school_year} - {t.semester}
+            </option>
+          ))}
+        </select>
+      </td>
+
+      <td className="p-3">
+        <select
+          value={entryType}
+          onChange={(e) => setEntryType(e.target.value as any)}
+          className="text-xs font-semibold rounded border border-[#CFE3FF] p-1.5 bg-white"
+        >
+          <option value="payment">Payment</option>
+          <option value="ar">AR (Assessment)</option>
+          <option value="adjustment">Adjustment</option>
+        </select>
+      </td>
+
+      <td className="p-3 font-semibold text-[#0B3D91]">
+        <select
+          value={particulars}
+          onChange={(e) => setParticulars(e.target.value)}
+          className="text-xs rounded border border-[#CFE3FF] p-1.5 bg-white font-semibold text-[#0B3D91] w-full"
+        >
+          <option value="Tuition">Tuition</option>
+          <option value="Miscellaneous">Miscellaneous</option>
+          <option value="Registration">Registration</option>
+          <option value="Comprehensive Exam">Comprehensive Exam</option>
+          <option value="Laboratory">Laboratory</option>
+        </select>
+        <div className="text-[10px] text-gray-500 font-mono mt-0.5">{item.ref_document_or_number}</div>
+      </td>
+
+      <td className="p-3 font-bold text-emerald-700">
+        ₱{item.amount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+      </td>
+
+      <td className="p-3 text-right">
+        <Button
+          size="sm"
+          disabled={isPosting}
+          onClick={handlePost}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-xs px-3"
+        >
+          {isPosting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <CheckCircle2 className="h-3.5 w-3.5 mr-1" />}
+          Verify & Post
+        </Button>
+      </td>
+    </tr>
+  );
+}
+
+export default function Index({
+  records,
+  filters,
+  stats,
+  filterOptions,
+  pendingOpItems = [],
+  studentOptions = [],
+  courseList = [],
+  academicTermList = [],
+}: IndexProps) {
   const rows: LedgerRecord[] = records?.data ?? [];
   const importForm = useForm<{ file: File | null }>({ file: null });
+
+  const [activeTab, setActiveTab] = useState<'official' | 'pending'>('official');
 
   // ── Single filter state object to avoid stale-closure bugs ────────────────
   const [filterState, setFilterState] = useState({
@@ -412,8 +621,97 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
           </Card>
         </div>
 
-        {/* Transaction Ledger Table with Filter Bar */}
-        <Card className="border border-[#CFE3FF] bg-white">
+        {/* Sub-Tabs Navigation */}
+        <div className="flex items-center gap-2 border-b border-[#CFE3FF] pb-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab('official')}
+            className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition-colors flex items-center gap-2 ${
+              activeTab === 'official'
+                ? 'bg-[#0F6FFF] text-white shadow-xs'
+                : 'bg-white text-[#5C7A9E] border border-[#CFE3FF] hover:bg-[#F3F8FF]'
+            }`}
+          >
+            <span>📋 Official Transaction Ledger</span>
+            <Badge variant="secondary" className={activeTab === 'official' ? 'bg-white/20 text-white' : 'bg-[#EAF2FF] text-[#0B62E0]'}>
+              {totalRecordCount.toLocaleString()}
+            </Badge>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('pending')}
+            className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition-colors flex items-center gap-2 ${
+              activeTab === 'pending'
+                ? 'bg-[#0F6FFF] text-white shadow-xs'
+                : 'bg-white text-[#5C7A9E] border border-[#CFE3FF] hover:bg-[#F3F8FF]'
+            }`}
+          >
+            <span>⏳ Pending OP Verification (Tuition / Misc)</span>
+            {pendingOpItems.length > 0 ? (
+              <Badge className="bg-amber-500 text-white font-bold animate-pulse">
+                {pendingOpItems.length} Waiting
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-gray-400">
+                0
+              </Badge>
+            )}
+          </button>
+        </div>
+
+        {/* Tab 1: Official Ledger or Tab 2: Pending Verification Queue */}
+        {activeTab === 'pending' ? (
+          <Card className="border border-[#CFE3FF] bg-white">
+            <CardHeader className="border-b border-[#CFE3FF] pb-4">
+              <CardTitle className="text-md text-[#0B3D91] flex items-center gap-2">
+                <span>Pending Order of Payment Verification Queue</span>
+                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300">
+                  Tuition & Miscellaneous Fees Only
+                </Badge>
+              </CardTitle>
+              <CardDescription className="text-[#5C7A9E]">
+                Review incoming processed Order of Payment requests, match student name, and post to official ledger.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 overflow-x-auto">
+              {pendingOpItems.length === 0 ? (
+                <div className="p-12 text-center text-[#5C7A9E] space-y-2">
+                  <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto" />
+                  <div className="font-semibold text-md text-[#0B3D91]">All OP Payments Are Verified!</div>
+                  <p className="text-xs text-gray-500">There are no pending Tuition or Miscellaneous Order of Payment requests waiting for verification.</p>
+                </div>
+              ) : (
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-[#F1F5F9] text-[11px] font-bold text-[#475569] uppercase tracking-wider border-b border-[#CBD5E1]">
+                    <tr>
+                      <th className="p-3">Raw Name (OP Form)</th>
+                      <th className="p-3 w-64">Match Student in Ledger</th>
+                      <th className="p-3">Course</th>
+                      <th className="p-3">Academic Term</th>
+                      <th className="p-3">Type</th>
+                      <th className="p-3">Particulars & Ref #</th>
+                      <th className="p-3">Amount</th>
+                      <th className="p-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pendingOpItems.map((item) => (
+                      <PendingOpRow
+                        key={item.id}
+                        item={item}
+                        studentOptions={studentOptions}
+                        courseList={courseList}
+                        academicTermList={academicTermList}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border border-[#CFE3FF] bg-white">
           <CardHeader className="border-b border-[#CFE3FF] pb-4">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
@@ -701,6 +999,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
             </CardFooter>
           )}
         </Card>
+        )}
       </div>
 
       {/* Floating Bottom-Right Import Progress Bar & Toast */}

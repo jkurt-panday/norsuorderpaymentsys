@@ -80,6 +80,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/add',          [GraduateLedgerController::class, 'create'])->name('create');
         Route::post('/',            [GraduateLedgerController::class, 'store'])->name('store');
         Route::post('/import',      [GraduateLedgerController::class, 'import'])->name('import');
+        Route::post('/post-op-item', [GraduateLedgerController::class, 'postOpItem'])->name('post-op-item');
         Route::get('/',             [GraduateLedgerController::class, 'index'])->name('index');
         Route::get('/{id}/edit',    [GraduateLedgerController::class, 'edit'])->name('edit');
         Route::put('/{id}',         [GraduateLedgerController::class, 'update'])->name('update');
