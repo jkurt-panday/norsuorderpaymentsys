@@ -1,9 +1,25 @@
 import { useState } from 'react';
 import { router } from '@inertiajs/react';
-import { useTable, type ColumnDef, type RowData } from '@tanstack/react-table';
-import { ArrowUpDown, ArrowUp, ArrowDown, Search, RotateCw } from 'lucide-react';
-
-import { type DateRange } from 'react-day-picker';
+import {
+    useTable,
+    type ColumnDef,
+    type RowData,
+    ColumnVisibilityState,
+} from '@tanstack/react-table';
+import {
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown,
+    Search,
+    RotateCw,
+    SlidersHorizontal,
+} from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
 import { DateRangeFilter } from './date-range-picker';
 import { DataTablePagination } from './data-table-pagination';
@@ -73,6 +89,10 @@ export function ServerDataTable<TData extends RowData>({
         filters.date_to ? new Date(filters.date_to) : undefined,
     );
 
+    // inside ServerDataTable, alongside your other state:
+    const [columnVisibility, setColumnVisibility] =
+        useState<ColumnVisibilityState>({});
+
     const visit = (params: Record<string, string | number | undefined>) => {
         router.get(
             route,
@@ -129,12 +149,26 @@ export function ServerDataTable<TData extends RowData>({
         pagination.current_page * pagination.per_page,
     );
 
+    const columnLabels: Record<string, string> = {
+      reference_number: "Reference No.",
+        full_name: "Name",
+        email: 'Email',
+      course: 'Course',
+      contact_num: "Contact No.",
+      enrolled_under: "Enrolled Under",
+        sy_last_attended: "SY Last Attended",
+      semester: 'Semester',
+        created_at: "Submitted",
+    }
+
     const table = useTable({
         features,
         data,
         columns,
         manualSorting: true,
         manualPagination: true,
+        onColumnVisibilityChange: setColumnVisibility,
+        state: { columnVisibility },
     });
 
     return (
@@ -173,6 +207,31 @@ export function ServerDataTable<TData extends RowData>({
                         onToChange={setDateTo}
                         onApply={applyDateRange}
                     />
+                    {/* in the toolbar, next to your reset button */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger
+                            render={
+                                <Button variant="outline" title="Toggle columns">
+                                    <SlidersHorizontal className="mr-2 h-4 w-4" />
+                                    Columns
+                                </Button>
+                            }
+                        />
+                        <DropdownMenuContent align="start" className="w-40">
+                            {table
+                                .getAllColumns()
+                                .filter((column) => column.getCanHide())
+                                .map((column) => (
+                                    <DropdownMenuCheckboxItem
+                                        key={column.id}
+                                        checked={column.getIsVisible()}
+                                        onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                                    >
+                                        {columnLabels[column.id] ?? column.id}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </div>
 
