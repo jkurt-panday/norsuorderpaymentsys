@@ -14,6 +14,7 @@ use App\Http\Controllers\PaymentDetailOptionController;
 use App\Http\Controllers\StaffInputController;
 use App\Http\Controllers\SupportingDocumentController;
 use App\Http\Controllers\UACSController;
+use App\Http\Controllers\AssessmentController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -171,6 +172,12 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
     // Courses
     Route::resource('courses', CoursesController::class)
         ->parameters(['courses' => 'courses']);
+
+    // ── Assessment Requests ──────────────────────────────────────────────────
+    Route::name('assessments.')->prefix('assessments')->group(function () {
+        Route::get('/dashboard', [AssessmentController::class, 'dashboard'])->name('dashboard');
+        Route::get('/', [AssessmentController::class, 'index'])->name('index');
+    });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
