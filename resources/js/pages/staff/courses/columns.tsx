@@ -23,11 +23,11 @@ export const columns = columnHelper.columns([
     }),
 
     columnHelper.accessor('course_code', {
-        header: 'Course Code',
+        header: 'COURSE CODE',
     }),
 
     columnHelper.accessor('course_desc', {
-        header: 'Course Description',
+        header: 'COURSE DESCRIPTION',
     }),
 
     columnHelper.display({
