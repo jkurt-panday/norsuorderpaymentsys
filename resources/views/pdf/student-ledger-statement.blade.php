@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Statement of Account - {{ $studentName }}</title>
+    <title>Statement of Account - {{ $studentName ?? ($student->full_name ?? 'Student') }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -170,6 +170,8 @@
         $normalizeText = static fn ($value) => str_replace(['−', '–', '—'], '-', (string) ($value ?? ''));
         $firstRecord   = $records->first();
         $cleanAmount   = static fn ($val) => abs((float) preg_replace('/[^\d.]/', '', (string) ($val ?? 0)));
+        $studentName   = $studentName ?? (is_object($student ?? null) ? ($student->full_name ?? ($student->name ?? 'N/A')) : 'N/A');
+        $generatedAt   = $generatedAt ?? now()->format('F j, Y');
         
         // Universal helper to extract property regardless of legacy/normalized/transformed object shape
         $getProp = static function ($obj, array $keys) {

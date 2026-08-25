@@ -99,7 +99,7 @@ export default function PrintSelect({
         }
         const matched = students.filter((s) => s.full_name.toLowerCase().includes(term));
         // starts-with results float to top, contains-only results follow
-        return matched.sort((a, b) => {
+        return matched.sort((a: StudentItem, b: StudentItem) => {
             const aStarts = a.full_name.toLowerCase().startsWith(term) ? 0 : 1;
             const bStarts = b.full_name.toLowerCase().startsWith(term) ? 0 : 1;
             return aStarts - bStarts;

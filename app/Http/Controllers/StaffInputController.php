@@ -247,7 +247,7 @@ class StaffInputController extends Controller
             DB::commit();
 
             return redirect()->route('staff.requests.show', $staffInput->formInput)
-                ->with('success', 'Processing updated successfully! New status: '.ucfirst($staffInput->status));
+                ->with('success', 'Processing updated successfully! Current status: '.ucfirst($staffInput->status));
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -269,7 +269,7 @@ class StaffInputController extends Controller
             'middlename_or_project' => 'nullable|string|max:100',
             'lastname_or_agency' => 'required|string|max:100',
             'amount' => 'required|numeric|min:0',
-            'purpose' => 'nullable|string|max:250',
+            'purpose' => 'nullable|string|max:350',
             'payment_detail_option_id' => ['nullable', 'exists:payment_detail_options,id'],
             'new_payment_option' => 'nullable|string|max:255',
         ]);
@@ -348,7 +348,7 @@ class StaffInputController extends Controller
 
     public function viewOp(FormInput $formInput, Request $request)
     {
-        $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument',]);
+        $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument']);
 
         $copyLabels = self::OP_COPY_LABELS;
 
@@ -356,27 +356,43 @@ class StaffInputController extends Controller
 
         $pdf = $layout === 'landscape'
             ? Pdf::loadView('pdf.op-landscape', compact('formInput', 'copyLabels'))->setPaper('legal', 'landscape')
-            : Pdf::loadView('pdf.op-portrait', compact('formInput', 'copyLabels'))->setPaper('a5', 'portrait');
+            : Pdf::loadView('pdf.op-a6', compact('formInput', 'copyLabels'))->setPaper('a6', 'portrait');
 
         return $pdf->stream("OP-{$formInput->reference_number}.pdf");
     }
-    public function emailOp(FormInput $formInput)
-    {
-        if (! $formInput->staffInput) {
-            abort(404);
-        }
-
-        $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument']);
-
-        $pdf = Pdf::loadView('pdf.op-portrait', [
-            'formInput' => $formInput,
-            'copyLabels' => ['Accounting Units Copy', "Payor's Copy", 'Cash Units Copy'],
-        ])->setPaper('a5', 'portrait');
-
-        \Mail::to($formInput->email)->send(
-            new OrderOfPaymentMail($formInput, $pdf->output())
-        );
-
-        return back()->with('success', 'Order of Payment emailed successfully.');
+public function emailOp(FormInput $formInput, Request $request)
+{
+    if (! $formInput->staffInput) {
+        abort(404);
     }
+
+    $validated = $request->validate([
+        'subject' => 'nullable|string|max:255',
+        'recipient_name' => 'nullable|string|max:255',
+        'note' => 'nullable|string|max:2000',
+    ]);
+
+    $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument']);
+
+    $copyLabels = self::OP_COPY_LABELS;
+
+    $portraitPdf = Pdf::loadView('pdf.op-a6', compact('formInput', 'copyLabels'))
+        ->setPaper('a5', 'portrait');
+
+    $landscapePdf = Pdf::loadView('pdf.op-landscape', compact('formInput', 'copyLabels'))
+        ->setPaper('legal', 'landscape');
+
+    \Mail::to($formInput->email)->send(
+        new OrderOfPaymentMail(
+            $formInput,
+            $portraitPdf->output(),
+            $landscapePdf->output(),
+            $validated['subject'] ?? null,
+            $validated['recipient_name'] ?? null,
+            $validated['note'] ?? null,
+        )
+    );
+
+    return back()->with('success', 'Order of Payment emailed successfully.');
+}
 }

@@ -13,6 +13,7 @@ use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 
+
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 
 class FortifyServiceProvider extends ServiceProvider
@@ -27,10 +28,20 @@ class FortifyServiceProvider extends ServiceProvider
                 public function toResponse($request)
                 {
                     $user = auth()->user();
-                    if ($user?->role === 'client') {
-                        return redirect()->intended('/client/dashboard');
+
+                    if ($user?->role === 'admin') {
+                        return redirect('/staff/staffdashboard');
                     }
-                    return redirect()->intended('/staff/staffdashboard');
+
+                    if ($user?->role === 'staff') {
+                        return redirect('/staff/staffdashboard');
+                    }
+
+                    if ($user?->role === 'client') {
+                        return redirect('/client/dashboard');
+                    }
+
+                    abort(403, 'Invalid user role.');
                 }
             };
         });

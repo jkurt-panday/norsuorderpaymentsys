@@ -32,6 +32,23 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, Request $request) {
+            if ($e->getStatusCode() === 403 && ! $request->expectsJson()) {
+                $user = $request->user();
+                if (! $user) {
+                    return redirect()->route('login')->with('error', 'Please log in to access this page.');
+                }
+
+                $targetRoute = match ($user->role) {
+                    'admin' => 'admin.staffdashboard',
+                    'staff' => 'staff.staffdashboard',
+                    default => 'client.dashboard',
+                };
+
+                return redirect()->route($targetRoute)->with('error', $e->getMessage() ?: 'Unauthorized access.');
+            }
+        });
+
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );

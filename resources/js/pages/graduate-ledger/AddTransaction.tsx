@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import {
     Card,
     CardContent,
@@ -26,7 +27,7 @@ const semesterOptions = [
     { short: 'Summer', full: 'Summer' },
 ];
 
-const particularsOptions = ['Registration', 'Tuition', 'Miscellaneous'];
+const particularsOptions = ['Registration', 'Tuition', 'Miscellaneous', 'Adjustment'];
 
 const entryTypeOptions = [
     { value: 'ar', label: 'AR' },
@@ -263,11 +264,17 @@ export default function AddTransaction({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        router.post('/graduate-ledger', {
-            ...data,
-            amount: displayedAmt,
-            transaction_date:
-                data.transaction_date || new Date().toISOString().slice(0, 10),
+        const finalAmount = autoAmount ? computedAmt.toFixed(2) : data.amount;
+        const finalDate = data.transaction_date || new Date().toISOString().slice(0, 10);
+
+        setData(prev => ({
+            ...prev,
+            amount: finalAmount,
+            transaction_date: finalDate,
+        }));
+
+        post('/graduate-ledger', {
+            preserveScroll: true,
         });
     };
 
@@ -722,9 +729,14 @@ export default function AddTransaction({
                                     disabled={processing}
                                     className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB] disabled:opacity-60"
                                 >
-                                    {processing
-                                        ? 'Saving...'
-                                        : 'Save Transaction'}
+                                    {processing ? (
+                                        <span className="flex items-center gap-2">
+                                            <Spinner className="h-4 w-4" />
+                                            Saving...
+                                        </span>
+                                    ) : (
+                                        'Save Transaction'
+                                    )}
                                 </Button>
                             </div>
                         </form>

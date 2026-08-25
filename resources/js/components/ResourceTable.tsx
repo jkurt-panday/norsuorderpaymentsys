@@ -314,6 +314,10 @@ export default function ResourceTable<T extends { id: number }>({
 
         url.searchParams.delete('page');
 
+        if (pollInterval) {
+            stop();
+        }
+
         router.get(
             url.pathname + url.search,
             {},
@@ -324,7 +328,12 @@ export default function ResourceTable<T extends { id: number }>({
                 only: resourceKey ? [resourceKey] : undefined,
                 showProgress: false,
                 onStart: () => setIsNavigating(true),
-                onFinish: () => setIsNavigating(false),
+                onFinish: () => {
+                    setIsNavigating(false);
+                    if (pollInterval) {
+                        start();
+                    }
+                },
             },
         );
     };
@@ -451,11 +460,20 @@ export default function ResourceTable<T extends { id: number }>({
             url.searchParams.delete('page');
         }
 
+        if (pollInterval) {
+            stop();
+        }
+
         router.get(
             url.pathname + url.search,
             {},
             {
                 preserveScroll: true,
+                onFinish: () => {
+                    if (pollInterval) {
+                        start();
+                    }
+                },
             },
         );
     };

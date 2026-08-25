@@ -1,6 +1,17 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
 import staff from '@/routes/staff';
+import { flashToast } from '@/utils/flashToast';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -251,6 +262,92 @@ export default function ShowRequest() {
         usePage().props as unknown as PageProps;
     const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
+    const [isEmailPreviewOpen, setIsEmailPreviewOpen] = useState(false);
+    const [emailSubject, setEmailSubject] = useState('');
+    const [emailRecipientName, setEmailRecipientName] = useState('');
+    const [emailNote, setEmailNote] = useState('');
+    const [isSendingEmail, setIsSendingEmail] = useState(false);
+
+    const buildDefaultEmailSubject = () =>
+        `Order of Payment - ${formInput.reference_number}`;
+
+    const buildDefaultRecipientName = () =>
+        `${formInput.firstname_or_office} ${formInput.lastname_or_agency}`;
+
+    const openEmailPreview = () => {
+        setEmailSubject(buildDefaultEmailSubject());
+        setEmailRecipientName(buildDefaultRecipientName());
+        setEmailNote('');
+        setIsEmailPreviewOpen(true);
+    };
+
+    const handleConfirmSendEmail = () => {
+        setIsSendingEmail(true);
+        router.post(
+            staff.requests.emailOp.url(formInput.id),
+            {
+                subject: emailSubject,
+                recipient_name: emailRecipientName,
+                note: emailNote,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    flashToast(
+                        'success',
+                        'Order of Payment emailed successfully.',
+                    );
+                    setIsEmailPreviewOpen(false);
+                },
+                onError: () => {
+                    flashToast(
+                        'error',
+                        'Failed to send the email. Please try again.',
+                    );
+                },
+                onFinish: () => {
+                    setIsSendingEmail(false);
+                },
+            },
+        );
+    };
+
+    // Mirrors the Blade template exactly, so what's shown here matches what
+    // actually gets sent. Escaping matches the backend's e()+nl2br() — this
+    // is a display preview only; the real email is always built server-side.
+    const escapeHtml = (value: string) =>
+        value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+
+    const buildEmailPreviewHtml = (recipientName: string, note: string) => {
+        const noteHtml = note.trim()
+            ? `<p>${escapeHtml(note).replace(/\n/g, '<br>')}</p>`
+            : '';
+
+        return `<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; color: #1e293b; margin:0; padding:16px;">
+    <p>Dear ${escapeHtml(recipientName || '—')},</p>
+    <p>
+        Please find attached your Order of Payment
+        (Reference No. <strong>${formInput.reference_number}</strong>)
+        for the amount of <strong>${formatCurrency(formInput.amount)}</strong>.
+    </p>
+    ${noteHtml}
+    <p>Two copies are attached:</p>
+    <ul>
+        <li>A5 portrait — for individual filing</li>
+        <li>Legal landscape — 3-up copies (Payor's / Cash Unit's / Accounting Unit's)</li>
+    </ul>
+    <p>Please present this at the Cash / Treasury Unit to complete payment.</p>
+    <p>Regards,<br>NORSU Accounting Office</p>
+</body>
+</html>`;
+    };
+
     // Toggles the inline "Process Now" form on/off in place of the
     // empty-state block. Automatically closes itself once formInput.staff_input
     // exists (i.e. after a successful submit + redirect-back-here).
@@ -277,17 +374,9 @@ export default function ShowRequest() {
     // Basic flash handling — swap in your toast lib here if you have one
     // (e.g. sonner's toast.success / toast.error) instead of console.log.
     useEffect(() => {
-        if (flash?.success) {
-            console.log(flash.success);
-        }
-
-        if (flash?.error) {
-            console.error(flash.error);
-        }
-
-        if (flash?.warning) {
-            console.warn(flash.warning);
-        }
+        flashToast('success', flash?.success);
+        flashToast('error', flash?.error);
+        flashToast('warning', flash?.warning);
     }, [flash]);
 
     const supportingDocuments: SupportingDocument[] =
@@ -417,7 +506,7 @@ export default function ShowRequest() {
 
     return (
         <div className="min-h-screen bg-slate-50 px-4 py-8">
-            <div className="mx-auto max-w-6xl">
+            <div className="mx-auto sm:max-w-6xl">
                 <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h2 className="text-2xl font-bold text-slate-900">
@@ -487,7 +576,7 @@ export default function ShowRequest() {
                                             });
                                             setIsEditingDetails(true);
                                         }}
-                                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100"
+                                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100"
                                     >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -775,7 +864,7 @@ export default function ShowRequest() {
                                                                 true,
                                                             )
                                                         }
-                                                        className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-700"
+                                                        className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-700"
                                                     >
                                                         Add
                                                     </button>
@@ -833,14 +922,14 @@ export default function ShowRequest() {
                                             <button
                                                 type="button"
                                                 onClick={cancelDetailsEdit}
-                                                className="rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                                                className="cursor-pointer rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
                                             >
                                                 Cancel
                                             </button>
                                             <button
                                                 type="submit"
                                                 disabled={isSubmittingDetails}
-                                                className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:opacity-60"
+                                                className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-blue-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:opacity-60"
                                             >
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
@@ -1001,7 +1090,7 @@ export default function ShowRequest() {
                                                         true,
                                                     );
                                                 }}
-                                                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100"
+                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100"
                                             >
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
@@ -1025,7 +1114,7 @@ export default function ShowRequest() {
                                                 onClick={() =>
                                                     setIsProcessing(true)
                                                 }
-                                                className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700"
+                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700"
                                             >
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
@@ -1292,7 +1381,7 @@ export default function ShowRequest() {
                                                         onClick={
                                                             cancelStaffInputEdit
                                                         }
-                                                        className="rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                                                        className="cursor-pointer rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
                                                     >
                                                         Cancel
                                                     </button>
@@ -1863,12 +1952,12 @@ export default function ShowRequest() {
                 </div>
             </div>
             {formInput.staff_input && (
-                <div className="mx-auto mt-6 flex max-w-6xl justify-end gap-2">
+                <div className="mx-auto mt-6 flex justify-end gap-2 sm:max-w-6xl">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <button
                                 type="button"
-                                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
                             >
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
@@ -1924,16 +2013,8 @@ export default function ShowRequest() {
 
                     <button
                         type="button"
-                        onClick={() =>
-                            router.post(
-                                staff.requests.emailOp.url(formInput.id),
-                                {},
-                                {
-                                    preserveScroll: true,
-                                },
-                            )
-                        }
-                        className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                        onClick={openEmailPreview}
+                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -1952,6 +2033,110 @@ export default function ShowRequest() {
                     </button>
                 </div>
             )}
+            {/* Email Preview / Edit Modal */}
+            <Dialog
+                open={isEmailPreviewOpen}
+                onOpenChange={setIsEmailPreviewOpen}
+            >
+                <DialogContent className="sm:max-w-4xl">
+                    <DialogHeader>
+                        <DialogTitle>Preview Email</DialogTitle>
+                        <DialogDescription>
+                            Review before sending to{' '}
+                            <span className="font-medium text-slate-700">
+                                {formInput.email}
+                            </span>
+                            . Two PDF copies (portrait + landscape) will be
+                            attached automatically.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-4">
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-slate-700">
+                                    Subject
+                                </label>
+                                <Input
+                                    value={emailSubject}
+                                    onChange={(e) =>
+                                        setEmailSubject(e.target.value)
+                                    }
+                                />
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-slate-700">
+                                    Recipient Name
+                                </label>
+                                <Input
+                                    value={emailRecipientName}
+                                    onChange={(e) =>
+                                        setEmailRecipientName(e.target.value)
+                                    }
+                                />
+                                <p className="mt-1 text-xs text-slate-400">
+                                    How they're greeted — edit if the name needs
+                                    correcting.
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-slate-700">
+                                    Add a Note (optional)
+                                </label>
+                                <Textarea
+                                    rows={5}
+                                    placeholder="e.g. Please claim this within 5 business days."
+                                    value={emailNote}
+                                    onChange={(e) =>
+                                        setEmailNote(e.target.value)
+                                    }
+                                />
+                                <p className="mt-1 text-xs text-slate-400">
+                                    Plain text only — no formatting needed, it's
+                                    inserted as its own paragraph.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                Live Preview
+                            </label>
+                            <div className="overflow-hidden rounded-xl border border-slate-200">
+                                <iframe
+                                    title="Email preview"
+                                    srcDoc={buildEmailPreviewHtml(
+                                        emailRecipientName,
+                                        emailNote,
+                                    )}
+                                    className="h-[28rem] w-full bg-white"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <button
+                            type="button"
+                            onClick={() => setIsEmailPreviewOpen(false)}
+                            className="cursor-pointer rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleConfirmSendEmail}
+                            disabled={isSendingEmail}
+                            className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-blue-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:opacity-60"
+                        >
+                            {isSendingEmail ? 'Sending...' : 'Confirm & Send'}
+                        </button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             {/* Delete Document Confirmation Modal */}
             {deleteTargetId !== null && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
