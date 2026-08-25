@@ -11,7 +11,8 @@ import {
     LogOut,
     GraduationCap,
     Logs,
-    School
+    School,
+    FileSearchIcon
 } from 'lucide-react';
 import React from 'react';
 import AppLogo from '@/components/app-logo';
@@ -49,6 +50,7 @@ import {
 } from '@/components/ui/sidebar';
 import type { AppLayoutProps } from '@/types';
 import { Paperclip } from '@untitledui/icons';
+import { Form } from '@base-ui/react';
 
 interface SidebarItem {
     title: string;
@@ -72,6 +74,11 @@ const mainNavItems: SidebarItem[] = [
     { title: 'Memberships', href: '/staff/memberships', icon: Users },
     { title: 'UACS', href: '/staff/uacs', icon: Logs },
     { title: 'Course', href: '/staff/courses', icon: School },
+    {
+        title: 'Assessments', icon: FileSearchIcon, items: [
+            { title: 'Dashboard', href: '/staff/assessments/dashboard' },
+            { title: 'Assessments', href: '/staff/assessments/' },
+    ]},
     {
         title: 'Graduate Ledger',
         icon: GraduationCap,
