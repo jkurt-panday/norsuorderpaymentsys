@@ -6,6 +6,7 @@ import {
     ShieldCheck,
     User,
     Clock,
+    Printer,
 } from 'lucide-react';
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -245,6 +246,9 @@ export default function ClientDashboard() {
                                     <TableHead className="text-[#7FA6D6]">
                                         Date
                                     </TableHead>
+                                    <TableHead className="text-center text-[#7FA6D6]">
+                                        Actions
+                                    </TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -282,6 +286,17 @@ export default function ClientDashboard() {
                                         </TableCell>
                                         <TableCell className="text-[#5C7A9E]">
                                             {formatDate(submission.created_at)}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <a
+                                                href={`/public/success/${submission.reference_number}/print`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[#CFE3FF] px-3 text-xs font-medium text-[#0F6FFF] hover:bg-[#EAF2FF] hover:text-[#0B5DDB]"
+                                            >
+                                                <Printer className="h-3.5 w-3.5" />
+                                                Print
+                                            </a>
                                         </TableCell>
                                     </TableRow>
                                 ))}
