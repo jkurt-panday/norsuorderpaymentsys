@@ -156,14 +156,6 @@ export function ServerDataTable<TData extends RowData>({
                     >
                         <Search className="h-4 w-4" />
                     </Button>
-                    {/* in the toolbar, next to the search input */}
-                    <DateRangeFilter
-                        from={dateFrom}
-                        to={dateTo}
-                        onFromChange={setDateFrom}
-                        onToChange={setDateTo}
-                        onApply={applyDateRange}
-                    />
                     <Button
                         type="button"
                         variant="outline"
@@ -173,6 +165,14 @@ export function ServerDataTable<TData extends RowData>({
                     >
                         <RotateCw className="h-4 w-4" />
                     </Button>
+                    {/* in the toolbar, next to the search input */}
+                    <DateRangeFilter
+                        from={dateFrom}
+                        to={dateTo}
+                        onFromChange={setDateFrom}
+                        onToChange={setDateTo}
+                        onApply={applyDateRange}
+                    />
                 </div>
             </div>
 
