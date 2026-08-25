@@ -9,12 +9,14 @@ class YearSequence extends Model
     protected $fillable = [
         'year',
         'month',
-        'current_number',
+        'op_number',
+        'assessment_number'
     ];
 
     protected $casts = [
         'year' => 'integer',
         'month' => 'integer',
-        'current_number' => 'integer',
+        'op_number' => 'integer',
+        'assessment_number' => 'integer'
     ];
 }

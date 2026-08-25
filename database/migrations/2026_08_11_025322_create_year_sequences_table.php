@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             $table->year('year')->unique();
             $table->unsignedTinyInteger('month');
-            $table->unsignedInteger('current_number')->default(0);
+            $table->unsignedInteger('op_number')->default(0);
+            $table->unsignedInteger('assessment_number')->default(0);
             $table->timestamps();
         });
     }

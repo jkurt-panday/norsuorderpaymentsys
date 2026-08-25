@@ -162,7 +162,8 @@ class DatabaseSeeder extends Seeder
             ['year' => 2026],
             [
                 'month' => 8,
-                'current_number' => 4224,
+                'op_number' => 4224,
+                'assessment_number' => 0
             ]
         );
 
