@@ -159,6 +159,7 @@ export function ServerDataTable<TData extends RowData>({
         sy_last_attended: "SY Last Attended",
       semester: 'Semester',
         created_at: "Submitted",
+        actions: 'Actions'
     }
 
     const table = useTable({
@@ -307,7 +308,7 @@ export function ServerDataTable<TData extends RowData>({
                                     {row.getVisibleCells().map((cell) => (
                                         <TableCell
                                             key={cell.id}
-                                            className="px-4 py-3.5 text-sm text-slate-700"
+                                            className="px-4 py-4 text-sm text-slate-700"
                                         >
                                             <table.FlexRender cell={cell} />
                                         </TableCell>
