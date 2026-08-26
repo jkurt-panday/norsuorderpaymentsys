@@ -53,7 +53,7 @@ class ReferenceNumberService
          $referenceNumber = 'OP-'.$date.'-'.$random;
  
          // Ensure uniqueness
-         while (AssessmentForm::where('reference_number', $referenceNumber)->exists()) {
+         while (AssessmentForm::query()->where('reference_number', $referenceNumber)->exists()) {
              $random = Str::upper(Str::random(5));
              $referenceNumber = 'OP-'.$date.'-'.$random;
          }
