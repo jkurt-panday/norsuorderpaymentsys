@@ -106,7 +106,7 @@ class SupportingDocumentController extends Controller
             // If this document is set as the reference document on any
             // staff_input, clear that reference first so we don't leave
             // a dangling ref_document_id after the document is gone.
-            StaffInput::where('ref_document_id', $supportingDocument->id)
+            StaffInput::query()->where('ref_document_id', $supportingDocument->id)
                 ->update(['ref_document_id' => null]);
 
             // Delete database record
