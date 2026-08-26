@@ -141,20 +141,6 @@ export function ServerDataTable<TData extends RowData>({
         );
     };
 
-    const applyDateRange = ({
-        from,
-        to,
-    }: {
-        from: Date | undefined;
-        to: Date | undefined;
-    }) => {
-        visit({
-            date_from: from ? format(from, 'yyyy-MM-dd') : undefined,
-            date_to: to ? format(to, 'yyyy-MM-dd') : undefined,
-            page: 1,
-        });
-    };
-
     const runSearch = () => visit({
         search,
         date_from: dateFrom ? format(dateFrom, "yyyy-MM-dd") : undefined,
@@ -219,7 +205,7 @@ export function ServerDataTable<TData extends RowData>({
             <div className="flex items-center justify-between gap-3 px-4 py-4">
                 <div className="flex items-center gap-2">
                     <Input
-                        placeholder="Search for ref num, first name, last name, email"
+                        placeholder="Ref num, first/last name, email"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && runSearch()}
@@ -238,7 +224,7 @@ export function ServerDataTable<TData extends RowData>({
                         variant="outline"
                         onClick={resetAll}
                         title="Reset table"
-                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50"
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-400 bg-white text-slate-500 transition-colors hover:bg-slate-50"
                     >
                         <RotateCw className="h-4 w-4" />
                     </Button>
