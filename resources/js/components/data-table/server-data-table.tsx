@@ -43,6 +43,10 @@ interface ServerFilters {
     direction: 'asc' | 'desc';
     date_from?: string;
     date_to?: string;
+    // Any additional domain-specific filters (course_id, semester, etc.)
+    // that a specific page's filter dropdown adds — the shared table doesn't
+    // need to know their names in advance.
+    [key: string]: string | undefined
 }
 
 interface ServerPagination {
@@ -64,6 +68,19 @@ interface ServerDataTableProps<TData extends RowData> {
     /** Column ids that are allowed to be clicked for sorting — should mirror your backend whitelist. */
     sortableColumns?: string[];
     emptyMessage?: string;
+    /**
+       * Render-prop slot for page-specific filter UI (e.g. a "Filters" dropdown
+       * for course/semester/etc). Receives `values` (currently applied filters,
+       * merged with anything staged but not yet submitted) and `setValue` to
+       * stage a change. Staged changes are NOT sent to Laravel until the same
+       * Search button/Enter the search box uses is triggered — this lets staff
+       * combine several filter picks into one request instead of firing one
+       * request per selection.
+       */
+      extraFilters?: (ctx: {
+        values: Record<string, string | undefined>
+        setValue: (key: string, value: string | undefined) => void
+      }) => React.ReactNode
 }
 
 /**
@@ -79,6 +96,7 @@ export function ServerDataTable<TData extends RowData>({
     pagination,
     sortableColumns = [],
     emptyMessage = 'No results.',
+    extraFilters
 }: ServerDataTableProps<TData>) {
     const [search, setSearch] = useState(filters.search);
     // inside ServerDataTable:
@@ -93,6 +111,21 @@ export function ServerDataTable<TData extends RowData>({
     const [columnVisibility, setColumnVisibility] =
         useState<ColumnVisibilityState>({});
 
+    // Staged/uncommitted values for anything extraFilters adds (course_id,
+      // semester, etc). These update instantly in the UI so the dropdown shows
+      // what's selected, but are only sent to Laravel once runSearch() fires —
+      // that's what lets multiple filters be combined into a single request.
+    const [pendingExtra, setPendingExtra] = useState<Record<string, string | undefined>>({})
+
+    const setExtraValue = (key: string, value: string | undefined) =>
+        setPendingExtra((prev) => ({ ...prev, [key]: value }))
+
+    // What the filter UI should currently show as selected: whatever was
+    // last actually applied (`filters`), overridden by anything staged but
+    // not yet submitted (`pendingExtra`).
+    const extraValues = { ...filters, ...pendingExtra }
+
+
     const visit = (params: Record<string, string | number | undefined>) => {
         router.get(
             route,
@@ -100,6 +133,8 @@ export function ServerDataTable<TData extends RowData>({
                 search: filters.search,
                 sort: filters.sort,
                 direction: filters.direction,
+                date_from: filters.date_from,
+                date_to: filters.date_to,
                 ...params,
             },
             { preserveState: true, preserveScroll: true, replace: true },
@@ -120,7 +155,13 @@ export function ServerDataTable<TData extends RowData>({
         });
     };
 
-    const runSearch = () => visit({ search, page: 1 }); // reset to page 1 on a new search
+    const runSearch = () => visit({
+        search,
+        date_from: dateFrom ? format(dateFrom, "yyyy-MM-dd") : undefined,
+        date_to: dateTo ? format(dateTo, "yyyy-MM-dd") : undefined,
+        ...pendingExtra,
+        page: 1
+    }); // reset to page 1 on a new search
 
     const toggleSort = (columnId: string) => {
         const isSameColumn = filters.sort === columnId;
@@ -133,6 +174,7 @@ export function ServerDataTable<TData extends RowData>({
         setSearch('');
         setDateFrom(undefined);
         setDateTo(undefined);
+        setPendingExtra({});
         router.get(
             route,
             {},
@@ -181,7 +223,7 @@ export function ServerDataTable<TData extends RowData>({
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && runSearch()}
-                        className="h-10 w-100 rounded-xl border border-slate-200 px-4 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                        className="h-10 w-60 rounded-xl border border-slate-200 px-4 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                     />
                     <Button
                         onClick={runSearch}
@@ -206,7 +248,6 @@ export function ServerDataTable<TData extends RowData>({
                         to={dateTo}
                         onFromChange={setDateFrom}
                         onToChange={setDateTo}
-                        onApply={applyDateRange}
                     />
                     {/* in the toolbar, next to your reset button */}
                     <DropdownMenu>
@@ -233,6 +274,7 @@ export function ServerDataTable<TData extends RowData>({
                                 ))}
                         </DropdownMenuContent>
                     </DropdownMenu>
+                    {extraFilters?.({ values: extraValues, setValue: setExtraValue })}
                 </div>
             </div>
 
