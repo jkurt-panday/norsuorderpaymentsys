@@ -202,7 +202,7 @@ class StaffInputController extends Controller
         }
 
         $activityLogs = $activityQuery
-            ->paginate(12)
+            ->paginate(10)
             ->withQueryString()
             ->through(fn (ActivityLog $log) => [
                 'id' => $log->id,

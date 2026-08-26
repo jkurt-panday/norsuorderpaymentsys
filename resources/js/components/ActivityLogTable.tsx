@@ -123,11 +123,13 @@ const ACTION_OPTIONS = [
 ];
 
 function getEventUi(event: string) {
-    return EVENT_UI[event] ?? {
-        label: event,
-        icon: Activity,
-        badgeClass: '!bg-slate-100 !text-slate-700',
-    };
+    return (
+        EVENT_UI[event] ?? {
+            label: event,
+            icon: Activity,
+            badgeClass: '!bg-slate-100 !text-slate-700',
+        }
+    );
 }
 
 function formatDateTime(value?: string | null) {
@@ -246,7 +248,9 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
 
     // Background navigation that only refreshes this table's data (renders the
     // loading bar, never a full website reload).
-    const navigateWithParams = (overrides: Record<string, string | undefined>) => {
+    const navigateWithParams = (
+        overrides: Record<string, string | undefined>,
+    ) => {
         const url = new URL(window.location.href);
 
         for (const [key, value] of Object.entries(overrides)) {
@@ -304,7 +308,13 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
         });
     };
 
-    const handleDateRangeApply = ({ from, to }: { from: Date | undefined; to: Date | undefined }) => {
+    const handleDateRangeApply = ({
+        from,
+        to,
+    }: {
+        from: Date | undefined;
+        to: Date | undefined;
+    }) => {
         const fromStr = toDateString(from);
         const toStr = toDateString(to);
         setDateFrom(fromStr);
@@ -332,7 +342,8 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                 sort: columnKey,
                 direction: nextDir,
                 activity_search: search.trim() || undefined,
-                activity_action: action === 'all' ? undefined : action || undefined,
+                activity_action:
+                    action === 'all' ? undefined : action || undefined,
                 date_from: dateFrom || undefined,
                 date_to: dateTo || undefined,
             });
@@ -343,7 +354,8 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                 sort: columnKey,
                 direction: 'desc',
                 activity_search: search.trim() || undefined,
-                activity_action: action === 'all' ? undefined : action || undefined,
+                activity_action:
+                    action === 'all' ? undefined : action || undefined,
                 date_from: dateFrom || undefined,
                 date_to: dateTo || undefined,
             });
@@ -354,7 +366,8 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                 sort: undefined,
                 direction: undefined,
                 activity_search: search.trim() || undefined,
-                activity_action: action === 'all' ? undefined : action || undefined,
+                activity_action:
+                    action === 'all' ? undefined : action || undefined,
                 date_from: dateFrom || undefined,
                 date_to: dateTo || undefined,
             });
@@ -436,13 +449,13 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                 }
             `}</style>
 
-            <CardHeader className="border-b border-slate-200 py-3.5 px-6">
+            <CardHeader className="border-b border-slate-200 px-6 py-3.5">
                 <form
                     onSubmit={handleSearchSubmit}
-                    className="flex flex-wrap items-center gap-2 w-full"
+                    className="flex w-full flex-wrap items-center gap-2"
                 >
-                    <div className="relative flex-1 min-w-[200px] sm:max-w-xs">
-                        <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                    <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
+                        <Search className="pointer-events-none absolute top-2.5 left-2.5 h-4 w-4 text-slate-400" />
                         <Input
                             type="search"
                             placeholder="Search action, name, role, description..."
@@ -453,7 +466,10 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                     </div>
 
                     {/* Action Filter Select */}
-                    <Select value={action || 'all'} onValueChange={handleActionChange}>
+                    <Select
+                        value={action || 'all'}
+                        onValueChange={handleActionChange}
+                    >
                         <SelectTrigger className="h-9 w-full text-xs sm:w-36">
                             <SelectValue placeholder="All actions" />
                         </SelectTrigger>
@@ -476,7 +492,11 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                         onApply={handleDateRangeApply}
                     />
 
-                    <Button type="submit" size="sm" className="h-9 bg-blue-600 text-xs text-white hover:bg-blue-700">
+                    <Button
+                        type="submit"
+                        size="sm"
+                        className="h-9 bg-blue-600 text-xs text-white hover:bg-blue-700"
+                    >
                         <Search className="mr-1.5 h-3.5 w-3.5" />
                         Search
                     </Button>
@@ -508,7 +528,9 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                         <TableRow className="bg-slate-50 hover:bg-slate-50">
                             {COLUMNS.map((col) => {
                                 const sortKeyName = col.sortable;
-                                const isActive = sortKeyName ? effectiveSortKey === sortKeyName : false;
+                                const isActive = sortKeyName
+                                    ? effectiveSortKey === sortKeyName
+                                    : false;
 
                                 return (
                                     <TableHead
@@ -519,7 +541,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                             col.label === 'Date' ? 'pr-6' : ''
                                         } ${
                                             sortKeyName
-                                                ? 'cursor-pointer select-none transition-colors'
+                                                ? 'cursor-pointer transition-colors select-none'
                                                 : ''
                                         } ${
                                             isActive
@@ -528,23 +550,26 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                         }`}
                                         onClick={
                                             sortKeyName
-                                                ? () => handleSortClick(sortKeyName)
+                                                ? () =>
+                                                      handleSortClick(
+                                                          sortKeyName,
+                                                      )
                                                 : undefined
                                         }
                                     >
                                         <span className="inline-flex items-center gap-1.5">
                                             {col.label}
-                                            {sortKeyName && (
-                                                isActive ? (
-                                                    effectiveSortDir === 'asc' ? (
+                                            {sortKeyName &&
+                                                (isActive ? (
+                                                    effectiveSortDir ===
+                                                    'asc' ? (
                                                         <ArrowUp className="h-4 w-4 stroke-[2.5] text-blue-600" />
                                                     ) : (
                                                         <ArrowDown className="h-4 w-4 stroke-[2.5] text-blue-600" />
                                                     )
                                                 ) : (
                                                     <ArrowUpDown className="h-3.5 w-3.5 text-slate-400" />
-                                                )
-                                            )}
+                                                ))}
                                         </span>
                                     </TableHead>
                                 );
@@ -591,12 +616,17 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                                                     className="flex flex-wrap items-center gap-1"
                                                                 >
                                                                     <span className="font-medium text-slate-600">
-                                                                        {c.field}:
+                                                                        {
+                                                                            c.field
+                                                                        }
+                                                                        :
                                                                     </span>
                                                                     {c.old ? (
                                                                         <>
                                                                             <span className="line-through decoration-slate-300">
-                                                                                {c.old}
+                                                                                {
+                                                                                    c.old
+                                                                                }
                                                                             </span>
                                                                             <span className="text-slate-400">
                                                                                 →
@@ -604,7 +634,8 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                                                         </>
                                                                     ) : null}
                                                                     <span className="text-slate-700">
-                                                                        {c.new ?? '—'}
+                                                                        {c.new ??
+                                                                            '—'}
                                                                     </span>
                                                                 </li>
                                                             ),
@@ -641,8 +672,8 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
             {rows.length > 0 && (
                 <div className="flex items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 sm:px-5">
                     <p className="shrink-0 text-xs text-slate-500 sm:text-sm">
-                        Showing {logs.from ?? 0}-{logs.to ?? 0} of{' '}
-                        {logs.total} results
+                        Showing {logs.from ?? 0}-{logs.to ?? 0} of {logs.total}{' '}
+                        results
                     </p>
 
                     {lastPage > 3 ? (
@@ -696,7 +727,8 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                                     type="button"
                                                     className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
                                                 >
-                                                    Page {currentPage} of {lastPage}
+                                                    Page {currentPage} of{' '}
+                                                    {lastPage}
                                                 </button>
                                             }
                                         />
@@ -707,7 +739,8 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                             <form
                                                 onSubmit={(e) => {
                                                     e.preventDefault();
-                                                    const parsed = Number(pageJumpInput);
+                                                    const parsed =
+                                                        Number(pageJumpInput);
 
                                                     if (
                                                         !Number.isNaN(parsed) &&
@@ -726,7 +759,9 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                                     max={lastPage}
                                                     value={pageJumpInput}
                                                     onChange={(e) =>
-                                                        setPageJumpInput(e.target.value)
+                                                        setPageJumpInput(
+                                                            e.target.value,
+                                                        )
                                                     }
                                                     placeholder={`1–${lastPage}`}
                                                     className="h-8 w-full min-w-0 rounded-md border border-slate-200 px-2 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-200"
@@ -749,8 +784,12 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                                         key={page}
                                                         type="button"
                                                         onClick={() => {
-                                                            navigateToPage(page);
-                                                            setPageJumpOpen(false);
+                                                            navigateToPage(
+                                                                page,
+                                                            );
+                                                            setPageJumpOpen(
+                                                                false,
+                                                            );
                                                         }}
                                                         className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
                                                             page === currentPage
@@ -798,9 +837,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                         type="button"
                                         size="icon"
                                         variant={
-                                            link.active
-                                                ? 'default'
-                                                : 'outline'
+                                            link.active ? 'default' : 'outline'
                                         }
                                         disabled={!link.url}
                                         onClick={() =>
@@ -816,7 +853,11 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                                   ? 'Next page'
                                                   : `Page ${link.label}`
                                         }
-                                        className="h-8 w-8 shrink-0 rounded-md text-sm"
+                                        className={`h-8 w-8 shrink-0 rounded-md text-sm ${
+                                            link.active
+                                                ? 'bg-blue-900 text-white hover:bg-blue-950'
+                                                : ''
+                                        }`}
                                     >
                                         {isPrev ? (
                                             <ChevronLeft className="h-4 w-4" />
