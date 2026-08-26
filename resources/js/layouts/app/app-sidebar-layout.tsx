@@ -98,7 +98,7 @@ const mainNavItems: SidebarItem[] = [
     {
         title: 'Activity Logs',
         icon: Paperclip,
-        href: 'staff/activity-log',
+        href: '/staff/activity-log',
     },
 ];
 

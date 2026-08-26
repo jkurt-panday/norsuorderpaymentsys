@@ -10,6 +10,8 @@ import {
     ArrowDown,
     ArrowUpDown,
     RefreshCw,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { DateRangeFilter } from '@/components/data-table/date-range-picker';
@@ -18,14 +20,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
-    Pagination,
-    PaginationContent,
-    PaginationEllipsis,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
-} from '@/components/ui/pagination';
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import {
     Select,
     SelectContent,
@@ -73,6 +71,8 @@ export interface ActivityLogPaginator {
     last_page?: number;
     per_page?: number;
     total?: number;
+    from?: number;
+    to?: number;
 }
 
 export interface ActivityLogFilters {
@@ -239,11 +239,10 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
 
     const currentPage = logs?.meta?.current_page ?? logs?.current_page ?? 1;
     const lastPage = logs?.meta?.last_page ?? logs?.last_page ?? 1;
-    const total = logs?.meta?.total ?? logs?.total ?? rows.length;
     const links = logs?.links ?? [];
 
-    const effectiveSortKey = sortKey || 'created_at';
-    const effectiveSortDir = sortDir || (sortKey ? 'asc' : 'desc');
+    const effectiveSortKey = sortKey;
+    const effectiveSortDir = sortDir;
 
     // Background navigation that only refreshes this table's data (renders the
     // loading bar, never a full website reload).
@@ -320,28 +319,40 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
         });
     };
 
-    // Clickable column header: toggles sort on/off for the clicked column.
+    // Clickable column header: cycles through inactive -> asc -> desc -> inactive
     const handleSortClick = (columnKey: string) => {
         const isActive = effectiveSortKey === columnKey;
+        const currentDir = effectiveSortDir;
 
-        if (isActive) {
-            setSortKey('');
-            setSortDir('');
+        if (!isActive) {
+            const nextDir = 'asc';
+            setSortKey(columnKey);
+            setSortDir(nextDir);
             navigateWithParams({
-                sort: undefined,
-                direction: undefined,
+                sort: columnKey,
+                direction: nextDir,
+                activity_search: search.trim() || undefined,
+                activity_action: action === 'all' ? undefined : action || undefined,
+                date_from: dateFrom || undefined,
+                date_to: dateTo || undefined,
+            });
+        } else if (currentDir === 'asc') {
+            setSortKey(columnKey);
+            setSortDir('desc');
+            navigateWithParams({
+                sort: columnKey,
+                direction: 'desc',
                 activity_search: search.trim() || undefined,
                 activity_action: action === 'all' ? undefined : action || undefined,
                 date_from: dateFrom || undefined,
                 date_to: dateTo || undefined,
             });
         } else {
-            const nextDir = columnKey === 'created_at' ? 'desc' : 'asc';
-            setSortKey(columnKey);
-            setSortDir(nextDir);
+            setSortKey('');
+            setSortDir('');
             navigateWithParams({
-                sort: columnKey,
-                direction: nextDir,
+                sort: undefined,
+                direction: undefined,
                 activity_search: search.trim() || undefined,
                 activity_action: action === 'all' ? undefined : action || undefined,
                 date_from: dateFrom || undefined,
@@ -377,11 +388,22 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
         );
     };
 
-    const goToPage = (url: string) => {
+    const [pageJumpOpen, setPageJumpOpen] = useState(false);
+    const [pageJumpInput, setPageJumpInput] = useState('');
+
+    const navigateToPage = (page: number) => {
+        const url = new URL(window.location.href);
+
+        if (page > 1) {
+            url.searchParams.set('page', String(page));
+        } else {
+            url.searchParams.delete('page');
+        }
+
         stop();
 
         router.get(
-            url,
+            url.pathname + url.search,
             {},
             {
                 preserveState: true,
@@ -444,102 +466,6 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                             ))}
                         </SelectContent>
                     </Select>
-
-                    {/* Sort Buttons */}
-                    <div className="flex items-center gap-1">
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant={
-                                effectiveSortKey === 'created_at' && effectiveSortDir === 'asc'
-                                    ? 'default'
-                                    : 'outline'
-                            }
-                            className={`h-9 text-xs ${
-                                effectiveSortKey === 'created_at' && effectiveSortDir === 'asc'
-                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                    : ''
-                            }`}
-                            onClick={() => {
-                                if (effectiveSortKey === 'created_at' && effectiveSortDir === 'asc') {
-                                    setSortKey('');
-                                    setSortDir('');
-                                    navigateWithParams({
-                                        sort: undefined,
-                                        direction: undefined,
-                                        activity_search: search.trim() || undefined,
-                                        activity_action: action === 'all' ? undefined : action || undefined,
-                                        date_from: dateFrom || undefined,
-                                        date_to: dateTo || undefined,
-                                    });
-                                } else {
-                                    setSortKey('created_at');
-                                    setSortDir('asc');
-                                    navigateWithParams({
-                                        sort: 'created_at',
-                                        direction: 'asc',
-                                        activity_search: search.trim() || undefined,
-                                        activity_action: action === 'all' ? undefined : action || undefined,
-                                        date_from: dateFrom || undefined,
-                                        date_to: dateTo || undefined,
-                                    });
-                                }
-                            }}
-                        >
-                            <ArrowUp className={`mr-1.5 h-3.5 w-3.5 ${
-                                effectiveSortKey === 'created_at' && effectiveSortDir === 'asc'
-                                    ? 'text-white'
-                                    : ''
-                            }`} />
-                            Oldest First
-                        </Button>
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant={
-                                effectiveSortKey === 'created_at' && effectiveSortDir === 'desc'
-                                    ? 'default'
-                                    : 'outline'
-                            }
-                            className={`h-9 text-xs ${
-                                effectiveSortKey === 'created_at' && effectiveSortDir === 'desc'
-                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                    : ''
-                            }`}
-                            onClick={() => {
-                                if (effectiveSortKey === 'created_at' && effectiveSortDir === 'desc') {
-                                    setSortKey('');
-                                    setSortDir('');
-                                    navigateWithParams({
-                                        sort: undefined,
-                                        direction: undefined,
-                                        activity_search: search.trim() || undefined,
-                                        activity_action: action === 'all' ? undefined : action || undefined,
-                                        date_from: dateFrom || undefined,
-                                        date_to: dateTo || undefined,
-                                    });
-                                } else {
-                                    setSortKey('created_at');
-                                    setSortDir('desc');
-                                    navigateWithParams({
-                                        sort: 'created_at',
-                                        direction: 'desc',
-                                        activity_search: search.trim() || undefined,
-                                        activity_action: action === 'all' ? undefined : action || undefined,
-                                        date_from: dateFrom || undefined,
-                                        date_to: dateTo || undefined,
-                                    });
-                                }
-                            }}
-                        >
-                            <ArrowDown className={`mr-1.5 h-3.5 w-3.5 ${
-                                effectiveSortKey === 'created_at' && effectiveSortDir === 'desc'
-                                    ? 'text-white'
-                                    : ''
-                            }`} />
-                            Newest First
-                        </Button>
-                    </div>
 
                     {/* Date Range */}
                     <DateRangeFilter
@@ -712,104 +638,198 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                 </Table>
             </CardContent>
 
-            {lastPage > 1 && (
-                <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-200 px-6 py-4 sm:flex-row">
-                    <p className="text-xs text-slate-500">
-                        Page{' '}
-                        <span className="font-semibold text-slate-700">
-                            {currentPage}
-                        </span>{' '}
-                        of{' '}
-                        <span className="font-semibold text-slate-700">
-                            {lastPage}
-                        </span>{' '}
-                        &middot; {total.toLocaleString()} total entries
+            {rows.length > 0 && (
+                <div className="flex items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 sm:px-5">
+                    <p className="shrink-0 text-xs text-slate-500 sm:text-sm">
+                        Showing {logs.from ?? 0}-{logs.to ?? 0} of{' '}
+                        {logs.total} results
                     </p>
 
-                    <Pagination className="mx-0 w-auto justify-end">
-                        <PaginationContent className="gap-1">
-                            {links.map((link, index) => {
-                                const isPrev = index === 0;
-                                const isNext = index === links.length - 1;
-                                const isEllipsis = link.label === '...';
+                    {lastPage > 3 ? (
+                        (() => {
+                            const prevLink = links.find((l) =>
+                                l.label
+                                    .replace(/&laquo;|&raquo;/g, '')
+                                    .trim()
+                                    .toLowerCase()
+                                    .includes('previous'),
+                            );
+                            const nextLink = links.find((l) =>
+                                l.label
+                                    .replace(/&laquo;|&raquo;/g, '')
+                                    .trim()
+                                    .toLowerCase()
+                                    .includes('next'),
+                            );
 
-                                if (isPrev) {
-                                    return (
-                                        <PaginationItem key={index}>
-                                            <PaginationPrevious
-                                                href={link.url ?? '#'}
-                                                onClick={(e) => {
+                            return (
+                                <div className="flex shrink-0 items-center gap-1.5">
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="outline"
+                                        disabled={!prevLink?.url}
+                                        onClick={() =>
+                                            navigateToPage(currentPage - 1)
+                                        }
+                                        aria-label="Previous page"
+                                        className="h-8 w-8 shrink-0 rounded-md text-sm"
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                    </Button>
+
+                                    <Popover
+                                        open={pageJumpOpen}
+                                        onOpenChange={(open) => {
+                                            setPageJumpOpen(open);
+
+                                            if (open) {
+                                                setPageJumpInput(
+                                                    String(currentPage),
+                                                );
+                                            }
+                                        }}
+                                    >
+                                        <PopoverTrigger
+                                            render={
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+                                                >
+                                                    Page {currentPage} of {lastPage}
+                                                </button>
+                                            }
+                                        />
+                                        <PopoverContent
+                                            align="center"
+                                            className="w-48 space-y-2 p-2"
+                                        >
+                                            <form
+                                                onSubmit={(e) => {
                                                     e.preventDefault();
+                                                    const parsed = Number(pageJumpInput);
 
-                                                    if (link.url) {
-                                                        goToPage(link.url);
+                                                    if (
+                                                        !Number.isNaN(parsed) &&
+                                                        parsed >= 1 &&
+                                                        parsed <= lastPage
+                                                    ) {
+                                                        navigateToPage(parsed);
+                                                        setPageJumpOpen(false);
                                                     }
                                                 }}
-                                                className={
-                                                    !link.url
-                                                        ? 'pointer-events-none opacity-50'
-                                                        : 'cursor-pointer'
-                                                }
-                                            />
-                                        </PaginationItem>
-                                    );
-                                }
-
-                                if (isNext) {
-                                    return (
-                                        <PaginationItem key={index}>
-                                            <PaginationNext
-                                                href={link.url ?? '#'}
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-
-                                                    if (link.url) {
-                                                        goToPage(link.url);
+                                                className="flex items-center gap-1.5"
+                                            >
+                                                <input
+                                                    type="number"
+                                                    min={1}
+                                                    max={lastPage}
+                                                    value={pageJumpInput}
+                                                    onChange={(e) =>
+                                                        setPageJumpInput(e.target.value)
                                                     }
-                                                }}
-                                                className={
-                                                    !link.url
-                                                        ? 'pointer-events-none opacity-50'
-                                                        : 'cursor-pointer'
-                                                }
-                                            />
-                                        </PaginationItem>
-                                    );
-                                }
+                                                    placeholder={`1–${lastPage}`}
+                                                    className="h-8 w-full min-w-0 rounded-md border border-slate-200 px-2 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-200"
+                                                    autoFocus
+                                                />
+                                                <button
+                                                    type="submit"
+                                                    className="h-8 shrink-0 rounded-md bg-blue-900 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-blue-950"
+                                                >
+                                                    Go
+                                                </button>
+                                            </form>
 
-                                if (isEllipsis) {
-                                    return (
-                                        <PaginationItem key={index}>
-                                            <PaginationEllipsis />
-                                        </PaginationItem>
-                                    );
-                                }
+                                            <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-slate-100 pt-1.5">
+                                                {Array.from(
+                                                    { length: lastPage },
+                                                    (_, i) => i + 1,
+                                                ).map((page) => (
+                                                    <button
+                                                        key={page}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            navigateToPage(page);
+                                                            setPageJumpOpen(false);
+                                                        }}
+                                                        className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                                                            page === currentPage
+                                                                ? 'bg-blue-50 font-medium text-blue-900'
+                                                                : 'text-slate-600 hover:bg-slate-50'
+                                                        }`}
+                                                    >
+                                                        Page {page}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
+
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="outline"
+                                        disabled={!nextLink?.url}
+                                        onClick={() =>
+                                            navigateToPage(currentPage + 1)
+                                        }
+                                        aria-label="Next page"
+                                        className="h-8 w-8 shrink-0 rounded-md text-sm"
+                                    >
+                                        <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            );
+                        })()
+                    ) : (
+                        <div className="flex flex-nowrap items-center gap-1">
+                            {links.map((link, i) => {
+                                const rawLabel = link.label
+                                    .replace(/&laquo;|&raquo;/g, '')
+                                    .trim();
+                                const isPrev =
+                                    rawLabel.toLowerCase() === 'previous';
+                                const isNext =
+                                    rawLabel.toLowerCase() === 'next';
 
                                 return (
-                                    <PaginationItem key={index}>
-                                        <PaginationLink
-                                            href={link.url ?? '#'}
-                                            isActive={link.active}
-                                            onClick={(e) => {
-                                                e.preventDefault();
-
-                                                if (link.url) {
-                                                    goToPage(link.url);
-                                                }
-                                            }}
-                                            className={
-                                                link.active
-                                                    ? 'bg-slate-900 text-white hover:bg-slate-800'
-                                                    : 'cursor-pointer text-slate-700'
-                                            }
-                                        >
-                                            {link.label}
-                                        </PaginationLink>
-                                    </PaginationItem>
+                                    <Button
+                                        key={i}
+                                        type="button"
+                                        size="icon"
+                                        variant={
+                                            link.active
+                                                ? 'default'
+                                                : 'outline'
+                                        }
+                                        disabled={!link.url}
+                                        onClick={() =>
+                                            link.url &&
+                                            navigateToPage(
+                                                Number(link.label) || 1,
+                                            )
+                                        }
+                                        aria-label={
+                                            isPrev
+                                                ? 'Previous page'
+                                                : isNext
+                                                  ? 'Next page'
+                                                  : `Page ${link.label}`
+                                        }
+                                        className="h-8 w-8 shrink-0 rounded-md text-sm"
+                                    >
+                                        {isPrev ? (
+                                            <ChevronLeft className="h-4 w-4" />
+                                        ) : isNext ? (
+                                            <ChevronRight className="h-4 w-4" />
+                                        ) : (
+                                            link.label
+                                        )}
+                                    </Button>
                                 );
                             })}
-                        </PaginationContent>
-                    </Pagination>
+                        </div>
+                    )}
                 </div>
             )}
         </Card>
