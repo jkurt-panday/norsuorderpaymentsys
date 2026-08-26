@@ -39,8 +39,8 @@ class FormInputController extends Controller
      */
     public function create(): Response
     {
-        $memberships = Membership::orderBy('member_desc')->get();
-        $paymentOptions = PaymentDetailOption::orderBy('payment_desc')->get();
+        $memberships = Membership::query()->orderBy('member_desc')->get();
+        $paymentOptions = PaymentDetailOption::query()->orderBy('payment_desc')->get();
 
         return Inertia::render('public/SubmitForm', [
             'memberships' => $memberships,
@@ -125,7 +125,9 @@ class FormInputController extends Controller
 
     public function success(string $referenceNumber)
     {
-        $formInput = FormInput::where('reference_number', $referenceNumber)->firstOrFail();
+        $formInput = FormInput::query()
+            ->where('reference_number', $referenceNumber)
+            ->firstOrFail();
         $formInput->load(['membership', 'paymentDetailOption', 'supportingDocuments']);
         
         return Inertia::render('public/Success', [
@@ -139,15 +141,12 @@ class FormInputController extends Controller
     */
     public function printReceipt(string $referenceNumber)
     {
-        $formInput = FormInput::where(
-            'reference_number',
-            $referenceNumber
-        )->firstOrFail();
+        $formInput = FormInput::query()->where('reference_number', $referenceNumber)->firstOrFail();
 
         // dd($formInput);
     
         return $this->receiptPDFService
-            ->make($formInput)
+            ->orderOfPaymentPrint($formInput)
             ->inline();
     }
 
