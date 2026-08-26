@@ -12,7 +12,7 @@ import {
     GraduationCap,
     Logs,
     School,
-    FileSearchIcon
+    FileSearchIcon,
 } from 'lucide-react';
 import React from 'react';
 import AppLogo from '@/components/app-logo';
@@ -75,10 +75,13 @@ const mainNavItems: SidebarItem[] = [
     { title: 'UACS', href: '/staff/uacs', icon: Logs },
     { title: 'Course', href: '/staff/courses', icon: School },
     {
-        title: 'Assessments', icon: FileSearchIcon, items: [
+        title: 'Assessments',
+        icon: FileSearchIcon,
+        items: [
             { title: 'Dashboard', href: '/staff/assessments/dashboard' },
             { title: 'Assessments', href: '/staff/assessments/' },
-    ]},
+        ],
+    },
     {
         title: 'Graduate Ledger',
         icon: GraduationCap,
@@ -98,7 +101,7 @@ const mainNavItems: SidebarItem[] = [
     {
         title: 'Activity Logs',
         icon: Paperclip,
-        href: 'staff/activity-log',
+        href: '/staff/activity-log',
     },
 ];
 
@@ -111,12 +114,14 @@ function AppSidebar() {
         const currentPath = url.split('?')[0];
         if (currentPath === href) return true;
         if (currentPath.startsWith(href + '/')) {
-            const hasMoreSpecificSibling = mainNavItems.some(item =>
-                item.items?.some(sub =>
-                    sub.href !== href &&
-                    sub.href.startsWith(href + '/') &&
-                    (currentPath === sub.href || currentPath.startsWith(sub.href + '/'))
-                )
+            const hasMoreSpecificSibling = mainNavItems.some((item) =>
+                item.items?.some(
+                    (sub) =>
+                        sub.href !== href &&
+                        sub.href.startsWith(href + '/') &&
+                        (currentPath === sub.href ||
+                            currentPath.startsWith(sub.href + '/')),
+                ),
             );
             return !hasMoreSpecificSibling;
         }
