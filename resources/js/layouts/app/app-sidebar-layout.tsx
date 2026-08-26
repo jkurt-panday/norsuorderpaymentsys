@@ -76,7 +76,7 @@ const mainNavItems: SidebarItem[] = [
     {
         title: 'Assessments', icon: FileSearchIcon, items: [
             { title: 'Dashboard', href: '/staff/assessments/dashboard' },
-            { title: 'Assessments', href: '/staff/assessments/' },
+            { title: 'Assessments', href: '/staff/assessments' },
     ]},
     {
         title: 'Graduate Ledger',
