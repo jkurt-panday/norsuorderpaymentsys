@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AssessmentForm;
+use App\Models\Courses;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -12,47 +13,88 @@ class AssessmentController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request): InertiaResponse
-    {
-        $sortable = ['reference_number', 'last_name', 'created_at'];
-
-        $sort = in_array($request->input('sort'), $sortable, true)
-            ? $request->input('sort')
-            : 'created_at';
-
-        $direction = $request->input('direction') === 'asc' ? 'asc' : 'desc';
-
-        $assessments = AssessmentForm::query()
-            ->with('course') // needed for row.original.course.course_code in columns.tsx
-            ->when($request->search, function ($query, $search) {
-                $query->where(function ($query) use ($search) {
-                    $query->where('reference_number', 'ilike', "%{$search}%")
-                        ->orWhere('first_name', 'ilike', "%{$search}%")
-                        ->orWhere('last_name', 'ilike', "%{$search}%")
-                        ->orWhere('email', 'ilike', "%{$search}%");
-                });
-            })
-            ->when($request->date_from, function ($query, $dateFrom) {
-                $query->whereDate('created_at', '>=', $dateFrom);
-            })
-            ->when($request->date_to, function ($query, $dateTo) {
-                $query->whereDate('created_at', '<=', $dateTo);
-            })
-            ->orderBy($sort, $direction)
-            ->paginate(10)
-            ->withQueryString();
-
-        return Inertia::render('staff/assessments/assessmentIndex', [
-            'assessments' => $assessments,
-            'filters' => [
-                'search' => $request->input('search', ''),
-                'sort' => $sort,
-                'direction' => $direction,
-                'date_from' => $request->input('date_from', ''),
-                'date_to' => $request->input('date_to', ''),
-            ],
-        ]);
-    }
+     public function index(Request $request): InertiaResponse
+        {
+            $sortable = ['reference_number', 'last_name', 'created_at'];
+     
+            $sort = in_array($request->input('sort'), $sortable, true)
+                ? $request->input('sort')
+                : 'created_at';
+     
+            $direction = $request->input('direction') === 'asc' ? 'asc' : 'desc';
+     
+            $assessments = AssessmentForm::query()
+                ->with('course') // needed for row.original.course.course_code in columns.tsx
+                ->when($request->search, function ($query, $search) {
+                    $query->where(function ($query) use ($search) {
+                        $query->where('reference_number', 'ilike', "%{$search}%")
+                            ->orWhere('first_name', 'ilike', "%{$search}%")
+                            ->orWhere('last_name', 'ilike', "%{$search}%")
+                            ->orWhere('email', 'ilike', "%{$search}%");
+                    });
+                })
+                ->when($request->date_from, function ($query, $dateFrom) {
+                    $query->whereDate('created_at', '>=', $dateFrom);
+                })
+                ->when($request->date_to, function ($query, $dateTo) {
+                    $query->whereDate('created_at', '<=', $dateTo);
+                })
+                ->when($request->course_id, function ($query, $courseId) {
+                    $query->where('course_id', $courseId);
+                })
+                ->when($request->enrolled_under, function ($query, $value) {
+                    $query->where('enrolled_under', $value);
+                })
+                ->when($request->sy_last_attended, function ($query, $value) {
+                    $query->where('sy_last_attended', $value);
+                })
+                ->when($request->semester, function ($query, $value) {
+                    $query->where('semester', $value);
+                })
+                ->orderBy($sort, $direction)
+                ->paginate(15)
+                ->withQueryString();
+     
+            return Inertia::render('staff/assessments/assessmentIndex', [
+                'assessments' => $assessments,
+                'filters' => [
+                    'search' => $request->input('search', ''),
+                    'sort' => $sort,
+                    'direction' => $direction,
+                    'date_from' => $request->input('date_from', ''),
+                    'date_to' => $request->input('date_to', ''),
+                    'course_id' => $request->input('course_id', ''),
+                    'enrolled_under' => $request->input('enrolled_under', ''),
+                    'sy_last_attended' => $request->input('sy_last_attended', ''),
+                    'semester' => $request->input('semester', ''),
+                ],
+                // Populates the dropdown OPTIONS themselves — separate from the
+                // filtered/paginated $assessments query above. These run against
+                // the full table regardless of current filters, since a user
+                // picking "2nd Semester" should still see every course as an
+                // option, not just courses that happen to match already-active filters.
+                'filterOptions' => [
+                    'courses' => Courses::query()
+                        ->select('id', 'course_code')
+                        ->orderBy('course_code')
+                        ->get(),
+                    'enrolledUnder' => AssessmentForm::query()
+                        ->distinct()
+                        ->whereNotNull('enrolled_under')
+                        ->orderBy('enrolled_under')
+                        ->pluck('enrolled_under'),
+                    'syLastAttended' => AssessmentForm::query() 
+                        ->distinct()
+                        ->whereNotNull('sy_last_attended')
+                        ->orderByDesc('sy_last_attended')
+                        ->pluck('sy_last_attended'),
+                    'semesters' => AssessmentForm::query()
+                        ->distinct()
+                        ->whereNotNull('semester')
+                        ->pluck('semester'),
+                ],
+            ]);
+        }
 
     public function dashboard(): InertiaResponse
     {
