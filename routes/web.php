@@ -111,13 +111,19 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', 'admin'])->group(function () {
 
-    Route::get('/admin/users', function () {
-        return inertia('Admin/UserManagement');
-    })->name('admin.users.index');
+    Route::get('/admin/dashboard', [AdminUserController::class, 'dashboard'])->name('admin.dashboard');
+
+    Route::get('/admin/users', [AdminUserController::class, 'index'])->name('admin.users.index');
 
     Route::post('/admin/users', [AdminUserController::class, 'store'])
         ->middleware('throttle:10,1')
         ->name('admin.users.store');
+
+    Route::put('/admin/users/{user}', [AdminUserController::class, 'update'])->name('admin.users.update');
+
+    Route::delete('/admin/users/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
+
+    Route::get('/admin/activity-log', [AdminUserController::class, 'activityLog'])->name('admin.activity-log');
 
 });
 

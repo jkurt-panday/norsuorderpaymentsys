@@ -12,10 +12,10 @@ import {
     GraduationCap,
     Logs,
     School,
-    FileSearchIcon
+    FileSearchIcon,
 } from 'lucide-react';
 import React from 'react';
-import AppLogo from '@/components/app-logo';
+import ClientLayoutTemplate from '@/layouts/client/layout';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -50,7 +50,6 @@ import {
 } from '@/components/ui/sidebar';
 import type { AppLayoutProps } from '@/types';
 import { Paperclip } from '@untitledui/icons';
-import { Form } from '@base-ui/react';
 
 interface SidebarItem {
     title: string;
@@ -75,10 +74,13 @@ const mainNavItems: SidebarItem[] = [
     { title: 'UACS', href: '/staff/uacs', icon: Logs },
     { title: 'Course', href: '/staff/courses', icon: School },
     {
-        title: 'Assessments', icon: FileSearchIcon, items: [
+        title: 'Assessments',
+        icon: FileSearchIcon,
+        items: [
             { title: 'Dashboard', href: '/staff/assessments/dashboard' },
             { title: 'Assessments', href: '/staff/assessments/' },
-    ]},
+        ],
+    },
     {
         title: 'Graduate Ledger',
         icon: GraduationCap,
@@ -111,12 +113,14 @@ function AppSidebar() {
         const currentPath = url.split('?')[0];
         if (currentPath === href) return true;
         if (currentPath.startsWith(href + '/')) {
-            const hasMoreSpecificSibling = mainNavItems.some(item =>
-                item.items?.some(sub =>
-                    sub.href !== href &&
-                    sub.href.startsWith(href + '/') &&
-                    (currentPath === sub.href || currentPath.startsWith(sub.href + '/'))
-                )
+            const hasMoreSpecificSibling = mainNavItems.some((item) =>
+                item.items?.some(
+                    (sub) =>
+                        sub.href !== href &&
+                        sub.href.startsWith(href + '/') &&
+                        (currentPath === sub.href ||
+                            currentPath.startsWith(sub.href + '/')),
+                ),
             );
             return !hasMoreSpecificSibling;
         }
@@ -299,6 +303,19 @@ export default function AppSidebarLayout({
     children,
     breadcrumbs = [],
 }: AppLayoutProps) {
+    const { auth } = usePage<{ auth?: { user?: { role?: string } | null } }>().props;
+    const isClient = auth?.user?.role === 'client';
+
+    if (isClient) {
+        return (
+            <SidebarProvider>
+                <div className="flex h-screen w-full bg-[#FAFAF5]">
+                    <ClientLayoutTemplate>{children}</ClientLayoutTemplate>
+                </div>
+            </SidebarProvider>
+        );
+    }
+
     return (
         <SidebarProvider>
             <div className="flex h-screen w-full bg-[#FAFAF5]">
