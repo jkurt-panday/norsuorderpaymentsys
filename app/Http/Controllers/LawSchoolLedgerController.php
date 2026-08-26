@@ -322,12 +322,13 @@ class LawSchoolLedgerController extends Controller
 
         // Excel (.xlsx, .xls)
         $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($path);
-        $reader->setReadDataOnly(true);
+        $reader->setReadDataOnly(false);
 
         $spreadsheet = $reader->load($path);
         $sheet       = $spreadsheet->getActiveSheet();
         $highestRow  = $sheet->getHighestRow();
         $highestCol  = $sheet->getHighestColumn();
+        $highestColIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($highestCol);
 
         if ($highestRow <= 1) {
             $spreadsheet->disconnectWorksheets();
@@ -336,19 +337,22 @@ class LawSchoolLedgerController extends Controller
         }
 
         $headerRow = [];
-        for ($col = 'A'; $col <= $highestCol; $col++) {
-            $headerRow[] = Str::slug((string) $sheet->getCell($col . '1')->getValue(), '_');
+        for ($c = 1; $c <= $highestColIndex; $c++) {
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c);
+            $headerRow[] = Str::slug((string) $sheet->getCell($colLetter . '1')->getValue(), '_');
         }
 
         $insertData = [];
 
         for ($r = 2; $r <= $highestRow; $r++) {
             $rowData = [];
-            $cIdx    = 0;
-            for ($col = 'A'; $col <= $highestCol; $col++) {
-                $key           = $headerRow[$cIdx] ?? 'column_'.$cIdx;
-                $rowData[$key] = $sheet->getCell($col . $r)->getValue();
-                $cIdx++;
+            for ($c = 1; $c <= $highestColIndex; $c++) {
+                $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c);
+                $key           = $headerRow[$c - 1] ?? 'column_'.($c - 1);
+                $cell          = $sheet->getCell($colLetter . $r);
+                $rowData[$key] = $cell->isFormula()
+                    ? ($key === 'amount' ? $cell->getCalculatedValue() : null)
+                    : $cell->getValue();
             }
 
             $data = $this->mapImportRow($rowData);
@@ -506,7 +510,34 @@ class LawSchoolLedgerController extends Controller
             ];
         }
 
-        $amount = (float) (Arr::get($normalized, 'amount', 0) ?? 0);
+        $rawAmount = Arr::get($normalized, 'amount');
+        $amount = is_numeric($rawAmount) ? (float) $rawAmount : 0;
+
+        $units = (float) (Arr::get($normalized, 'units', 0) ?? 0);
+        $tuition = (float) (
+            Arr::get($normalized, 'tuition_per_unit_registration_and_misc_fee_per_semester')
+            ?? Arr::get($normalized, 'tuition_per_unit_reg_and_miscellaneous_per_semester')
+            ?? Arr::get($normalized, 'tuition_per_unit_or_fee_per_semester')
+            ?? Arr::get($normalized, 'tuition_per_unit_or_misc', 0)
+            ?? 0
+        );
+
+        $arOrPayment = Arr::get($normalized, 'ar_or_payment')
+            ?? Arr::get($normalized, 'ar_payment')
+            ?? Arr::get($normalized, 'arpayment')
+            ?? Arr::get($normalized, 'transaction_type')
+            ?? Arr::get($normalized, 'type')
+            ?? 'AR';
+
+        if ($amount === 0.0 && strtoupper(trim($arOrPayment)) === 'AR' && $units > 0 && $tuition > 0) {
+            $amount = $units * $tuition;
+        }
+
+        $rawRemarks = Arr::get($normalized, 'remarks') ?? Arr::get($normalized, 'remark');
+        $remarks = is_string($rawRemarks) ? trim($rawRemarks) : null;
+        if ($remarks !== null && str_starts_with($remarks, '=')) {
+            $remarks = null;
+        }
 
         return [
             'last_name' => $nameParts['last_name'],
@@ -515,9 +546,10 @@ class LawSchoolLedgerController extends Controller
             'course' => Arr::get($normalized, 'course') ?? Arr::get($normalized, 'program'),
             'school_year' => Arr::get($normalized, 'school_year') ?? Arr::get($normalized, 'academic_year') ?? Arr::get($normalized, 'sy'),
             'semester_or_summer' => Arr::get($normalized, 'semester_or_summer')
+                ?? Arr::get($normalized, 'semester_summer')
                 ?? Arr::get($normalized, 'semester')
                 ?? Arr::get($normalized, 'term'),
-            'units' => (float) (Arr::get($normalized, 'units', 0) ?? 0),
+            'units' => $units,
             'transaction_date' => $this->normalizeDate(
                 Arr::get($normalized, 'transaction_date') ?? Arr::get($normalized, 'date')
             ),
@@ -528,21 +560,11 @@ class LawSchoolLedgerController extends Controller
                 ?? Arr::get($normalized, 'or_no')
                 ?? Arr::get($normalized, 'ref_no'),
             'particulars' => Arr::get($normalized, 'particulars'),
-            'tuition_per_unit_or_fee_per_semester' => (float) (
-                Arr::get($normalized, 'tuition_per_unit_registration_and_misc_fee_per_semester')
-                ?? Arr::get($normalized, 'tuition_per_unit_reg_and_miscellaneous_per_semester')
-                ?? Arr::get($normalized, 'tuition_per_unit_or_fee_per_semester')
-                ?? Arr::get($normalized, 'tuition_per_unit_or_misc', 0)
-                ?? 0
-            ),
-            'ar_or_payment' => Arr::get($normalized, 'ar_or_payment')
-                ?? Arr::get($normalized, 'ar_payment')
-                ?? Arr::get($normalized, 'transaction_type')
-                ?? Arr::get($normalized, 'type')
-                ?? 'AR',
+            'tuition_per_unit_or_fee_per_semester' => $tuition,
+            'ar_or_payment' => $arOrPayment,
             'amount' => $amount,
             'status' => $this->determineStatus($amount, Arr::get($normalized, 'status')),
-            'remarks' => Arr::get($normalized, 'remarks') ?? Arr::get($normalized, 'remark'),
+            'remarks' => $remarks,
             'input_by' => Arr::get($normalized, 'input_by'),
         ];
     }
@@ -664,7 +686,19 @@ class LawSchoolLedgerController extends Controller
         }
 
         if (is_numeric($value)) {
-            return Carbon::createFromFormat('Ymd', (string) $value)->format('Y-m-d');
+            $num = (float) $value;
+            if ($num > 10000 && $num < 100000) {
+                try {
+                    return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($num)->format('Y-m-d');
+                } catch (\Exception $e) {
+                }
+            }
+
+            try {
+                return Carbon::createFromFormat('Ymd', (string) $value)->format('Y-m-d');
+            } catch (\Exception $e) {
+                return null;
+            }
         }
 
         try {
