@@ -23,6 +23,14 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        //
+    }
+
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
         $this->app->singleton(LoginResponseContract::class, function () {
             return new class implements LoginResponseContract {
                 public function toResponse($request)
@@ -30,7 +38,7 @@ class FortifyServiceProvider extends ServiceProvider
                     $user = auth()->user();
 
                     if ($user?->role === 'admin') {
-                        return redirect('/staff/staffdashboard');
+                        return redirect('/admin/dashboard');
                     }
 
                     if ($user?->role === 'staff') {
@@ -45,13 +53,7 @@ class FortifyServiceProvider extends ServiceProvider
                 }
             };
         });
-    }
 
-    /**
-     * Bootstrap any application services.
-     */
-    public function boot(): void
-    {
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();

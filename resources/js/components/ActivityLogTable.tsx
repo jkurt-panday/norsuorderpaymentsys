@@ -287,7 +287,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
         e.preventDefault();
         navigateWithParams({
             activity_search: search.trim() || undefined,
-            activity_action: action === 'all' ? undefined : action || undefined,
+            activity_action: action === 'All' ? undefined : action || undefined,
             date_from: dateFrom || undefined,
             date_to: dateTo || undefined,
             sort: sortKey || undefined,
@@ -296,11 +296,11 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
     };
 
     const handleActionChange = (value: string | null) => {
-        const selected = value ?? 'all';
+        const selected = value ?? 'All Actions';
         setAction(selected);
         navigateWithParams({
             activity_search: search.trim() || undefined,
-            activity_action: selected === 'all' ? undefined : selected,
+            activity_action: selected === 'All' ? undefined : selected,
             date_from: dateFrom || undefined,
             date_to: dateTo || undefined,
             sort: sortKey || undefined,
@@ -323,7 +323,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
             date_from: fromStr || undefined,
             date_to: toStr || undefined,
             activity_search: search.trim() || undefined,
-            activity_action: action === 'all' ? undefined : action || undefined,
+            activity_action: action === 'All' ? undefined : action || undefined,
             sort: sortKey || undefined,
             direction: sortDir || undefined,
         });
@@ -343,7 +343,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                 direction: nextDir,
                 activity_search: search.trim() || undefined,
                 activity_action:
-                    action === 'all' ? undefined : action || undefined,
+                    action === 'All' ? undefined : action || undefined,
                 date_from: dateFrom || undefined,
                 date_to: dateTo || undefined,
             });
@@ -355,7 +355,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                 direction: 'desc',
                 activity_search: search.trim() || undefined,
                 activity_action:
-                    action === 'all' ? undefined : action || undefined,
+                    action === 'All' ? undefined : action || undefined,
                 date_from: dateFrom || undefined,
                 date_to: dateTo || undefined,
             });
@@ -367,7 +367,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                 direction: undefined,
                 activity_search: search.trim() || undefined,
                 activity_action:
-                    action === 'all' ? undefined : action || undefined,
+                    action === 'All' ? undefined : action || undefined,
                 date_from: dateFrom || undefined,
                 date_to: dateTo || undefined,
             });
@@ -467,14 +467,14 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
 
                     {/* Action Filter Select */}
                     <Select
-                        value={action || 'all'}
+                        value={action || 'All'}
                         onValueChange={handleActionChange}
                     >
                         <SelectTrigger className="h-9 w-full text-xs sm:w-36">
                             <SelectValue placeholder="All actions" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All actions</SelectItem>
+                            <SelectItem value="All">All actions</SelectItem>
                             {ACTION_OPTIONS.map((opt) => (
                                 <SelectItem key={opt.value} value={opt.value}>
                                     {opt.label}
