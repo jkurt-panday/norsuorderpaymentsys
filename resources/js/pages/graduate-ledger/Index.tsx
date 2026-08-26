@@ -125,8 +125,11 @@ export interface PendingOpItem {
 
 export interface StudentOption {
   id: number;
-  name: string;
+  name?: string;
   raw_name_from_csv?: string;
+  last_name?: string;
+  first_name?: string;
+  middle_name?: string;
 }
 
 export interface CourseOption {

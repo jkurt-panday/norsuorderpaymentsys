@@ -388,7 +388,6 @@ class GraduateLedgerController extends Controller
 
                 continue;
             }
-
             $data['created_at'] = $now;
             $data['updated_at'] = $now;
             $insertData[] = $data;
@@ -408,20 +407,16 @@ class GraduateLedgerController extends Controller
             });
             $imported += count($insertData);
         }
-        fclose($handle);
 
         return redirect()->route('graduate-ledger.index')
             ->with('success', "Import complete: {$imported} records imported, {$skipped} blank rows skipped.");
     }
 
-    /**
-     * Memory-efficient Excel importer (xlsx/xls) using PhpSpreadsheet DataOnly Reader.
-     */
     private function importExcel($uploadedFile, int &$imported, int &$skipped, $now): RedirectResponse
     {
         $path   = $uploadedFile->getRealPath();
         $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($path);
-        $reader->setReadDataOnly(false); // must be false to evaluate =J*F formulas in col L
+        $reader->setReadDataOnly(true); // Fast data-only mode
 
         $spreadsheet = $reader->load($path);
         $sheet       = $spreadsheet->getActiveSheet();
@@ -434,25 +429,26 @@ class GraduateLedgerController extends Controller
                 ->with('success', 'No rows found in the uploaded file.');
         }
 
+        $rows = $sheet->rangeToArray("A2:N{$highestRow}", null, false, false, false);
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
+
         $distinctStudents = [];
         $distinctCourses  = [];
         $distinctTerms    = [];
 
-        // Pass 1: Collect distinct values (rows 2 to highestRow)
-        for ($r = 2; $r <= $highestRow; $r++) {
-            $name = trim(str_replace(['\u{2212}', '\u{2013}', '\u{2014}'], '-', (string) $sheet->getCell("A{$r}")->getValue()));
+        // Pass 1: Collect distinct values from flat memory array
+        foreach ($rows as $row) {
+            $name = trim(str_replace(['\u{2212}', '\u{2013}', '\u{2014}'], '-', (string) ($row[0] ?? '')));
             if ($name !== '' && !in_array(strtolower($name), ['student name', 'student', 'ff', 'name'])) {
                 $distinctStudents[$name] = true;
             }
-            $code = trim((string) $sheet->getCell("B{$r}")->getValue());
+            $code = trim((string) ($row[1] ?? ''));
             if ($code !== '') {
                 $distinctCourses[$code] = true;
             }
-            $sy  = trim((string) $sheet->getCell("C{$r}")->getValue());
-            // Always read Col E (SEMESTER/SUMMER) — the labeled, visible column
-            $sem = AcademicTerm::normalizeSemester(
-                trim((string) $sheet->getCell("E{$r}")->getValue())
-            );
+            $sy  = trim((string) ($row[2] ?? ''));
+            $sem = AcademicTerm::normalizeSemester(trim((string) ($row[4] ?? '')));
             if ($sy !== '' && $sem !== '') {
                 $distinctTerms["{$sy}|||{$sem}"] = ['school_year' => $sy, 'semester' => $sem];
             }
@@ -464,30 +460,21 @@ class GraduateLedgerController extends Controller
 
         $insertData = [];
 
-        // Pass 2: Map and chunk-insert rows
-        for ($r = 2; $r <= $highestRow; $r++) {
-            $row = [
-                $sheet->getCell("A{$r}")->getValue(),
-                $sheet->getCell("B{$r}")->getValue(),
-                $sheet->getCell("C{$r}")->getValue(),
-                $sheet->getCell("D{$r}")->getValue(),
-                $sheet->getCell("E{$r}")->getValue(),
-                $sheet->getCell("F{$r}")->getValue(),
-                $sheet->getCell("G{$r}")->getValue(),
-                $sheet->getCell("H{$r}")->getValue(),
-                $sheet->getCell("I{$r}")->getValue(),
-                $sheet->getCell("J{$r}")->getValue(),
-                $sheet->getCell("K{$r}")->getValue(),
-                $sheet->getCell("L{$r}")->getCalculatedValue(), // formula-safe: evaluates =J*F etc.
-                $sheet->getCell("M{$r}")->getValue(),
-                $sheet->getCell("N{$r}")->getValue(),
-            ];
+        // Pass 2: Map and chunk-insert rows from flat memory
+        foreach ($rows as $row) {
+            // Fast PHP math for Amount if formula was =J*F or =F*J
+            $cleanUnits = (float) preg_replace('/[^\d.]/', '', (string) ($row[5] ?? '0'));
+            $cleanRate  = (float) preg_replace('/[^\d.]/', '', (string) ($row[9] ?? '0'));
+            $rawAmt     = trim((string) ($row[11] ?? ''));
+
+            if ($cleanUnits > 0 && $cleanRate > 0 && ($rawAmt === '' || $rawAmt === '0' || str_starts_with($rawAmt, '='))) {
+                $row[11] = (string) ($cleanUnits * $cleanRate);
+            }
 
             $data = $this->mapImportRowNormalized($row, $studentMap, $courseMap, $termMap);
 
             if ($data === null) {
                 $skipped++;
-
                 continue;
             }
 
@@ -510,9 +497,6 @@ class GraduateLedgerController extends Controller
             });
             $imported += count($insertData);
         }
-
-        $spreadsheet->disconnectWorksheets();
-        unset($spreadsheet);
 
         return redirect()->route('graduate-ledger.index')
             ->with('success', "Import complete: {$imported} records imported, {$skipped} blank rows skipped.");
@@ -780,7 +764,7 @@ class GraduateLedgerController extends Controller
     /**
      * Maps a positional row to normalized (FK-based) DB columns.
      */
-    private function mapImportRowNormalized(array $row, array $studentMap, array $courseMap, array $termMap): ?array
+    private function mapImportRowNormalized(array $row, array $studentMap, array $courseMap, array $termMap, float $termNetBalance = 0.0): ?array
     {
         $rawName = trim(str_replace(['−', '–', '—'], '-', (string) ($row[0] ?? '')));
         if ($rawName === '' || in_array(strtolower($rawName), ['student name', 'student', 'ff', 'name'])) {
@@ -793,6 +777,10 @@ class GraduateLedgerController extends Controller
         $sy         = trim((string) ($row[2] ?? ''));
         // Col E (index 4) = SEMESTER/SUMMER — the labeled, visible column
         $sem        = AcademicTerm::normalizeSemester(trim((string) ($row[4] ?? '')));
+        $entryType  = $this->normalizeEntryType(
+            (string) ($row[10] ?? ''),
+            str_contains($rawAmount, '(') && str_contains($rawAmount, ')')
+        );
 
         return [
             'student_id'               => $studentMap[$rawName] ?? null,
@@ -805,13 +793,10 @@ class GraduateLedgerController extends Controller
             'reference_or_jev_number'  => trim((string) ($row[7] ?? '')),
             'particulars'              => trim((string) ($row[8] ?? '')),
             'tuition_per_unit_or_misc' => $this->cleanAmount($rawTuition),
-            'entry_type' => $this->normalizeEntryType(
-                (string) ($row[10] ?? ''),
-                str_contains($rawAmount, '(') && str_contains($rawAmount, ')')
-            ),
-            'amount'  => $this->cleanAmount($rawAmount),
-            'remarks' => $this->cleanRemarks($row[12] ?? null),
-            'input_by' => trim((string) ($row[13] ?? '')),
+            'entry_type'               => $entryType,
+            'amount'                   => $this->cleanAmount($rawAmount),
+            'remarks'                  => $this->cleanRemarks($row[12] ?? null, $termNetBalance),
+            'input_by'                 => trim((string) ($row[13] ?? '')),
         ];
     }
 
@@ -923,13 +908,22 @@ class GraduateLedgerController extends Controller
         return false;
     }
 
-    private function cleanRemarks($val): ?string
+    private function cleanRemarks($val, float $termNetBalance = 0.0): ?string
     {
         $str = trim((string) ($val ?? ''));
-        if (str_starts_with($str, '=')) {
+        if ($str === '') return null;
+
+        $lower = strtolower($str);
+
+        // If it's an Excel formula evaluating Settled vs Outstanding
+        if (str_starts_with($str, '=') || str_starts_with($lower, 'if(') || str_starts_with($lower, 'isblank(')) {
+            if (str_contains($lower, 'settled') || str_contains($lower, 'outstanding')) {
+                return ($termNetBalance <= 0.0001) ? 'Settled' : 'Outstanding';
+            }
             return null;
         }
-        return $str !== '' ? $str : null;
+
+        return $str;
     }
 
     private function cleanAmount($rawAmount): float
