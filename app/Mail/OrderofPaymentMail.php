@@ -5,10 +5,12 @@ namespace App\Mail;
 use App\Models\FormInput;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Symfony\Component\Mime\Email;
 
 class OrderOfPaymentMail extends Mailable
 {
@@ -21,12 +23,13 @@ class OrderOfPaymentMail extends Mailable
     public ?string $customSubject = null,
     public ?string $recipientName = null,
     public ?string $note = null,
-) {}
+  ) {}
 
 public function envelope(): Envelope
 {
     return new Envelope(
         subject: $this->customSubject ?? "Order of Payment - {$this->formInput->reference_number}",
+        to: $this->formInput->email ? [new Address($this->formInput->email)] : [],
     );
 }
 
@@ -50,4 +53,16 @@ public function attachments(): array
             ->withMime('application/pdf'),
     ];
 }
+
+    public function build(): Email
+    {
+        /** @var Email $email */
+        $email = parent::build();
+
+        if ($this->formInput->email) {
+            $email->to($this->formInput->email);
+        }
+
+        return $email;
+    }
 }

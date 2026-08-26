@@ -5,6 +5,7 @@ namespace App\Providers;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -26,6 +27,8 @@ use App\Models\Student;
 use App\Models\SupportingDocument;
 use App\Models\UACS;
 use App\Models\User;
+use App\Listeners\LogSentEmails;
+use App\Listeners\LogSentNotifications;
 use App\Observers\ActivityLogObserver;
 
 class AppServiceProvider extends ServiceProvider
@@ -76,6 +79,9 @@ class AppServiceProvider extends ServiceProvider
                 )
             );
         });
+
+        Event::listen(\Illuminate\Mail\Events\MessageSent::class, LogSentEmails::class);
+        Event::listen(\Illuminate\Notifications\Events\NotificationSent::class, LogSentNotifications::class);
     }
 
     /**

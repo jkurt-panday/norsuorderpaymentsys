@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class AdminUserController extends Controller
@@ -110,7 +111,7 @@ class AdminUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', Password::defaults()],
-            'role' => ['required', \Illuminate\Validation\Rules\Enum::class, UserRole::class],
+            'role' => ['required', Rule::enum(UserRole::class)],
         ]);
 
         $user = User::create([
@@ -132,7 +133,7 @@ class AdminUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
             'password' => ['nullable', 'string', Password::defaults()],
-            'role' => ['required', \Illuminate\Validation\Rules\Enum::class, UserRole::class],
+            'role' => ['required', Rule::enum(UserRole::class)],
         ]);
 
         $user->name = $validated['name'];

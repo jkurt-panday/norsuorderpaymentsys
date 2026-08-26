@@ -1,5 +1,20 @@
 import { Link, usePage, router } from '@inertiajs/react';
-import { BarChart3, Users, Activity, ChevronRight, LogOut } from 'lucide-react';
+import {
+    BarChart3,
+    Users,
+    Activity,
+    Home,
+    FileText,
+    CreditCard,
+    Building,
+    Scale,
+    GraduationCap,
+    Logs,
+    School,
+    FileSearchIcon,
+    ChevronRight,
+    LogOut,
+} from 'lucide-react';
 import React from 'react';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -24,8 +39,12 @@ import {
     SidebarMenuItem,
     SidebarProvider,
     SidebarTrigger,
+    SidebarMenuSub,
+    SidebarMenuSubItem,
+    SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 import type { AppLayoutProps } from '@/types';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 
 interface AdminSidebarItem {
     title: string;
@@ -33,10 +52,58 @@ interface AdminSidebarItem {
     icon: React.ComponentType<any>;
 }
 
+interface AdminSidebarSection {
+    title: string;
+    items: AdminSidebarItem[];
+    collapsible?: boolean;
+    collapsibleItems?: {
+        title: string;
+        icon: React.ComponentType<any>;
+        items: { title: string; href: string }[];
+    }[];
+}
+
 const adminNavItems: AdminSidebarItem[] = [
     { title: 'Dashboard', href: '/admin/dashboard', icon: BarChart3 },
     { title: 'User Management', href: '/admin/users', icon: Users },
     { title: 'Activity Log', href: '/admin/activity-log', icon: Activity },
+];
+
+const staffNavItems: AdminSidebarItem[] = [
+    { title: 'Dashboard', href: '/staff/staffdashboard', icon: Home },
+    { title: 'Requests', href: '/staff/requests', icon: FileText },
+    { title: 'Bank Accounts', href: '/staff/bank-accounts', icon: Building },
+    { title: 'Payment Options', href: '/staff/payment-options', icon: CreditCard },
+    { title: 'Memberships', href: '/staff/memberships', icon: Users },
+    { title: 'UACS', href: '/staff/uacs', icon: Logs },
+    { title: 'Course', href: '/staff/courses', icon: School },
+];
+
+const staffCollapsibleItems = [
+    {
+        title: 'Assessments',
+        icon: FileSearchIcon,
+        items: [
+            { title: 'Dashboard', href: '/staff/assessments/dashboard' },
+            { title: 'Assessments', href: '/staff/assessments/' },
+        ],
+    },
+    {
+        title: 'Graduate Ledger',
+        icon: GraduationCap,
+        items: [
+            { title: 'Ledger Overview', href: '/graduate-ledger' },
+            { title: 'Print Statement', href: '/graduate-ledger/print-select' },
+        ],
+    },
+    {
+        title: 'Law Ledger',
+        icon: Scale,
+        items: [
+            { title: 'Law Overview', href: '/law-ledger' },
+            { title: 'Print Statement', href: '/law-ledger/print-select' },
+        ],
+    },
 ];
 
 function AdminSidebar() {
@@ -74,6 +141,10 @@ function AdminSidebar() {
             {/* Nav Items */}
             <SidebarContent className="mt-2 px-2">
                 <SidebarMenu>
+                    {/* Admin Section */}
+                    <div className="mb-2 px-2 py-1 text-xs font-semibold uppercase tracking-wider text-blue-200/80">
+                        Admin
+                    </div>
                     {adminNavItems.map((item, index) => (
                         <SidebarMenuItem key={index}>
                             <SidebarMenuButton
@@ -91,6 +162,72 @@ function AdminSidebar() {
                                 <item.icon className="mr-2 h-4 w-4 shrink-0" />
                                 <span>{item.title}</span>
                             </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    ))}
+
+                    {/* Staff Section */}
+                    <div className="mt-4 mb-2 px-2 py-1 text-xs font-semibold uppercase tracking-wider text-blue-200/80">
+                        Staff
+                    </div>
+                    {staffNavItems.map((item, index) => (
+                        <SidebarMenuItem key={index}>
+                            <SidebarMenuButton
+                                render={
+                                    <Link
+                                        href={item.href}
+                                        className={`my-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[15px] transition-colors duration-200 ${
+                                            isActive(item.href)
+                                                ? 'bg-[#0078d4] font-medium text-white shadow-sm'
+                                                : 'text-white/80 hover:bg-white/5 hover:text-white'
+                                        }`}
+                                    />
+                                }
+                            >
+                                <item.icon className="mr-2 h-4 w-4 shrink-0" />
+                                <span>{item.title}</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    ))}
+
+                    {/* Staff Collapsible Items */}
+                    {staffCollapsibleItems.map((item, index) => (
+                        <SidebarMenuItem key={index}>
+                            <Collapsible
+                                defaultOpen
+                                className="group/collapsible"
+                            >
+                                <CollapsibleTrigger
+                                    render={
+                                        <SidebarMenuButton className="my-0.5 rounded-lg px-3 py-2.5 text-[15px] font-medium text-white hover:bg-white/5 hover:text-white" />
+                                    }
+                                >
+                                    <item.icon className="mr-2 h-4 w-4 shrink-0" />
+                                    <span>{item.title}</span>
+                                    <ChevronRight className="ml-auto h-4 w-4 text-white/60 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                    <SidebarMenuSub className="ml-4 border-l border-blue-400/20 pl-3">
+                                        {item.items.map((subItem, subIndex) => (
+                                            <SidebarMenuSubItem key={subIndex}>
+                                                <SidebarMenuSubButton
+                                                    render={
+                                                        <Link
+                                                            href={subItem.href}
+                                                            className={`my-0.5 flex w-full items-center rounded-md px-3 py-2 text-[14px] transition-colors duration-200 ${
+                                                                isActive(subItem.href)
+                                                                    ? 'bg-[#0078d4] font-medium text-white shadow-sm'
+                                                                    : 'text-white/70 hover:bg-white/5 hover:text-white'
+                                                                }`}
+                                                        />
+                                                    }
+                                                >
+                                                    {subItem.title}
+                                                </SidebarMenuSubButton>
+                                            </SidebarMenuSubItem>
+                                        ))}
+                                    </SidebarMenuSub>
+                                </CollapsibleContent>
+                            </Collapsible>
                         </SidebarMenuItem>
                     ))}
                 </SidebarMenu>
