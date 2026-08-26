@@ -981,6 +981,7 @@ class GraduateLedgerController extends Controller
             'particulars' => 'required|string|max:255',
             'amount' => 'required|numeric|min:0.01',
             'reference_or_jev_number' => 'nullable|string|max:255',
+            'remarks' => 'nullable|string|max:255',
         ]);
 
         DB::transaction(function () use ($validated, $request) {
@@ -1002,6 +1003,7 @@ class GraduateLedgerController extends Controller
                 'particulars' => $validated['particulars'],
                 'amount' => $validated['amount'],
                 'reference_or_jev_number' => $validated['reference_or_jev_number'] ?? null,
+                'remarks' => $validated['remarks'] ?? null,
                 'transaction_date' => now()->toDateString(),
                 'input_by' => $request->user()?->name ?? 'Staff Verification',
             ]);
@@ -1020,11 +1022,6 @@ class GraduateLedgerController extends Controller
             $exactGradOptions = [
                 'Payment for Graduate School - Balance in full',
                 'Payment of Graduate School - Down payment',
-                'Comprehensive Exam - Doctorate',
-                'Comprehensive Exam-Doctorate',
-                'Comprehensive Exam - Masters',
-                'Comprehensive Exam-Masters',
-                'Payment for Off Semester/Summer/Special Class',
             ];
 
             // Collect all reference numbers / O.R. numbers already posted in graduate_ledgers
@@ -1034,12 +1031,8 @@ class GraduateLedgerController extends Controller
 
             $opItems = FormInput::with(['staffInput', 'paymentDetailOption'])
                 ->whereHas('staffInput')
-                ->where(function ($q) use ($exactGradOptions) {
-                    $q->whereHas('paymentDetailOption', function ($pq) use ($exactGradOptions) {
-                        $pq->whereIn('payment_desc', $exactGradOptions)
-                           ->orWhereRaw("LOWER(payment_desc) LIKE '%graduate%'");
-                    })
-                    ->orWhereRaw("LOWER(office_or_college) LIKE '%graduate%'");
+                ->whereHas('paymentDetailOption', function ($pq) use ($exactGradOptions) {
+                    $pq->whereIn('payment_desc', $exactGradOptions);
                 })
                 ->latest()
                 ->take(100)

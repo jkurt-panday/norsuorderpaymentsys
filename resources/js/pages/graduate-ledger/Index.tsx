@@ -196,6 +196,8 @@ function PendingOpRow({
   );
   const [particulars, setParticulars] = useState<string>(item.particulars || 'Tuition');
   const [entryType, setEntryType] = useState<'ar' | 'payment' | 'adjustment'>('payment');
+  const [orNumber, setOrNumber] = useState<string>('');
+  const [remarks, setRemarks] = useState<string>('');
   const [isPosting, setIsPosting] = useState(false);
 
   const handlePost = () => {
@@ -212,7 +214,8 @@ function PendingOpRow({
         entry_type: entryType,
         particulars: particulars,
         amount: item.amount,
-        reference_or_jev_number: item.ref_document_or_number,
+        reference_or_jev_number: orNumber,
+        remarks: remarks,
       },
       {
         preserveScroll: true,
@@ -311,11 +314,22 @@ function PendingOpRow({
           <option value="Comprehensive Exam">Comprehensive Exam</option>
           <option value="Laboratory">Laboratory</option>
         </select>
-        <div className="text-[10px] text-gray-500 font-mono mt-0.5">{item.ref_document_or_number}</div>
+        <Input
+          value={orNumber}
+          onChange={(e) => setOrNumber(e.target.value)}
+          className="mt-1 h-7 text-xs border-[#CFE3FF] font-mono text-[#0B3D91]"
+          placeholder="O.R. Number (Optional)"
+        />
       </td>
 
       <td className="p-3 font-bold text-emerald-700">
-        ₱{item.amount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+        <div>₱{item.amount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</div>
+        <Input
+          value={remarks}
+          onChange={(e) => setRemarks(e.target.value)}
+          className="mt-1 h-7 text-xs border-[#CFE3FF] font-normal text-gray-700"
+          placeholder="Optional Remarks / Note"
+        />
       </td>
 
       <td className="p-3 text-right">
@@ -693,7 +707,7 @@ export default function Index({
                       <th className="p-3">Course</th>
                       <th className="p-3">Academic Term</th>
                       <th className="p-3">Type</th>
-                      <th className="p-3">Particulars & Ref #</th>
+                      <th className="p-3">Particulars & O.R. #</th>
                       <th className="p-3">Amount</th>
                       <th className="p-3 text-right">Action</th>
                     </tr>
