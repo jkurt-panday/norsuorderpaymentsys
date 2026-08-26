@@ -10,9 +10,9 @@ import {
     ArrowDown,
     ArrowUpDown,
     RefreshCw,
+    Calendar,
 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
-import { DateRangeFilter } from '@/components/data-table/date-range-picker';
+import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -122,6 +122,17 @@ const ACTION_OPTIONS = [
     { value: 'processed', label: 'Processed' },
 ];
 
+const SORT_OPTIONS = [
+    { value: 'created_at:desc', label: 'Newest First' },
+    { value: 'created_at:asc', label: 'Oldest First' },
+    { value: 'action:asc', label: 'Event (A - Z)' },
+    { value: 'action:desc', label: 'Event (Z - A)' },
+    { value: 'actor_name:asc', label: 'Actor (A - Z)' },
+    { value: 'actor_name:desc', label: 'Actor (Z - A)' },
+    { value: 'subject_type:asc', label: 'Type (A - Z)' },
+    { value: 'subject_type:desc', label: 'Type (Z - A)' },
+];
+
 function getEventUi(event: string) {
     return EVENT_UI[event] ?? {
         label: event,
@@ -162,32 +173,6 @@ function roleTextColorClass(role?: string | null) {
     }
 }
 
-function toDate(value: string | undefined): Date | undefined {
-    if (!value) {
-        return undefined;
-    }
-
-    const [y, m, d] = value.split('-').map(Number);
-
-    if (!y || !m || !d) {
-        return undefined;
-    }
-
-    return new Date(y, m - 1, d);
-}
-
-function toDateString(date: Date | undefined): string {
-    if (!date) {
-        return '';
-    }
-
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-
-    return `${y}-${m}-${d}`;
-}
-
 const COLUMNS: { label: string; width: string; sortable?: string }[] = [
     { label: 'Event', width: 'w-[130px]', sortable: 'action' },
     { label: 'Description', width: 'min-w-[260px]' },
@@ -225,17 +210,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
     // Keep the feed live: silently refetch only the activity_log data every
     // 5 seconds. This is a background Inertia visit (no full page reload) and
     // preserves the current search/sort/page URL, so filters stay intact.
-    const { start, stop } = usePoll(
-        5000,
-        { only: ['activityLogs'] },
-        { autoStart: false },
-    );
-
-    useEffect(() => {
-        start();
-
-        return () => stop();
-    }, [start, stop]);
+    usePoll(5000, { only: ['activityLogs'] });
 
     const currentPage = logs?.meta?.current_page ?? logs?.current_page ?? 1;
     const lastPage = logs?.meta?.last_page ?? logs?.last_page ?? 1;
@@ -244,6 +219,8 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
 
     const effectiveSortKey = sortKey || 'created_at';
     const effectiveSortDir = sortDir || (sortKey ? 'asc' : 'desc');
+
+    const currentSortSelectValue = `${effectiveSortKey}:${effectiveSortDir}`;
 
     // Background navigation that only refreshes this table's data (renders the
     // loading bar, never a full website reload).
@@ -260,8 +237,6 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
 
         url.searchParams.delete('page');
 
-        stop();
-
         router.get(
             url.pathname + url.search,
             {},
@@ -272,10 +247,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                 only: ['activityLogs'],
                 showProgress: false,
                 onStart: () => setIsNavigating(true),
-                onFinish: () => {
-                    setIsNavigating(false);
-                    start();
-                },
+                onFinish: () => setIsNavigating(false),
             },
         );
     };
@@ -305,14 +277,29 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
         });
     };
 
-    const handleDateRangeApply = ({ from, to }: { from: Date | undefined; to: Date | undefined }) => {
-        const fromStr = toDateString(from);
-        const toStr = toDateString(to);
-        setDateFrom(fromStr);
-        setDateTo(toStr);
+    const handleSortSelectChange = (value: string | null) => {
+        if (!value) {
+            return;
+        }
+
+        const [sKey, sDir] = value.split(':');
+        setSortKey(sKey);
+        setSortDir(sDir);
         navigateWithParams({
-            date_from: fromStr || undefined,
-            date_to: toStr || undefined,
+            sort: sKey,
+            direction: sDir,
+            activity_search: search.trim() || undefined,
+            activity_action: action === 'all' ? undefined : action || undefined,
+            date_from: dateFrom || undefined,
+            date_to: dateTo || undefined,
+        });
+    };
+
+    const handleDateFromChange = (val: string) => {
+        setDateFrom(val);
+        navigateWithParams({
+            date_from: val || undefined,
+            date_to: dateTo || undefined,
             activity_search: search.trim() || undefined,
             activity_action: action === 'all' ? undefined : action || undefined,
             sort: sortKey || undefined,
@@ -320,34 +307,41 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
         });
     };
 
-    // Clickable column header: toggles sort on/off for the clicked column.
+    const handleDateToChange = (val: string) => {
+        setDateTo(val);
+        navigateWithParams({
+            date_from: dateFrom || undefined,
+            date_to: val || undefined,
+            activity_search: search.trim() || undefined,
+            activity_action: action === 'all' ? undefined : action || undefined,
+            sort: sortKey || undefined,
+            direction: sortDir || undefined,
+        });
+    };
+
+    // Clickable column header: cleanly toggles between desc (newest/Z-A) and asc (oldest/A-Z)
     const handleSortClick = (columnKey: string) => {
         const isActive = effectiveSortKey === columnKey;
 
-        if (isActive) {
-            setSortKey('');
-            setSortDir('');
-            navigateWithParams({
-                sort: undefined,
-                direction: undefined,
-                activity_search: search.trim() || undefined,
-                activity_action: action === 'all' ? undefined : action || undefined,
-                date_from: dateFrom || undefined,
-                date_to: dateTo || undefined,
-            });
+        let nextDir: 'asc' | 'desc' = 'desc';
+
+        if (!isActive) {
+            nextDir = columnKey === 'created_at' ? 'desc' : 'asc';
         } else {
-            const nextDir = columnKey === 'created_at' ? 'desc' : 'asc';
-            setSortKey(columnKey);
-            setSortDir(nextDir);
-            navigateWithParams({
-                sort: columnKey,
-                direction: nextDir,
-                activity_search: search.trim() || undefined,
-                activity_action: action === 'all' ? undefined : action || undefined,
-                date_from: dateFrom || undefined,
-                date_to: dateTo || undefined,
-            });
+            nextDir = effectiveSortDir === 'desc' ? 'asc' : 'desc';
         }
+
+        setSortKey(columnKey);
+        setSortDir(nextDir);
+
+        navigateWithParams({
+            sort: columnKey,
+            direction: nextDir,
+            activity_search: search.trim() || undefined,
+            activity_action: action === 'all' ? undefined : action || undefined,
+            date_from: dateFrom || undefined,
+            date_to: dateTo || undefined,
+        });
     };
 
     const handleReset = () => {
@@ -358,8 +352,6 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
         setSortKey('');
         setSortDir('');
 
-        stop();
-
         router.get(
             window.location.pathname,
             {},
@@ -369,31 +361,22 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                 only: ['activityLogs'],
                 showProgress: false,
                 onStart: () => setIsResetting(true),
-                onFinish: () => {
-                    setIsResetting(false);
-                    start();
-                },
+                onFinish: () => setIsResetting(false),
             },
         );
     };
 
     const goToPage = (url: string) => {
-        stop();
-
         router.get(
             url,
             {},
             {
                 preserveState: true,
                 preserveScroll: true,
-                replace: true,
                 only: ['activityLogs'],
                 showProgress: false,
                 onStart: () => setIsNavigating(true),
-                onFinish: () => {
-                    setIsNavigating(false);
-                    start();
-                },
+                onFinish: () => setIsNavigating(false),
             },
         );
     };
@@ -423,7 +406,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                         <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
                         <Input
                             type="search"
-                            placeholder="Search action, name, role, description..."
+                            placeholder="Search action, name, role..."
                             className="h-9 pl-8 text-xs"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
@@ -445,112 +428,45 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                         </SelectContent>
                     </Select>
 
-                    {/* Sort Buttons */}
-                    <div className="flex items-center gap-1">
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant={
-                                effectiveSortKey === 'created_at' && effectiveSortDir === 'asc'
-                                    ? 'default'
-                                    : 'outline'
-                            }
-                            className={`h-9 text-xs ${
-                                effectiveSortKey === 'created_at' && effectiveSortDir === 'asc'
-                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                    : ''
-                            }`}
-                            onClick={() => {
-                                if (effectiveSortKey === 'created_at' && effectiveSortDir === 'asc') {
-                                    setSortKey('');
-                                    setSortDir('');
-                                    navigateWithParams({
-                                        sort: undefined,
-                                        direction: undefined,
-                                        activity_search: search.trim() || undefined,
-                                        activity_action: action === 'all' ? undefined : action || undefined,
-                                        date_from: dateFrom || undefined,
-                                        date_to: dateTo || undefined,
-                                    });
-                                } else {
-                                    setSortKey('created_at');
-                                    setSortDir('asc');
-                                    navigateWithParams({
-                                        sort: 'created_at',
-                                        direction: 'asc',
-                                        activity_search: search.trim() || undefined,
-                                        activity_action: action === 'all' ? undefined : action || undefined,
-                                        date_from: dateFrom || undefined,
-                                        date_to: dateTo || undefined,
-                                    });
-                                }
-                            }}
-                        >
-                            <ArrowUp className={`mr-1.5 h-3.5 w-3.5 ${
-                                effectiveSortKey === 'created_at' && effectiveSortDir === 'asc'
-                                    ? 'text-white'
-                                    : ''
-                            }`} />
-                            Oldest First
-                        </Button>
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant={
-                                effectiveSortKey === 'created_at' && effectiveSortDir === 'desc'
-                                    ? 'default'
-                                    : 'outline'
-                            }
-                            className={`h-9 text-xs ${
-                                effectiveSortKey === 'created_at' && effectiveSortDir === 'desc'
-                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                    : ''
-                            }`}
-                            onClick={() => {
-                                if (effectiveSortKey === 'created_at' && effectiveSortDir === 'desc') {
-                                    setSortKey('');
-                                    setSortDir('');
-                                    navigateWithParams({
-                                        sort: undefined,
-                                        direction: undefined,
-                                        activity_search: search.trim() || undefined,
-                                        activity_action: action === 'all' ? undefined : action || undefined,
-                                        date_from: dateFrom || undefined,
-                                        date_to: dateTo || undefined,
-                                    });
-                                } else {
-                                    setSortKey('created_at');
-                                    setSortDir('desc');
-                                    navigateWithParams({
-                                        sort: 'created_at',
-                                        direction: 'desc',
-                                        activity_search: search.trim() || undefined,
-                                        activity_action: action === 'all' ? undefined : action || undefined,
-                                        date_from: dateFrom || undefined,
-                                        date_to: dateTo || undefined,
-                                    });
-                                }
-                            }}
-                        >
-                            <ArrowDown className={`mr-1.5 h-3.5 w-3.5 ${
-                                effectiveSortKey === 'created_at' && effectiveSortDir === 'desc'
-                                    ? 'text-white'
-                                    : ''
-                            }`} />
-                            Newest First
-                        </Button>
+                    {/* Sort Dropdown */}
+                    <Select value={currentSortSelectValue} onValueChange={handleSortSelectChange}>
+                        <SelectTrigger className="h-9 w-full text-xs sm:w-40">
+                            <SelectValue placeholder="Sort by" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {SORT_OPTIONS.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    {/* Date From */}
+                    <div className="flex items-center gap-1.5">
+                        <Calendar className="hidden h-3.5 w-3.5 text-slate-400 sm:inline-block" />
+                        <Input
+                            type="date"
+                            title="Date From"
+                            className="h-9 w-full text-xs sm:w-36"
+                            value={dateFrom}
+                            onChange={(e) => handleDateFromChange(e.target.value)}
+                        />
                     </div>
 
-                    {/* Date Range */}
-                    <DateRangeFilter
-                        from={toDate(dateFrom)}
-                        to={toDate(dateTo)}
-                        onFromChange={(date) => setDateFrom(toDateString(date))}
-                        onToChange={(date) => setDateTo(toDateString(date))}
-                        onApply={handleDateRangeApply}
-                    />
+                    {/* Date To */}
+                    <div className="flex items-center gap-1.5">
+                        <span className="hidden text-xs text-slate-400 sm:inline-block">to</span>
+                        <Input
+                            type="date"
+                            title="Date To"
+                            className="h-9 w-full text-xs sm:w-36"
+                            value={dateTo}
+                            onChange={(e) => handleDateToChange(e.target.value)}
+                        />
+                    </div>
 
-                    <Button type="submit" size="sm" className="h-9 bg-blue-600 text-xs text-white hover:bg-blue-700">
+                    <Button type="submit" size="sm" className="h-9 text-xs">
                         <Search className="mr-1.5 h-3.5 w-3.5" />
                         Search
                     </Button>
