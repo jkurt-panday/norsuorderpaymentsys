@@ -27,7 +27,7 @@ export const columns = columnHelper.columns([
         cell: ({ row }) => (
             <div className="flex justify-left">
                 <Badge
-                    className=" bg-blue-200 px-4 py-2 text-sm font-medium tracking-wide text-blue-500"
+                    className=" bg-blue-400 px-4 py-3 text-sm font-bold tracking-wide text-white"
                     variant={'destructive'}>
                     {row.original.course_code}
                 </Badge>
