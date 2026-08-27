@@ -73,7 +73,7 @@ export function AreaChartCard({
                   interval={xAxisInterval}
                   tickFormatter={xAxisTickFormatter}
                 />
-                <YAxis domain={[0, (dataMax: number) => dataMax + 3]} />
+                <YAxis domain={[0, (dataMax: number) => dataMax + 4]} />
                 <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
                 <defs>
                   {series.map((s) => (
