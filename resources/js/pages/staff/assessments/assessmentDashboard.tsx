@@ -35,11 +35,12 @@ export default function AssessmentDashboard({
             </Card>
 
             <AreaChartCard
-                title="Requests"
+                title="Assessment Requests"
                 description="Assessment requests over the last 30 days"
                 data={dailyRequests}
                 xAxisKey="date"
-                series={[{ key: 'total', label: 'Requests' }]}
+                series={[{ key: 'total', label: 'Requests', color: '#007FFF' }]}
+                height='h-80'
                 stacked={false}
                 xAxisInterval={4}
                 trend={{
@@ -53,12 +54,27 @@ export default function AssessmentDashboard({
 
                 <DonutChartCard
                     title="Assessments by Semester"
-                    data={bySemester.map((d) => ({ category: d.semester, value: d.total }))}
+                    data={bySemester.map((d) => ({
+                        category: d.semester,
+                        value: d.total,
+                        color:
+                            d.semester === 'First Semester' ? '#1A8CFF' :
+                            d.semester === 'Second Semester' ? '#4DA5FF' :
+                            '#99CCFF', // Summer
+                    }))}
                     centerLabel="Total"
                 />
                 <DonutChartCard
                     title="Assessments by Enrollment Type"
-                    data={byEnrolledUnder.map((d) => ({ category: d.enrolled_under, value: d.total }))}
+                    data={byEnrolledUnder.map((d) => ({
+                        category: d.enrolled_under,
+                        value: d.total,
+                        color:
+                            d.enrolled_under === 'Graduate' ? '#1A8CFF' :
+                            d.enrolled_under === 'School of Law' ? '#4DA5FF' :
+                            '#99CCFF', // Summer
+                        
+                    }))}
                     centerLabel="Total"
                 />
                 
@@ -67,7 +83,6 @@ export default function AssessmentDashboard({
                     data={byCourse}
                     xAxisKey="course"
                     series={[{ key: 'total', label: 'Assessments' }]}
-                    horizontal
                 />
                 <BarChartCard
                     title="Assessments by Semester"
