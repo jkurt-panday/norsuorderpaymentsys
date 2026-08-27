@@ -5,6 +5,11 @@ import { Pencil, Trash2, Eye } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 import { Badge } from '@/components/ui/badge';
 import { type DataTableFeatures } from '@/components/data-table/data-table-features';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 export type AssessmentType = {
     id: number;
@@ -110,12 +115,21 @@ export const columns = columnHelper.columns([
         id: 'course',
         header: () => <div className="text-center">Course</div>,
         cell: ({ row }) => (
-            <div className="flex justify-center">
-                <span className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold tracking-wide text-black">
-                    {row.original.course.course_code}
-                </span>
-            </div>
-        ),
+                <div className="flex justify-center">
+                    <Tooltip>
+                        <TooltipTrigger>
+                            <span className="inline-flex rounded-full bg-blue-400 px-3 py-1 text-xs font-semibold tracking-wide text-white">
+                                {row.original.course.course_code}
+                            </span>
+                        </TooltipTrigger>
+                    <TooltipContent
+                        side='bottom'
+                        className='bg-blue-400 text-sm'>
+                        {row.original.course.course_desc}
+                        </TooltipContent>
+                    </Tooltip>
+                </div>
+            ),
     }),
 
     columnHelper.accessor('enrolled_under', {
