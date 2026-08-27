@@ -20,7 +20,7 @@ export default function AssessmentDashboard({
     byEnrolledUnder,
     monthlyTrend,
     dailyRequests,
-    requestsTrend
+    requestsTrend,
 }: AssessmentDashboardProps) {
     return (
         <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-slate-50 p-3 sm:p-6">
@@ -40,7 +40,7 @@ export default function AssessmentDashboard({
                 data={dailyRequests}
                 xAxisKey="date"
                 series={[{ key: 'total', label: 'Requests', color: '#007FFF' }]}
-                height='h-80'
+                height="h-50"
                 stacked={false}
                 xAxisInterval={4}
                 trend={{
@@ -49,18 +49,19 @@ export default function AssessmentDashboard({
                 }}
                 footer={`${dailyRequests[0]?.date} – ${dailyRequests[dailyRequests.length - 1]?.date}`}
             />
-            
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <DonutChartCard
                     title="Assessments by Semester"
                     data={bySemester.map((d) => ({
                         category: d.semester,
                         value: d.total,
                         color:
-                            d.semester === 'First Semester' ? '#1A8CFF' :
-                            d.semester === 'Second Semester' ? '#4DA5FF' :
-                            '#99CCFF', // Summer
+                            d.semester === 'First Semester'
+                                ? '#1A8CFF'
+                                : d.semester === 'Second Semester'
+                                  ? '#4DA5FF'
+                                  : '#99CCFF', // Summer
                     }))}
                     centerLabel="Total"
                 />
@@ -70,40 +71,50 @@ export default function AssessmentDashboard({
                         category: d.enrolled_under,
                         value: d.total,
                         color:
-                            d.enrolled_under === 'Graduate' ? '#1A8CFF' :
-                            d.enrolled_under === 'School of Law' ? '#4DA5FF' :
-                            '#99CCFF', // Summer
-                        
+                            d.enrolled_under === 'Graduate'
+                                ? '#1A8CFF'
+                                : d.enrolled_under === 'School of Law'
+                                  ? '#4DA5FF'
+                                  : '#99CCFF', // Summer
                     }))}
                     centerLabel="Total"
                 />
-                
-                <BarChartCard
-                    title="Assessments by Course"
-                    data={byCourse}
-                    xAxisKey="course"
-                    series={[{ key: 'total', label: 'Assessments' }]}
-                />
-                <BarChartCard
-                    title="Assessments by Semester"
-                    data={bySemester}
-                    xAxisKey="semester"
-                    series={[{ key: 'total', label: 'Assessments' }]}
-                />
-                <BarChartCard
-                    title="Assessments by Enrollment Type"
-                    data={byEnrolledUnder}
-                    xAxisKey="enrolled_under"
-                    series={[{ key: 'total', label: 'Assessments' }]}
-                />
+
                 <LineChartCard
                     title="Monthly Trend"
                     description="Last 6 months"
                     data={monthlyTrend}
                     xAxisKey="month"
                     series={[{ key: 'total', label: 'Assessments' }]}
+                    height="h-50"
+                    className="lg:col-span-2"
+                />
+                <BarChartCard
+                    title="Assessments by Course"
+                    data={byCourse}
+                    xAxisKey="course"
+                    series={[{ key: 'total', label: 'Assessments', color: '#007FFF' }]}
+                    height="h-50"
+                    className="lg:col-span-2"
                 />
             </div>
         </div>
     );
+}
+
+{
+    /*<BarChartCard
+    title="Assessments by Semester"
+    data={bySemester}
+    xAxisKey="semester"
+    series={[{ key: 'total', label: 'Assessments' }]}
+/>*/
+}
+{
+    /*<BarChartCard
+    title="Assessments by Enrollment Type"
+    data={byEnrolledUnder}
+    xAxisKey="enrolled_under"
+    series={[{ key: 'total', label: 'Assessments' }]}
+/>*/
 }
