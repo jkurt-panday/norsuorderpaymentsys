@@ -4,23 +4,24 @@ namespace App\Http\Controllers;
 
 use App\Models\AssessmentForm;
 use Illuminate\Http\Request;
+// use Illuminate\Support\Facades\Redirect as FacadeRedirect;
+use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use App\Models\Courses;
 use Inertia\Response as InertiaResponse;
 use App\Http\Requests\AssessmentFormInfoRequest;
 use Illuminate\Support\Facades\DB;
 use App\Services\ReferenceNumberService;
+use App\Services\ReceiptPDFService;
 
 class AssessmentFormController extends Controller
 {
 
-    protected ReferenceNumberService $assessment_ref_num;
-
+    // constructor dependency injection 
     public function __construct(
-        ReferenceNumberService $assessment_ref_num
-    ) {
-        $this->assessment_ref_num = $assessment_ref_num;
-    }
+        protected ReferenceNumberService $assessment_ref_num,
+        protected ReceiptPDFService $receiptPdfService
+    ) {}
     
     /**
      * Display a listing of the resource.
@@ -35,7 +36,7 @@ class AssessmentFormController extends Controller
      */
     public function create(): InertiaResponse
     {
-        $courses = Courses::orderBy('course_desc')->get();
+        $courses = Courses::query()->orderBy('course_desc')->get();
         
         return Inertia::render('public/AssessmentForm', [
             'courses' => $courses
@@ -45,7 +46,7 @@ class AssessmentFormController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(AssessmentFormInfoRequest $request)
+    public function store(AssessmentFormInfoRequest $request): RedirectResponse
     {
         $validated = $request->validated();
 
@@ -53,11 +54,11 @@ class AssessmentFormController extends Controller
         {
             DB::beginTransaction();
 
-            $assessment_ref_num = $this->assessment_ref_num->assess_ref_gen();
+            $reference_number = $this->assessment_ref_num->assess_ref_gen();
 
             // 1. Create the assessment record
-            $assessment = AssessmentForm::create([
-                'reference_number' => $assessment_ref_num,
+            $assessment = AssessmentForm::query()->create([
+                'reference_number' => $reference_number,
                 'email'            => $validated['email'],
                 'contact_num'      => $validated['contact_num'],
                 'first_name'       => $validated['first_name'],
@@ -93,9 +94,9 @@ class AssessmentFormController extends Controller
         }
     }
 
-    public function complete(AssessmentForm $assessmentForm)
+    public function complete(string $reference_number): InertiaResponse
     {
-        // $assessmentform = AssessmentForm::where('reference_number', $reference_number)->firstOrFail();
+        $assessmentForm = AssessmentForm::query()->where('reference_number', $reference_number)->firstOrFail();
         $assessmentForm->load(['course']);
 
         // dd($assessmentform);
@@ -104,6 +105,32 @@ class AssessmentFormController extends Controller
             // 'reference_number' => $assessmentform->reference_number,
             'assessmentForm' => $assessmentForm,        // this format must be followed for the props
         ]);
+    }
+
+    /**
+    * Stream the PDF receipt in the browser window.
+    */
+    public function print(AssessmentForm $assessmentForm)
+    {
+        // $assessmentForm = AssessmentForm::query()
+        //     ->where('reference_number', $referenceNumber)
+        //     ->firstOrFail();
+
+        // dd($formInput);
+
+        return $this->receiptPdfService
+            ->assessmentPrint($assessmentForm)
+            ->inline();
+    }
+
+    /**
+    * Download the PDF receipt file.
+    */
+    public function downloadReceipt(AssessmentForm $assessmentForm)
+    {
+        return $this->receiptPdfService
+            ->assessmentPrint($assessmentForm)
+            ->name("receipt-{$assessmentForm->reference_number}.pdf");
     }
 
     /**

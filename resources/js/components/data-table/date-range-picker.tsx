@@ -5,7 +5,6 @@ import { CalendarIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
-import { Field, FieldLabel } from "@/components/ui/field"
 import {
   Popover,
   PopoverContent,
@@ -23,7 +22,7 @@ function SingleDatePicker({ label, value, onChange }: SingleDatePickerProps) {
   const [open, setOpen] = React.useState(false)
 
   return (
-      <div className="flex items-center gap-2">
+      <div className="grid grid-cols-1 items-center gap-2">
            <span className="text-sm font-medium text-slate-600">{label}:</span>
            <Popover open={open} onOpenChange={setOpen}>
              <PopoverTrigger
@@ -57,7 +56,7 @@ interface DateRangeFilterProps {
   onFromChange: (date: Date | undefined) => void
   onToChange: (date: Date | undefined) => void
   /** Fires when either date changes — the caller decides when to actually apply/fetch. */
-  onApply?: (range: { from: Date | undefined; to: Date | undefined }) => void
+  // onApply?: (range: { from: Date | undefined; to: Date | undefined }) => void
 }
 
 /**
@@ -66,21 +65,24 @@ interface DateRangeFilterProps {
  * Aug 2025) where a range calendar would force navigating two adjacent
  * months that are never both visible at once.
  */
-export function DateRangeFilter({ from, to, onFromChange, onToChange, onApply }: DateRangeFilterProps) {
-  const handleFromChange = (date: Date | undefined) => {
-    onFromChange(date)
-    onApply?.({ from: date, to })
-  }
+export function DateRangeFilter({ from, to, onFromChange, onToChange }: DateRangeFilterProps) {
+  // const handleFromChange = (date: Date | undefined) => {
+  //   onFromChange(date)
+  //   // Only fire the request once BOTH ends are picked — selecting "From"
+  //   // alone would otherwise send a half-finished range to Laravel.
+  //   if (date && to) onApply?.({ from: date, to })
+  // }
 
-  const handleToChange = (date: Date | undefined) => {
-    onToChange(date)
-    onApply?.({ from, to: date })
-  }
+  // const handleToChange = (date: Date | undefined) => {
+  //   onToChange(date)
+  //   // Same rule in the other direction, in case "To" is picked first.
+  //   if (from && date) onApply?.({ from, to: date })
+  // }
 
   return (
-    <div className="flex items-end gap-2">
-      <SingleDatePicker label="From" value={from} onChange={handleFromChange} />
-      <SingleDatePicker label="To" value={to} onChange={handleToChange} />
+    <div className="grid grid-cols-2 items-end gap-2">
+      <SingleDatePicker label="From" value={from} onChange={onFromChange} />
+      <SingleDatePicker label="To" value={to} onChange={onToChange} />
     </div>
   )
 }

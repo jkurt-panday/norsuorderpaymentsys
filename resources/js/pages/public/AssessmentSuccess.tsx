@@ -108,7 +108,7 @@ export default function AssessmentSuccess({ assessmentForm }: Props) {
 
     const handlePrint = () => {
         window.open(
-            `/public/success/${assessmentForm.reference_number}/print`,
+            `/public/assessment_complete/${assessmentForm.reference_number}/print`,
             '_blank',
         );
     };

@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { ServerDataTable } from '@/components/data-table/server-data-table';
 import { columns, type AssessmentType } from './columns';
+import { AssessmentFilters } from './assessment-filters';
 
 type AssessmentProps = {
     assessments: {
@@ -17,10 +18,20 @@ type AssessmentProps = {
         direction: 'asc' | 'desc';
         date_from?: string;
         date_to?: string;
+        course_id?: string;
+        enrolled_under?: string;
+        sy_last_attended?: string;
+        semester?: string;
+    };
+    filterOptions: {
+        courses: { id: number; course_code: string }[];
+        enrolledUnder: string[];
+        syLastAttended: string[];
+        semesters: string[];
     };
 };
 
-export default function AssessmentIndex({ assessments, filters }: AssessmentProps) {
+export default function AssessmentIndex({ assessments, filters, filterOptions }: AssessmentProps) {
     return (
         <>
             <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-slate-50 p-3 sm:p-6">
@@ -45,6 +56,16 @@ export default function AssessmentIndex({ assessments, filters }: AssessmentProp
                         total: assessments.total,
                     }}
                     sortableColumns={['reference_number', 'last_name', 'created_at']}
+                    extraFilters={({ values, setValue }) => (
+                        <AssessmentFilters
+                            values={values}
+                            setValue={setValue}
+                            courseOptions={filterOptions.courses}
+                            enrolledUnderOptions={filterOptions.enrolledUnder}
+                            syOptions={filterOptions.syLastAttended}
+                            semesterOptions={filterOptions.semesters}
+                        />
+                    )}
                 />
             </div>
         </>

@@ -136,23 +136,23 @@ class DatabaseSeeder extends Seeder
             'Successfully seeded: Bank Account Info'
         );
 
-        $courses = [
-            [
-                'course_code' => 'BSCS',
-                'course_desc' => 'BoS in Computer Science',
-            ],
-            [
-                'course_code' => 'BSLaw',
-                'course_desc' => 'BoS in Law Studies',
-            ],
-        ];
+        // $courses = [
+        //     [
+        //         'course_code' => 'BSCS',
+        //         'course_desc' => 'BoS in Computer Science',
+        //     ],
+        //     [
+        //         'course_code' => 'BSLaw',
+        //         'course_desc' => 'BoS in Law Studies',
+        //     ],
+        // ];
        
-        foreach ($courses as $option) {
-            Courses::updateOrCreate(
-                ['course_code' => $option['course_code']],
-                ['course_desc' => $option['course_desc']],
-            );
-        }
+        // foreach ($courses as $option) {
+        //     Courses::updateOrCreate(
+        //         ['course_code' => $option['course_code']],
+        //         ['course_desc' => $option['course_desc']],
+        //     );
+        // }
 
         $this->command->info(
             'Successfully seeded: Courses'
@@ -162,7 +162,8 @@ class DatabaseSeeder extends Seeder
             ['year' => 2026],
             [
                 'month' => 8,
-                'current_number' => 4224,
+                'op_number' => 4224,
+                'assessment_number' => 0
             ]
         );
 

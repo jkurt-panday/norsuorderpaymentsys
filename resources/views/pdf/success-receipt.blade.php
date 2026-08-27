@@ -7,7 +7,7 @@
     @vite('resources/css/app.css')
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Instrumental Sans', sans-serif;
             background: white;
         }
     </style>

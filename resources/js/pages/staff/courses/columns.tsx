@@ -1,9 +1,9 @@
-import type { ColumnDef, TableFeatures } from '@tanstack/react-table';
 import { Pencil, Trash2 } from 'lucide-react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { Link } from '@inertiajs/react';
 
 import type { DataTableFeatures } from '@/components/data-table/data-table-features';
+import { Badge } from '@/components/ui/badge';
 
 export type CourseType = {
     id: number;
@@ -23,11 +23,20 @@ export const columns = columnHelper.columns([
     }),
 
     columnHelper.accessor('course_code', {
-        header: 'Course Code',
+        header: 'COURSE CODE',
+        cell: ({ row }) => (
+            <div className="flex justify-left">
+                <Badge
+                    className=" bg-blue-400 px-4 py-3 text-sm font-bold tracking-wide text-white"
+                    variant={'destructive'}>
+                    {row.original.course_code}
+                </Badge>
+            </div>
+        ),
     }),
 
     columnHelper.accessor('course_desc', {
-        header: 'Course Description',
+        header: 'COURSE DESCRIPTION',
     }),
 
     columnHelper.display({

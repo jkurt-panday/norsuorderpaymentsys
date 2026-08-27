@@ -23,10 +23,10 @@ use Illuminate\Support\Facades\Route;
 // ─────────────────────────────────────────────────────────────────────────────
 
 Route::name('public.')->prefix('public')->group(function () {
-    Route::get('/submit', [FormInputController::class, 'create'])->name('submit');
-    Route::post('/submit', [FormInputController::class, 'store'])->name('submit.store');
-    Route::get('/form', [FormInputController::class, 'create']);
-    Route::post('/form', [FormInputController::class, 'store']);
+    // Route::get('/submit', [FormInputController::class, 'create'])->name('submit');
+    // Route::post('/submit', [FormInputController::class, 'store'])->name('submit.store');
+    Route::get('/opform', [FormInputController::class, 'create']);
+    Route::post('/opform', [FormInputController::class, 'store']);
 
     Route::get('/success/{reference_number}', [FormInputController::class, 'success'])->name('success');
     Route::get('/success/{reference_number}/print', [FormInputController::class, 'printReceipt'])->name('print');
