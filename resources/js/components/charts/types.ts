@@ -8,7 +8,8 @@ export interface ChartSeries {
 
 export interface CategoryDatum {
   category: string
-  value: number
+    value: number
+    color?: string
 }
 
 function slugifyKey(value: string): string {
@@ -34,15 +35,15 @@ const PALETTE = [
  * shadcn's chart config expects, since — unlike "desktop"/"mobile" — our
  * category names come from the database and aren't known ahead of time.
  */
-export function buildCategoryChartData(data: CategoryDatum[]) {
-  const config: ChartConfig = {}
-  const chartData = data.map((d, i) => {
-    const key = slugifyKey(d.category)
-    config[key] = { label: d.category, color: PALETTE[i % PALETTE.length] }
-    return { ...d, key, fill: `var(--color-${key})` }
-  })
-  return { chartData, config }
-}
+ export function buildCategoryChartData(data: CategoryDatum[]) {
+   const config: ChartConfig = {}
+   const chartData = data.map((d, i) => {
+     const key = slugifyKey(d.category)
+     config[key] = { label: d.category, color: d.color ?? PALETTE[i % PALETTE.length] }
+     return { ...d, key, fill: `var(--color-${key})` }
+   })
+   return { chartData, config }
+ }
 
 export function buildChartConfig(series: ChartSeries[]): ChartConfig {
   return series.reduce((config, s, i) => {
