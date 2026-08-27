@@ -61,7 +61,7 @@ export function ColumnFilterDropdown({
         render={
           <Button variant="outline" size="sm" className="h-10 rounded-xl font-normal">
             {label}
-            {selected ? `: (1)` : ""}
+            {selected ? ` (1)` : ""}
           </Button>
         }
       />
