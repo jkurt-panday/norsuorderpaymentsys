@@ -1,4 +1,4 @@
-﻿import { Link, Head, usePage, usePoll } from '@inertiajs/react';
+﻿import { Head, usePage, usePoll } from '@inertiajs/react';
 import React from 'react';
 import {
     StatCard,

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StaffProcessingRequest;
 use App\Mail\OrderOfPaymentMail;
+use App\Models\ActivityLog;
 use App\Models\BankAccountInfo;
 use App\Models\FormInput;
 use App\Models\PaymentDetailOption;
@@ -26,7 +27,7 @@ class StaffInputController extends Controller
     /**
      * Display the staff dashboard.
      */
-    public function dashboard()
+    public function dashboard(Request $request)
     {
         $startDate = now()->subDays(29)->startOfDay();
         $statusCounts = StaffInput::query()
@@ -114,6 +115,117 @@ class StaffInputController extends Controller
             'recentRequests' => $recentRequests,
             'recentActivity' => $recentActivity,
         ]);
+    }
+
+    /**
+     * Standalone, searchable + paginated Activity Log page. Centralized audit
+     * trail of every create/update/delete across the staff-managed entities
+     * (logged via ActivityLogObserver), showing who did it and what changed.
+     */
+    public function activityLog(Request $request)
+    {
+        [$activityLogs, $activityFilters] = $this->buildActivityLogs($request);
+
+        return Inertia::render('staff/activity-log/activity-log', [
+            'activityLogs' => $activityLogs,
+            'activityFilters' => $activityFilters,
+        ]);
+    }
+
+    /**
+     * Build the searchable/paginated activity log query shared by the
+     * dashboard feed and the dedicated Activity Log page.
+     *
+     * @return array{0: \Illuminate\Contracts\Pagination\LengthAwarePaginator, 1: array{activity_search: string, activity_action: string}}
+     */
+    protected function buildActivityLogs(Request $request): array
+    {
+        $activitySearch = (string) $request->query('activity_search', '');
+        $activityAction = (string) $request->query('activity_action', '');
+        $activitySort = (string) $request->query('sort', '');
+        $activityDir = (string) $request->query('direction', '');
+        $dateFrom = (string) $request->query('date_from', '');
+        $dateTo = (string) $request->query('date_to', '');
+
+        $allowedSorts = ['created_at', 'action', 'actor_name', 'subject_type'];
+
+        $activityQuery = ActivityLog::query();
+
+        if ($activitySearch !== '') {
+            $like = '%' . strtolower($activitySearch) . '%';
+            $activityQuery->where(function ($q) use ($like) {
+                $q->whereRaw('LOWER(description) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(actor_name) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(actor_role) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(action) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(subject_type) LIKE ?', [$like]);
+            });
+        }
+
+        if ($activityAction !== '') {
+            if ($activityAction === 'created') {
+                // "created" filter also matches user provisioning entries.
+                $activityQuery->whereIn('action', ['created', 'user.created']);
+            } else {
+                $activityQuery->where('action', $activityAction);
+            }
+        }
+
+        if ($dateFrom !== '') {
+            $activityQuery->whereDate('created_at', '>=', $dateFrom);
+        }
+
+        if ($dateTo !== '') {
+            $activityQuery->whereDate('created_at', '<=', $dateTo);
+        }
+
+        // Apply explicit column sort (from clickable headers / sort dropdown),
+        // otherwise default to newest-first.
+        if (in_array($activitySort, $allowedSorts, true)
+            && in_array($activityDir, ['asc', 'desc'], true)) {
+            if ($activitySort === 'actor_name') {
+                $activityQuery->orderByRaw('actor_name IS NULL ASC')
+                    ->orderBy('actor_name', $activityDir)
+                    ->orderBy('created_at', 'desc');
+            } elseif ($activitySort === 'subject_type') {
+                $activityQuery->orderByRaw('subject_type IS NULL ASC')
+                    ->orderBy('subject_type', $activityDir)
+                    ->orderBy('created_at', 'desc');
+            } elseif ($activitySort === 'action') {
+                $activityQuery->orderBy('action', $activityDir)
+                    ->orderBy('created_at', 'desc');
+            } else {
+                $activityQuery->orderBy('created_at', $activityDir);
+            }
+        } else {
+            $activityQuery->latest();
+        }
+
+        $activityLogs = $activityQuery
+            ->paginate(10)
+            ->withQueryString()
+            ->through(fn (ActivityLog $log) => [
+                'id' => $log->id,
+                'action' => $log->action,
+                'event' => $log->eventCategory(),
+                'description' => $log->description,
+                'actor_name' => $log->actor_name,
+                'actor_role' => $log->actor_role,
+                'type' => $log->subjectTypeLabel(),
+                'created_at' => $log->created_at->toISOString(),
+                'changes' => $log->meta['changes'] ?? [],
+            ]);
+
+        $activityFilters = [
+            'activity_search' => $activitySearch,
+            'activity_action' => $activityAction,
+            'sort' => $activitySort,
+            'direction' => $activityDir,
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
+        ];
+
+        return [$activityLogs, $activityFilters];
     }
 
     /**

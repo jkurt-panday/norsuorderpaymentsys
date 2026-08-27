@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exports\GraduateLedgerExport;
 use App\Models\AcademicTerm;
+use App\Models\ActivityLog;
 use App\Models\Course;
 use App\Models\GraduateLedger;
 use App\Models\Student;
@@ -405,6 +406,8 @@ class GraduateLedgerController extends Controller
         }
         fclose($handle);
 
+        ActivityLog::recordImport(GraduateLedger::class, $imported, 'Graduate Ledger');
+
         return redirect()->route('graduate-ledger.index')
             ->with('success', "Import complete: {$imported} records imported, {$skipped} blank rows skipped.");
     }
@@ -508,6 +511,8 @@ class GraduateLedgerController extends Controller
 
         $spreadsheet->disconnectWorksheets();
         unset($spreadsheet);
+
+        ActivityLog::recordImport(GraduateLedger::class, $imported, 'Graduate Ledger');
 
         return redirect()->route('graduate-ledger.index')
             ->with('success', "Import complete: {$imported} records imported, {$skipped} blank rows skipped.");

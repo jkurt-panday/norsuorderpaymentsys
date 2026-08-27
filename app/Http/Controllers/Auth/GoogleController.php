@@ -66,6 +66,13 @@ class GoogleController extends Controller
 
         Auth::login($user);
 
-        return redirect()->route('dashboard')->with('success', 'Logged in successfully!');
+        $target = match ($user->role) {
+            'admin' => '/admin/dashboard',
+            'staff' => '/staff/staffdashboard',
+            'client' => '/client/dashboard',
+            default => '/dashboard',
+        };
+
+        return redirect($target)->with('success', 'Logged in successfully!');
     }
 }
