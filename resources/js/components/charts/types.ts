@@ -22,12 +22,15 @@ function slugifyKey(value: string): string {
   )
 }
 
-const PALETTE = [
-  "var(--chart-1)",
-  "var(--chart-2)",
-  "var(--chart-3)",
-  "var(--chart-4)",
-  "var(--chart-5)",
+export const PALETTE = [
+  "#007FFF",
+  "#1A8CFF",
+  // "#3399FF",
+  "#4DA5FF",
+  "#66B2FF",
+  // "#80BFFF",
+  "#99CCFF",
+  "#B3D9FF",
 ]
 
 /**
