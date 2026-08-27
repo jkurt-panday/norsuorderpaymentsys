@@ -203,64 +203,115 @@ export function ServerDataTable<TData extends RowData>({
     return (
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="flex items-center justify-between gap-3 px-4 py-4">
-                <div className="flex items-center gap-2">
-                    <Input
-                        placeholder="Ref num, first/last name, email"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && runSearch()}
-                        className="h-10 w-60 rounded-xl border border-slate-200 px-4 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    />
-                    <Button
-                        onClick={runSearch}
-                        variant="outline"
-                        size="icon"
-                        className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-700"
-                    >
-                        <Search className="h-4 w-4" />
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={resetAll}
-                        title="Reset table"
-                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-400 bg-white text-slate-500 transition-colors hover:bg-slate-50"
-                    >
-                        <RotateCw className="h-4 w-4" />
-                    </Button>
-                    {/* in the toolbar, next to the search input */}
-                    <DateRangeFilter
-                        from={dateFrom}
-                        to={dateTo}
-                        onFromChange={setDateFrom}
-                        onToChange={setDateTo}
-                    />
-                    {/* in the toolbar, next to your reset button */}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger
-                            render={
-                                <Button variant="outline" title="Toggle columns">
-                                    <SlidersHorizontal className="mr-2 h-4 w-4" />
-                                    Columns
-                                </Button>
-                            }
+                <div className="flex w-full flex-col gap-3">
+                
+                    {/* ROW 1 — Search */}
+                    <div className="flex w-full items-center gap-2">
+                        <Input
+                            placeholder="Search for reference number, first/last name, email"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && runSearch()}
+                            className="h-10 min-w-0 flex-1 rounded-xl border border-slate-200 px-4 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:flex-none sm:w-150"
                         />
-                        <DropdownMenuContent align="start" className="w-40">
-                            {table
-                                .getAllColumns()
-                                .filter((column) => column.getCanHide())
-                                .map((column) => (
-                                    <DropdownMenuCheckboxItem
-                                        key={column.id}
-                                        checked={column.getIsVisible()}
-                                        onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                                    >
-                                        {columnLabels[column.id] ?? column.id}
-                                    </DropdownMenuCheckboxItem>
-                                ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                    {extraFilters?.({ values: extraValues, setValue: setExtraValue })}
+                
+                        <Button
+                            onClick={runSearch}
+                            variant="outline"
+                            size="icon"
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-700"
+                        >
+                            <Search className="h-4 w-4" />
+                        </Button>
+                
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={resetAll}
+                            title="Reset table"
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-400 bg-white text-slate-500 transition-colors hover:bg-slate-50"
+                        >
+                            <RotateCw className="h-4 w-4" />
+                        </Button>
+                    </div>
+                
+                    {/* ROW 2 — Filters */}
+                    <div className="flex w-full min-w-0 items-end gap-3 overflow-x-auto pb-1">
+                
+                        {/* Date Range */}
+                        <div className="shrink-0">
+                            <DateRangeFilter
+                                from={dateFrom}
+                                to={dateTo}
+                                onFromChange={setDateFrom}
+                                onToChange={setDateTo}
+                            />
+                        </div>
+                
+                        {/* Visibility */}
+                        <div className="grid shrink-0 grid-cols-1">
+                            <span className="text-sm font-medium text-slate-600 pb-1">
+                                Visibility:
+                            </span>
+                
+                            <DropdownMenu>
+                                <DropdownMenuTrigger
+                                    render={
+                                        <Button
+                                            variant="outline"
+                                            title="Toggle columns"
+                                            className="h-10"
+                                        >
+                                            <SlidersHorizontal className="mr-2 h-4 w-4" />
+                
+                                            <span className="inline">
+                                                Columns
+                                            </span>
+                                        </Button>
+                                    }
+                                />
+                
+                                <DropdownMenuContent
+                                    align="start"
+                                    className="w-40"
+                                >
+                                    {table
+                                        .getAllColumns()
+                                        .filter((column) => column.getCanHide())
+                                        .map((column) => (
+                                            <DropdownMenuCheckboxItem
+                                                key={column.id}
+                                                checked={column.getIsVisible()}
+                                                onCheckedChange={(value) =>
+                                                    column.toggleVisibility(!!value)
+                                                }
+                                            >
+                                                {columnLabels[column.id] ?? column.id}
+                                            </DropdownMenuCheckboxItem>
+                                        ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                
+                        {/* Column Filters */}
+                        {extraFilters && (
+                            <div className="flex shrink-0 items-end gap-2">
+                                <div className="grid shrink-0 grid-cols-1">
+                                    <span className="text-sm font-medium text-slate-600 pb-1">
+                                        Column Filters:
+                                    </span>
+                
+                                    <div className="flex items-center gap-2">
+                                        {extraFilters({
+                                            values: extraValues,
+                                            setValue: setExtraValue,
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                
+                    </div>
                 </div>
             </div>
 
