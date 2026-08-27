@@ -38,7 +38,7 @@ export function AssessmentFilters({
   semesterOptions,
 }: AssessmentFiltersProps) {
   return (
-    <div className="grid grid-cols-2 items-center gap-2">
+    <div className="grid grid-cols-4 items-center gap-2">
       <ColumnFilterDropdown
         label="Course"
         value={values.course_id}
