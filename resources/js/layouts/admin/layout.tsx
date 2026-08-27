@@ -38,10 +38,10 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarProvider,
-    SidebarTrigger,
     SidebarMenuSub,
     SidebarMenuSubItem,
     SidebarMenuSubButton,
+    SidebarTrigger,
 } from '@/components/ui/sidebar';
 import type { AppLayoutProps } from '@/types';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
