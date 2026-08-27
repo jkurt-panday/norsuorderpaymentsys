@@ -7,9 +7,14 @@ use App\Models\Courses;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
+use App\Services\AssessmentStatsService;
 
 class AssessmentController extends Controller
 {
+    public function __construct(
+        private readonly AssessmentStatsService $stats
+    ) {}
+    
     /**
      * Display a listing of the resource.
      */
@@ -98,7 +103,17 @@ class AssessmentController extends Controller
 
     public function dashboard(): InertiaResponse
     {
-        return Inertia::render('staff/assessments/assessmentDashboard');
+        $dailyRequests = $this->stats->dailyRequestsLast30Days();
+        $requestsTrend = $this->stats->requestsTrend($dailyRequests);
+    
+        return Inertia::render('staff/assessments/assessmentDashboard', [
+            'byCourse' => $this->stats->countsByCourse(),
+            'bySemester' => $this->stats->countsBySemester(),
+            'byEnrolledUnder' => $this->stats->countsByEnrolledUnder(),
+            'monthlyTrend' => $this->stats->monthlyTrend(),
+            'dailyRequests' => $dailyRequests,
+            'requestsTrend' => $requestsTrend,
+        ]);
     }
 
     // /**
