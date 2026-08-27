@@ -1,4 +1,4 @@
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
+import { Bar, BarChart, CartesianGrid, Rectangle, XAxis, YAxis } from "recharts"
 import {
   Card,
   CardContent,
@@ -13,7 +13,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { buildChartConfig, type ChartSeries } from "./types"
+import { buildChartConfig, type ChartSeries, PALETTE } from "./types"
 
 interface BarChartCardProps {
   title: string
@@ -78,7 +78,16 @@ export function BarChartCard({
               <ChartTooltip content={<ChartTooltipContent />} />
               {showLegend && <ChartLegend content={<ChartLegendContent />} />}
               {series.map((s) => (
-                <Bar key={s.key} dataKey={s.key} fill={`var(--color-${s.key})`} radius={4} />
+                <Bar
+                  key={s.key}
+                  dataKey={s.key}
+                  radius={4}
+                  shape={(props: any) => {
+                    const i = data.indexOf(props.payload)
+                    const fill = series.length === 1 ? PALETTE[i % PALETTE.length] : `var(--color-${s.key})`
+                    return <Rectangle {...props} fill={fill} />
+                  }}
+                />
               ))}
             </BarChart>
           </ChartContainer>
