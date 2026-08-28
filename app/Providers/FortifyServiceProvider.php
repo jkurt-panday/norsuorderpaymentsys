@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Actions\Fortify\ResetUserPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -12,9 +13,8 @@ use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
-
-
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
+use App\Models\User;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -65,6 +65,19 @@ class FortifyServiceProvider extends ServiceProvider
     private function configureActions(): void
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
+
+        Fortify::authenticateUsing(function (Request $request) {
+            $user = User::where('email', $request->email)->first();
+
+            if ($user && $user->trashed()) {
+                return redirect()->back()->withInput($request->only('email'))
+                    ->with('deactivated_account', true);
+            }
+
+            if ($user && Hash::check($request->password, $user->password)) {
+                return $user;
+            }
+        });
     }
 
     /**
@@ -75,6 +88,7 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::loginView(fn (Request $request) => Inertia::render('auth/login', [
             'canResetPassword' => Features::enabled(Features::resetPasswords()),
             'status' => $request->session()->get('status'),
+            'deactivated_account' => $request->session()->get('deactivated_account') || $request->session()->get('google_deactivated_account'),
         ]));
 
         Fortify::resetPasswordView(fn (Request $request) => Inertia::render('auth/reset-password', [

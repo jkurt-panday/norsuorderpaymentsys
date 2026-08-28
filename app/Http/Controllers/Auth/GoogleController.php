@@ -26,9 +26,18 @@ class GoogleController extends Controller
     {
         $googleUser = Socialite::driver('google')->user();
 
-        $user = User::where('email', $googleUser->getEmail())->first();
+        $user = User::withTrashed()->where('email', $googleUser->getEmail())->first();
 
-        if (!$user) {
+        if ($user) {
+            if ($user->trashed()) {
+                return redirect()->route('login')
+                    ->with('google_deactivated_account', true);
+            }
+
+            $user->update([
+                'google_id' => $googleUser->getId(),
+            ]);
+        } else {
             $user = User::create([
                 'name' => $googleUser->getName(),
                 'email' => $googleUser->getEmail(),
@@ -36,10 +45,6 @@ class GoogleController extends Controller
                 'password' => Str::random(40),
                 'email_verified_at' => now(),
                 'role' => 'client',
-            ]);
-        } else {
-            $user->update([
-                'google_id' => $googleUser->getId(),
             ]);
         }
 

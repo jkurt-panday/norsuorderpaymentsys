@@ -2,6 +2,14 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
@@ -11,9 +19,11 @@ import { login } from '@/routes';
 export default function Login({
     status,
     canResetPassword,
+    deactivated_account = false,
 }: {
     status?: string;
     canResetPassword?: boolean;
+    deactivated_account?: boolean;
 }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
@@ -22,6 +32,11 @@ export default function Login({
     });
 
     const [showPassword, setShowPassword] = useState(false);
+    const [isDeactivatedOpen, setIsDeactivatedOpen] = useState(deactivated_account);
+
+    useEffect(() => {
+        setIsDeactivatedOpen(deactivated_account);
+    }, [deactivated_account]);
 
     // Automatically wipe password inputs clean if there is an auth error
     // Fix: Added 'reset' to the dependency array to satisfy ESLint rules
@@ -168,6 +183,26 @@ export default function Login({
     Continue with Google
 </a>
             </form>
+
+            <Dialog open={isDeactivatedOpen} onOpenChange={setIsDeactivatedOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Account Deactivated</DialogTitle>
+                        <DialogDescription>
+                            Your account has been deactivated. Please contact an
+                            administrator for assistance.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            onClick={() => setIsDeactivatedOpen(false)}
+                            className="w-full"
+                        >
+                            OK
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AuthLayout>
     );
 }

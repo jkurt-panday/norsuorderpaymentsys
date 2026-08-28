@@ -119,9 +119,11 @@ Route::middleware(['auth', 'admin'])->group(function () {
         ->middleware('throttle:10,1')
         ->name('admin.users.store');
 
-    Route::put('/admin/users/{user}', [AdminUserController::class, 'update'])->name('admin.users.update');
+    Route::put('/admin/users/{id}', [AdminUserController::class, 'update'])->name('admin.users.update');
 
-    Route::delete('/admin/users/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
+    Route::put('/admin/users/{id}/toggle', [AdminUserController::class, 'toggle'])->name('admin.users.toggle');
+
+    Route::delete('/admin/users/{id}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
 
     Route::get('/admin/activity-log', [AdminUserController::class, 'activityLog'])->name('admin.activity-log');
 
