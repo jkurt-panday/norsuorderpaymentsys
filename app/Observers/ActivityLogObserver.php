@@ -315,13 +315,17 @@ class ActivityLogObserver
 
     private function record(Model $model, string $event): void
     {
+        $actor = Auth::guard('web')->user();
+
+        if (! $actor) {
+            return;
+        }
+
         $descriptor = $this->describe($model, $event);
 
         if ($descriptor === null) {
             return;
         }
-
-        $actor = Auth::guard('web')->user();
 
         $changes = $event === 'deleted' ? [] : $this->changeList($model, $event);
 

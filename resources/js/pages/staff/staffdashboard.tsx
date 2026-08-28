@@ -292,7 +292,7 @@ export default function Dashboard() {
                     </section>
 
                     <ActivityLogList
-                        title="Recent Activity"
+                        title="Recent OP Activity"
                         logs={recentActivity}
                         limit={20}
                         maxVisible={10}

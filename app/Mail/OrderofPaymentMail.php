@@ -10,7 +10,6 @@ use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Symfony\Component\Mime\Email;
 
 class OrderOfPaymentMail extends Mailable
 {
@@ -53,16 +52,6 @@ public function attachments(): array
             ->withMime('application/pdf'),
     ];
 }
-
-    public function build(): Email
-    {
-        /** @var Email $email */
-        $email = parent::build();
-
-        if ($this->formInput->email) {
-            $email->to($this->formInput->email);
-        }
-
-        return $email;
-    }
 }
+
+
