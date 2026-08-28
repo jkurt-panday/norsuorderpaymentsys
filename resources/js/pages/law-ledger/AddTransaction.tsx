@@ -32,6 +32,7 @@ function FieldError({ message }: { message?: string }) {
 export default function AddTransaction({ studentNames, authUserName }: Props) {
     const { data, setData, processing, errors } = useForm({
         student_name: '',
+        student_id: '',
         course: '',
         school_year: '',
         semester_or_summer: '1st Sem',
@@ -107,30 +108,51 @@ export default function AddTransaction({ studentNames, authUserName }: Props) {
                             className="grid grid-cols-1 gap-4 md:grid-cols-2"
                         >
                             {/* Student Name with autocomplete datalist */}
-                            <div className="md:col-span-2">
-                                <label className="text-sm text-[#334E68]">
-                                    Student Name
-                                </label>
-                                <Input
-                                    list="student-names-list"
-                                    value={data.student_name}
-                                    onChange={(e) =>
-                                        setData('student_name', e.target.value)
-                                    }
-                                    placeholder="Type or select a student name..."
-                                    required
-                                    className={
-                                        errors.student_name
-                                            ? 'border-red-400'
-                                            : ''
-                                    }
-                                />
-                                <datalist id="student-names-list">
-                                    {studentNames.map((name) => (
-                                        <option key={name} value={name} />
-                                    ))}
-                                </datalist>
-                                <FieldError message={errors.student_name} />
+                            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm text-[#334E68]">
+                                        Student Name
+                                    </label>
+                                    <Input
+                                        list="student-names-list"
+                                        value={data.student_name}
+                                        onChange={(e) =>
+                                            setData('student_name', e.target.value)
+                                        }
+                                        placeholder="Type or select a student name..."
+                                        required
+                                        className={
+                                            errors.student_name
+                                                ? 'border-red-400'
+                                                : ''
+                                        }
+                                    />
+                                    <datalist id="student-names-list">
+                                        {studentNames.map((name) => (
+                                            <option key={name} value={name} />
+                                        ))}
+                                    </datalist>
+                                    <FieldError message={errors.student_name} />
+                                </div>
+
+                                <div>
+                                    <label className="text-sm text-[#334E68]">
+                                        Student ID
+                                    </label>
+                                    <Input
+                                        value={data.student_id}
+                                        onChange={(e) =>
+                                            setData('student_id', e.target.value)
+                                        }
+                                        placeholder="e.g., 2023-001"
+                                        className={
+                                            errors.student_id
+                                                ? 'border-red-400'
+                                                : ''
+                                        }
+                                    />
+                                    <FieldError message={errors.student_id} />
+                                </div>
                             </div>
 
                             <div>
