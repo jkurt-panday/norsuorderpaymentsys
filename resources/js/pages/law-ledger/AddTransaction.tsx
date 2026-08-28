@@ -12,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 
 const courseOptions = ['JD', 'LLM', 'JSD'];
-const semesterOptions = ['1st Sem', '2nd Sem', 'Summer'];
+const semesterOptions = ['First Semester', 'Second Semester', 'Summer'];
 const particularsOptions = ['Registration', 'Tuition', 'Miscellaneous'];
 const typeOptions = ['AR', 'Payment', 'Adjustment'];
 
