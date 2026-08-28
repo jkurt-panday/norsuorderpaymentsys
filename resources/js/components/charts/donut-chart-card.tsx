@@ -95,36 +95,20 @@ export function DonutChartCard({
                                 strokeWidth={5}
                             >
                                 <Label
-                                    content={({ viewBox }) => {
-                                        if (
-                                            viewBox &&
-                                            'cx' in viewBox &&
-                                            'cy' in viewBox
-                                        ) {
-                                            return (
-                                                <text
-                                                    x={viewBox.cx}
-                                                    y={viewBox.cy}
-                                                    textAnchor="middle"
-                                                    dominantBaseline="middle"
-                                                >
-                                                    <tspan
-                                                        x={viewBox.cx}
-                                                        className="fill-foreground text-2xl font-bold"
-                                                    >
-                                                        {total.toLocaleString()}
-                                                    </tspan>
-                                                    <tspan
-                                                        x={viewBox.cx}
-                                                        dy="1.4em"
-                                                        className="fill-muted-foreground text-xs"
-                                                    >
-                                                        {centerLabel}
-                                                    </tspan>
-                                                </text>
-                                            );
-                                        }
-                                    }}
+                                  content={({ viewBox }) => {
+                                    if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                                      return (
+                                        <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle">
+                                          <tspan x={viewBox.cx} y={(viewBox.cy ?? 0) - 25} className="fill-foreground text-2xl font-bold">
+                                            {total.toLocaleString()}
+                                          </tspan>
+                                          <tspan x={viewBox.cx} y={(viewBox.cy ?? 0) + 1} className="fill-muted-foreground text-xs">
+                                            {centerLabel}
+                                          </tspan>
+                                        </text>
+                                      )
+                                    }
+                                  }}
                                 />
                             </Pie>
                             {showLegend && (
