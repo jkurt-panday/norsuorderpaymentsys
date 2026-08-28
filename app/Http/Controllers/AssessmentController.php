@@ -115,10 +115,12 @@ class AssessmentController extends Controller
     // /**
     //  * Show the form for editing the specified resource.
     //  */
-    // public function edit(string $id)
-    // {
-    //     //
-    // }
+    public function edit(AssessmentForm $assessment): InertiaResponse
+    {
+        return Inertia::render('staff/assessments/assessmentEdit', [
+            'assessment' => $assessment->load(['course'])
+        ]);
+    }
 
     // /**
     //  * Update the specified resource in storage.
