@@ -80,6 +80,7 @@ export default function AssessmentForm({ courses }: Props) {
         middle_name: '',
         last_name: '',
         course_id: '',
+        student_id: '',
         address: '',
         enrolled_under: EnrolledUnder.UNDERGRADUATE,
         sy_last_attended: '',
@@ -324,7 +325,33 @@ export default function AssessmentForm({ courses }: Props) {
                                     </div>
 
                                     {/* course and address section */}
-                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-1 lg:grid-cols-1">
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-1 lg:grid-cols-2">
+                                        {/* student id */}
+                                        <Field>
+                                            <FieldLabel
+                                                htmlFor="input-field-studentId"
+                                                className="mb-2 font-medium text-slate-700"
+                                            >
+                                                Student ID
+                                            </FieldLabel>
+                                            <Input
+                                                className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+                                                id="input-field-fname"
+                                                type="number"
+                                                placeholder="202300000"
+                                                value={data.student_id}
+                                                onChange={(e) =>{
+                                                    const value = e.target.value.slice(0, 9); // Enforce max 9 digits
+                                                    setData('student_id', value);
+                                                }
+                                                }
+                                            />
+                                            {errors.student_id && (
+                                                <p className="mt-1 text-sm text-red-500">
+                                                    {errors.student_id}
+                                                </p>
+                                            )}
+                                        </Field>
                                         {/* courses */}
                                         <Field>
                                             <FieldLabel

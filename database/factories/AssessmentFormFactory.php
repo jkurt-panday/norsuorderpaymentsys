@@ -22,7 +22,7 @@ class AssessmentFormFactory extends Factory
      */
     public function definition(): array
     {
-        static::$courseIds ??= \App\Models\Courses::pluck('id')->all();
+        static::$courseIds ??= Courses::pluck('id')->all();
 
         $createdAt = $this->faker->dateTimeBetween(now()->startOfMonth(), now()->endOfMonth());
         
@@ -33,6 +33,7 @@ class AssessmentFormFactory extends Factory
             'first_name' => $this->faker->firstName(),
             'middle_name' => $this->faker->optional()->firstName(),
             'last_name' => $this->faker->lastName(),
+            'student_id' => $this->faker->numerify('202######'),
             'course_id' => $this->faker->randomElement(static::$courseIds),
             'address' => $this->faker->address(),
             'enrolled_under' => $this->faker->randomElement(['Graduate', 'School of Law', 'Undergraduate']),
