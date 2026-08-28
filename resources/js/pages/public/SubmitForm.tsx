@@ -76,7 +76,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
         //     documents: data.documents,
         // }));
 
-        post('/public/form', {
+        post('/public/opform', {
             forceFormData: true,
             onSuccess: () => console.log('Success'),
             onError: (errs) => console.error('Validation errors:', errs),
