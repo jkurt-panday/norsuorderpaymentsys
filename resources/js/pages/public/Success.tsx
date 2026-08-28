@@ -438,8 +438,8 @@ export default function Success({ reference_number, formInput }: Props) {
                                 )}
 
                                 <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3 sm:gap-4 justify-center">
-                                    <Button asChild className="h-11 sm:h-12 w-full sm:w-auto rounded-xl bg-blue-700 px-6 sm:px-8 text-sm sm:text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-800 hover:shadow-lg active:scale-[0.98]">
-                                            <Link href="/public/opform">
+                                    <Button className="h-11 sm:h-12 w-full sm:w-auto rounded-xl bg-blue-700 px-6 sm:px-8 text-sm sm:text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-800 hover:shadow-lg active:scale-[0.98]">
+                                        <Link href="/public/opform">
                                             Submit Another Request
                                         </Link>
                                     </Button>
