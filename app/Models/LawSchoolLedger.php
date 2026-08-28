@@ -13,6 +13,7 @@ class LawSchoolLedger extends Model
         'last_name',
         'first_name',
         'middle_initial',
+        'student_id',
         'course',
         'school_year',
         'semester_or_summer',

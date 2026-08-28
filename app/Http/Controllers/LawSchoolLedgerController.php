@@ -164,6 +164,7 @@ class LawSchoolLedgerController extends Controller
             'last_name' => ['nullable', 'string', 'max:255'],
             'first_name' => ['nullable', 'string', 'max:255'],
             'middle_initial' => ['nullable', 'string', 'max:10'],
+            'student_id' => ['nullable', 'string', 'max:255'],
             'course' => ['nullable', 'string', 'max:255'],
             'school_year' => ['nullable', 'string', 'max:20'],
             'semester_or_summer' => ['nullable', 'string', 'max:50'],
@@ -227,6 +228,7 @@ class LawSchoolLedgerController extends Controller
             'last_name' => ['required', 'string', 'max:255'],
             'first_name' => ['required', 'string', 'max:255'],
             'middle_initial' => ['nullable', 'string', 'max:10'],
+            'student_id' => ['nullable', 'string', 'max:255'],
             'course' => ['nullable', 'string', 'max:255'],
             'school_year' => ['nullable', 'string', 'max:20'],
             'semester_or_summer' => ['nullable', 'string', 'max:50'],
@@ -543,6 +545,7 @@ class LawSchoolLedgerController extends Controller
             'last_name' => $nameParts['last_name'],
             'first_name' => $nameParts['first_name'],
             'middle_initial' => $nameParts['middle_initial'],
+            'student_id' => Arr::get($normalized, 'student_id'),
             'course' => Arr::get($normalized, 'course') ?? Arr::get($normalized, 'program'),
             'school_year' => Arr::get($normalized, 'school_year') ?? Arr::get($normalized, 'academic_year') ?? Arr::get($normalized, 'sy'),
             'semester_or_summer' => Arr::get($normalized, 'semester_or_summer')
@@ -594,6 +597,7 @@ class LawSchoolLedgerController extends Controller
                     $query->whereRaw('LOWER(first_name) LIKE ?', ["%{$search}%"])
                         ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$search}%"])
                         ->orWhereRaw('LOWER(middle_initial) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(student_id) LIKE ?', ["%{$search}%"])
                         ->orWhereRaw('LOWER(reference_jev_or_number) LIKE ?', ["%{$search}%"])
                         ->orWhereRaw('LOWER(particulars) LIKE ?', ["%{$search}%"])
                         ->orWhereRaw("LOWER(TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_initial, '')))) LIKE ?", ["%{$search}%"]);
@@ -721,6 +725,7 @@ class LawSchoolLedgerController extends Controller
     {
         return [
             'id' => $r->id,
+            'studentId' => $r->student_id,
             'lastName' => $r->last_name,
             'firstName' => $r->first_name,
             'middleInitial' => $r->middle_initial,
