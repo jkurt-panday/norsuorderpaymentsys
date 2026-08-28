@@ -55,6 +55,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import AdminLayout from '@/layouts/admin/layout';
 import {
     update as updateAdminUser,
@@ -125,10 +126,13 @@ function formatDateTime(value?: string | null) {
 }
 
 export default function AdminUserManagement() {
-    const { users = { data: [] }, userFilters = {} } = usePage<{
+    const { users = { data: [] }, userFilters = {}, auth } = usePage<{
         users: UsersPaginator;
         userFilters: UserFilters;
+        auth: { user: { id: number } | null };
     }>().props;
+
+    const currentUserId = auth?.user?.id;
 
     const rows: User[] = users?.data ?? [];
 
@@ -339,6 +343,12 @@ export default function AdminUserManagement() {
     };
 
     const confirmToggle = (user: User) => {
+        if (user.id === currentUserId) {
+            toast.error('You cannot deactivate your own account', {
+                description: 'Currently logged in',
+            });
+            return;
+        }
         setUserToToggle(user);
         setIsDeleteDialogOpen(true);
     };
@@ -846,7 +856,9 @@ export default function AdminUserManagement() {
                             </DialogTitle>
                             <DialogDescription>
                                 {editingUser
-                                    ? 'Update user information and role.'
+                                    ? editingUser.id === currentUserId
+                                        ? 'Update your name, email, or password. Role changes are restricted for the current account.'
+                                        : 'Update user information and role.'
                                     : 'Fill in the details below to create a new system user.'}
                             </DialogDescription>
                         </DialogHeader>
@@ -918,8 +930,15 @@ export default function AdminUserManagement() {
                                         onValueChange={(value) =>
                                             setData('role', value)
                                         }
+                                        disabled={editingUser?.id === currentUserId}
                                     >
-                                        <SelectTrigger className="w-full">
+                                        <SelectTrigger
+                                            className={
+                                                editingUser?.id === currentUserId
+                                                    ? 'opacity-50 cursor-not-allowed'
+                                                    : 'w-full'
+                                            }
+                                        >
                                             <SelectValue placeholder="Select role" />
                                         </SelectTrigger>
                                         <SelectContent>
