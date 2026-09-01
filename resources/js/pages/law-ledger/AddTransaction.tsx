@@ -1,6 +1,17 @@
-import { Head, router, useForm } from '@inertiajs/react';
-import { ArrowLeft } from 'lucide-react';
-import React from 'react';
+import { Head, useForm, router } from '@inertiajs/react';
+import {
+    ArrowLeft,
+    Plus,
+    X,
+    Search,
+    Check,
+    ChevronsUpDown,
+} from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import {
+    index as lawLedgerIndex,
+    store as storeLawLedger,
+} from '@/actions/App/Http/Controllers/LawSchoolLedgerController';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -10,15 +21,70 @@ import {
     CardDescription,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 
-const courseOptions = ['JD', 'LLM', 'JSD'];
-const semesterOptions = ['First Semester', 'Second Semester', 'Summer'];
-const particularsOptions = ['Registration', 'Tuition', 'Miscellaneous'];
-const typeOptions = ['AR', 'Payment', 'Adjustment'];
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const semesterOptions = [
+    { label: '1st Sem.', value: 'First Semester' },
+    { label: '2nd Sem.', value: 'Second Semester' },
+    { label: 'Summer', value: 'Summer' },
+];
+
+const particularsOptions = [
+    'Registration',
+    'Tuition',
+    'Miscellaneous',
+    'Adjustment',
+];
+
+const entryTypeOptions = [
+    { value: 'ar', label: 'AR' },
+    { value: 'payment', label: 'Payment' },
+    { value: 'adjustment', label: 'Adjustment' },
+];
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface StudentOption {
+    id: number | string;
+    student_number?: string | null;
+    last_name: string;
+    first_name: string;
+    middle_name?: string | null;
+    last_course_id?: number | string | null;
+}
+
+interface CourseOption {
+    id: number | string;
+    code: string;
+}
+
+interface AcademicTermOption {
+    id: number;
+    school_year: string;
+    semester: string;
+}
 
 interface Props {
-    studentNames: string[];
+    students: StudentOption[];
+    courses: CourseOption[];
+    academicTerms: AcademicTermOption[];
     authUserName: string;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatStudentLabel(s: StudentOption): string {
+    const studentName = !s.first_name
+        ? String(s.last_name)
+        : `${s.last_name}, ${s.first_name}${s.middle_name ? ` ${s.middle_name.charAt(0).toUpperCase()}.` : ''}`;
+
+    if (s.student_number) {
+        return `${s.student_number} — ${studentName}`;
+    }
+
+    return studentName;
 }
 
 function FieldError({ message }: { message?: string }) {
@@ -29,382 +95,714 @@ function FieldError({ message }: { message?: string }) {
     return <p className="mt-1 text-xs text-red-500">{message}</p>;
 }
 
-export default function AddTransaction({ studentNames, authUserName }: Props) {
-    const { data, setData, processing, errors } = useForm({
-        student_name: '',
+// ─── Searchable Student Select Component ──────────────────────────────────────
+
+function SearchableStudentSelect({
+    students,
+    value,
+    onChange,
+}: {
+    students: StudentOption[];
+    value: string | number;
+    onChange: (id: string | number) => void;
+}) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [search, setSearch] = useState('');
+
+    const selectedStudent = students.find(
+        (s) => String(s.id) === String(value),
+    );
+
+    const filteredStudents = useMemo(() => {
+        const query = search.toLowerCase().trim();
+
+        if (!query) {
+            return students.slice(0, 80);
+        }
+
+        return students
+            .filter((s) => {
+                const label = formatStudentLabel(s).toLowerCase();
+
+                return label.includes(query);
+            })
+            .slice(0, 80);
+    }, [students, search]);
+
+    return (
+        <div className="relative w-full">
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex w-full items-center justify-between rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+            >
+                <span
+                    className={
+                        selectedStudent
+                            ? 'font-medium text-[#0B3D91]'
+                            : 'text-[#7FA6D6]'
+                    }
+                >
+                    {selectedStudent
+                        ? formatStudentLabel(selectedStudent)
+                        : '-- Select / Search Student --'}
+                </span>
+                <ChevronsUpDown className="h-4 w-4 text-[#7FA6D6]" />
+            </button>
+
+            {isOpen && (
+                <div className="absolute z-50 mt-1 w-full space-y-2 rounded-md border border-[#CFE3FF] bg-white p-2 shadow-lg">
+                    <div className="relative">
+                        <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-[#8AA8CC]" />
+                        <Input
+                            type="text"
+                            placeholder="Type Student ID or name to filter..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="h-9 border-[#CFE3FF] pl-8 text-xs"
+                            autoFocus
+                        />
+                        {search && (
+                            <button
+                                type="button"
+                                onClick={() => setSearch('')}
+                                className="absolute top-2.5 right-2.5 text-xs text-[#8AA8CC] hover:text-[#0B3D91]"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="max-h-60 divide-y divide-[#EAF2FF] overflow-y-auto rounded-md border border-[#EAF2FF]">
+                        {filteredStudents.length === 0 ? (
+                            <p className="p-3 text-center text-xs text-[#8AA8CC]">
+                                No students found.
+                            </p>
+                        ) : (
+                            filteredStudents.map((s) => {
+                                const isSelected =
+                                    String(s.id) === String(value);
+
+                                return (
+                                    <button
+                                        key={s.id}
+                                        type="button"
+                                        onClick={() => {
+                                            onChange(s.id);
+                                            setIsOpen(false);
+                                        }}
+                                        className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-[#F3F8FF] ${
+                                            isSelected
+                                                ? 'bg-[#EAF2FF] font-semibold text-[#0B3D91]'
+                                                : 'text-[#334E68]'
+                                        }`}
+                                    >
+                                        <span>{formatStudentLabel(s)}</span>
+                                        {isSelected && (
+                                            <Check className="h-3.5 w-3.5 text-[#0F6FFF]" />
+                                        )}
+                                    </button>
+                                );
+                            })
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Main Add Transaction Component ──────────────────────────────────────────
+
+export default function AddTransaction({
+    students,
+    courses,
+    academicTerms,
+    authUserName,
+}: Props) {
+    const [showNewStudent, setShowNewStudent] = useState(false);
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const currentYear = new Date().getFullYear();
+    const defaultSy = `${currentYear}-${currentYear + 1}`;
+
+    const { data, setData, transform, post, processing, errors } = useForm<{
+        student_id: string | number;
+        new_student: {
+            student_number: string;
+            last_name: string;
+            first_name: string;
+            middle_name: string;
+        } | null;
+        course_id: string | number;
+        academic_term_id: string | number;
+        school_year: string;
+        semester: string;
+        entry_type: string;
+        units: string;
+        transaction_date: string;
+        reference_or_jev_number: string;
+        particulars: string;
+        tuition_per_unit_or_misc: string;
+        amount: string;
+        remarks: string;
+        input_by: string;
+    }>({
         student_id: '',
-        course: '',
-        school_year: '',
-        semester_or_summer: '1st Sem',
+        new_student: null,
+        course_id: '',
+        academic_term_id: '',
+        school_year: defaultSy,
+        semester: 'First Semester',
+        entry_type: 'ar',
         units: '',
-        transaction_date: '',
-        reference_jev_or_number: '',
+        transaction_date: todayStr,
+        reference_or_jev_number: '',
         particulars: 'Tuition',
-        tuition_per_unit_or_fee_per_semester: '',
-        ar_or_payment: 'AR',
+        tuition_per_unit_or_misc: '',
         amount: '',
         remarks: '',
         input_by: authUserName,
     });
 
     const parsedUnits = Number(data.units || 0);
-    const parsedRate = Number(data.tuition_per_unit_or_fee_per_semester || 0);
-    const computedAmount = parsedUnits * parsedRate;
-    const shouldAutoComputeAmount =
-        data.ar_or_payment === 'AR' && data.amount === '';
-    const displayedAmount = shouldAutoComputeAmount
-        ? computedAmount.toFixed(2)
-        : data.amount;
+    const parsedRate = Number(data.tuition_per_unit_or_misc || 0);
+    const computedAmt = parsedUnits * parsedRate;
+    const autoAmount = data.entry_type === 'ar' && data.amount === '';
+    const displayedAmt = autoAmount ? computedAmt.toFixed(2) : data.amount;
+
+    function syncTerm(sy: string, semester: string) {
+        if (academicTerms.length > 0) {
+            const match = academicTerms.find(
+                (term) => term.school_year === sy && term.semester === semester,
+            );
+            setData((currentData) => ({
+                ...currentData,
+                academic_term_id: match?.id ?? '',
+                school_year: sy,
+                semester,
+            }));
+
+            return;
+        }
+
+        setData((currentData) => ({
+            ...currentData,
+            school_year: sy,
+            semester,
+        }));
+    }
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        const finalAmount = autoAmount ? computedAmt.toFixed(2) : data.amount;
+        const finalDate =
+            data.transaction_date || new Date().toISOString().slice(0, 10);
 
-        router.post('/law-ledger', {
-            ...data,
-            status: data.ar_or_payment === 'AR' ? 'Pending' : 'Paid',
-            amount: displayedAmount,
-            transaction_date:
-                data.transaction_date || new Date().toISOString().slice(0, 10),
+        transform((formData) => ({
+            ...formData,
+            amount: finalAmount,
+            transaction_date: finalDate,
+            tuition_per_unit_or_misc:
+                formData.tuition_per_unit_or_misc || '0.00',
+        }));
+
+        post(storeLawLedger.url(), {
+            preserveScroll: true,
         });
     };
 
+    const selectClass =
+        'w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none';
+
     return (
-        <div className="min-h-full bg-[#FAFAF5] p-4 md:p-8">
-            <Head title="Add Transaction - Law School Ledger" />
-            <div className="mx-auto max-w-5xl space-y-6">
-                <div className="flex items-center gap-2 border-b border-[#CFE3FF] pb-4">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => router.get('/law-ledger')}
-                        className="border-[#CFE3FF] text-[#0B3D91]"
-                    >
-                        <ArrowLeft className="mr-1 h-4 w-4" /> Back
-                    </Button>
-                    <div>
-                        <h1 className="text-2xl font-bold text-[#0B3D91]">
-                            Add New Transaction
-                        </h1>
-                        <p className="mt-1 text-sm text-[#5C7A9E]">
-                            Create a manual ledger transaction entry for a law
-                            school student.
-                        </p>
-                    </div>
+        <div className="mx-auto max-w-5xl space-y-6">
+            <Head title="Add Transaction" />
+            <div className="flex items-center gap-2 border-b border-[#CFE3FF] pb-4">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.get(lawLedgerIndex.url())}
+                    className="border-[#CFE3FF] text-[#0B3D91]"
+                >
+                    <ArrowLeft className="mr-1 h-4 w-4" /> Back
+                </Button>
+                <div>
+                    <h1 className="text-2xl font-bold text-[#0B3D91]">
+                        Add New Transaction
+                    </h1>
+                    <p className="mt-1 text-sm text-[#5C7A9E]">
+                        Create a manual ledger transaction entry for a law school student.
+                    </p>
                 </div>
+            </div>
 
-                <Card className="border-[#CFE3FF] bg-white">
-                    <CardHeader>
-                        <CardTitle className="text-base text-[#0B3D91]">
-                            Transaction Details
-                        </CardTitle>
-                        <CardDescription className="text-[#7FA6D6]">
-                            Fill in the student information and financial
-                            details below.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form
-                            onSubmit={handleSubmit}
-                            className="grid grid-cols-1 gap-4 md:grid-cols-2"
-                        >
-                            {/* Student Name with autocomplete datalist */}
-                            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-sm text-[#334E68]">
-                                        Student Name
-                                    </label>
-                                    <Input
-                                        list="student-names-list"
-                                        value={data.student_name}
-                                        onChange={(e) =>
-                                            setData('student_name', e.target.value)
-                                        }
-                                        placeholder="Type or select a student name..."
-                                        required
-                                        className={
-                                            errors.student_name
-                                                ? 'border-red-400'
-                                                : ''
-                                        }
-                                    />
-                                    <datalist id="student-names-list">
-                                        {studentNames.map((name) => (
-                                            <option key={name} value={name} />
-                                        ))}
-                                    </datalist>
-                                    <FieldError message={errors.student_name} />
-                                </div>
+            <Card className="border-[#CFE3FF] bg-white">
+                <CardHeader>
+                    <CardTitle className="text-base text-[#0B3D91]">
+                        Transaction Details
+                    </CardTitle>
+                    <CardDescription className="text-[#7FA6D6]">
+                        Fill in the student information and financial details
+                        below.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form
+                        onSubmit={handleSubmit}
+                        className="grid grid-cols-1 gap-4 md:grid-cols-2"
+                    >
+                        {/* ── Student Picker ──────────────────────────────── */}
+                        <div className="md:col-span-2">
+                            <div className="mb-1 flex items-center justify-between">
+                                <label className="text-sm text-[#334E68]">
+                                    Student
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowNewStudent(!showNewStudent);
 
-                                <div>
-                                    <label className="text-sm text-[#334E68]">
-                                        Student ID
-                                    </label>
-                                    <Input
-                                        value={data.student_id}
-                                        onChange={(e) =>
-                                            setData('student_id', e.target.value)
+                                        if (!showNewStudent) {
+                                            setData('student_id', '');
+                                            setData('new_student', {
+                                                student_number: '',
+                                                last_name: '',
+                                                first_name: '',
+                                                middle_name: '',
+                                            });
+                                        } else {
+                                            setData('new_student', null);
                                         }
-                                        placeholder="e.g., 2023-001"
-                                        className={
-                                            errors.student_id
-                                                ? 'border-red-400'
-                                                : ''
-                                        }
-                                    />
-                                    <FieldError message={errors.student_id} />
-                                </div>
+                                    }}
+                                    className="flex items-center gap-1 text-xs text-[#0F6FFF] hover:underline"
+                                >
+                                    {showNewStudent ? (
+                                        <>
+                                            <X className="h-3 w-3" /> Cancel new
+                                            student
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Plus className="h-3 w-3" /> Add new
+                                            student
+                                        </>
+                                    )}
+                                </button>
                             </div>
 
-                            <div>
-                                <label className="text-sm text-[#334E68]">
-                                    Course
-                                </label>
-                                <select
-                                    value={data.course}
-                                    onChange={(e) =>
-                                        setData('course', e.target.value)
-                                    }
-                                    className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
-                                >
-                                    <option value="">
-                                        -- Select Course --
+                            {showNewStudent ? (
+                                <div className="grid grid-cols-1 gap-2 rounded-md border border-blue-100 bg-blue-50 p-3 sm:grid-cols-2 lg:grid-cols-4">
+                                    <div>
+                                        <label className="text-xs text-[#334E68]">
+                                            Student ID
+                                        </label>
+                                        <Input
+                                            value={
+                                                data.new_student
+                                                    ?.student_number ?? ''
+                                            }
+                                            onChange={(e) =>
+                                                setData('new_student', {
+                                                    ...data.new_student!,
+                                                    student_number:
+                                                        e.target.value,
+                                                })
+                                            }
+                                            placeholder="e.g. 2026-00123"
+                                            className={
+                                                (
+                                                    errors as Record<
+                                                        string,
+                                                        string
+                                                    >
+                                                )['new_student.student_number']
+                                                    ? 'border-red-400'
+                                                    : ''
+                                            }
+                                        />
+                                        <FieldError
+                                            message={
+                                                (
+                                                    errors as Record<
+                                                        string,
+                                                        string
+                                                    >
+                                                )['new_student.student_number']
+                                            }
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-[#334E68]">
+                                            Last Name *
+                                        </label>
+                                        <Input
+                                            value={
+                                                data.new_student?.last_name ??
+                                                ''
+                                            }
+                                            onChange={(e) =>
+                                                setData('new_student', {
+                                                    ...data.new_student!,
+                                                    last_name: e.target.value,
+                                                })
+                                            }
+                                            placeholder="DELA CRUZ"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-[#334E68]">
+                                            First Name *
+                                        </label>
+                                        <Input
+                                            value={
+                                                data.new_student?.first_name ??
+                                                ''
+                                            }
+                                            onChange={(e) =>
+                                                setData('new_student', {
+                                                    ...data.new_student!,
+                                                    first_name: e.target.value,
+                                                })
+                                            }
+                                            placeholder="JUAN"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-[#334E68]">
+                                            Middle Name
+                                        </label>
+                                        <Input
+                                            value={
+                                                data.new_student?.middle_name ??
+                                                ''
+                                            }
+                                            onChange={(e) =>
+                                                setData('new_student', {
+                                                    ...data.new_student!,
+                                                    middle_name: e.target.value,
+                                                })
+                                            }
+                                            placeholder="P."
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <SearchableStudentSelect
+                                    students={students}
+                                    value={data.student_id}
+                                    onChange={(id) => {
+                                        const selected = students.find(
+                                            (s) => String(s.id) === String(id),
+                                        );
+
+                                        if (selected?.last_course_id) {
+                                            setData((prev) => ({
+                                                ...prev,
+                                                student_id: id,
+                                                course_id: String(
+                                                    selected.last_course_id,
+                                                ),
+                                            }));
+                                        } else {
+                                            setData('student_id', id);
+                                        }
+                                    }}
+                                />
+                            )}
+                            <FieldError
+                                message={
+                                    (errors as any).student_id ||
+                                    (errors as any).student_name
+                                }
+                            />
+                        </div>
+
+                        {/* ── Course ──────────────────────────────────────── */}
+                        <div>
+                            <label className="text-sm text-[#334E68]">
+                                Course
+                            </label>
+                            <select
+                                value={String(data.course_id)}
+                                onChange={(e) =>
+                                    setData('course_id', e.target.value)
+                                }
+                                className={selectClass}
+                            >
+                                <option value="">-- Select Course --</option>
+                                {courses.map((c) => (
+                                    <option key={c.id} value={String(c.id)}>
+                                        {c.code}
                                     </option>
-                                    {courseOptions.map((course) => (
-                                        <option key={course} value={course}>
-                                            {course}
-                                        </option>
-                                    ))}
-                                </select>
-                                <FieldError message={errors.course} />
-                            </div>
+                                ))}
+                            </select>
+                            <FieldError
+                                message={
+                                    (errors as any).course_id ||
+                                    (errors as any).course
+                                }
+                            />
+                        </div>
 
-                            <div>
-                                <label className="text-sm text-[#334E68]">
-                                    School Year
-                                </label>
-                                <Input
-                                    value={data.school_year}
-                                    placeholder="e.g. 2025-2026"
-                                    pattern="\d{4}-\d{4}"
-                                    title="Format: YYYY-YYYY (e.g. 2025-2026)"
-                                    onChange={(e) =>
-                                        setData('school_year', e.target.value)
-                                    }
-                                    className={
-                                        errors.school_year
-                                            ? 'border-red-400'
-                                            : ''
-                                    }
-                                />
-                                <FieldError message={errors.school_year} />
-                            </div>
+                        {/* ── School Year ─────────────────────────────────── */}
+                        <div>
+                            <label className="text-sm text-[#334E68]">
+                                School Year
+                            </label>
+                            <Input
+                                value={data.school_year}
+                                placeholder="e.g. 2025-2026"
+                                pattern="\d{4}-\d{4}"
+                                title="Format: YYYY-YYYY (e.g. 2025-2026)"
+                                onChange={(e) =>
+                                    syncTerm(e.target.value, data.semester)
+                                }
+                                className={
+                                    (errors as any).school_year
+                                        ? 'border-red-400'
+                                        : ''
+                                }
+                            />
+                            <FieldError message={(errors as any).school_year} />
+                        </div>
 
-                            <div>
-                                <label className="text-sm text-[#334E68]">
-                                    Semester / Summer
-                                </label>
-                                <select
-                                    value={data.semester_or_summer}
-                                    onChange={(e) =>
-                                        setData(
-                                            'semester_or_summer',
-                                            e.target.value,
-                                        )
-                                    }
-                                    className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
-                                >
-                                    {semesterOptions.map((option) => (
-                                        <option key={option} value={option}>
-                                            {option}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                        {/* ── Semester ────────────────────────────────────── */}
+                        <div>
+                            <label className="text-sm text-[#334E68]">
+                                Semester
+                            </label>
+                            <p className="mb-1 text-xs text-[#7FA6D6]">
+                                Short label for the term.
+                            </p>
+                            <select
+                                value={data.semester}
+                                onChange={(e) =>
+                                    syncTerm(data.school_year, e.target.value)
+                                }
+                                className={selectClass}
+                            >
+                                {semesterOptions.map((opt) => (
+                                    <option key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
 
-                            <div>
-                                <label className="text-sm text-[#334E68]">
-                                    Units
-                                </label>
-                                <Input
-                                    type="number"
-                                    min="0"
-                                    value={data.units}
-                                    onChange={(e) =>
-                                        setData('units', e.target.value)
-                                    }
-                                    className={
-                                        errors.units ? 'border-red-400' : ''
-                                    }
-                                />
-                                <FieldError message={errors.units} />
-                            </div>
+                        {/* ── Entry Type ──────────────────────────────────── */}
+                        <div>
+                            <label className="text-sm text-[#334E68]">
+                                Type
+                            </label>
+                            <select
+                                value={data.entry_type}
+                                onChange={(e) =>
+                                    setData('entry_type', e.target.value)
+                                }
+                                className={selectClass}
+                            >
+                                {entryTypeOptions.map((opt) => (
+                                    <option key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
 
-                            <div>
+                        {/* ── Units ───────────────────────────────────────── */}
+                        <div>
+                            <label className="text-sm text-[#334E68]">
+                                Units
+                            </label>
+                            <Input
+                                type="number"
+                                min="0"
+                                value={data.units}
+                                onChange={(e) =>
+                                    setData('units', e.target.value)
+                                }
+                                className={
+                                    (errors as any).units
+                                        ? 'border-red-400'
+                                        : ''
+                                }
+                            />
+                            <FieldError message={(errors as any).units} />
+                        </div>
+
+                        {/* ── Transaction Date ────────────────────────────── */}
+                        <div>
+                            <div className="flex items-center justify-between">
                                 <label className="text-sm text-[#334E68]">
                                     Transaction Date
                                 </label>
-                                <Input
-                                    type="date"
-                                    value={data.transaction_date}
-                                    onChange={(e) =>
-                                        setData(
-                                            'transaction_date',
-                                            e.target.value,
-                                        )
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setData('transaction_date', todayStr)
                                     }
-                                    className={
-                                        errors.transaction_date
-                                            ? 'border-red-400'
-                                            : ''
-                                    }
-                                />
-                                <FieldError message={errors.transaction_date} />
-                            </div>
-
-                            <div>
-                                <label className="text-sm text-[#334E68]">
-                                    Reference / JEV / OR #
-                                </label>
-                                <Input
-                                    value={data.reference_jev_or_number}
-                                    onChange={(e) =>
-                                        setData(
-                                            'reference_jev_or_number',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                            </div>
-
-                            <div className="md:col-span-2">
-                                <label className="text-sm text-[#334E68]">
-                                    Particulars
-                                </label>
-                                <select
-                                    value={data.particulars}
-                                    onChange={(e) =>
-                                        setData('particulars', e.target.value)
-                                    }
-                                    className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                    className="text-xs font-medium text-[#0F6FFF] hover:underline"
                                 >
-                                    {particularsOptions.map((option) => (
-                                        <option key={option} value={option}>
-                                            {option}
-                                        </option>
-                                    ))}
-                                </select>
+                                    Today
+                                </button>
                             </div>
+                            <Input
+                                type="date"
+                                value={data.transaction_date}
+                                onChange={(e) =>
+                                    setData('transaction_date', e.target.value)
+                                }
+                                className={
+                                    (errors as any).transaction_date
+                                        ? 'border-red-400'
+                                        : ''
+                                }
+                            />
+                            <FieldError
+                                message={(errors as any).transaction_date}
+                            />
+                        </div>
 
-                            <div>
-                                <label className="text-sm text-[#334E68]">
-                                    Tuition / Unit
-                                </label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={
-                                        data.tuition_per_unit_or_fee_per_semester
-                                    }
-                                    onChange={(e) =>
-                                        setData(
-                                            'tuition_per_unit_or_fee_per_semester',
-                                            e.target.value,
-                                        )
-                                    }
-                                    className={
-                                        errors.tuition_per_unit_or_fee_per_semester
-                                            ? 'border-red-400'
-                                            : ''
-                                    }
-                                />
-                                <FieldError
-                                    message={
-                                        errors.tuition_per_unit_or_fee_per_semester
-                                    }
-                                />
-                            </div>
+                        {/* ── Reference / JEV / OR # ──────────────────────── */}
+                        <div>
+                            <label className="text-sm text-[#334E68]">
+                                Reference / JEV / OR #
+                            </label>
+                            <Input
+                                value={data.reference_or_jev_number}
+                                onChange={(e) =>
+                                    setData(
+                                        'reference_or_jev_number',
+                                        e.target.value,
+                                    )
+                                }
+                            />
+                        </div>
 
-                            <div>
-                                <label className="text-sm text-[#334E68]">
-                                    Type
-                                </label>
-                                <select
-                                    value={data.ar_or_payment}
-                                    onChange={(e) =>
-                                        setData('ar_or_payment', e.target.value)
-                                    }
-                                    className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
-                                >
-                                    {typeOptions.map((option) => (
-                                        <option key={option} value={option}>
-                                            {option}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                        {/* ── Particulars ─────────────────────────────────── */}
+                        <div className="md:col-span-2">
+                            <label className="text-sm text-[#334E68]">
+                                Particulars
+                            </label>
+                            <select
+                                value={data.particulars}
+                                onChange={(e) =>
+                                    setData('particulars', e.target.value)
+                                }
+                                className={selectClass}
+                            >
+                                {particularsOptions.map((opt) => (
+                                    <option key={opt} value={opt}>
+                                        {opt}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
 
-                            <div>
-                                <label className="text-sm text-[#334E68]">
-                                    Amount
-                                </label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={displayedAmount}
-                                    onChange={(e) =>
-                                        setData('amount', e.target.value)
-                                    }
-                                    className={`${errors.amount ? 'border-red-400' : ''}`}
-                                />
-                                <p className="mt-1 text-xs text-slate-500">
-                                    If Type is AR, amount is auto-calculated
-                                    from units × tuition per unit. You may still
-                                    edit it manually.
-                                </p>
-                                <FieldError message={errors.amount} />
-                            </div>
+                        {/* ── Tuition / Unit ──────────────────────────────── */}
+                        <div>
+                            <label className="text-sm text-[#334E68]">
+                                Tuition / Unit
+                            </label>
+                            <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={data.tuition_per_unit_or_misc}
+                                onChange={(e) =>
+                                    setData(
+                                        'tuition_per_unit_or_misc',
+                                        e.target.value,
+                                    )
+                                }
+                                className={
+                                    (errors as any).tuition_per_unit_or_misc
+                                        ? 'border-red-400'
+                                        : ''
+                                }
+                            />
+                            <FieldError
+                                message={
+                                    (errors as any).tuition_per_unit_or_misc
+                                }
+                            />
+                        </div>
 
-                            <div>
-                                <label className="text-sm text-[#334E68]">
-                                    Input By
-                                </label>
-                                <Input
-                                    value={data.input_by}
-                                    onChange={(e) =>
-                                        setData('input_by', e.target.value)
-                                    }
-                                />
-                            </div>
+                        {/* ── Amount ──────────────────────────────────────── */}
+                        <div>
+                            <label className="text-sm text-[#334E68]">
+                                Amount
+                            </label>
+                            <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={displayedAmt}
+                                onChange={(e) =>
+                                    setData('amount', e.target.value)
+                                }
+                                className={
+                                    (errors as any).amount
+                                        ? 'border-red-400'
+                                        : ''
+                                }
+                            />
+                            <p className="mt-1 text-xs text-slate-500">
+                                If Type is AR, amount is auto-calculated from
+                                units × tuition per unit.
+                            </p>
+                            <FieldError message={(errors as any).amount} />
+                        </div>
 
-                            <div className="md:col-span-2">
-                                <label className="text-sm text-[#334E68]">
-                                    Remarks
-                                </label>
-                                <Input
-                                    value={data.remarks}
-                                    onChange={(e) =>
-                                        setData('remarks', e.target.value)
-                                    }
-                                />
-                            </div>
+                        {/* ── Input By ────────────────────────────────────── */}
+                        <div>
+                            <label className="text-sm text-[#334E68]">
+                                Input By
+                            </label>
+                            <Input
+                                value={data.input_by}
+                                onChange={(e) =>
+                                    setData('input_by', e.target.value)
+                                }
+                            />
+                        </div>
 
-                            <div className="flex justify-end md:col-span-2">
-                                <Button
-                                    type="submit"
-                                    disabled={processing}
-                                    className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB] disabled:opacity-60"
-                                >
-                                    {processing
-                                        ? 'Saving...'
-                                        : 'Save Transaction'}
-                                </Button>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
-            </div>
+                        {/* ── Remarks ─────────────────────────────────────── */}
+                        <div className="md:col-span-2">
+                            <label className="text-sm text-[#334E68]">
+                                Remarks
+                            </label>
+                            <Input
+                                value={data.remarks}
+                                onChange={(e) =>
+                                    setData('remarks', e.target.value)
+                                }
+                            />
+                        </div>
+
+                        {/* ── Submit ──────────────────────────────────────── */}
+                        <div className="flex justify-end md:col-span-2">
+                            <Button
+                                type="submit"
+                                disabled={processing}
+                                className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB] disabled:opacity-60"
+                            >
+                                {processing ? (
+                                    <span className="flex items-center gap-2">
+                                        <Spinner className="h-4 w-4" />
+                                        Saving...
+                                    </span>
+                                ) : (
+                                    'Save Transaction'
+                                )}
+                            </Button>
+                        </div>
+                    </form>
+                </CardContent>
+            </Card>
         </div>
     );
 }

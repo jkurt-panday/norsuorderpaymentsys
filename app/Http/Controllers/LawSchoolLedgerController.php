@@ -150,20 +150,10 @@ class LawSchoolLedgerController extends Controller
      */
     public function create(): Response
     {
-        $studentNames = LawSchoolLedger::query()
-            ->whereNotNull('last_name')
-            ->where('last_name', '!=', '')
-            ->distinct()
-            ->orderBy('last_name', 'asc')
-            ->get(['last_name', 'first_name', 'middle_initial'])
-            ->map(function ($student) {
-                return trim("$student->last_name, $student->first_name ".($student->middle_initial ? "$student->middle_initial" : ''));
-            })
-            ->unique()
-            ->values();
-
         return Inertia::render('law-ledger/AddTransaction', [
-            'studentNames' => $studentNames,
+            'students' => $this->studentList(),
+            'courses' => $this->courseList(),
+            'academicTerms' => $this->academicTermList(),
             'authUserName' => auth()->user()?->name ?? '',
         ]);
     }
@@ -174,49 +164,57 @@ class LawSchoolLedgerController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'student_name' => ['nullable', 'string', 'max:510'],
-            'last_name' => ['nullable', 'string', 'max:255'],
-            'first_name' => ['nullable', 'string', 'max:255'],
-            'middle_initial' => ['nullable', 'string', 'max:10'],
-            'middle_name' => ['nullable', 'string', 'max:255'],
-            'student_id' => ['nullable', 'string', 'max:255'],
-            'course' => ['nullable', 'string', 'max:255'],
+            'student_id' => ['nullable', 'integer', 'exists:law_student,id'],
+            'new_student' => ['nullable', 'array'],
+            'new_student.student_number' => ['nullable', 'string', 'max:255'],
+            'new_student.last_name' => ['required_with:new_student', 'string', 'max:255'],
+            'new_student.first_name' => ['required_with:new_student', 'string', 'max:255'],
+            'new_student.middle_name' => ['nullable', 'string', 'max:255'],
+            'course_id' => ['nullable', 'integer', 'exists:law_course,id'],
+            'academic_term_id' => ['nullable', 'integer', 'exists:law_academic_term,id'],
             'school_year' => ['nullable', 'string', 'max:20'],
-            'semester_or_summer' => ['nullable', 'string', 'max:50'],
+            'semester' => ['nullable', 'string', 'max:50'],
+            'entry_type' => ['nullable', 'string', 'in:ar,payment,adjustment'],
             'units' => ['nullable', 'numeric'],
             'transaction_date' => ['nullable', 'date'],
-            'reference_jev_or_number' => ['nullable', 'string', 'max:255'],
+            'reference_or_jev_number' => ['nullable', 'string', 'max:255'],
             'particulars' => ['nullable', 'string'],
-            'tuition_per_unit_or_fee_per_semester' => ['nullable', 'numeric'],
-            'ar_or_payment' => ['nullable', 'string', 'max:50'],
+            'tuition_per_unit_or_misc' => ['nullable', 'numeric'],
             'amount' => ['nullable', 'numeric'],
-            'status' => ['nullable', 'string'],
             'remarks' => ['nullable', 'string'],
             'input_by' => ['nullable', 'string', 'max:255'],
         ]);
 
-        if (filled($data['student_name'] ?? null)) {
-            $nameParts = $this->parseStudentName($data['student_name']) ?? [
-                'last_name' => trim($data['student_name']),
-                'first_name' => null,
-                'middle_initial' => null,
-            ];
+        DB::transaction(function () use ($data): void {
+            $studentId = $data['student_id'] ?? null;
 
-            $data['last_name'] = $nameParts['last_name'];
-            $data['first_name'] = $nameParts['first_name'];
-            $data['middle_initial'] = $nameParts['middle_initial'];
-        }
+            if (! $studentId && isset($data['new_student'])) {
+                $newStudent = $data['new_student'];
+                $studentAttributes = [
+                    'student_number' => $newStudent['student_number'] ?? null,
+                    'last_name' => $newStudent['last_name'],
+                    'first_name' => $newStudent['first_name'],
+                    'middle_name' => $newStudent['middle_name'] ?? null,
+                    'raw_name_from_csv' => "{$newStudent['last_name']}, {$newStudent['first_name']}",
+                ];
 
-        // If Type is AR and no amount was supplied, auto-calculate from units × tuition rate.
-        if (($data['ar_or_payment'] ?? null) === 'AR' && blank($data['amount'] ?? null)) {
-            $data['amount'] = (float) ($data['units'] ?? 0) * (float) ($data['tuition_per_unit_or_fee_per_semester'] ?? 0);
-        }
+                $student = filled($studentAttributes['student_number'])
+                    ? LawStudent::create($studentAttributes)
+                    : LawStudent::firstOrCreate(
+                        Arr::only($studentAttributes, ['last_name', 'first_name']),
+                        Arr::except($studentAttributes, ['last_name', 'first_name']),
+                    );
+                $studentId = $student->id;
+            }
 
-        $data['status'] = $this->determineStatus((float) ($data['amount'] ?? 0), $data['status'] ?? null);
+            LawSchoolLedger::create($this->ledgerAttributes(
+                $data,
+                (int) $studentId,
+                $this->resolveAcademicTermId($data),
+            ));
+        });
 
-        LawSchoolLedger::create($data);
-
-        return redirect()->route('law-ledger.index');
+        return redirect()->route('law-ledger.index')->with('success', 'Transaction created successfully.');
     }
 
     /**
@@ -812,6 +810,100 @@ class LawSchoolLedgerController extends Controller
             'remark' => $r->remarks,
             'inputBy' => $r->input_by,
         ];
+    }
+
+    // ─── Form List Helpers ────────────────────────────────────────────────────
+
+    /**
+     * List of students for the form picker.
+     * Returns [{id, student_number, last_name, first_name, middle_name, last_course_id}].
+     */
+    private function studentList(): array
+    {
+        return LawStudent::orderBy('last_name')
+            ->get(['id', 'student_number', 'last_name', 'first_name', 'middle_name'])
+            ->map(fn ($s) => [
+                'id' => $s->id,
+                'student_number' => $s->student_number,
+                'last_name' => $s->last_name,
+                'first_name' => $s->first_name,
+                'middle_name' => $s->middle_name,
+                'last_course_id' => null,
+            ])
+            ->toArray();
+    }
+
+    /**
+     * List of courses for the form picker.
+     * Returns [{id, code}].
+     */
+    private function courseList(): array
+    {
+        return LawCourse::orderBy('code')->get(['id', 'code'])->toArray();
+    }
+
+    /**
+     * List of academic terms for the form picker.
+     */
+    private function academicTermList(): array
+    {
+        return LawAcademicTerm::orderBy('school_year', 'desc')
+            ->orderBy('sort_order')
+            ->get(['id', 'school_year', 'semester'])
+            ->toArray();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function resolveAcademicTermId(array $data): int
+    {
+        if (! empty($data['academic_term_id'])) {
+            return (int) $data['academic_term_id'];
+        }
+
+        $term = LawAcademicTerm::firstOrCreate(
+            [
+                'school_year' => $data['school_year'],
+                'semester' => $data['semester'],
+            ],
+            ['sort_order' => LawAcademicTerm::sortOrder($data['semester'])]
+        );
+
+        return $term->id;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function ledgerAttributes(array $data, int $studentId, int $academicTermId): array
+    {
+        $attributes = Arr::only($data, [
+            'course_id',
+            'entry_type',
+            'units',
+            'transaction_date',
+            'reference_or_jev_number',
+            'particulars',
+            'tuition_per_unit_or_misc',
+            'amount',
+            'remarks',
+            'input_by',
+        ]);
+
+        $attributes['student_id'] = $studentId;
+        $attributes['academic_term_id'] = $academicTermId;
+        $attributes['tuition_per_unit_or_misc'] = $data['tuition_per_unit_or_misc'] ?? '0.00';
+
+        if ($data['entry_type'] === 'ar' && empty($data['amount'])) {
+            $attributes['amount'] = round(
+                (float) ($data['units'] ?? 0) * (float) $attributes['tuition_per_unit_or_misc'],
+                2,
+            );
+        }
+
+        return $attributes;
     }
 
     private function calculateStudentBalance($records): array
