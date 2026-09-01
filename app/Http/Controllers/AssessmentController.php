@@ -4,17 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\AssessmentForm;
 use App\Models\Courses;
+use App\Services\AssessmentStatsService;
+use App\Services\LedgerMatchingService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
-use App\Services\AssessmentStatsService;
-// use App\Services\LedgerMatchingService;
 
 class AssessmentController extends Controller
 {
     public function __construct(
         private readonly AssessmentStatsService $stats,
-        // private readonly LedgerMatchingService $ledgerMatcher,
+        private readonly LedgerMatchingService $ledgerMatcher,
     ) {}
     
     /**
@@ -117,11 +117,18 @@ class AssessmentController extends Controller
     // /**
     //  * Show the form for editing the specified resource.
     //  */
-    public function edit(AssessmentForm $assessment): InertiaResponse
+    public function edit(Request $request, AssessmentForm $assessment): InertiaResponse
     {
+        $validated = $request->validate([
+            'ledger_student' => ['nullable', 'string', 'max:255'],
+        ]);
+
         return Inertia::render('staff/assessments/assessmentEdit', [
             'assessment' => $assessment->load(['course']),
-            // 'ledgerRecords' => $this->ledgerMatcher->forAssessment($assessment),
+            'ledgerStatement' => $this->ledgerMatcher->forAssessment(
+                $assessment,
+                $validated['ledger_student'] ?? null,
+            ),
         ]);
     }
 

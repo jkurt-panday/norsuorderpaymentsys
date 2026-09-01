@@ -586,12 +586,31 @@ class GraduateLedgerController extends Controller
      */
     public function generatePdf(Request $request)
     {
-        $request->validate(['student_id' => 'required|integer|exists:graduate_student,id']);
-        $studentId = (int) $request->input('student_id');
+        $validated = $request->validate([
+            'student_id' => ['required', 'integer', 'exists:graduate_student,id'],
+            'school_year' => ['nullable', 'string', 'max:20'],
+            'semester' => ['nullable', 'in:First Semester,Second Semester,Summer'],
+        ]);
+        $studentId = (int) $validated['student_id'];
         $student = Student::findOrFail($studentId);
 
-        $rawRecords = GraduateLedger::with(['student', 'course', 'academicTerm'])
+        $rawRecords = GraduateLedger::query()
+            ->with(['student', 'course', 'academicTerm'])
             ->where('student_id', $studentId)
+            ->when(
+                $validated['school_year'] ?? null,
+                fn ($query, $schoolYear) => $query->whereHas(
+                    'academicTerm',
+                    fn ($termQuery) => $termQuery->where('school_year', $schoolYear),
+                ),
+            )
+            ->when(
+                $validated['semester'] ?? null,
+                fn ($query, $semester) => $query->whereHas(
+                    'academicTerm',
+                    fn ($termQuery) => $termQuery->where('semester', $semester),
+                ),
+            )
             ->orderBy('id', 'asc')
             ->get();
 

@@ -1,16 +1,30 @@
 import {
+    edit as editAssessment,
+    index as assessmentsIndex,
+} from '@/actions/App/Http/Controllers/AssessmentController';
+import { generatePdf as generateGraduatePdf } from '@/actions/App/Http/Controllers/GraduateLedgerController';
+import { generatePdf as generateLawPdf } from '@/actions/App/Http/Controllers/LawSchoolLedgerController';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
     Card,
-    CardHeader,
-    CardTitle,
     CardContent,
     CardDescription,
+    CardHeader,
+    CardTitle,
 } from '@/components/ui/card';
-import { Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Printer, X } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import {
+    AlertCircle,
+    ArrowLeft,
+    CheckCircle2,
+    FileQuestion,
+    Printer,
+    Search,
+    X,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 interface Course {
     id: number;
@@ -33,28 +47,76 @@ interface AssessmentFormModel {
     sy_last_attended: string;
     semester: string;
     course?: Course;
-    created_at?: string;
-    updated_at?: string;
+}
+
+interface StudentCandidate {
+    key: string;
+    name: string;
+    studentId: string | null;
+    pdfQueryKey: 'student_id' | 'student';
+    pdfQueryValue: string;
 }
 
 interface LedgerRecord {
-    date: string | null;
-    particulars: string | null;
+    id: number;
+    name: string;
     course: string | null;
-    units: number | null;
+    schoolYear: string | null;
+    semester: string | null;
+    transactionDate: string | null;
+    referenceNo: string | null;
+    particulars: string | null;
+    type: string;
     amount: number;
-    reference: string | null;
+}
+
+interface LedgerStatement {
+    source: 'graduate' | 'law' | 'unsupported';
+    matchStatus: 'matched' | 'manual' | 'missing' | 'ambiguous' | 'unsupported';
+    selectedStudent: StudentCandidate | null;
+    candidates: StudentCandidate[];
+    records: LedgerRecord[];
+    summary: {
+        totalCharges: number;
+        totalPayments: number;
+        outstandingBalance: number;
+    };
+    schoolYear: string;
+    semester: string;
 }
 
 interface AssessmentEditProps {
     assessment: AssessmentFormModel;
-    ledgerRecords: LedgerRecord;
+    ledgerStatement: LedgerStatement;
+}
+
+const currencyFormatter = new Intl.NumberFormat('en-PH', {
+    style: 'currency',
+    currency: 'PHP',
+    minimumFractionDigits: 2,
+});
+
+function formatDate(value: string | null): string {
+    if (!value) {
+        return '—';
+    }
+
+    const parsed = new Date(`${value.split('T')[0]}T00:00:00`);
+
+    return Number.isNaN(parsed.getTime())
+        ? value
+        : parsed.toLocaleDateString('en-PH', {
+              year: 'numeric',
+              month: 'short',
+              day: '2-digit',
+          });
 }
 
 export default function AssessmentEdit({
     assessment,
-    ledgerRecords,
+    ledgerStatement,
 }: AssessmentEditProps) {
+    const [search, setSearch] = useState('');
     const fullName = [
         assessment.first_name,
         assessment.middle_name,
@@ -62,6 +124,56 @@ export default function AssessmentEdit({
     ]
         .filter(Boolean)
         .join(' ');
+    const needsSelection = ['missing', 'ambiguous'].includes(
+        ledgerStatement.matchStatus,
+    );
+    const filteredCandidates = useMemo(() => {
+        const term = search.trim().toLowerCase();
+
+        if (!term) {
+            return ledgerStatement.candidates;
+        }
+
+        return ledgerStatement.candidates.filter((candidate) =>
+            `${candidate.name} ${candidate.studentId ?? ''}`
+                .toLowerCase()
+                .includes(term),
+        );
+    }, [ledgerStatement.candidates, search]);
+
+    const selectStudent = (key: string) => {
+        if (!key) {
+            return;
+        }
+
+        router.get(
+            editAssessment.url(assessment.id, {
+                query: { ledger_student: key },
+            }),
+            {},
+            { preserveScroll: true, preserveState: true },
+        );
+    };
+
+    const printStatement = () => {
+        const selected = ledgerStatement.selectedStudent;
+
+        if (!selected || ledgerStatement.source === 'unsupported') {
+            return;
+        }
+
+        const query = {
+            [selected.pdfQueryKey]: selected.pdfQueryValue,
+            school_year: ledgerStatement.schoolYear,
+            semester: ledgerStatement.semester,
+        };
+        const url =
+            ledgerStatement.source === 'graduate'
+                ? generateGraduatePdf.url({ query })
+                : generateLawPdf.url({ query });
+
+        window.open(url, '_blank', 'noopener,noreferrer');
+    };
 
     return (
         <>
@@ -71,374 +183,410 @@ export default function AssessmentEdit({
 
             <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-slate-50 p-3 sm:p-6">
                 <Card className="rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
-                    <CardHeader className="flex flex-row items-center justify-between p-3">
-                        {/*<div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center sm:justify-between">*/}
+                    <CardHeader className="flex flex-row items-center justify-between gap-4 p-3">
                         <CardTitle className="text-xl font-bold text-slate-900">
                             Assessment: {assessment.reference_number}
                         </CardTitle>
-                        <Link
-                            href="/staff/assessments"
-                            className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                        <Button
+                            variant="outline"
+                            render={<Link href={assessmentsIndex.url()} />}
                         >
                             <ArrowLeft className="h-4 w-4" />
                             Back
-                        </Link>
-                        {/*</div>*/}
+                        </Button>
                     </CardHeader>
                 </Card>
 
                 <Card className="rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
                     <CardContent className="space-y-6 p-4 sm:p-6">
-                        {/* Student Details Grid */}
-                        <div>
-                            <h3 className="mb-3 text-sm font-bold tracking-wider text-slate-500 uppercase">
+                        <section>
+                            <h2 className="mb-3 text-sm font-bold tracking-wider text-slate-500 uppercase">
                                 Student Information
-                            </h3>
+                            </h2>
                             <div className="grid grid-cols-1 gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4 sm:grid-cols-2 md:grid-cols-3">
-                                <div>
-                                    <span className="text-xs font-semibold text-slate-400">
-                                        Full Name
-                                    </span>
-                                    <p className="text-sm font-medium text-slate-900">
-                                        {fullName || '—'}
-                                    </p>
-                                </div>
-                                <div>
-                                    <span className="text-xs font-semibold text-slate-400">
-                                        Email
-                                    </span>
-                                    <p className="text-sm font-medium text-slate-900">
-                                        {assessment.email || '—'}
-                                    </p>
-                                </div>
-                                <div>
-                                    <span className="text-xs font-semibold text-slate-400">
-                                        Contact Number
-                                    </span>
-                                    <p className="text-sm font-medium text-slate-900">
-                                        {assessment.contact_num
-                                            ? assessment.contact_num
-                                                  .replace(/\D/g, '')
-                                                  .replace(
-                                                      /(\d{4})(\d{3})(\d{4})/,
-                                                      '$1 $2 $3',
-                                                  )
-                                            : '—'}
-                                    </p>
-                                </div>
-                                <div className="sm:col-span-2 md:col-span-3">
-                                    <span className="text-xs font-semibold text-slate-400">
-                                        Address
-                                    </span>
-                                    <p className="text-sm font-medium text-slate-900">
-                                        {assessment.address || '—'}
-                                    </p>
-                                </div>
-                                <div className="sm:col-span-2 md:col-span-3">
-                                    <span className="text-xs font-semibold text-slate-400">
-                                        Student ID
-                                    </span>
-                                    <p className="text-sm font-medium text-slate-900">
-                                        {assessment.student_id || '—'}
-                                    </p>
-                                </div>
+                                <Detail label="Full Name" value={fullName} />
+                                <Detail
+                                    label="Email"
+                                    value={assessment.email}
+                                />
+                                <Detail
+                                    label="Contact Number"
+                                    value={assessment.contact_num
+                                        ?.replace(/\D/g, '')
+                                        .replace(
+                                            /(\d{4})(\d{3})(\d{4})/,
+                                            '$1 $2 $3',
+                                        )}
+                                />
+                                <Detail
+                                    label="Address"
+                                    value={assessment.address}
+                                    className="sm:col-span-2"
+                                />
+                                <Detail
+                                    label="Student ID"
+                                    value={assessment.student_id}
+                                />
                             </div>
-                        </div>
+                        </section>
 
-                        {/* Course & Academic Details Grid */}
-                        <div>
-                            <h3 className="mb-3 text-sm font-bold tracking-wider text-slate-500 uppercase">
+                        <section>
+                            <h2 className="mb-3 text-sm font-bold tracking-wider text-slate-500 uppercase">
                                 Course & Academic Information
-                            </h3>
+                            </h2>
                             <div className="grid grid-cols-1 gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4 sm:grid-cols-2 md:grid-cols-3">
-                                <div>
-                                    <span className="text-xs font-semibold text-slate-400">
-                                        Course Code
-                                    </span>
-                                    <p className="text-sm font-medium text-slate-900">
-                                        {assessment.course?.course_code ||
-                                            `ID: ${assessment.course_id}`}
-                                    </p>
-                                </div>
-                                <div>
-                                    <span className="text-xs font-semibold text-slate-400">
-                                        Course Description
-                                    </span>
-                                    <p className="text-sm font-medium text-slate-900">
-                                        {assessment.course?.course_desc ||
-                                            'No relationship loaded'}
-                                    </p>
-                                </div>
-                                <div>
-                                    <span className="text-xs font-semibold text-slate-400">
-                                        Enrolled Under
-                                    </span>
-                                    <p className="text-sm font-medium text-slate-900">
-                                        {assessment.enrolled_under || '—'}
-                                    </p>
-                                </div>
-                                <div>
-                                    <span className="text-xs font-semibold text-slate-400">
-                                        Semester
-                                    </span>
-                                    <p className="text-sm font-medium text-slate-900">
-                                        {assessment.semester || '—'}
-                                    </p>
-                                </div>
-                                <div>
-                                    <span className="text-xs font-semibold text-slate-400">
-                                        SY Last Attended
-                                    </span>
-                                    <p className="text-sm font-medium text-slate-900">
-                                        {assessment.sy_last_attended || '—'}
-                                    </p>
-                                </div>
+                                <Detail
+                                    label="Course Code"
+                                    value={
+                                        assessment.course?.course_code ||
+                                        `ID: ${assessment.course_id}`
+                                    }
+                                />
+                                <Detail
+                                    label="Course Description"
+                                    value={assessment.course?.course_desc}
+                                />
+                                <Detail
+                                    label="Enrolled Under"
+                                    value={assessment.enrolled_under}
+                                />
+                                <Detail
+                                    label="Semester"
+                                    value={assessment.semester}
+                                />
+                                <Detail
+                                    label="SY Last Attended"
+                                    value={assessment.sy_last_attended}
+                                />
                             </div>
-                        </div>
+                        </section>
+                    </CardContent>
+                </Card>
 
-                        {/* Raw Model Dump */}
-                        <div>
-                            <h3 className="mb-2 text-xs font-bold tracking-wider text-slate-400 uppercase">
-                                this here is where mini ledger statement will be
-                                put
-                            </h3>
-                            <pre className="max-h-80 overflow-auto rounded-xl bg-slate-950 p-4 font-mono text-xs text-emerald-400 shadow-inner">
-                                {JSON.stringify(assessment, null, 2)}
-                            </pre>
-                            <pre className="max-h-80 overflow-auto rounded-xl bg-slate-950 p-4 font-mono text-xs text-emerald-400 shadow-inner">
-                                {JSON.stringify(ledgerRecords, null, 2)}
-                            </pre>
-                            <div className="min-h-full bg-[#FAFAF5] p-4 md:p-8">
-                                <div className="mx-auto max-w-5xl space-y-6">
-                                    {/* Header */}
-                                    <div className="flex items-center justify-between border-b border-[#CFE3FF] pb-4">
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="border-[#CFE3FF] text-[#0B3D91]"
-                                                >
-                                                    <ArrowLeft className="mr-1 h-4 w-4" /> Back
-                                                </Button>
-                            
-                                                <h1 className="text-2xl font-bold text-[#0B3D91]">
-                                                    Student Statement Printer
-                                                </h1>
-                                            </div>
-                            
-                                            <p className="mt-1 text-sm text-[#5C7A9E]">
-                                                Select a graduate student to review their transaction
-                                                breakdown and print a formal SOA PDF.
-                                            </p>
-                                        </div>
+                <Card className="overflow-hidden rounded-2xl border border-blue-100 bg-[#FAFAF5] shadow-sm">
+                    <CardHeader className="gap-3 border-b border-blue-100 bg-white sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <CardTitle className="text-xl font-bold text-[#0B3D91]">
+                                    Student Statement Printer
+                                </CardTitle>
+                                <Badge variant="outline">
+                                    {ledgerStatement.schoolYear} ·{' '}
+                                    {ledgerStatement.semester}
+                                </Badge>
+                            </div>
+                            <CardDescription>
+                                The preview and PDF include only the term
+                                requested in this assessment.
+                            </CardDescription>
+                        </div>
+                        <Button
+                            onClick={printStatement}
+                            disabled={!ledgerStatement.selectedStudent}
+                            className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
+                        >
+                            <Printer className="h-4 w-4" />
+                            Print Statement
+                        </Button>
+                    </CardHeader>
+
+                    <CardContent className="space-y-6 p-4 sm:p-6">
+                        <MatchNotice statement={ledgerStatement} />
+
+                        {needsSelection && (
+                            <Card className="border-amber-200 bg-amber-50/60">
+                                <CardHeader>
+                                    <CardTitle className="text-base text-amber-950">
+                                        Select the correct student
+                                    </CardTitle>
+                                    <CardDescription className="text-amber-800">
+                                        Only students with ledger transactions
+                                        in the requested term are shown.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    <div className="relative">
+                                        <Search className="absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
+                                        <Input
+                                            value={search}
+                                            onChange={(event) =>
+                                                setSearch(event.target.value)
+                                            }
+                                            placeholder="Search by name or student ID..."
+                                            className="bg-white pr-9 pl-9"
+                                        />
+                                        {search && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setSearch('')}
+                                                aria-label="Clear student search"
+                                                className="absolute top-2.5 right-3 text-slate-400 hover:text-slate-700"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        )}
                                     </div>
-                            
-                                    <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                                        {/* Left: Interactive List Search */}
-                                        <Card className="border-[#CFE3FF] bg-white md:col-span-1">
-                                            <CardHeader className="pb-3">
-                                                <CardTitle className="text-sm font-semibold text-[#0B3D91]">
-                                                    Search Student
-                                                </CardTitle>
-                            
-                                                <CardDescription className="text-xs text-[#7FA6D6]">
-                                                    Click a name to preview records
-                                                </CardDescription>
-                                            </CardHeader>
-                            
-                                            <CardContent className="space-y-4">
-                                                <div className="relative">
-                                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#8AA8CC]" />
-                            
-                                                    <Input
-                                                        type="text"
-                                                        placeholder="Type to filter list..."
-                                                        className="pl-9 pr-8"
-                                                    />
-                            
-                                                    <button
-                                                        className="absolute right-2.5 top-2.5 text-[#8AA8CC] hover:text-[#0B3D91]"
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                    </button>
-                                                </div>
-                            
-                                                {/* Dropdown for Mobile */}
-                                                <div className="block md:hidden">
-                                                    <select
-                                                        className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
-                                                    >
-                                                        <option value="">
-                                                            -- Choose Student --
-                                                        </option>
-                            
-                                                        <option value="">
-                                                            Student Name
-                                                        </option>
-                                                    </select>
-                                                </div>
-                            
-                                                {/* List for Desktop */}
-                                                <div className="hidden max-h-95 overflow-y-auto rounded-md border border-[#EAF2FF] md:block">
-                                                    <div className="divide-y divide-[#EAF2FF]">
-                                                        <button
-                                                            type="button"
-                                                            className="w-full px-3 py-2 text-left text-xs text-[#334E68] transition-colors hover:bg-[#F3F8FF]"
+                                    <select
+                                        defaultValue=""
+                                        onChange={(event) =>
+                                            selectStudent(event.target.value)
+                                        }
+                                        className="w-full rounded-md border border-amber-200 bg-white px-3 py-2 text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    >
+                                        <option value="" disabled>
+                                            Choose a student
+                                        </option>
+                                        {filteredCandidates.map((candidate) => (
+                                            <option
+                                                key={candidate.key}
+                                                value={candidate.key}
+                                            >
+                                                {candidate.name}
+                                                {candidate.studentId
+                                                    ? ` · ${candidate.studentId}`
+                                                    : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {filteredCandidates.length === 0 && (
+                                        <p className="text-sm text-amber-800">
+                                            No term-specific student matches
+                                            this search.
+                                        </p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {ledgerStatement.selectedStudent && (
+                            <>
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                                    <SummaryCard
+                                        label="Total Billed Charges (AR)"
+                                        value={
+                                            ledgerStatement.summary.totalCharges
+                                        }
+                                    />
+                                    <SummaryCard
+                                        label="Total Payments Received"
+                                        value={
+                                            ledgerStatement.summary
+                                                .totalPayments
+                                        }
+                                        valueClassName="text-emerald-600"
+                                    />
+                                    <SummaryCard
+                                        label="Outstanding Balance"
+                                        value={
+                                            ledgerStatement.summary
+                                                .outstandingBalance
+                                        }
+                                    />
+                                </div>
+
+                                <Card className="border-blue-100 bg-white">
+                                    <CardHeader>
+                                        <CardTitle className="text-lg text-[#0B3D91]">
+                                            {
+                                                ledgerStatement.selectedStudent
+                                                    .name
+                                            }
+                                        </CardTitle>
+                                        <CardDescription>
+                                            {ledgerStatement.records.length}{' '}
+                                            transaction
+                                            {ledgerStatement.records.length ===
+                                            1
+                                                ? ''
+                                                : 's'}{' '}
+                                            found for the requested term
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="overflow-x-auto p-0 sm:p-0">
+                                        <table className="w-full min-w-180 border-collapse text-left text-xs">
+                                            <thead>
+                                                <tr className="border-y border-blue-100 bg-blue-50/60 font-semibold text-[#0B3D91]">
+                                                    <th className="px-4 py-3">
+                                                        Date
+                                                    </th>
+                                                    <th className="px-4 py-3">
+                                                        Course
+                                                    </th>
+                                                    <th className="px-4 py-3">
+                                                        Ref / OR #
+                                                    </th>
+                                                    <th className="px-4 py-3">
+                                                        Particulars
+                                                    </th>
+                                                    <th className="px-4 py-3">
+                                                        Type
+                                                    </th>
+                                                    <th className="px-4 py-3 text-right">
+                                                        Amount
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {ledgerStatement.records
+                                                    .length === 0 ? (
+                                                    <tr>
+                                                        <td
+                                                            colSpan={6}
+                                                            className="px-4 py-10 text-center text-slate-500"
                                                         >
-                                                            Student Name
-                                                        </button>
-                            
-                                                        <button
-                                                            type="button"
-                                                            className="w-full bg-[#EAF2FF] px-3 py-2 text-left text-xs font-medium text-[#0B3D91] transition-colors hover:bg-[#F3F8FF]"
-                                                        >
-                                                            Selected Student
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                            
-                                        {/* Right: Detailed SOA preview */}
-                                        <div className="space-y-6 md:col-span-2">
-                                            {/* Stats Row */}
-                                            <div className="grid grid-cols-3 gap-4">
-                                                <Card className="border-[#CFE3FF] bg-white p-4">
-                                                    <p className="text-xs text-[#5C7A9E]">
-                                                        Total Billed Charges (AR)
-                                                    </p>
-                            
-                                                    <h3 className="mt-1 text-base font-bold text-[#0B3D91]">
-                                                        ₱ 0.00
-                                                    </h3>
-                                                </Card>
-                            
-                                                <Card className="border-[#CFE3FF] bg-white p-4">
-                                                    <p className="text-xs text-[#5C7A9E]">
-                                                        Total Payments Received
-                                                    </p>
-                            
-                                                    <h3 className="mt-1 text-base font-bold text-emerald-600">
-                                                        ₱ 0.00
-                                                    </h3>
-                                                </Card>
-                            
-                                                <Card className="border-[#CFE3FF] bg-white p-4">
-                                                    <p className="text-xs text-[#5C7A9E]">
-                                                        Outstanding Balance
-                                                    </p>
-                            
-                                                    <h3 className="mt-1 text-base font-bold text-[#0B3D91]">
-                                                        ₱ 0.00
-                                                    </h3>
-                                                </Card>
-                                            </div>
-                            
-                                            <Card className="border-[#CFE3FF] bg-white">
-                                                <CardHeader className="flex flex-row items-center justify-between pb-3">
-                                                    <div>
-                                                        <CardTitle className="text-lg font-bold text-[#0B3D91]">
-                                                            Student Record
-                                                        </CardTitle>
-                            
-                                                        <CardDescription className="text-xs text-[#7FA6D6]">
-                                                            0 transactions on ledger
-                                                        </CardDescription>
-                                                    </div>
-                            
-                                                    <Button
-                                                        className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
-                                                        size="sm"
-                                                    >
-                                                        <Printer className="mr-1.5 h-4 w-4" />
-                                                        Print Statement
-                                                    </Button>
-                                                </CardHeader>
-                            
-                                                <CardContent className="overflow-x-auto">
-                                                    <table className="w-full border-collapse text-left text-xs">
-                                                        <thead>
-                                                            <tr className="border-b border-[#CFE3FF] bg-[#F7FAFE] font-semibold text-[#0B3D91]">
-                                                                <th className="px-3 py-3">
-                                                                    Date
-                                                                </th>
-                            
-                                                                <th className="px-3 py-3">
-                                                                    S.Y. / Term
-                                                                </th>
-                            
-                                                                <th className="px-3 py-3">
-                                                                    Ref / OR #
-                                                                </th>
-                            
-                                                                <th className="px-3 py-3">
-                                                                    Particulars
-                                                                </th>
-                            
-                                                                <th className="px-3 py-3">
-                                                                    Type
-                                                                </th>
-                            
-                                                                <th className="px-3 py-3 text-right">
-                                                                    Amount
-                                                                </th>
-                                                            </tr>
-                                                        </thead>
-                            
-                                                        <tbody>
-                                                            <tr>
-                                                                <td
-                                                                    colSpan={6}
-                                                                    className="py-6 text-center text-[#8AA8CC]"
-                                                                >
-                                                                    No records found for this student.
+                                                            No ledger
+                                                            transactions were
+                                                            found for this term.
+                                                        </td>
+                                                    </tr>
+                                                ) : (
+                                                    ledgerStatement.records.map(
+                                                        (record) => (
+                                                            <tr
+                                                                key={record.id}
+                                                                className="border-b border-blue-50 hover:bg-blue-50/40"
+                                                            >
+                                                                <td className="px-4 py-3 text-slate-700">
+                                                                    {formatDate(
+                                                                        record.transactionDate,
+                                                                    )}
                                                                 </td>
-                                                            </tr>
-                            
-                                                            <tr className="border-b border-[#EAF2FF] hover:bg-[#F3F8FF]">
-                                                                <td className="px-3 py-2 text-[#334E68]">
-                                                                    2026-01-01
+                                                                <td className="px-4 py-3 text-slate-700">
+                                                                    {record.course ||
+                                                                        '—'}
                                                                 </td>
-                            
-                                                                <td className="px-3 py-2 text-[#334E68]">
-                                                                    2025-2026 (1st)
+                                                                <td className="px-4 py-3 text-slate-700">
+                                                                    {record.referenceNo ||
+                                                                        '—'}
                                                                 </td>
-                            
-                                                                <td className="px-3 py-2 text-[#334E68]">
-                                                                    -
+                                                                <td className="px-4 py-3 text-slate-700">
+                                                                    {record.particulars ||
+                                                                        '—'}
                                                                 </td>
-                            
-                                                                <td className="px-3 py-2 text-[#334E68]">
-                                                                    Tuition
-                                                                </td>
-                            
-                                                                <td className="px-3 py-2">
+                                                                <td className="px-4 py-3">
                                                                     <Badge
-                                                                        variant="outline"
-                                                                        className="text-[10px]"
+                                                                        variant={
+                                                                            record.type ===
+                                                                            'AR'
+                                                                                ? 'outline'
+                                                                                : 'secondary'
+                                                                        }
                                                                     >
-                                                                        AR
+                                                                        {record.type ||
+                                                                            '—'}
                                                                     </Badge>
                                                                 </td>
-                            
-                                                                <td className="px-3 py-2 text-right font-medium text-[#0B3D91]">
-                                                                    ₱ 0.00
+                                                                <td className="px-4 py-3 text-right font-medium text-[#0B3D91]">
+                                                                    {currencyFormatter.format(
+                                                                        record.amount,
+                                                                    )}
                                                                 </td>
                                                             </tr>
-                                                        </tbody>
-                                                    </table>
-                                                </CardContent>
-                                            </Card>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
+                                                        ),
+                                                    )
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </CardContent>
+                                </Card>
+                            </>
+                        )}
                     </CardContent>
                 </Card>
             </div>
         </>
+    );
+}
+
+function Detail({
+    label,
+    value,
+    className = '',
+}: {
+    label: string;
+    value?: string | null;
+    className?: string;
+}) {
+    return (
+        <div className={className}>
+            <span className="text-xs font-semibold text-slate-400">
+                {label}
+            </span>
+            <p className="text-sm font-medium text-slate-900">{value || '—'}</p>
+        </div>
+    );
+}
+
+function SummaryCard({
+    label,
+    value,
+    valueClassName = 'text-[#0B3D91]',
+}: {
+    label: string;
+    value: number;
+    valueClassName?: string;
+}) {
+    return (
+        <Card className="border-blue-100 bg-white p-4">
+            <p className="text-xs text-slate-500">{label}</p>
+            <p className={`mt-1 text-base font-bold ${valueClassName}`}>
+                {currencyFormatter.format(value)}
+            </p>
+        </Card>
+    );
+}
+
+function MatchNotice({ statement }: { statement: LedgerStatement }) {
+    if (statement.matchStatus === 'unsupported') {
+        return (
+            <div className="flex gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-slate-700">
+                <FileQuestion className="mt-0.5 h-5 w-5 shrink-0" />
+                <div>
+                    <p className="font-semibold">Ledger unavailable</p>
+                    <p className="text-sm">
+                        Undergraduate ledger statements are not available in the
+                        current system.
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    if (statement.selectedStudent) {
+        return (
+            <div className="flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+                <div>
+                    <p className="font-semibold">
+                        {statement.matchStatus === 'manual'
+                            ? 'Student selected'
+                            : 'Student matched automatically'}
+                    </p>
+                    <p className="text-sm">
+                        {statement.selectedStudent.name}
+                        {statement.selectedStudent.studentId
+                            ? ` · ${statement.selectedStudent.studentId}`
+                            : ''}
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+            <div>
+                <p className="font-semibold">
+                    {statement.matchStatus === 'ambiguous'
+                        ? 'Multiple possible students found'
+                        : 'Student could not be matched automatically'}
+                </p>
+                <p className="text-sm">
+                    Select the correct student below before previewing or
+                    printing the statement.
+                </p>
+            </div>
+        </div>
     );
 }
