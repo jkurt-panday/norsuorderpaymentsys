@@ -205,7 +205,7 @@ export const columns = columnHelper.columns([
                             <Eye className="h-4 w-4" />
                         </Link>
                         <Link
-                            href={`/staff/assessments/${assessment.id}/edit`}
+                            href={`/staff/assessments/edit/${assessment.id}`}
                             className="flex h-8 w-8 items-center justify-center bg-amber-400 text-white transition-colors hover:bg-amber-500"
                         >
                             <Pencil className="h-4 w-4" />

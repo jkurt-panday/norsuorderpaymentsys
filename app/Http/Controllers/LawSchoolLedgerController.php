@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\LawSchoolLedgerExport;
+use App\Models\AcademicTerm;
 use App\Models\ActivityLog;
 use App\Models\LawSchoolLedger;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -436,16 +437,38 @@ class LawSchoolLedgerController extends Controller
     {
         set_time_limit(300);
 
-        $request->validate([
-            'student' => 'required_without:student_id|string',
-            'student_id' => 'required_without:student|string',
+        $validated = $request->validate([
+            'student' => ['required_without:student_id', 'string'],
+            'student_id' => ['required_without:student', 'string'],
+            'school_year' => ['nullable', 'string', 'max:20'],
+            'semester' => ['nullable', 'in:First Semester,Second Semester,Summer'],
         ]);
 
-        $studentName = str_replace(['−', '–', '—'], '-', (string) ($request->input('student') ?? $request->input('student_id')));
+        $studentName = str_replace(['−', '–', '—'], '-', (string) ($validated['student'] ?? $validated['student_id']));
+        $recordsQuery = isset($validated['student_id'])
+            ? LawSchoolLedger::query()->where('student_id', $validated['student_id'])
+            : $this->queryStudentByName($studentName);
 
-        $records = $this->queryStudentByName($studentName)
+        $records = $recordsQuery
+            ->when(
+                $validated['school_year'] ?? null,
+                fn ($query, $schoolYear) => $query->where('school_year', $schoolYear),
+            )
             ->orderBy('id', 'asc')
-            ->get();
+            ->get()
+            ->when(
+                $validated['semester'] ?? null,
+                fn ($records, $semester) => $records->filter(
+                    fn (LawSchoolLedger $record) => AcademicTerm::normalizeSemester(
+                        (string) $record->semester_or_summer,
+                    ) === $semester,
+                )->values(),
+            );
+
+        if (isset($validated['student_id']) && $records->isNotEmpty()) {
+            $student = $records->first();
+            $studentName = trim("{$student->last_name}, {$student->first_name} ".($student->middle_initial ?: ''));
+        }
 
         $summary = $this->calculateStudentBalance($records);
 

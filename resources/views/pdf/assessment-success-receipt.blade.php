@@ -175,6 +175,22 @@
 
                     </div>
 
+                    <!-- student id -->
+                    <div class="col-span-2">
+
+                        <span class="flex items-center gap-1 text-[10px] font-bold uppercase text-gray-400">
+
+                            <x-lucide-hash class="h-3 w-3 text-gray-400" />
+
+                            Student ID
+
+                        </span>
+
+                        <span class="font-bold text-gray-800">
+                            {{ $assessmentForm->student_id }}
+                        </span>
+
+                    </div>
 
                     <!-- Address -->
                     <div class="col-span-2">

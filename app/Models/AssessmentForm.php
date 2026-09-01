@@ -21,6 +21,7 @@ class AssessmentForm extends Model
         'first_name',
         'middle_name',
         'last_name',
+        'student_id',
         'course_id',
         'address',
         'enrolled_under',
