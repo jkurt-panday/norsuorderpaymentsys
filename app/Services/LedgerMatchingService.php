@@ -211,7 +211,7 @@ class LedgerMatchingService
             'records' => [],
             'summary' => $this->emptySummary(),
             'schoolYear' => $assessment->sy_last_attended,
-            'semester' => AcademicTerm::normalizeSemester($assessment->semester),
+            'semester' => AcademicTerm::normalizeSemester((string) $assessment->semester),
         ];
     }
 
