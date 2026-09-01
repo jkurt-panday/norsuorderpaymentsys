@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GraduateLedger extends Model
 {
@@ -26,25 +27,28 @@ class GraduateLedger extends Model
     ];
 
     protected $casts = [
-        'units' => 'float',
-        'tuition_per_unit_or_misc' => 'float',
-        'amount' => 'float',
+        'units' => 'integer',
+        'tuition_per_unit_or_misc' => 'decimal:2',
+        'amount' => 'decimal:2',
         'transaction_date' => 'date:Y-m-d',
     ];
 
     // ─── Relationships ────────────────────────────────────────────────────────
 
-    public function student()
+    /** @return BelongsTo<Student, $this> */
+    public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class);
     }
 
-    public function course()
+    /** @return BelongsTo<Course, $this> */
+    public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
     }
 
-    public function academicTerm()
+    /** @return BelongsTo<AcademicTerm, $this> */
+    public function academicTerm(): BelongsTo
     {
         return $this->belongsTo(AcademicTerm::class);
     }

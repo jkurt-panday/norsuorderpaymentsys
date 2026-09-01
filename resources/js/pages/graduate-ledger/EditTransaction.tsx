@@ -1,8 +1,19 @@
 import { Head, useForm, router } from '@inertiajs/react';
-import { ArrowLeft, Trash2, Search, Check, ChevronsUpDown, X } from 'lucide-react';
+import {
+    ArrowLeft,
+    Trash2,
+    Search,
+    Check,
+    ChevronsUpDown,
+    X,
+} from 'lucide-react';
 import React, { useState, useMemo } from 'react';
+import {
+    destroy as destroyGraduateLedger,
+    index as graduateLedgerIndex,
+    update as updateGraduateLedger,
+} from '@/actions/App/Http/Controllers/GraduateLedgerController';
 import { Button } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
 import {
     Card,
     CardContent,
@@ -11,27 +22,34 @@ import {
     CardDescription,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const semesterOptions = [
-    { short: '1st Sem.', full: 'First Semester' },
-    { short: '2nd Sem.', full: 'Second Semester' },
-    { short: 'Summer',   full: 'Summer' },
+    { label: '1st Sem.', value: 'First Semester' },
+    { label: '2nd Sem.', value: 'Second Semester' },
+    { label: 'Summer', value: 'Summer' },
 ];
 
-const particularsOptions = ['Registration', 'Tuition', 'Miscellaneous', 'Adjustment'];
+const particularsOptions = [
+    'Registration',
+    'Tuition',
+    'Miscellaneous',
+    'Adjustment',
+];
 
 const entryTypeOptions = [
-    { value: 'ar',          label: 'AR' },
-    { value: 'payment',     label: 'Payment' },
-    { value: 'adjustment',  label: 'Adjustment' },
+    { value: 'ar', label: 'AR' },
+    { value: 'payment', label: 'Payment' },
+    { value: 'adjustment', label: 'Adjustment' },
 ];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface StudentOption {
     id: number | string;
+    student_number?: string | null;
     last_name: string;
     first_name: string;
     middle_name?: string | null;
@@ -45,7 +63,6 @@ interface CourseOption {
 interface AcademicTermOption {
     id: number;
     school_year: string;
-    semester_short: string;
     semester: string;
 }
 
@@ -57,7 +74,6 @@ interface LedgerFormRecord {
     course?: string;
     academic_term_id?: number | string;
     school_year?: string;
-    semester_short?: string;
     semester?: string;
     entry_type?: string;
     ar_payment?: string;
@@ -82,15 +98,21 @@ interface Props {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatStudentLabel(s: StudentOption): string {
-    if (!s.first_name) return String(s.last_name);
-    const mi = s.middle_name ? ` ${s.middle_name.charAt(0).toUpperCase()}.` : '';
-    return `${s.last_name}, ${s.first_name}${mi}`;
+    const studentName = !s.first_name
+        ? String(s.last_name)
+        : `${s.last_name}, ${s.first_name}${s.middle_name ? ` ${s.middle_name.charAt(0).toUpperCase()}.` : ''}`;
+
+    if (s.student_number) {
+        return `${s.student_number} — ${studentName}`;
+    }
+
+    return studentName;
 }
 
 function FieldError({ message }: { message?: string }) {
     if (!message) {
-return null;
-}
+        return null;
+    }
 
     return <p className="mt-1 text-xs text-red-500">{message}</p>;
 }
@@ -109,14 +131,21 @@ function SearchableStudentSelect({
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState('');
 
-    const selectedStudent = students.find(s => String(s.id) === String(value));
+    const selectedStudent = students.find(
+        (s) => String(s.id) === String(value),
+    );
 
     const filteredStudents = useMemo(() => {
         const query = search.toLowerCase().trim();
-        if (!query) return students.slice(0, 80);
+
+        if (!query) {
+            return students.slice(0, 80);
+        }
+
         return students
-            .filter(s => {
+            .filter((s) => {
                 const label = formatStudentLabel(s).toLowerCase();
+
                 return label.includes(query);
             })
             .slice(0, 80);
@@ -127,43 +156,55 @@ function SearchableStudentSelect({
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center justify-between rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                className="flex w-full items-center justify-between rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
             >
-                <span className={selectedStudent ? 'text-[#0B3D91] font-medium' : 'text-[#7FA6D6]'}>
-                    {selectedStudent ? formatStudentLabel(selectedStudent) : '-- Select / Search Student --'}
+                <span
+                    className={
+                        selectedStudent
+                            ? 'font-medium text-[#0B3D91]'
+                            : 'text-[#7FA6D6]'
+                    }
+                >
+                    {selectedStudent
+                        ? formatStudentLabel(selectedStudent)
+                        : '-- Select / Search Student --'}
                 </span>
                 <ChevronsUpDown className="h-4 w-4 text-[#7FA6D6]" />
             </button>
 
             {isOpen && (
-                <div className="absolute z-50 mt-1 w-full rounded-md border border-[#CFE3FF] bg-white shadow-lg p-2 space-y-2">
+                <div className="absolute z-50 mt-1 w-full space-y-2 rounded-md border border-[#CFE3FF] bg-white p-2 shadow-lg">
                     <div className="relative">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#8AA8CC]" />
+                        <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-[#8AA8CC]" />
                         <Input
                             type="text"
-                            placeholder="Type student name to filter list..."
+                            placeholder="Type Student ID or name to filter..."
                             value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            className="pl-8 h-9 text-xs border-[#CFE3FF]"
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="h-9 border-[#CFE3FF] pl-8 text-xs"
                             autoFocus
                         />
                         {search && (
                             <button
                                 type="button"
                                 onClick={() => setSearch('')}
-                                className="absolute right-2.5 top-2.5 text-xs text-[#8AA8CC] hover:text-[#0B3D91]"
+                                className="absolute top-2.5 right-2.5 text-xs text-[#8AA8CC] hover:text-[#0B3D91]"
                             >
                                 <X className="h-4 w-4" />
                             </button>
                         )}
                     </div>
 
-                    <div className="max-h-60 overflow-y-auto divide-y divide-[#EAF2FF] rounded-md border border-[#EAF2FF]">
+                    <div className="max-h-60 divide-y divide-[#EAF2FF] overflow-y-auto rounded-md border border-[#EAF2FF]">
                         {filteredStudents.length === 0 ? (
-                            <p className="p-3 text-center text-xs text-[#8AA8CC]">No students found.</p>
+                            <p className="p-3 text-center text-xs text-[#8AA8CC]">
+                                No students found.
+                            </p>
                         ) : (
-                            filteredStudents.map(s => {
-                                const isSelected = String(s.id) === String(value);
+                            filteredStudents.map((s) => {
+                                const isSelected =
+                                    String(s.id) === String(value);
+
                                 return (
                                     <button
                                         key={s.id}
@@ -172,12 +213,16 @@ function SearchableStudentSelect({
                                             onChange(s.id);
                                             setIsOpen(false);
                                         }}
-                                        className={`w-full flex items-center justify-between px-3 py-2 text-xs text-left transition-colors hover:bg-[#F3F8FF] ${
-                                            isSelected ? 'bg-[#EAF2FF] font-semibold text-[#0B3D91]' : 'text-[#334E68]'
+                                        className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-[#F3F8FF] ${
+                                            isSelected
+                                                ? 'bg-[#EAF2FF] font-semibold text-[#0B3D91]'
+                                                : 'text-[#334E68]'
                                         }`}
                                     >
                                         <span>{formatStudentLabel(s)}</span>
-                                        {isSelected && <Check className="h-3.5 w-3.5 text-[#0F6FFF]" />}
+                                        {isSelected && (
+                                            <Check className="h-3.5 w-3.5 text-[#0F6FFF]" />
+                                        )}
                                     </button>
                                 );
                             })
@@ -200,14 +245,13 @@ export default function EditTransaction({
 }: Props) {
     const isNormalized = record.student_id !== undefined;
 
-    const { data, setData, put, processing, errors } = useForm({
+    const { data, setData, transform, put, processing, errors } = useForm({
         student_id: record.student_id ?? '',
         student_name: record.student_name ?? '',
         course_id: record.course_id ?? '',
         course: record.course ?? '',
         academic_term_id: record.academic_term_id ?? '',
         school_year: record.school_year ?? '',
-        semester_short: record.semester_short ?? '1st Sem.',
         semester: record.semester ?? 'First Semester',
         entry_type: record.entry_type ?? 'ar',
         ar_payment: record.ar_payment ?? 'AR',
@@ -227,51 +271,61 @@ export default function EditTransaction({
     const parsedRate = Number(data.tuition_per_unit_or_misc || 0);
     const computedAmount = parsedUnits * parsedRate;
 
-    const isAR = isNormalized ? data.entry_type === 'ar' : data.ar_payment === 'AR';
+    const isAR = isNormalized
+        ? data.entry_type === 'ar'
+        : data.ar_payment === 'AR';
     const shouldAutoComputeAmount = isAR && data.amount === '';
     const displayedAmount = shouldAutoComputeAmount
         ? computedAmount.toFixed(2)
         : data.amount;
 
-    function syncTerm(sy: string, sem: string) {
+    function syncTerm(sy: string, semester: string) {
         if (academicTerms.length > 0) {
             const match = academicTerms.find(
-                t => t.school_year === sy && t.semester_short === sem,
+                (term) => term.school_year === sy && term.semester === semester,
             );
-            setData(prev => ({
+            setData((prev) => ({
                 ...prev,
                 academic_term_id: match?.id ?? '',
                 school_year: sy,
-                semester_short: sem,
+                semester,
             }));
         } else {
-            setData(prev => ({
+            setData((prev) => ({
                 ...prev,
                 school_year: sy,
-                semester_short: sem,
+                semester,
             }));
         }
     }
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const finalAmount = shouldAutoComputeAmount ? computedAmount.toFixed(2) : data.amount;
+        const finalAmount = shouldAutoComputeAmount
+            ? computedAmount.toFixed(2)
+            : data.amount;
 
-        setData(prev => ({
-            ...prev,
+        transform((formData) => ({
+            ...formData,
             amount: finalAmount,
+            tuition_per_unit_or_misc:
+                formData.tuition_per_unit_or_misc || '0.00',
         }));
 
-        put(`/graduate-ledger/${record.id}`, {
+        put(updateGraduateLedger.url(record.id), {
             preserveScroll: true,
         });
     };
 
     const handleDelete = () => {
         const studentLabel = isNormalized
-            ? (students.find(s => String(s.id) === String(data.student_id))
-                ? formatStudentLabel(students.find(s => String(s.id) === String(data.student_id))!)
-                : 'this student')
+            ? students.find((s) => String(s.id) === String(data.student_id))
+                ? formatStudentLabel(
+                      students.find(
+                          (s) => String(s.id) === String(data.student_id),
+                      )!,
+                  )
+                : 'this student'
             : data.student_name;
 
         if (
@@ -279,13 +333,14 @@ export default function EditTransaction({
                 `Delete this transaction for "${studentLabel}"? This cannot be undone.`,
             )
         ) {
-return;
-}
+            return;
+        }
 
-        router.delete(`/graduate-ledger/${record.id}`);
+        router.delete(destroyGraduateLedger.url(record.id));
     };
 
-    const selectClass = 'w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none';
+    const selectClass =
+        'w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none';
 
     return (
         <div className="min-h-full bg-[#FAFAF5] p-4 md:p-8">
@@ -296,7 +351,9 @@ return;
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => router.get('/graduate-ledger')}
+                            onClick={() =>
+                                router.get(graduateLedgerIndex.url())
+                            }
                             className="border-[#CFE3FF] text-[#0B3D91]"
                         >
                             <ArrowLeft className="mr-1 h-4 w-4" /> Back
@@ -326,7 +383,8 @@ return;
                             Transaction Details
                         </CardTitle>
                         <CardDescription className="text-[#7FA6D6]">
-                            Update the student information and financial details below.
+                            Update the student information and financial details
+                            below.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -336,24 +394,35 @@ return;
                         >
                             {/* Student Picker */}
                             <div className="md:col-span-2">
-                                <label className="text-sm text-[#334E68] mb-1 block">
+                                <label className="mb-1 block text-sm text-[#334E68]">
                                     Student
                                 </label>
                                 {isNormalized ? (
                                     <SearchableStudentSelect
                                         students={students}
                                         value={data.student_id}
-                                        onChange={id => setData('student_id', id)}
+                                        onChange={(id) =>
+                                            setData('student_id', id)
+                                        }
                                     />
                                 ) : (
                                     <Input
                                         value={data.student_name}
-                                        onChange={(e) => setData('student_name', e.target.value)}
+                                        onChange={(e) =>
+                                            setData(
+                                                'student_name',
+                                                e.target.value,
+                                            )
+                                        }
                                         placeholder="Student Name..."
                                         required
                                     />
                                 )}
-                                <FieldError message={errors.student_id || errors.student_name} />
+                                <FieldError
+                                    message={
+                                        errors.student_id || errors.student_name
+                                    }
+                                />
                             </div>
 
                             {/* Course */}
@@ -364,12 +433,19 @@ return;
                                 {isNormalized ? (
                                     <select
                                         value={String(data.course_id)}
-                                        onChange={(e) => setData('course_id', e.target.value)}
+                                        onChange={(e) =>
+                                            setData('course_id', e.target.value)
+                                        }
                                         className={selectClass}
                                     >
-                                        <option value="">-- Select Course --</option>
-                                        {courses.map(c => (
-                                            <option key={c.id} value={String(c.id)}>
+                                        <option value="">
+                                            -- Select Course --
+                                        </option>
+                                        {courses.map((c) => (
+                                            <option
+                                                key={c.id}
+                                                value={String(c.id)}
+                                            >
                                                 {c.code}
                                             </option>
                                         ))}
@@ -377,18 +453,24 @@ return;
                                 ) : (
                                     <select
                                         value={data.course}
-                                        onChange={(e) => setData('course', e.target.value)}
+                                        onChange={(e) =>
+                                            setData('course', e.target.value)
+                                        }
                                         className={selectClass}
                                     >
-                                        <option value="">-- Select Course --</option>
-                                        {courses.map(c => (
+                                        <option value="">
+                                            -- Select Course --
+                                        </option>
+                                        {courses.map((c) => (
                                             <option key={c.id} value={c.code}>
                                                 {c.code}
                                             </option>
                                         ))}
                                     </select>
                                 )}
-                                <FieldError message={errors.course_id || errors.course} />
+                                <FieldError
+                                    message={errors.course_id || errors.course}
+                                />
                             </div>
 
                             {/* School Year */}
@@ -401,43 +483,42 @@ return;
                                     placeholder="e.g. 2025-2026"
                                     pattern="\d{4}-\d{4}"
                                     title="Format: YYYY-YYYY (e.g. 2025-2026)"
-                                    onChange={(e) => syncTerm(e.target.value, data.semester_short)}
-                                    className={errors.school_year ? 'border-red-400' : ''}
+                                    onChange={(e) =>
+                                        syncTerm(e.target.value, data.semester)
+                                    }
+                                    className={
+                                        errors.school_year
+                                            ? 'border-red-400'
+                                            : ''
+                                    }
                                 />
                                 <FieldError message={errors.school_year} />
                             </div>
 
-                            {/* Semester Short */}
-                            <div>
-                                <label className="text-sm text-[#334E68]">
-                                    Semester Short
-                                </label>
-                                <select
-                                    value={data.semester_short}
-                                    onChange={(e) => syncTerm(data.school_year, e.target.value)}
-                                    className={selectClass}
-                                >
-                                    {semesterOptions.map((option) => (
-                                        <option key={option.short} value={option.short}>
-                                            {option.short}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Semester Full (Read-Only) */}
+                            {/* Semester */}
                             <div>
                                 <label className="text-sm text-[#334E68]">
                                     Semester
                                 </label>
-                                <Input
-                                    value={
-                                        semesterOptions.find(o => o.short === data.semester_short)?.full ?? 
-                                        data.semester
+                                <select
+                                    value={data.semester}
+                                    onChange={(e) =>
+                                        syncTerm(
+                                            data.school_year,
+                                            e.target.value,
+                                        )
                                     }
-                                    readOnly
-                                    className="bg-[#F8FAFC]"
-                                />
+                                    className={selectClass}
+                                >
+                                    {semesterOptions.map((option) => (
+                                        <option
+                                            key={option.value}
+                                            value={option.value}
+                                        >
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
 
                             {/* Units */}
@@ -449,8 +530,12 @@ return;
                                     type="number"
                                     min="0"
                                     value={data.units}
-                                    onChange={(e) => setData('units', e.target.value)}
-                                    className={errors.units ? 'border-red-400' : ''}
+                                    onChange={(e) =>
+                                        setData('units', e.target.value)
+                                    }
+                                    className={
+                                        errors.units ? 'border-red-400' : ''
+                                    }
                                 />
                                 <FieldError message={errors.units} />
                             </div>
@@ -463,8 +548,17 @@ return;
                                 <Input
                                     type="date"
                                     value={data.transaction_date}
-                                    onChange={(e) => setData('transaction_date', e.target.value)}
-                                    className={errors.transaction_date ? 'border-red-400' : ''}
+                                    onChange={(e) =>
+                                        setData(
+                                            'transaction_date',
+                                            e.target.value,
+                                        )
+                                    }
+                                    className={
+                                        errors.transaction_date
+                                            ? 'border-red-400'
+                                            : ''
+                                    }
                                 />
                                 <FieldError message={errors.transaction_date} />
                             </div>
@@ -476,7 +570,12 @@ return;
                                 </label>
                                 <Input
                                     value={data.reference_or_jev_number}
-                                    onChange={(e) => setData('reference_or_jev_number', e.target.value)}
+                                    onChange={(e) =>
+                                        setData(
+                                            'reference_or_jev_number',
+                                            e.target.value,
+                                        )
+                                    }
                                 />
                             </div>
 
@@ -487,7 +586,9 @@ return;
                                 </label>
                                 <select
                                     value={data.particulars}
-                                    onChange={(e) => setData('particulars', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('particulars', e.target.value)
+                                    }
                                     className={selectClass}
                                 >
                                     {particularsOptions.map((option) => (
@@ -508,10 +609,21 @@ return;
                                     step="0.01"
                                     min="0"
                                     value={data.tuition_per_unit_or_misc}
-                                    onChange={(e) => setData('tuition_per_unit_or_misc', e.target.value)}
-                                    className={errors.tuition_per_unit_or_misc ? 'border-red-400' : ''}
+                                    onChange={(e) =>
+                                        setData(
+                                            'tuition_per_unit_or_misc',
+                                            e.target.value,
+                                        )
+                                    }
+                                    className={
+                                        errors.tuition_per_unit_or_misc
+                                            ? 'border-red-400'
+                                            : ''
+                                    }
                                 />
-                                <FieldError message={errors.tuition_per_unit_or_misc} />
+                                <FieldError
+                                    message={errors.tuition_per_unit_or_misc}
+                                />
                             </div>
 
                             {/* Type */}
@@ -522,11 +634,19 @@ return;
                                 {isNormalized ? (
                                     <select
                                         value={data.entry_type}
-                                        onChange={(e) => setData('entry_type', e.target.value)}
+                                        onChange={(e) =>
+                                            setData(
+                                                'entry_type',
+                                                e.target.value,
+                                            )
+                                        }
                                         className={selectClass}
                                     >
                                         {entryTypeOptions.map((option) => (
-                                            <option key={option.value} value={option.value}>
+                                            <option
+                                                key={option.value}
+                                                value={option.value}
+                                            >
                                                 {option.label}
                                             </option>
                                         ))}
@@ -534,12 +654,19 @@ return;
                                 ) : (
                                     <select
                                         value={data.ar_payment}
-                                        onChange={(e) => setData('ar_payment', e.target.value)}
+                                        onChange={(e) =>
+                                            setData(
+                                                'ar_payment',
+                                                e.target.value,
+                                            )
+                                        }
                                         className={selectClass}
                                     >
                                         <option value="AR">AR</option>
                                         <option value="Payment">Payment</option>
-                                        <option value="Adjustment">Adjustment</option>
+                                        <option value="Adjustment">
+                                            Adjustment
+                                        </option>
                                     </select>
                                 )}
                             </div>
@@ -554,8 +681,12 @@ return;
                                     step="0.01"
                                     min="0"
                                     value={displayedAmount}
-                                    onChange={(e) => setData('amount', e.target.value)}
-                                    className={errors.amount ? 'border-red-400' : ''}
+                                    onChange={(e) =>
+                                        setData('amount', e.target.value)
+                                    }
+                                    className={
+                                        errors.amount ? 'border-red-400' : ''
+                                    }
                                 />
                                 <FieldError message={errors.amount} />
                             </div>
@@ -567,7 +698,9 @@ return;
                                 </label>
                                 <Input
                                     value={data.input_by}
-                                    onChange={(e) => setData('input_by', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('input_by', e.target.value)
+                                    }
                                 />
                             </div>
 
@@ -578,7 +711,9 @@ return;
                                 </label>
                                 <Input
                                     value={data.remarks}
-                                    onChange={(e) => setData('remarks', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('remarks', e.target.value)
+                                    }
                                 />
                             </div>
 
