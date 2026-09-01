@@ -156,23 +156,11 @@ export default function AssessmentEdit({
     };
 
     const printStatement = () => {
-        const selected = ledgerStatement.selectedStudent;
-
-        if (!selected || ledgerStatement.source === 'unsupported') {
-            return;
-        }
-
-        const query = {
-            [selected.pdfQueryKey]: selected.pdfQueryValue,
-            school_year: ledgerStatement.schoolYear,
-            semester: ledgerStatement.semester,
-        };
-        const url =
-            ledgerStatement.source === 'graduate'
-                ? generateGraduatePdf.url({ query })
-                : generateLawPdf.url({ query });
-
-        window.open(url, '_blank', 'noopener,noreferrer');
+      const url = `/staff/assessments/print_soa/${assessment.id}` +
+        (ledgerStatement.selectedStudent
+          ? `?ledger_student=${encodeURIComponent(ledgerStatement.selectedStudent)}`
+          : '');
+      window.open(url, '_blank');
     };
 
     return (
