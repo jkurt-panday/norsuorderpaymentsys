@@ -44,7 +44,11 @@ import {
     SidebarTrigger,
 } from '@/components/ui/sidebar';
 import type { AppLayoutProps } from '@/types';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import {
+    Collapsible,
+    CollapsibleTrigger,
+    CollapsibleContent,
+} from '@/components/ui/collapsible';
 
 interface AdminSidebarItem {
     title: string;
@@ -64,7 +68,7 @@ interface AdminSidebarSection {
 }
 
 const adminNavItems: AdminSidebarItem[] = [
-    { title: 'Dashboard', href: '/admin/dashboard', icon: BarChart3 },
+    { title: 'Admin Dashboard', href: '/admin/dashboard', icon: BarChart3 },
     { title: 'User Management', href: '/admin/users', icon: Users },
     { title: 'Activity Log', href: '/admin/activity-log', icon: Activity },
 ];
@@ -73,7 +77,11 @@ const staffNavItems: AdminSidebarItem[] = [
     { title: 'Dashboard', href: '/staff/staffdashboard', icon: Home },
     { title: 'Requests', href: '/staff/requests', icon: FileText },
     { title: 'Bank Accounts', href: '/staff/bank-accounts', icon: Building },
-    { title: 'Payment Options', href: '/staff/payment-options', icon: CreditCard },
+    {
+        title: 'Payment Options',
+        href: '/staff/payment-options',
+        icon: CreditCard,
+    },
     { title: 'Memberships', href: '/staff/memberships', icon: Users },
     { title: 'UACS', href: '/staff/uacs', icon: Logs },
     { title: 'Course', href: '/staff/courses', icon: School },
@@ -124,16 +132,15 @@ function AdminSidebar() {
                         alt="NORSU Order of Payment System"
                         className="w-40 rounded-md object-contain"
                         onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
+                            (e.target as HTMLImageElement).style.display =
+                                'none';
                         }}
                     />
                     <div className="text-center">
                         <p className="text-sm font-semibold text-white">
                             Order of Payment
                         </p>
-                        <p className="text-xs text-white/70">
-                            Admin Portal
-                        </p>
+                        <p className="text-xs text-white/70">Admin Portal</p>
                     </div>
                 </div>
             </SidebarHeader>
@@ -142,7 +149,7 @@ function AdminSidebar() {
             <SidebarContent className="mt-2 px-2">
                 <SidebarMenu>
                     {/* Admin Section */}
-                    <div className="mb-2 px-2 py-1 text-xs font-semibold uppercase tracking-wider text-blue-200/80">
+                    <div className="mb-2 px-2 py-1 text-xs font-semibold tracking-wider text-blue-200/80 uppercase">
                         Admin
                     </div>
                     {adminNavItems.map((item, index) => (
@@ -166,7 +173,7 @@ function AdminSidebar() {
                     ))}
 
                     {/* Staff Section */}
-                    <div className="mt-4 mb-2 px-2 py-1 text-xs font-semibold uppercase tracking-wider text-blue-200/80">
+                    <div className="mt-4 mb-2 px-2 py-1 text-xs font-semibold tracking-wider text-blue-200/80 uppercase">
                         Staff
                     </div>
                     {staffNavItems.map((item, index) => (
@@ -214,10 +221,12 @@ function AdminSidebar() {
                                                         <Link
                                                             href={subItem.href}
                                                             className={`my-0.5 flex w-full items-center rounded-md px-3 py-2 text-[14px] transition-colors duration-200 ${
-                                                                isActive(subItem.href)
+                                                                isActive(
+                                                                    subItem.href,
+                                                                )
                                                                     ? 'bg-[#0078d4] font-medium text-white shadow-sm'
                                                                     : 'text-white/70 hover:bg-white/5 hover:text-white'
-                                                                }`}
+                                                            }`}
                                                         />
                                                     }
                                                 >

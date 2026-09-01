@@ -7,6 +7,8 @@ import {
     getDayLabel,
 } from '@/components/Reusable';
 import type { ActivityLogItem } from '@/components/Reusable';
+import AdminLayout from '@/layouts/admin/layout';
+import AppLayout from '@/layouts/app-layout';
 
 interface RecentRequest {
     id: number;
@@ -120,7 +122,12 @@ export default function Dashboard() {
         (request) => new Date(request.created_at).toDateString() === todayStr,
     );
 
+    const { auth } = usePage<{ auth?: { user?: { role?: string } | null } }>().props;
+    const isAdmin = auth?.user?.role === 'admin';
+    const Layout = isAdmin ? AdminLayout : AppLayout;
+
     return (
+        <Layout>
         <div className="min-h-screen bg-slate-50 px-4 py-8">
             <Head title="Dashboard" />
             <div className="mx-auto max-w-7xl">
@@ -300,5 +307,6 @@ export default function Dashboard() {
                 </div>
             </div>
         </div>
+        </Layout>
     );
 }

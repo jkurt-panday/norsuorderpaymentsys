@@ -35,8 +35,16 @@ export default function Login({
     const [isDeactivatedOpen, setIsDeactivatedOpen] = useState(deactivated_account);
 
     useEffect(() => {
-        setIsDeactivatedOpen(deactivated_account);
+        if (deactivated_account) {
+            setIsDeactivatedOpen(true);
+        }
     }, [deactivated_account]);
+
+    useEffect(() => {
+        if (errors.email && /deactivated/i.test(errors.email)) {
+            setIsDeactivatedOpen(true);
+        }
+    }, [errors.email]);
 
     // Automatically wipe password inputs clean if there is an auth error
     // Fix: Added 'reset' to the dependency array to satisfy ESLint rules

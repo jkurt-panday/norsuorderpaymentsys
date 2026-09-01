@@ -47,6 +47,8 @@ createInertiaApp({
                 return [AppLayout, SettingsLayout];
             case name.startsWith('admin/'):
                 return null;
+            case name.startsWith('staff/'):
+                return null;
             default:
                 return AppLayout;
         }
