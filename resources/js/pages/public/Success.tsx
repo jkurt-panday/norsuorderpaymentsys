@@ -374,31 +374,37 @@ export default function Success({
                                                             <div className="flex min-w-0 items-start gap-3 sm:items-center">
                                                                 <FileText className="mt-1 h-5 w-5 shrink-0 text-muted-foreground sm:mt-0" />
                                                                 <div className="min-w-0 flex-1">
-                                                                <TooltipProvider delayDuration={150}>
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger asChild>
-                                                                            <p
-                                                                                title={
-                                                                                    doc.original_filename
-                                                                                }
-                                                                                className="truncate text-sm font-medium sm:text-lg"
+                                                                    <TooltipProvider
+                                                                        delayDuration={
+                                                                            150
+                                                                        }
+                                                                    >
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger
+                                                                                asChild
+                                                                            >
+                                                                                <p
+                                                                                    title={
+                                                                                        doc.original_filename
+                                                                                    }
+                                                                                    className="truncate text-sm font-medium sm:text-lg"
+                                                                                >
+                                                                                    {
+                                                                                        doc.original_filename
+                                                                                    }
+                                                                                </p>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent
+                                                                                side="top"
+                                                                                align="start"
+                                                                                className="max-w-sm break-all"
                                                                             >
                                                                                 {
                                                                                     doc.original_filename
                                                                                 }
-                                                                            </p>
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent
-                                                                            side="top"
-                                                                            align="start"
-                                                                            className="max-w-sm break-all"
-                                                                        >
-                                                                            {
-                                                                                doc.original_filename
-                                                                            }
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                </TooltipProvider>
+                                                                            </TooltipContent>
+                                                                        </Tooltip>
+                                                                    </TooltipProvider>
                                                                     <p className="flex flex-wrap gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
                                                                         <span>
                                                                             {formatFileSize(
@@ -498,8 +504,8 @@ export default function Success({
                                     </div>
                                 )}
 
-                                <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3 sm:gap-4 justify-center">
-                                    <Button className="h-11 sm:h-12 w-full sm:w-auto rounded-xl bg-blue-700 px-6 sm:px-8 text-sm sm:text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-800 hover:shadow-lg active:scale-[0.98]">
+                                <div className="flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row sm:gap-4">
+                                    <Button className="h-11 w-full rounded-xl bg-blue-700 px-6 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-800 hover:shadow-lg active:scale-[0.98] sm:h-12 sm:w-auto sm:px-8 sm:text-base">
                                         <Link href="/public/opform">
                                             Submit Another Request
                                         </Link>

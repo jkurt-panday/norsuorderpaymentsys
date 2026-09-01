@@ -126,7 +126,11 @@ function formatDateTime(value?: string | null) {
 }
 
 export default function AdminUserManagement() {
-    const { users = { data: [] }, userFilters = {}, auth } = usePage<{
+    const {
+        users = { data: [] },
+        userFilters = {},
+        auth,
+    } = usePage<{
         users: UsersPaginator;
         userFilters: UserFilters;
         auth: { user: { id: number } | null };
@@ -151,15 +155,7 @@ export default function AdminUserManagement() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [userToToggle, setUserToToggle] = useState<User | null>(null);
 
-    const {
-        data,
-        setData,
-        post,
-        put,
-        processing,
-        errors,
-        reset,
-    } = useForm({
+    const { data, setData, post, put, processing, errors, reset } = useForm({
         name: '',
         email: '',
         password: '',
@@ -576,7 +572,7 @@ export default function AdminUserManagement() {
                                                         variant="secondary"
                                                         className="bg-rose-100 text-rose-800"
                                                     >
-                                                        Inactive
+                                                        Deactivated
                                                     </Badge>
                                                 ) : (
                                                     <Badge
@@ -938,12 +934,15 @@ export default function AdminUserManagement() {
                                         onValueChange={(value) =>
                                             setData('role', value)
                                         }
-                                        disabled={editingUser?.id === currentUserId}
+                                        disabled={
+                                            editingUser?.id === currentUserId
+                                        }
                                     >
                                         <SelectTrigger
                                             className={
-                                                editingUser?.id === currentUserId
-                                                    ? 'opacity-50 cursor-not-allowed'
+                                                editingUser?.id ===
+                                                currentUserId
+                                                    ? 'cursor-not-allowed opacity-50'
                                                     : 'w-full'
                                             }
                                         >
@@ -1004,11 +1003,15 @@ export default function AdminUserManagement() {
                     <DialogContent className="max-w-md">
                         <DialogHeader>
                             <DialogTitle>
-                                {userToToggle?.deleted_at ? 'Activate User' : 'Deactivate User'}
+                                {userToToggle?.deleted_at
+                                    ? 'Activate User'
+                                    : 'Deactivate User'}
                             </DialogTitle>
                             <DialogDescription>
                                 Are you sure you want to{' '}
-                                {userToToggle?.deleted_at ? 'activate' : 'deactivate'}{' '}
+                                {userToToggle?.deleted_at
+                                    ? 'activate'
+                                    : 'deactivate'}{' '}
                                 <strong>{userToToggle?.name}</strong> (
                                 {userToToggle?.email})?
                                 {!userToToggle?.deleted_at &&

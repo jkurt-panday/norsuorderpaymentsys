@@ -50,7 +50,13 @@ export interface ActivityLogChange {
 export interface ActivityLogItem {
     id: number;
     action: string;
-    event: 'created' | 'updated' | 'deleted' | 'deactivated' | 'reactivated' | 'processed';
+    event:
+        | 'created'
+        | 'updated'
+        | 'deleted'
+        | 'deactivated'
+        | 'reactivated'
+        | 'processed';
     description: string;
     actor_name: string | null;
     actor_role: string | null;
@@ -342,7 +348,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
         });
     };
 
-    // Clickable column header: cycles through inactive -> asc -> desc -> inactive
+    // Clickable column header: cycles through deactivated -> asc -> desc -> deactivated
     const handleSortClick = (columnKey: string) => {
         const isActive = effectiveSortKey === columnKey;
         const currentDir = effectiveSortDir;
