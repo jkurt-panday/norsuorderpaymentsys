@@ -327,6 +327,7 @@ export default function AdminUserManagement() {
         if (editingUser) {
             put(updateAdminUser.url({ id: editingUser.id }), {
                 onSuccess: () => {
+                    toast.success('User updated successfully!');
                     setDialogOpen(false);
                     setEditingUser(null);
                     reset('name', 'email', 'password', 'role');
@@ -335,6 +336,7 @@ export default function AdminUserManagement() {
         } else {
             post(routes.admin.users.store(), {
                 onSuccess: () => {
+                    toast.success('User added successfully!');
                     setDialogOpen(false);
                     reset('name', 'email', 'password', 'role');
                 },
@@ -355,12 +357,18 @@ export default function AdminUserManagement() {
 
     const handleToggle = () => {
         if (userToToggle) {
+            const willActivate = !!userToToggle.deleted_at;
             router.post(
                 toggleAdminUser.url({ id: userToToggle.id }),
                 { _method: 'PUT' },
                 {
                     preserveScroll: true,
                     onSuccess: () => {
+                        toast.success(
+                            willActivate
+                                ? 'Account reactivated successfully!'
+                                : 'Account deactivated successfully!',
+                        );
                         setIsDeleteDialogOpen(false);
                         setUserToToggle(null);
                     },

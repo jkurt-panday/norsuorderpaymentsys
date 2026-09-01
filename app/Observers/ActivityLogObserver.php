@@ -307,7 +307,11 @@ class ActivityLogObserver
             } elseif ($event === 'deleted') {
                 $action = 'user.deactivated';
                 $verb = 'deactivated';
-                $extra = '';
+                $extra = ' (role: ' . ($model->role ?? 'unknown') . ')';
+            } elseif ($event === 'restored') {
+                $action = 'user.reactivated';
+                $verb = 'reactivated';
+                $extra = ' (role: ' . ($model->role ?? 'unknown') . ')';
             } else {
                 $action = $event;
                 $verb = $event;
@@ -445,5 +449,10 @@ class ActivityLogObserver
     public function deleted(Model $model): void
     {
         $this->record($model, 'deleted');
+    }
+
+    public function restored(Model $model): void
+    {
+        $this->record($model, 'restored');
     }
 }

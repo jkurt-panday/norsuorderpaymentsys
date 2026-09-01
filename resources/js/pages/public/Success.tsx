@@ -24,6 +24,12 @@ import {
     CardFooter,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import PublicLayout from '@/pages/layouts/PublicLayout';
 
 interface SupportingDocument {
@@ -368,11 +374,31 @@ export default function Success({
                                                             <div className="flex min-w-0 items-start gap-3 sm:items-center">
                                                                 <FileText className="mt-1 h-5 w-5 shrink-0 text-muted-foreground sm:mt-0" />
                                                                 <div className="min-w-0 flex-1">
-                                                                    <p className="truncate text-sm font-medium sm:text-lg">
-                                                                        {
-                                                                            doc.original_filename
-                                                                        }
-                                                                    </p>
+                                                                <TooltipProvider delayDuration={150}>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <p
+                                                                                title={
+                                                                                    doc.original_filename
+                                                                                }
+                                                                                className="truncate text-sm font-medium sm:text-lg"
+                                                                            >
+                                                                                {
+                                                                                    doc.original_filename
+                                                                                }
+                                                                            </p>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent
+                                                                            side="top"
+                                                                            align="start"
+                                                                            className="max-w-sm break-all"
+                                                                        >
+                                                                            {
+                                                                                doc.original_filename
+                                                                            }
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
                                                                     <p className="flex flex-wrap gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
                                                                         <span>
                                                                             {formatFileSize(

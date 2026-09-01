@@ -40,6 +40,7 @@ class ActivityLog extends Model
             'processed', 'user.created' => $this->action === 'processed' ? 'processed' : 'created',
             'updated' => 'updated',
             'deleted', 'user.deactivated' => 'deactivated',
+            'user.reactivated' => 'reactivated',
             default => 'created',
         };
     }

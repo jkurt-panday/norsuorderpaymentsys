@@ -5,11 +5,11 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StaffProcessingRequest;
 use App\Mail\OrderOfPaymentMail;
 use App\Models\ActivityLog;
+use App\Models\BankAccountInfo;
 use App\Models\FormInput;
 use App\Models\Membership;
 use App\Models\PaymentDetailOption;
 use App\Models\StaffInput;
-use App\Models\User;
 use App\Models\UACS;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -172,8 +172,7 @@ class StaffInputController extends Controller
             }
         }
 
-        $activityQuery->where('subject_type', '!=', User::class)
-            ->whereNotIn('action', ['user.created', 'user.deactivated', 'user.deleted', 'user.updated']);
+        $activityQuery->whereNotIn('action', ['user.created', 'user.deactivated', 'user.reactivated', 'user.deleted', 'user.updated']);
 
         if ($dateFrom !== '') {
             $activityQuery->whereDate('created_at', '>=', $dateFrom);
