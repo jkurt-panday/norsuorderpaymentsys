@@ -34,15 +34,15 @@
 
         // "Units" isn't present in Assessment as loaded (only ->load(['course'])) or in the
         // ledger payload — guessing $assessment->units exists; confirm and adjust if not.
-        $units = $assessment->units ?? '—';
+        $units = $records->first()['units'] ?? '—';
 
         $formNumber = $assessment->reference_number ?? $assessment->id;
     @endphp
 
     @if($headerImageBase64)
-        <div class="w-full mb-2">
+        <div class="flex justify-center mb-2">
             <img
-                class="w-full"
+                class="w-full max-w-[605px]"
                 src="data:image/png;base64,{{ $headerImageBase64 }}"
                 alt="NORSU Header"
             >
@@ -53,7 +53,7 @@
     
     <h1 class="text-center font-bold text-2xl my-4">Statement of Account</h1>
 
-    <table class="w-full mb-3 text-lg">
+    <table class="w-full mb-3 text-[16px]">
         <tr>
             <td class="font-bold w-28 align-top py-0.5">Name:</td>
             <td class="italic align-top py-0.5">{{ $studentName }}</td>
@@ -137,6 +137,10 @@
                 <div class="mt-1">
                     Accounting Staff
                 </div>
+
+                <div class="">
+                    &nbsp;
+                </div>
     
                 <div class="mt-3.5">
                     Date: {{ date('n/j/Y') }}
@@ -158,7 +162,7 @@
                     Head of Accounting/Division/Unit
                 </div>
     
-                <div class="mt-1">
+                <div class="">
                     Authorized Official
                 </div>
     
@@ -169,5 +173,6 @@
         </tr>
     </table>
 
+    {{-- <pre>{{ json_encode(get_defined_vars(), JSON_PRETTY_PRINT) }}</pre> --}}
 </body>
 </html>

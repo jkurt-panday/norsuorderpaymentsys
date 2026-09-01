@@ -238,6 +238,7 @@ class LedgerMatchingService
             'id' => $record->id,
             'name' => $record->student?->full_name ?? '',
             'course' => $record->course?->code,
+            'units' => $record->units,
             'schoolYear' => $record->academicTerm?->school_year,
             'semester' => $record->academicTerm?->semester,
             'transactionDate' => $record->transaction_date?->format('Y-m-d'),
