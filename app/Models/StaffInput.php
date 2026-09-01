@@ -42,7 +42,7 @@ class StaffInput extends Model
 
     public function uacs(): BelongsTo
     {
-        return $this->belongsTo(Uacs::class);
+        return $this->belongsTo(UACS::class, 'uacs_id');
     }
 
     // Accessor for status badge

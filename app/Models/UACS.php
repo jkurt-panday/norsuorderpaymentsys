@@ -19,7 +19,7 @@ class UACS extends Model
 
     public function staffInputs(): HasMany
     {
-        return $this->hasMany(StaffInput::class);
+        return $this->hasMany(StaffInput::class, 'uacs_id');
     }
 
     // Accessor for display

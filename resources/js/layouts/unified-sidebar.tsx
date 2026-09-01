@@ -65,6 +65,7 @@ const staffNavItems: SidebarItem[] = [
     { title: 'Memberships', href: '/staff/memberships', icon: Users },
     { title: 'UACS', href: '/staff/uacs', icon: Logs },
     { title: 'Course', href: '/staff/courses', icon: School },
+    { title: 'Activity Log', href: '/staff/activity-log', icon: Activity },
 ];
 
 const staffCollapsibleItems = [
@@ -163,7 +164,9 @@ export default function UnifiedSidebar() {
                     >
                         Staff
                     </div>
-                    {staffNavItems.map((item, index) => (
+                    {staffNavItems
+                        .filter((item) => !isAdmin || item.href !== '/staff/activity-log')
+                        .map((item, index) => (
                         <SidebarMenuItem key={index}>
                             <SidebarMenuButton
                                 render={
