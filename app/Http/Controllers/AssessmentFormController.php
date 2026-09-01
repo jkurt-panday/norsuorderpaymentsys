@@ -64,6 +64,7 @@ class AssessmentFormController extends Controller
                 'first_name'       => $validated['first_name'],
                 'middle_name'      => $validated['middle_name'] ?? null,
                 'last_name'        => $validated['last_name'],
+                'student_id'       => $validated['student_id'],
                 'course_id'        => $validated['course_id'], // Or 'course_id' if renamed
                 'address'          => $validated['address'],
                 'enrolled_under'   => $validated['enrolled_under'],

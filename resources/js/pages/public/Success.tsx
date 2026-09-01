@@ -472,21 +472,8 @@ export default function Success({
                                     </div>
                                 )}
 
-                                <div className="flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row sm:gap-4">
-                                    {auth?.user && dashboardUrl && (
-                                        <Button
-                                            asChild
-                                            className="h-11 w-full rounded-xl bg-slate-800 px-6 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:bg-slate-900 hover:shadow-lg active:scale-[0.98] sm:h-12 sm:w-auto sm:px-8 sm:text-base"
-                                        >
-                                            <Link href={dashboardUrl}>
-                                                Go back to Dashboard
-                                            </Link>
-                                        </Button>
-                                    )}
-                                    <Button
-                                        asChild
-                                        className="h-11 w-full rounded-xl bg-blue-700 px-6 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-800 hover:shadow-lg active:scale-[0.98] sm:h-12 sm:w-auto sm:px-8 sm:text-base"
-                                    >
+                                <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3 sm:gap-4 justify-center">
+                                    <Button className="h-11 sm:h-12 w-full sm:w-auto rounded-xl bg-blue-700 px-6 sm:px-8 text-sm sm:text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-800 hover:shadow-lg active:scale-[0.98]">
                                         <Link href="/public/opform">
                                             Submit Another Request
                                         </Link>
