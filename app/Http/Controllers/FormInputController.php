@@ -129,10 +129,19 @@ class FormInputController extends Controller
             ->where('reference_number', $referenceNumber)
             ->firstOrFail();
         $formInput->load(['membership', 'paymentDetailOption', 'supportingDocuments']);
-        
+
+        $user = auth()->user();
+        $dashboardUrl = $user ? match ($user->role) {
+            'admin' => '/admin/dashboard',
+            'staff' => '/staff/staffdashboard',
+            'client' => '/client/dashboard',
+            default => null,
+        } : null;
+
         return Inertia::render('public/Success', [
             'reference_number' => $formInput->reference_number,
             'formInput' => $formInput,
+            'dashboardUrl' => $dashboardUrl,
         ]);
     }
 

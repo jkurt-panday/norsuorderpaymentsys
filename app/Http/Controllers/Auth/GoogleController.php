@@ -15,6 +15,18 @@ class GoogleController extends Controller
 {
     public function redirect(Request $request)
     {
+        if (Auth::check()) {
+            $user = Auth::user();
+            $target = match ($user->role) {
+                'admin' => '/admin/dashboard',
+                'staff' => '/staff/staffdashboard',
+                'client' => '/client/dashboard',
+                default => '/dashboard',
+            };
+
+            return redirect($target);
+        }
+
         if ($request->has('ref')) {
             session(['pending_reference_number' => $request->query('ref')]);
         }
