@@ -1,12 +1,8 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { Inbox } from 'lucide-react';
 import React, { useState, useCallback, useEffect } from 'react';
-import RequestTable, {
-    
-    
-    StatusBadge
-} from '@/components/RequestTable';
-import type {ColumnDef, PaginatedData} from '@/components/RequestTable';
+import RequestTable, { StatusBadge } from '@/components/RequestTable';
+import type { ColumnDef, PaginatedData } from '@/components/RequestTable';
 import staff from '@/routes/staff';
 import { flashToast } from '@/utils/flashToast';
 
@@ -62,7 +58,7 @@ const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('en-US', {
         timeZone: 'Asia/Manila',
         year: 'numeric',
-        month: 'long',
+        month: 'short',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
@@ -98,16 +94,16 @@ const ManageRequests: React.FC = () => {
 
     useEffect(() => {
         if (flash?.success) {
-flashToast('success', flash.success);
-}
+            flashToast('success', flash.success);
+        }
 
         if (flash?.error) {
-flashToast('error', flash.error);
-}
+            flashToast('error', flash.error);
+        }
 
         if (flash?.warning) {
-flashToast('warning', flash.warning);
-}
+            flashToast('warning', flash.warning);
+        }
     }, [flash]);
 
     const [search, setSearch] = useState(filters.search || '');

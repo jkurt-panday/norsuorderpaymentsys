@@ -172,7 +172,7 @@ class StaffInputController extends Controller
             }
         }
 
-        $activityQuery->whereNotIn('action', ['user.created', 'user.deactivated', 'user.reactivated', 'user.deleted', 'user.updated']);
+        $activityQuery->whereNotIn('action', ['user.created', 'user.deactivated', 'user.reactivated', 'user.updated']);
 
         if ($dateFrom !== '') {
             $activityQuery->whereDate('created_at', '>=', $dateFrom);

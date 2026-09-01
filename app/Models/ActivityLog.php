@@ -39,7 +39,8 @@ class ActivityLog extends Model
         return match ($this->action) {
             'processed', 'user.created' => $this->action === 'processed' ? 'processed' : 'created',
             'updated' => 'updated',
-            'deleted', 'user.deactivated' => 'deactivated',
+            'deleted' => 'deleted',
+            'user.deactivated' => 'deactivated',
             'user.reactivated' => 'reactivated',
             default => 'created',
         };
