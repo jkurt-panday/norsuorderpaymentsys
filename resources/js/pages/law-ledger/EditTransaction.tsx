@@ -17,6 +17,7 @@ interface LawLedgerRecord {
   last_name: string;
   first_name: string;
   middle_initial: string | null;
+  student_id: string | null;
   course: string | null;
   school_year: string | null;
   semester_or_summer: string | null;
@@ -58,6 +59,7 @@ export default function EditTransaction({
     last_name: record.last_name ?? '',
     first_name: record.first_name ?? '',
     middle_initial: record.middle_initial ?? '',
+    student_id: record.student_id ?? '',
     course: record.course ?? '',
     school_year: record.school_year ?? '',
     semester_or_summer: record.semester_or_summer ?? '',
@@ -240,6 +242,19 @@ return;
                   placeholder="e.g., D"
                   onChange={(e) =>
                     setData('middle_initial', e.target.value)
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-[#334E68]">
+                  Student ID
+                </label>
+                <Input
+                  value={data.student_id}
+                  placeholder="e.g., 2023-001"
+                  onChange={(e) =>
+                    setData('student_id', e.target.value)
                   }
                 />
               </div>

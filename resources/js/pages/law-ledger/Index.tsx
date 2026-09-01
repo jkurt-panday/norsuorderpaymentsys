@@ -40,6 +40,7 @@ import { Separator } from '@/components/ui/separator';
 
 export interface LawLedgerRecord {
   id: string | number;
+  studentId: string;
   lastName: string;
   firstName: string;
   middleInitial: string;
@@ -120,6 +121,24 @@ function statusBadgeVariant(status: string | null | undefined) {
 
   if (s === 'partial payment') {
     return 'bg-blue-50 text-blue-700 border-blue-200';
+  }
+
+  return 'bg-slate-50 text-slate-700 border-slate-200';
+}
+
+function typeBadgeVariant(type: string | null | undefined) {
+  const t = (type ?? '').toLowerCase();
+
+  if (t === 'ar' || t === 'assessment') {
+    return 'bg-blue-50 text-blue-700 border-blue-200';
+  }
+
+  if (t === 'payment' || t === 'p') {
+    return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  }
+
+  if (t === 'adjustment' || t === 'adj') {
+    return 'bg-amber-50 text-amber-700 border-amber-200';
   }
 
   return 'bg-slate-50 text-slate-700 border-slate-200';
@@ -383,9 +402,9 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
               <p className="text-[10px] text-[#8AA8CC] mt-1">Net pending balance</p>
             </CardContent>
           </Card>
-        </div>
+        </div>  
 
-        {/* Summary Analytics */}
+        {/* Summary Analytics
         <Card className="border border-[#CFE3FF] bg-white">
           <CardContent className="pt-6">
             <div className="space-y-2">
@@ -447,7 +466,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Ledger Table with Filter Bar and Pagination */}
         <Card className="border border-[#CFE3FF] bg-white">
@@ -468,7 +487,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#7FA6D6]" />
                   <Input
                     type="search"
-                    placeholder="Filter by name, ref #, particulars..."
+                     placeholder="Filter by name, student ID, ref #, particulars..."
                     className="pl-8 h-9 bg-white border-[#CFE3FF] focus-visible:ring-[#0F6FFF]"
                     value={searchQuery}
                     onChange={(e) =>
@@ -581,88 +600,90 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
             </div>
           </CardHeader>
           <CardContent className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b border-[#CFE3FF] bg-[#F3F8FF]">
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 pl-2 whitespace-nowrap">Name</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Course</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">School Year</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Semester/Summer</th>
-                  <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Units</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Trans. Date</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Ref. (JEV/OR #)</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Particulars</th>
-                  <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Tuition/Unit or Reg. & Misc. Fee</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">AR/Payment</th>
-                  <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Amount</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Status</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Remark</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Input By</th>
-                  <th className="py-2 pr-2 text-center font-medium whitespace-nowrap text-[#5C7A9E]">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.length === 0 ? (
-                  <tr>
-                    <td colSpan={15} className="text-center text-sm text-[#8AA8CC] py-8">
-                      No transactions found. Upload a CSV/Excel file or add one manually.
-                    </td>
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="border-b border-[#CFE3FF] bg-[#F3F8FF]">
+                    <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 pl-2 whitespace-nowrap">Student ID</th>
+                    <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Name</th>
+                    <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Course</th>
+                    <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">School Year</th>
+                    <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Semester/Summer</th>
+                    <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Units</th>
+                    <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Trans. Date</th>
+                    <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Ref. (JEV/OR #)</th>
+                    <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Particulars</th>
+                    <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Tuition/Unit or Reg. & Misc. Fee</th>
+                    <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">AR/Payment</th>
+                    <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Amount</th>
+                    <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Status</th>
+                    <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Remark</th>
+                    <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Input By</th>
+                    <th className="py-2 pr-2 text-center font-medium whitespace-nowrap text-[#5C7A9E]">Actions</th>
                   </tr>
-                ) : (
-                  rows.map((r) => (
-                    <tr key={r.id} className="border-b border-[#EAF2FF] hover:bg-[#F3F8FF]">
-                      <td className="py-2 pr-4 pl-2 font-medium whitespace-nowrap text-[#0B3D91]">{r.name}</td>
-                      <td className="py-2 pr-4 text-[#334E68]">{r.course}</td>
-                      <td className="py-2 pr-4 text-[#334E68]">{r.schoolYear}</td>
-                      <td className="py-2 pr-4 text-[#334E68]">{r.semesterOrSummer}</td>
-                      <td className="py-2 pr-4 text-right text-[#334E68]">{r.units}</td>
-                      <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{formatTransactionDate(r.transactionDate)}</td>
-                      <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{r.referenceNo}</td>
-                      <td className="py-2 pr-4 text-[#334E68]">{r.particulars}</td>
-                      <td className="py-2 pr-4 text-right text-[#334E68]">{currency(r.tuitionPerUnitOrFeePerSemester)}</td>
+                </thead>
+                <tbody>
+                  {rows.length === 0 ? (
+                    <tr>
+                      <td colSpan={16} className="text-center text-sm text-[#8AA8CC] py-8">
+                        No transactions found. Upload a CSV/Excel file or add one manually.
+                      </td>
+                    </tr>
+                  ) : (
+                    rows.map((r) => (
+                      <tr key={r.id} className="border-b border-[#EAF2FF] hover:bg-[#F3F8FF]">
+                        <td className="py-2 pr-4 pl-2 whitespace-nowrap text-[#334E68]">{r.studentId}</td>
+                        <td className="py-2 pr-4 font-medium whitespace-nowrap text-[#0B3D91]">{r.name}</td>
+                        <td className="py-2 pr-4 text-[#334E68]">{r.course}</td>
+                        <td className="py-2 pr-4 text-[#334E68]">{r.schoolYear}</td>
+                        <td className="py-2 pr-4 text-[#334E68]">{r.semesterOrSummer}</td>
+                        <td className="py-2 pr-4 text-right text-[#334E68]">{r.units}</td>
+                        <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{formatTransactionDate(r.transactionDate)}</td>
+                        <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{r.referenceNo}</td>
+                        <td className="py-2 pr-4 text-[#334E68]">{r.particulars}</td>
+                        <td className="py-2 pr-4 text-right text-[#334E68]">{currency(r.tuitionPerUnitOrFeePerSemester)}</td>
                       <td className="py-2 pr-4">
-                        <Badge variant="outline" className="border-[#B9D8FF] text-[#0B62E0] bg-[#EAF2FF]">
+                        <Badge variant="outline" className={typeBadgeVariant(r.arOrPayment)}>
                           {r.arOrPayment}
                         </Badge>
                       </td>
-                      <td className="py-2 pr-4 text-right font-medium text-[#0B3D91]">{currency(r.amount)}</td>
-                      <td className="py-2 pr-4">
-                        <Badge variant="outline" className={statusBadgeVariant(r.status)}>
-                          {r.status}
-                        </Badge>
-                      </td>
-                      <td className="py-2 pr-4 text-[#8AA8CC]">{r.remark}</td>
-                      <td className="py-2 pr-4 text-[#8AA8CC]">{r.inputBy}</td>
-                      <td className="py-2 pr-2 text-center whitespace-nowrap">
-                        <button
-                          onClick={() =>
-                            router.get(
-                              `/law-ledger/${r.id}/edit`,
-                            )
-                          }
-                          className="mr-1 inline-flex items-center justify-center rounded p-1.5 text-[#0B62E0] transition-colors hover:bg-[#EAF2FF]"
-                          title="Edit"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            handleDelete(
-                              r.id,
-                              r.name,
-                            )
-                          }
-                          className="inline-flex items-center justify-center rounded p-1.5 text-red-500 transition-colors hover:bg-red-50"
-                          title="Delete"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                        <td className="py-2 pr-4 text-right font-medium text-[#0B3D91]">{currency(r.amount)}</td>
+                        <td className="py-2 pr-4">
+                          <Badge variant="outline" className={statusBadgeVariant(r.status)}>
+                            {r.status}
+                          </Badge>
+                        </td>
+                        <td className="py-2 pr-4 text-[#8AA8CC]">{r.remark}</td>
+                        <td className="py-2 pr-4 text-[#8AA8CC]">{r.inputBy}</td>
+                        <td className="py-2 pr-2 text-center whitespace-nowrap">
+                          <button
+                            onClick={() =>
+                              router.get(
+                                `/law-ledger/${r.id}/edit`,
+                              )
+                            }
+                            className="mr-1 inline-flex items-center justify-center rounded p-1.5 text-[#0B62E0] transition-colors hover:bg-[#EAF2FF]"
+                            title="Edit"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleDelete(
+                                r.id,
+                                r.name,
+                              )
+                            }
+                            className="inline-flex items-center justify-center rounded p-1.5 text-red-500 transition-colors hover:bg-red-50"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
           </CardContent>
 
           {/* ---- Pagination Footer ---- */}

@@ -35,7 +35,7 @@ interface ClientSidebarItem {
 
 const clientNavItems: ClientSidebarItem[] = [
     { title: 'My Dashboard', href: '/client/dashboard', icon: Home },
-    { title: 'Submit Payment Request', href: '/public/submit', icon: FileText },
+    { title: 'Submit Payment Request', href: '/public/opform', icon: FileText },
 ];
 
 function ClientSidebar() {

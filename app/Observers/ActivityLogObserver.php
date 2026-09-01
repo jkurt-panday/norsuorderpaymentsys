@@ -299,14 +299,27 @@ class ActivityLogObserver
 
         if ($model instanceof User) {
             $name = $model->name;
-            $action = $event === 'created' ? 'user.created' : $event;
+
+            if ($event === 'created') {
+                $action = 'user.created';
+                $verb = 'provisioned';
+                $extra = ' (role: ' . ($model->role ?? 'unknown') . ')';
+            } elseif ($event === 'deleted') {
+                $action = 'user.deactivated';
+                $verb = 'deactivated';
+                $extra = '';
+            } else {
+                $action = $event;
+                $verb = $event;
+                $extra = '';
+            }
 
             return [
                 'type' => 'System Account',
                 'label' => $name,
                 'action' => $action,
-                'verb' => $event === 'created' ? 'provisioned' : $event,
-                'extra' => $event === 'created' ? ' (role: ' . ($model->role ?? 'unknown') . ')' : '',
+                'verb' => $verb,
+                'extra' => $extra,
             ];
         }
 
