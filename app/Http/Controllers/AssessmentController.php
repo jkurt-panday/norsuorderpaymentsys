@@ -8,11 +8,13 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use App\Services\AssessmentStatsService;
+// use App\Services\LedgerMatchingService;
 
 class AssessmentController extends Controller
 {
     public function __construct(
-        private readonly AssessmentStatsService $stats
+        private readonly AssessmentStatsService $stats,
+        // private readonly LedgerMatchingService $ledgerMatcher,
     ) {}
     
     /**
@@ -115,10 +117,13 @@ class AssessmentController extends Controller
     // /**
     //  * Show the form for editing the specified resource.
     //  */
-    // public function edit(string $id)
-    // {
-    //     //
-    // }
+    public function edit(AssessmentForm $assessment): InertiaResponse
+    {
+        return Inertia::render('staff/assessments/assessmentEdit', [
+            'assessment' => $assessment->load(['course']),
+            // 'ledgerRecords' => $this->ledgerMatcher->forAssessment($assessment),
+        ]);
+    }
 
     // /**
     //  * Update the specified resource in storage.

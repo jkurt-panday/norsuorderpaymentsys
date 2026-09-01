@@ -5,16 +5,17 @@ namespace App\Providers;
 use App\Actions\Fortify\ResetUserPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
-
-
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
+use App\Models\User;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -65,6 +66,22 @@ class FortifyServiceProvider extends ServiceProvider
     private function configureActions(): void
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
+
+        Fortify::authenticateUsing(function (Request $request) {
+            $user = User::withTrashed()->where('email', $request->email)->first();
+
+            if ($user && $user->trashed()) {
+                session()->flash('deactivated_account', true);
+
+                throw ValidationException::withMessages([
+                    'email' => __('Your account has been deactivated. Please contact an administrator.'),
+                ]);
+            }
+
+            if ($user && Hash::check($request->password, $user->password)) {
+                return $user;
+            }
+        });
     }
 
     /**
@@ -72,22 +89,65 @@ class FortifyServiceProvider extends ServiceProvider
      */
     private function configureViews(): void
     {
-        Fortify::loginView(fn (Request $request) => Inertia::render('auth/login', [
-            'canResetPassword' => Features::enabled(Features::resetPasswords()),
-            'status' => $request->session()->get('status'),
-        ]));
+        Fortify::loginView(function (Request $request) {
+            if ($redirect = $this->redirectIfAuthenticated($request)) {
+                return $redirect;
+            }
 
-        Fortify::resetPasswordView(fn (Request $request) => Inertia::render('auth/reset-password', [
-            'email' => $request->email,
-            'token' => $request->route('token'),
-            'passwordRules' => Password::defaults()->toPasswordRulesString(),
-        ]));
+            return Inertia::render('auth/login', [
+                'canResetPassword' => Features::enabled(Features::resetPasswords()),
+                'status' => $request->session()->get('status'),
+                'deactivated_account' => $request->session()->get('deactivated_account') || $request->session()->get('google_deactivated_account'),
+            ]);
+        });
 
-        Fortify::requestPasswordResetLinkView(fn (Request $request) => Inertia::render('auth/forgot-password', [
-            'status' => $request->session()->get('status'),
-        ]));
+        Fortify::resetPasswordView(function (Request $request) {
+            if ($redirect = $this->redirectIfAuthenticated($request)) {
+                return $redirect;
+            }
 
-        Fortify::confirmPasswordView(fn () => Inertia::render('auth/confirm-password'));
+            return Inertia::render('auth/reset-password', [
+                'email' => $request->email,
+                'token' => $request->route('token'),
+                'passwordRules' => Password::defaults()->toPasswordRulesString(),
+            ]);
+        });
+
+        Fortify::requestPasswordResetLinkView(function (Request $request) {
+            if ($redirect = $this->redirectIfAuthenticated($request)) {
+                return $redirect;
+            }
+
+            return Inertia::render('auth/forgot-password', [
+                'status' => $request->session()->get('status'),
+            ]);
+        });
+
+        Fortify::confirmPasswordView(function (Request $request) {
+            if ($redirect = $this->redirectIfAuthenticated($request)) {
+                return $redirect;
+            }
+
+            return Inertia::render('auth/confirm-password');
+        });
+    }
+
+    /**
+     * Redirect an already-authenticated user to their role-based dashboard.
+     */
+    private function redirectIfAuthenticated(Request $request)
+    {
+        $user = $request->user();
+        if (! $user) {
+            return null;
+        }
+
+        return match ($user->role) {
+            'admin' => redirect('/admin/dashboard'),
+            'staff' => redirect('/staff/staffdashboard'),
+            'client' => redirect('/client/dashboard'),
+            default => redirect('/'),
+        };
     }
 
     /**

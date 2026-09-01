@@ -49,7 +49,7 @@ export interface ActivityLogChange {
 export interface ActivityLogItem {
     id: number;
     action: string;
-    event: 'created' | 'updated' | 'deleted' | 'processed';
+    event: 'created' | 'updated' | 'deleted' | 'deactivated' | 'processed';
     description: string;
     actor_name: string | null;
     actor_role: string | null;
@@ -108,6 +108,11 @@ const EVENT_UI: Record<
         icon: Trash2,
         badgeClass: '!bg-rose-100 !text-rose-800',
     },
+    deactivated: {
+        label: 'Deactivated',
+        icon: Trash2,
+        badgeClass: '!bg-orange-100 !text-orange-800',
+    },
     processed: {
         label: 'Processed',
         icon: CheckCircle2,
@@ -119,6 +124,7 @@ const ACTION_OPTIONS = [
     { value: 'created', label: 'Created' },
     { value: 'updated', label: 'Updated' },
     { value: 'deleted', label: 'Deleted' },
+    { value: 'deactivated', label: 'Deactivated' },
     { value: 'processed', label: 'Processed' },
 ];
 

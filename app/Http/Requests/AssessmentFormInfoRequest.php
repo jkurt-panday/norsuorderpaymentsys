@@ -28,6 +28,7 @@ class AssessmentFormInfoRequest extends FormRequest
             'first_name'       => ['required', 'string', 'max:100'],
             'middle_name'      => ['nullable', 'string', 'max:100'],
             'last_name'        => ['required', 'string', 'max:100'],
+            'student_id'       => ['required', 'string', 'max:9', 'regex:/^[0-9]+$/'],
             'course_id'        => ['required', 'exists:courses,id'],
             'address'          => ['required', 'string'],
             'enrolled_under'   => ['required', 'string', 'max:100'],
@@ -55,6 +56,8 @@ class AssessmentFormInfoRequest extends FormRequest
             'middle_name.max'     => 'Middle name must not exceed 100 characters.',
             'last_name.required'  => 'Please enter your last name.',
             'last_name.max'       => 'Last name must not exceed 100 characters.',
+
+            'student_id:required' => 'Student ID is required.',
     
             // Course Selection
             'courses.required' => 'Please select a course.',
@@ -84,6 +87,7 @@ class AssessmentFormInfoRequest extends FormRequest
             'first_name'       => 'First Name',
             'middle_name'      => 'Middle Name',
             'last_name'        => 'Last Name',
+            'student_id'       => 'Student ID',
             'courses'          => 'Course',
             'address'          => 'Address',
             'enrolled_under'   => 'Enrolled Under',

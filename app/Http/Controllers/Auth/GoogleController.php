@@ -15,6 +15,18 @@ class GoogleController extends Controller
 {
     public function redirect(Request $request)
     {
+        if (Auth::check()) {
+            $user = Auth::user();
+            $target = match ($user->role) {
+                'admin' => '/admin/dashboard',
+                'staff' => '/staff/staffdashboard',
+                'client' => '/client/dashboard',
+                default => '/dashboard',
+            };
+
+            return redirect($target);
+        }
+
         if ($request->has('ref')) {
             session(['pending_reference_number' => $request->query('ref')]);
         }
@@ -26,9 +38,18 @@ class GoogleController extends Controller
     {
         $googleUser = Socialite::driver('google')->user();
 
-        $user = User::where('email', $googleUser->getEmail())->first();
+        $user = User::withTrashed()->where('email', $googleUser->getEmail())->first();
 
-        if (!$user) {
+        if ($user) {
+            if ($user->trashed()) {
+                return redirect()->route('login')
+                    ->with('google_deactivated_account', true);
+            }
+
+            $user->update([
+                'google_id' => $googleUser->getId(),
+            ]);
+        } else {
             $user = User::create([
                 'name' => $googleUser->getName(),
                 'email' => $googleUser->getEmail(),
@@ -36,10 +57,6 @@ class GoogleController extends Controller
                 'password' => Str::random(40),
                 'email_verified_at' => now(),
                 'role' => 'client',
-            ]);
-        } else {
-            $user->update([
-                'google_id' => $googleUser->getId(),
             ]);
         }
 

@@ -12,6 +12,7 @@ import {
     Receipt,
     IdCard,
     Printer,
+    Hash,
 } from 'lucide-react';
 import {
     Card,
@@ -38,6 +39,7 @@ interface AssessmentForm {
     first_name: string;
     middle_name: string | null;
     last_name: string;
+    student_id?: string;
     course?: Courses;
     address: string;
     enrolled_under: string;
@@ -220,6 +222,20 @@ export default function AssessmentSuccess({ assessmentForm }: Props) {
                                                     .filter(Boolean)
                                                     .join(' ')}
                                             </p>
+                                        </div>
+
+                                        {/* Student id */}
+                                        <div className="col-span-full flex items-start gap-2">
+                                            <Hash className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+                                
+                                            <div className="min-w-0 flex-1">
+                                                <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase sm:text-sm">
+                                                    Student ID
+                                                </p>
+                                                <p className="text-base font-semibold wrap-break-word text-slate-900 sm:text-xl">
+                                                    {assessmentForm.student_id}
+                                                </p>
+                                            </div>
                                         </div>
                                 
                                         {/* Address */}

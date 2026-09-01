@@ -128,7 +128,7 @@ export default function ClientDashboard() {
                 </div>
 
                 <div>
-                    <Link href="/public/submit">
+                    <Link href="/public/opform">
                         <Button className="gap-2 bg-[#0F6FFF] text-white shadow-sm hover:bg-[#0B5DDB]">
                             <FileText className="h-4 w-4" />
                             Submit New Request
@@ -201,7 +201,7 @@ export default function ClientDashboard() {
                                     cashier.
                                 </p>
                                 <Link
-                                    href="/public/submit"
+                                    href="/public/opform"
                                     className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#0F6FFF] hover:underline"
                                 >
                                     Go to Submission Form →

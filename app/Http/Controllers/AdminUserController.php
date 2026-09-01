@@ -57,9 +57,9 @@ class AdminUserController extends Controller
         $sort = (string) $request->query('sort', '');
         $direction = (string) $request->query('direction', '');
 
-        $allowedSorts = ['name', 'email', 'email_verified_at', 'created_at'];
+        $allowedSorts = ['name', 'email', 'email_verified_at', 'created_at', 'deleted_at'];
 
-        $query = User::query();
+        $query = User::query()->withTrashed();
 
         if ($search !== '') {
             $like = '%' . strtolower($search) . '%';
@@ -85,8 +85,9 @@ class AdminUserController extends Controller
             'email' => $user->email,
             'role' => $user->role,
             'email_verified_at' => $user->email_verified_at?->toISOString(),
-            'created_at' => $user->created_at->toISOString(),
-            'updated_at' => $user->updated_at->toISOString(),
+            'deleted_at' => $user->deleted_at?->toISOString(),
+            'created_at' => $user->created_at?->toISOString(),
+            'updated_at' => $user->updated_at?->toISOString(),
         ]);
 
         $userFilters = [
@@ -127,8 +128,10 @@ class AdminUserController extends Controller
     /**
      * Update the specified user.
      */
-    public function update(Request $request, User $user): RedirectResponse
+    public function update(Request $request, int $id): RedirectResponse
     {
+        $user = User::withTrashed()->findOrFail($id);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
@@ -152,9 +155,10 @@ class AdminUserController extends Controller
     /**
      * Remove the specified user.
      */
-    public function destroy(User $user): RedirectResponse
+    public function destroy(int $id): RedirectResponse
     {
-        // Prevent deleting yourself
+        $user = User::withTrashed()->findOrFail($id);
+
         if ($user->id === request()->user()->id) {
             return back()->with('error', 'You cannot delete your own account.');
         }
@@ -162,6 +166,32 @@ class AdminUserController extends Controller
         $user->delete();
 
         return back()->with('success', 'User deleted successfully!');
+    }
+
+    /**
+     * Toggle the specified user active/inactive status.
+     */
+    public function toggle(int $id): RedirectResponse
+    {
+        $user = User::withTrashed()->findOrFail($id);
+
+        if ($user->id === request()->user()->id) {
+            return back()->with('error', 'You cannot change the status of your own account.');
+        }
+
+        if ($user->trashed()) {
+            $user->restore();
+
+            return redirect()
+                ->route('admin.users.index')
+                ->with('success', 'User activated successfully!');
+        }
+
+        $user->delete();
+
+        return redirect()
+            ->route('admin.users.index')
+            ->with('success', 'User deactivated successfully!');
     }
 
     /**
