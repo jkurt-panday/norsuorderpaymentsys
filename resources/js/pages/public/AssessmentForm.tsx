@@ -44,7 +44,7 @@ export const SCHOOL_YEAR_OPTIONS = (() => {
     const years: string[] = [];
     for (let i = 0; i < 27; i++) {
         const startYear = startAcademicYear - i;
-        years.push(`SY ${startYear}-${startYear + 1}`);
+        years.push(`${startYear}-${startYear + 1}`);
     }
     return years;
 })();
@@ -640,7 +640,7 @@ export default function AssessmentForm({ courses }: Props) {
                                                     key={sy}
                                                     value={sy}
                                                 >
-                                                    {sy}
+                                                    SY {sy}
                                                 </ComboboxItem>
                                             )}
                                         </ComboboxList>
