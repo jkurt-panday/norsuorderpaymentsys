@@ -4,16 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LawSchoolLedger extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'student_id',
+        'course_id',
+        'academic_term_id',
+        'entry_type',
         'last_name',
         'first_name',
         'middle_initial',
-        'student_id',
+        'middle_name',
         'course',
         'school_year',
         'semester_or_summer',
@@ -35,4 +40,24 @@ class LawSchoolLedger extends Model
         'amount' => 'decimal:2',
         'transaction_date' => 'date:Y-m-d',
     ];
+
+    // ─── Relationships ────────────────────────────────────────────────────────
+
+    /** @return BelongsTo<LawStudent, $this> */
+    public function lawStudent(): BelongsTo
+    {
+        return $this->belongsTo(LawStudent::class, 'student_id');
+    }
+
+    /** @return BelongsTo<LawCourse, $this> */
+    public function lawCourse(): BelongsTo
+    {
+        return $this->belongsTo(LawCourse::class, 'course_id');
+    }
+
+    /** @return BelongsTo<LawAcademicTerm, $this> */
+    public function lawAcademicTerm(): BelongsTo
+    {
+        return $this->belongsTo(LawAcademicTerm::class, 'academic_term_id');
+    }
 }
