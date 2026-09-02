@@ -30,6 +30,9 @@
         $schoolYear = $ledgerStatement['schoolYear'] ?? '—';
         $semester   = $ledgerStatement['semester'] ?? '—';
 
+        // user fetch
+        $user = $preparedBy ?? '—';
+
         // No "address" field exists anywhere in this payload or on AssessmentForm as loaded —
         // left out of the layout below. Add it back in if you have a real source for it.
         // $studentName = $selectedStudent['name']
@@ -62,7 +65,7 @@
         <tr>
             <td class="font-bold w-28 align-top py-0.5">Name:</td>
             <td class="italic align-top py-0.5">{{ $studentName }}</td>
-            <td class="font-bold w-36 align-top py-0.5">Assessment Form No:</td>
+            <td class="font-bold w-45 align-top py-0.5">Assessment Form No:</td>
             <td class="italic align-top py-0.5">{{ $formNumber }}</td>
         </tr>
         <tr>
@@ -102,7 +105,7 @@
                     $isPayment = ($record['type'] ?? '') === 'Payment';
                     $amountValue = (float) ($record['amount'] ?? 0);
                     $amountDisplay = $isPayment
-                        ? '(' . number_format($amountValue, 2) . ')'
+                        ? '-' . number_format($amountValue, 2)
                         : number_format($amountValue, 2);
                 @endphp
                 <tr>
@@ -126,28 +129,28 @@
         </tbody>
     </table>
 
-    <table class="w-full mt-10 text-lg">
+    <table class="w-full mt-20 text-lg">
         <tr>
             <td class="w-1/2 align-top px-2.5">
                 Prepared By
     
-                <div class="text-center">
+                <div class="text-center mt-10">
                     (SGD)
                 </div>
     
-                <div class="text-center font-bold mt-6">
-                    Donna Belle C. Tawing
+                <div class="font-bold mt-6">
+                    {{ $user }}
                 </div>
     
-                <div class="text-center mt-1">
+                <div class="mt-1">
                     Accounting Staff
                 </div>
 
-                <div class="text-center ">
+                <div class="">
                     &nbsp;
                 </div>
     
-                <div class="text-center mt-3.5">
+                <div class="mt-3.5">
                     Date: {{ date('n/j/Y') }}
                 </div>
             </td>
@@ -155,7 +158,7 @@
             <td class="w-1/2 align-top px-2.5">
                 Certified Correct
     
-                <div class="text-center">
+                <div class="text-center mt-10">
                     (SGD)
                 </div>
     
