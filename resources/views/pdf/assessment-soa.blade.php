@@ -105,7 +105,7 @@
                     $isPayment = ($record['type'] ?? '') === 'Payment';
                     $amountValue = (float) ($record['amount'] ?? 0);
                     $amountDisplay = $isPayment
-                        ? '-' . number_format($amountValue, 2)
+                        ? '- ' . number_format($amountValue, 2)
                         : number_format($amountValue, 2);
                 @endphp
                 <tr>
