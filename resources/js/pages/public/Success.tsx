@@ -24,12 +24,6 @@ import {
     CardFooter,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
 import PublicLayout from '@/pages/layouts/PublicLayout';
 
 interface SupportingDocument {
@@ -374,37 +368,11 @@ export default function Success({
                                                             <div className="flex min-w-0 items-start gap-3 sm:items-center">
                                                                 <FileText className="mt-1 h-5 w-5 shrink-0 text-muted-foreground sm:mt-0" />
                                                                 <div className="min-w-0 flex-1">
-                                                                    <TooltipProvider
-                                                                        delayDuration={
-                                                                            150
+                                                                    <p className="truncate text-sm font-medium sm:text-lg">
+                                                                        {
+                                                                            doc.original_filename
                                                                         }
-                                                                    >
-                                                                        <Tooltip>
-                                                                            <TooltipTrigger
-                                                                                asChild
-                                                                            >
-                                                                                <p
-                                                                                    title={
-                                                                                        doc.original_filename
-                                                                                    }
-                                                                                    className="truncate text-sm font-medium sm:text-lg"
-                                                                                >
-                                                                                    {
-                                                                                        doc.original_filename
-                                                                                    }
-                                                                                </p>
-                                                                            </TooltipTrigger>
-                                                                            <TooltipContent
-                                                                                side="top"
-                                                                                align="start"
-                                                                                className="max-w-sm break-all"
-                                                                            >
-                                                                                {
-                                                                                    doc.original_filename
-                                                                                }
-                                                                            </TooltipContent>
-                                                                        </Tooltip>
-                                                                    </TooltipProvider>
+                                                                    </p>
                                                                     <p className="flex flex-wrap gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
                                                                         <span>
                                                                             {formatFileSize(
@@ -491,21 +459,21 @@ export default function Success({
                                                 </p>
                                             </div>
                                         </div>
-                         <Button
-                                render={
-                                    <a
-                                        href={`/auth/google?ref=${formInput.reference_number}`}
-                                    />
-                                }
-                                className="flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 md:w-auto"
-                            >
-                                Save Info with Google
-                            </Button>
+                                        <Button
+                                            asChild
+                                            className="flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 md:w-auto"
+                                        >
+                                            <a
+                                                href={`/auth/google?ref=${formInput.reference_number}`}
+                                            >
+                                                Save Info with Google
+                                            </a>
+                                        </Button>
                                     </div>
                                 )}
 
-                                <div className="flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row sm:gap-4">
-                                    <Button className="h-11 w-full rounded-xl bg-blue-700 px-6 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-800 hover:shadow-lg active:scale-[0.98] sm:h-12 sm:w-auto sm:px-8 sm:text-base">
+                                <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3 sm:gap-4 justify-center">
+                                    <Button className="h-11 sm:h-12 w-full sm:w-auto rounded-xl bg-blue-700 px-6 sm:px-8 text-sm sm:text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-800 hover:shadow-lg active:scale-[0.98]">
                                         <Link href="/public/opform">
                                             Submit Another Request
                                         </Link>
