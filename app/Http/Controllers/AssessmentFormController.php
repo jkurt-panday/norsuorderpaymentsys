@@ -75,7 +75,7 @@ class AssessmentFormController extends Controller
             DB::commit();
 
             // dd($assessment);
-            
+            // url resource prevention
             session([
                 'success_reference_number' => $assessment->reference_number,
             ]);
@@ -101,6 +101,7 @@ class AssessmentFormController extends Controller
 
     public function complete(string $reference_number): InertiaResponse
     {
+        // checks if resource is not in session
         if (session('success_reference_number') !== $reference_number) {
             abort(404);
         }
