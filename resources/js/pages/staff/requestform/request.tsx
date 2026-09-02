@@ -49,6 +49,8 @@ interface PageProps {
 
 const STATUS_TO_COLOR: Record<string, string> = {
     approved: 'green',
+    processed: 'blue',
+    paid: 'purple',
     cancelled: 'red',
     pending: 'orange',
     unprocessed: 'grey',

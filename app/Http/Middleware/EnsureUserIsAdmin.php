@@ -23,6 +23,7 @@ class EnsureUserIsAdmin
 
         $redirectTo = match ($request->user()->role) {
             'staff' => route('staff.dashboard'),
+            'cashier' => route('staff.requests.index'),
             default => route('client.dashboard'),
         };
 

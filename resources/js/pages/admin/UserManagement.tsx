@@ -103,12 +103,14 @@ interface UserFilters {
 const ROLE_BADGE_CLASSES: Record<string, string> = {
     admin: 'bg-emerald-100 text-emerald-800',
     staff: 'bg-blue-100 text-blue-800',
+    cashier: 'bg-violet-100 text-violet-800',
     client: 'bg-slate-100 text-slate-800',
 };
 
 const ROLE_OPTIONS = [
     { value: 'admin', label: 'Admin' },
     { value: 'staff', label: 'Staff' },
+    { value: 'cashier', label: 'Cashier' },
     { value: 'client', label: 'Client' },
 ];
 

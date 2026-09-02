@@ -25,7 +25,7 @@ class UACSController extends BaseResourceController
 
     protected string $orderBy = 'object_code';
 
-    protected string $orderDirection = 'desc';
+    protected string $orderDirection = 'asc';
 
     protected array $sortableColumns = ['id', 'object_code', 'account_title', 'created_at'];
 

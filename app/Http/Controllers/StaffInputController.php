@@ -318,16 +318,21 @@ class StaffInputController extends Controller
                 throw new \Exception('This request has already been processed.');
             }
 
+            $status = $request->status ?: 'processed';
+            if ($request->filled('or_no')) {
+                $status = 'paid';
+            }
+
             StaffInput::create(array_merge(
                 $request->validated(),
-                ['form_input_id' => $formInput->id]
+                [
+                    'form_input_id' => $formInput->id,
+                    'status' => $status,
+                ]
             ));
 
             DB::commit();
 
-            // Changed: redirect back to the request's own show page instead of
-            // the index, so processing an inline form lands you right back
-            // where you started, with fresh data.
             return redirect()->route('staff.requests.show', $formInput)
                 ->with('success', 'Request processed successfully.');
 
@@ -343,20 +348,25 @@ class StaffInputController extends Controller
 
     public function update(StaffProcessingRequest $request, StaffInput $staffInput)
     {
-        // Validates request including status
         $validated = $request->validated();
 
         try {
             DB::beginTransaction();
+
+            $status = $validated['status'];
+            if ($request->filled('or_no')) {
+                $status = 'paid';
+            }
 
             $staffInput->update([
                 'fundcluster_id' => $validated['fundcluster_id'],
                 'ref_document_id' => $validated['ref_document_id'] ?? null,
                 'ref_date' => $validated['ref_date'],
                 'uacs_id' => $validated['uacs_id'],
-                'status' => $validated['status'],
+                'status' => $status,
                 'purpose' => $validated['purpose'] ?? null,
-
+                'or_no' => $validated['or_no'] ?? null,
+                'or_date' => $validated['or_date'] ?? null,
             ]);
 
             DB::commit();
