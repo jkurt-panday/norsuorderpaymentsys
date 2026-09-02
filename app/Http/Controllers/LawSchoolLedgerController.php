@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Exports\LawSchoolLedgerExport;
-use App\Models\AcademicTerm;
 use App\Models\ActivityLog;
+use App\Models\LawAcademicTerm;
+use App\Models\LawCourse;
 use App\Models\LawSchoolLedger;
+use App\Models\LawStudent;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -51,16 +53,20 @@ class LawSchoolLedgerController extends Controller
             ->sum('amount');
 
         $totalPayments = (float) (clone $query)
-            ->whereRaw("UPPER(TRIM(ar_or_payment)) IN ('PAYMENT', 'P', 'ADJUSTMENT', 'ADJ')")
+            ->whereRaw("UPPER(TRIM(ar_or_payment)) IN ('PAYMENT', 'P')")
             ->sum(DB::raw('ABS(amount)'));
 
-        $outstandingBalance = $totalAssessments - $totalPayments;
+        $totalAdjustments = (float) (clone $query)
+            ->whereRaw("UPPER(TRIM(ar_or_payment)) IN ('ADJUSTMENT', 'ADJ')")
+            ->sum(DB::raw('ABS(amount)'));
+
+        $outstandingBalance = $totalAssessments - $totalPayments - $totalAdjustments;
 
         $statusCounts = (clone $query)
             ->selectRaw('UPPER(TRIM(status)) as status, COUNT(*) as count')
             ->groupBy('status')
             ->get()
-            ->mapWithKeys(fn ($item) => [ucfirst(strtolower($item->status)) => (int) $item->count]);
+            ->mapWithKeys(fn ($item) => [ucfirst(strtolower($item->status)) => (int) $item->count()]);
 
         // 2. Fetch paginated records
         $records = $query
@@ -80,6 +86,7 @@ class LawSchoolLedgerController extends Controller
                 'totalStudents' => $totalStudents,
                 'totalAssessments' => $totalAssessments,
                 'totalPayments' => $totalPayments,
+                'totalAdjustments' => $totalAdjustments,
                 'outstandingBalance' => $outstandingBalance,
                 'statusCounts' => $statusCounts,
             ],
@@ -98,12 +105,18 @@ class LawSchoolLedgerController extends Controller
 
         if ($search !== '') {
             $searchLower = strtolower($search);
+            $prefix = strtolower($search).'%';
             $query->where(function ($q) use ($searchLower) {
                 $q->whereRaw('LOWER(last_name) LIKE ?', ["%{$searchLower}%"])
                     ->orWhereRaw('LOWER(first_name) LIKE ?', ["%{$searchLower}%"])
                     ->orWhereRaw('LOWER(middle_initial) LIKE ?', ["%{$searchLower}%"])
                     ->orWhereRaw("LOWER(TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_initial, '')))) LIKE ?", ["%{$searchLower}%"]);
-            });
+            })
+            // Relevance sort: starts-with results float to top
+            ->orderByRaw(
+                'CASE WHEN LOWER(last_name) LIKE ? OR LOWER(first_name) LIKE ? THEN 0 ELSE 1 END',
+                [$prefix, $prefix]
+            );
         }
 
         $students = $query
@@ -137,20 +150,10 @@ class LawSchoolLedgerController extends Controller
      */
     public function create(): Response
     {
-        $studentNames = LawSchoolLedger::query()
-            ->whereNotNull('last_name')
-            ->where('last_name', '!=', '')
-            ->distinct()
-            ->orderBy('last_name', 'asc')
-            ->get(['last_name', 'first_name', 'middle_initial'])
-            ->map(function ($student) {
-                return trim("$student->last_name, $student->first_name ".($student->middle_initial ? "$student->middle_initial" : ''));
-            })
-            ->unique()
-            ->values();
-
         return Inertia::render('law-ledger/AddTransaction', [
-            'studentNames' => $studentNames,
+            'students' => $this->studentList(),
+            'courses' => $this->courseList(),
+            'academicTerms' => $this->academicTermList(),
             'authUserName' => auth()->user()?->name ?? '',
         ]);
     }
@@ -161,48 +164,57 @@ class LawSchoolLedgerController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'student_name' => ['nullable', 'string', 'max:510'],
-            'last_name' => ['nullable', 'string', 'max:255'],
-            'first_name' => ['nullable', 'string', 'max:255'],
-            'middle_initial' => ['nullable', 'string', 'max:10'],
-            'student_id' => ['nullable', 'string', 'max:255'],
-            'course' => ['nullable', 'string', 'max:255'],
+            'student_id' => ['nullable', 'integer', 'exists:law_student,id'],
+            'new_student' => ['nullable', 'array'],
+            'new_student.student_number' => ['nullable', 'string', 'max:255'],
+            'new_student.last_name' => ['required_with:new_student', 'string', 'max:255'],
+            'new_student.first_name' => ['required_with:new_student', 'string', 'max:255'],
+            'new_student.middle_name' => ['nullable', 'string', 'max:255'],
+            'course_id' => ['nullable', 'integer', 'exists:law_course,id'],
+            'academic_term_id' => ['nullable', 'integer', 'exists:law_academic_term,id'],
             'school_year' => ['nullable', 'string', 'max:20'],
-            'semester_or_summer' => ['nullable', 'string', 'max:50'],
+            'semester' => ['nullable', 'string', 'max:50'],
+            'entry_type' => ['nullable', 'string', 'in:ar,payment,adjustment'],
             'units' => ['nullable', 'numeric'],
             'transaction_date' => ['nullable', 'date'],
-            'reference_jev_or_number' => ['nullable', 'string', 'max:255'],
+            'reference_or_jev_number' => ['nullable', 'string', 'max:255'],
             'particulars' => ['nullable', 'string'],
-            'tuition_per_unit_or_fee_per_semester' => ['nullable', 'numeric'],
-            'ar_or_payment' => ['nullable', 'string', 'max:50'],
+            'tuition_per_unit_or_misc' => ['nullable', 'numeric'],
             'amount' => ['nullable', 'numeric'],
-            'status' => ['nullable', 'string'],
             'remarks' => ['nullable', 'string'],
             'input_by' => ['nullable', 'string', 'max:255'],
         ]);
 
-        if (filled($data['student_name'] ?? null)) {
-            $nameParts = $this->parseStudentName($data['student_name']) ?? [
-                'last_name' => trim($data['student_name']),
-                'first_name' => null,
-                'middle_initial' => null,
-            ];
+        DB::transaction(function () use ($data): void {
+            $studentId = $data['student_id'] ?? null;
 
-            $data['last_name'] = $nameParts['last_name'];
-            $data['first_name'] = $nameParts['first_name'];
-            $data['middle_initial'] = $nameParts['middle_initial'];
-        }
+            if (! $studentId && isset($data['new_student'])) {
+                $newStudent = $data['new_student'];
+                $studentAttributes = [
+                    'student_number' => $newStudent['student_number'] ?? null,
+                    'last_name' => $newStudent['last_name'],
+                    'first_name' => $newStudent['first_name'],
+                    'middle_name' => $newStudent['middle_name'] ?? null,
+                    'raw_name_from_csv' => "{$newStudent['last_name']}, {$newStudent['first_name']}",
+                ];
 
-        // If Type is AR and no amount was supplied, auto-calculate from units × tuition rate.
-        if (($data['ar_or_payment'] ?? null) === 'AR' && blank($data['amount'] ?? null)) {
-            $data['amount'] = (float) ($data['units'] ?? 0) * (float) ($data['tuition_per_unit_or_fee_per_semester'] ?? 0);
-        }
+                $student = filled($studentAttributes['student_number'])
+                    ? LawStudent::create($studentAttributes)
+                    : LawStudent::firstOrCreate(
+                        Arr::only($studentAttributes, ['last_name', 'first_name']),
+                        Arr::except($studentAttributes, ['last_name', 'first_name']),
+                    );
+                $studentId = $student->id;
+            }
 
-        $data['status'] = $this->determineStatus((float) ($data['amount'] ?? 0), $data['status'] ?? null);
+            LawSchoolLedger::create($this->ledgerAttributes(
+                $data,
+                (int) $studentId,
+                $this->resolveAcademicTermId($data),
+            ));
+        });
 
-        LawSchoolLedger::create($data);
-
-        return redirect()->route('law-ledger.index');
+        return redirect()->route('law-ledger.index')->with('success', 'Transaction created successfully.');
     }
 
     /**
@@ -229,6 +241,7 @@ class LawSchoolLedgerController extends Controller
             'last_name' => ['required', 'string', 'max:255'],
             'first_name' => ['required', 'string', 'max:255'],
             'middle_initial' => ['nullable', 'string', 'max:10'],
+            'middle_name' => ['nullable', 'string', 'max:255'],
             'student_id' => ['nullable', 'string', 'max:255'],
             'course' => ['nullable', 'string', 'max:255'],
             'school_year' => ['nullable', 'string', 'max:20'],
@@ -282,11 +295,13 @@ class LawSchoolLedgerController extends Controller
         $extension    = strtolower($uploadedFile->getClientOriginalExtension());
         $path         = $uploadedFile->getRealPath();
         $imported     = 0;
+        $skipped      = 0;
+        $warnings     = $this->emptyImportWarnings();
         $now          = now();
 
         if ($extension === 'csv') {
             $handle = fopen($path, 'r');
-            if (!$handle) {
+            if (! $handle) {
                 return redirect()->route('law-ledger.index')->with('error', 'Could not open CSV file.');
             }
             $headerRow = fgetcsv($handle);
@@ -299,11 +314,13 @@ class LawSchoolLedgerController extends Controller
                     $key = $headers[$index] ?? 'column_'.$index;
                     $rowData[$key] = $value;
                 }
-                $data = $this->mapImportRow($rowData);
+                $data = $this->mapImportRow($rowData, $warnings);
                 if ($data !== null) {
                     $data['created_at'] = $now;
                     $data['updated_at'] = $now;
                     $insertData[]       = $data;
+                } else {
+                    $skipped++;
                 }
 
                 if (count($insertData) >= 1000) {
@@ -312,7 +329,7 @@ class LawSchoolLedgerController extends Controller
                     $insertData = [];
                 }
             }
-            if (!empty($insertData)) {
+            if (! empty($insertData)) {
                 DB::transaction(fn () => LawSchoolLedger::insert($insertData));
                 $imported += count($insertData);
             }
@@ -320,7 +337,8 @@ class LawSchoolLedgerController extends Controller
 
             ActivityLog::recordImport(LawSchoolLedger::class, $imported, 'Law School Ledger');
 
-            return redirect()->route('law-ledger.index')->with('success', "Import complete: {$imported} records imported.");
+            return redirect()->route('law-ledger.index')
+                ->with('success', $this->importSummary($imported, $skipped, $warnings));
         }
 
         // Excel (.xlsx, .xls)
@@ -336,7 +354,9 @@ class LawSchoolLedgerController extends Controller
         if ($highestRow <= 1) {
             $spreadsheet->disconnectWorksheets();
             unset($spreadsheet);
-            return redirect()->route('law-ledger.index')->with('success', 'No rows found in the uploaded file.');
+
+            return redirect()->route('law-ledger.index')
+                ->with('success', 'No rows found in the uploaded file.');
         }
 
         $headerRow = [];
@@ -358,11 +378,13 @@ class LawSchoolLedgerController extends Controller
                     : $cell->getValue();
             }
 
-            $data = $this->mapImportRow($rowData);
+            $data = $this->mapImportRow($rowData, $warnings);
             if ($data !== null) {
                 $data['created_at'] = $now;
                 $data['updated_at'] = $now;
                 $insertData[]       = $data;
+            } else {
+                $skipped++;
             }
 
             if (count($insertData) >= 1000) {
@@ -372,7 +394,7 @@ class LawSchoolLedgerController extends Controller
             }
         }
 
-        if (!empty($insertData)) {
+        if (! empty($insertData)) {
             DB::transaction(fn () => LawSchoolLedger::insert($insertData));
             $imported += count($insertData);
         }
@@ -382,7 +404,8 @@ class LawSchoolLedgerController extends Controller
 
         ActivityLog::recordImport(LawSchoolLedger::class, $imported, 'Law School Ledger');
 
-        return redirect()->route('law-ledger.index')->with('success', "Import complete: {$imported} records imported.");
+        return redirect()->route('law-ledger.index')
+            ->with('success', $this->importSummary($imported, $skipped, $warnings));
     }
 
     /**
@@ -494,8 +517,10 @@ class LawSchoolLedgerController extends Controller
 
     /**
      * Maps Excel/CSV rows flexibly to DB columns, tailored for Law School Ledger Excel format.
+     *
+     * @param  array<string, int>  $warnings
      */
-    private function mapImportRow(array $row): ?array
+    private function mapImportRow(array $row, array &$warnings = []): ?array
     {
         $normalized = [];
 
@@ -554,7 +579,25 @@ class LawSchoolLedgerController extends Controller
             ?? Arr::get($normalized, 'type')
             ?? 'AR';
 
-        if ($amount === 0.0 && strtoupper(trim($arOrPayment)) === 'AR' && $units > 0 && $tuition > 0) {
+        // ── Import warning detection ─────────────────────────────────────────
+        $normalizedType = strtoupper(trim($arOrPayment));
+
+        // Warning: negative amount with blank or unknown type
+        if ($amount < 0 && ($normalizedType === '' || $normalizedType === 'AR')) {
+            $warnings[self::WARNING_NEGATIVE_BLANK_TYPE]++;
+        }
+
+        // Warning: negative amount labeled as AR (should be payment)
+        if ($amount < 0 && $normalizedType === 'AR') {
+            $warnings[self::WARNING_NEGATIVE_LABELED_AR]++;
+        }
+
+        // Warning: positive amount labeled as payment (may be formatting issue)
+        if ($amount > 0 && in_array($normalizedType, ['PAYMENT', 'P'])) {
+            $warnings[self::WARNING_PAYMENT_MISSING_PARENTHESES]++;
+        }
+
+        if ($amount === 0.0 && $normalizedType === 'AR' && $units > 0 && $tuition > 0) {
             $amount = $units * $tuition;
         }
 
@@ -769,6 +812,100 @@ class LawSchoolLedgerController extends Controller
         ];
     }
 
+    // ─── Form List Helpers ────────────────────────────────────────────────────
+
+    /**
+     * List of students for the form picker.
+     * Returns [{id, student_number, last_name, first_name, middle_name, last_course_id}].
+     */
+    private function studentList(): array
+    {
+        return LawStudent::orderBy('last_name')
+            ->get(['id', 'student_number', 'last_name', 'first_name', 'middle_name'])
+            ->map(fn ($s) => [
+                'id' => $s->id,
+                'student_number' => $s->student_number,
+                'last_name' => $s->last_name,
+                'first_name' => $s->first_name,
+                'middle_name' => $s->middle_name,
+                'last_course_id' => null,
+            ])
+            ->toArray();
+    }
+
+    /**
+     * List of courses for the form picker.
+     * Returns [{id, code}].
+     */
+    private function courseList(): array
+    {
+        return LawCourse::orderBy('code')->get(['id', 'code'])->toArray();
+    }
+
+    /**
+     * List of academic terms for the form picker.
+     */
+    private function academicTermList(): array
+    {
+        return LawAcademicTerm::orderBy('school_year', 'desc')
+            ->orderBy('sort_order')
+            ->get(['id', 'school_year', 'semester'])
+            ->toArray();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function resolveAcademicTermId(array $data): int
+    {
+        if (! empty($data['academic_term_id'])) {
+            return (int) $data['academic_term_id'];
+        }
+
+        $term = LawAcademicTerm::firstOrCreate(
+            [
+                'school_year' => $data['school_year'],
+                'semester' => $data['semester'],
+            ],
+            ['sort_order' => LawAcademicTerm::sortOrder($data['semester'])]
+        );
+
+        return $term->id;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function ledgerAttributes(array $data, int $studentId, int $academicTermId): array
+    {
+        $attributes = Arr::only($data, [
+            'course_id',
+            'entry_type',
+            'units',
+            'transaction_date',
+            'reference_or_jev_number',
+            'particulars',
+            'tuition_per_unit_or_misc',
+            'amount',
+            'remarks',
+            'input_by',
+        ]);
+
+        $attributes['student_id'] = $studentId;
+        $attributes['academic_term_id'] = $academicTermId;
+        $attributes['tuition_per_unit_or_misc'] = $data['tuition_per_unit_or_misc'] ?? '0.00';
+
+        if ($data['entry_type'] === 'ar' && empty($data['amount'])) {
+            $attributes['amount'] = round(
+                (float) ($data['units'] ?? 0) * (float) $attributes['tuition_per_unit_or_misc'],
+                2,
+            );
+        }
+
+        return $attributes;
+    }
+
     private function calculateStudentBalance($records): array
     {
         $totalAssessments = 0;
@@ -890,5 +1027,47 @@ class LawSchoolLedgerController extends Controller
             'Summer' => ['Summer', 'Summer Term', 'Summer Semester'],
             default => [trim($semester)],
         };
+    }
+
+    // ─── Import Warning Constants ─────────────────────────────────────────────
+
+    const WARNING_NEGATIVE_BLANK_TYPE = 'negative_blank_type';
+    const WARNING_NEGATIVE_LABELED_AR = 'negative_labeled_ar';
+    const WARNING_PAYMENT_MISSING_PARENTHESES = 'payment_missing_parentheses';
+
+    /** @return array<string, int> */
+    private function emptyImportWarnings(): array
+    {
+        return [
+            self::WARNING_NEGATIVE_BLANK_TYPE => 0,
+            self::WARNING_NEGATIVE_LABELED_AR => 0,
+            self::WARNING_PAYMENT_MISSING_PARENTHESES => 0,
+        ];
+    }
+
+    /** @param  array<string, int>  $warnings */
+    private function importSummary(int $imported, int $skipped, array $warnings): string
+    {
+        $summary = "Import complete: {$imported} records imported, {$skipped} blank rows skipped.";
+        $details = [];
+
+        if ($warnings[self::WARNING_NEGATIVE_BLANK_TYPE] > 0) {
+            $details[] = $warnings[self::WARNING_NEGATIVE_BLANK_TYPE]
+                .' negative amount(s) with a blank or unknown type were imported as payments';
+        }
+
+        if ($warnings[self::WARNING_NEGATIVE_LABELED_AR] > 0) {
+            $details[] = $warnings[self::WARNING_NEGATIVE_LABELED_AR]
+                .' negative amount(s) labeled AR were imported as payments';
+        }
+
+        if ($warnings[self::WARNING_PAYMENT_MISSING_PARENTHESES] > 0) {
+            $details[] = $warnings[self::WARNING_PAYMENT_MISSING_PARENTHESES]
+                .' positive amount(s) labeled PAYMENT were kept as payments; review their Excel formatting';
+        }
+
+        return $details === []
+            ? $summary
+            : $summary.' Warnings: '.implode('; ', $details).'.';
     }
 }

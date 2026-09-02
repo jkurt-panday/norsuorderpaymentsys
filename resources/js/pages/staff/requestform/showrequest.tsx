@@ -13,6 +13,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
@@ -50,13 +56,15 @@ interface ReferenceDocument {
 
 interface StaffInput {
     id: number;
-    status: 'pending' | 'approved' | 'cancelled' | 'unprocessed';
+    status: 'pending' | 'processed' | 'paid' | 'approved' | 'cancelled' | 'unprocessed';
     ref_date: string | null;
     bank_account: BankAccount | null;
     uacs: Uacs | null;
     reference_document: ReferenceDocument | null;
     created_at: string;
     purpose: string | null;
+    or_no: string | null;
+    or_date: string | null;
 }
 
 interface SupportingDocument {
@@ -94,7 +102,12 @@ interface FlashProps {
     warning?: string;
 }
 
+interface AuthUser {
+    role: string;
+}
+
 interface PageProps {
+    auth: { user: AuthUser | null };
     formInput: FormInput;
     bankAccounts: BankAccount[];
     uacsList: Uacs[];
@@ -106,6 +119,10 @@ const statusBadgeClass = (status: string) => {
     switch (status) {
         case 'approved':
             return 'bg-emerald-100 text-emerald-800';
+        case 'processed':
+            return 'bg-blue-100 text-blue-800';
+        case 'paid':
+            return 'bg-violet-100 text-violet-800';
         case 'cancelled':
             return 'bg-rose-100 text-rose-800';
         case 'pending':
@@ -141,13 +158,23 @@ const ReadOnlyRow = ({
     valueClass = 'text-slate-900',
     stacked = false,
     scrollable = false,
+    truncate = false,
+    maxLength = 60,
 }: {
     label: string;
     value: string | number | null;
     valueClass?: string;
     stacked?: boolean;
     scrollable?: boolean;
+    truncate?: boolean;
+    maxLength?: number;
 }) => {
+    const stringValue = value == null ? '' : String(value);
+    const shouldTruncate = truncate && stringValue.length > maxLength;
+    const displayValue = shouldTruncate
+        ? `${stringValue.slice(0, maxLength).trimEnd()}…`
+        : stringValue;
+
     const valueContent = scrollable ? (
         <div
             className={`max-h-30 min-w-0 flex-1 overflow-y-auto rounded-md border border-slate-100 bg-slate-50/60 px-3 py-2 text-sm ${valueClass} break-words whitespace-pre-wrap`}
@@ -156,9 +183,14 @@ const ReadOnlyRow = ({
         </div>
     ) : (
         <p
-            className={`min-w-0 flex-1 text-sm ${valueClass} break-words whitespace-pre-wrap`}
+            className={`min-w-0 flex-1 text-sm ${valueClass} ${
+                shouldTruncate
+                    ? 'truncate'
+                    : 'break-words whitespace-pre-wrap'
+            }`}
+            title={shouldTruncate ? stringValue : undefined}
         >
-            {value}
+            {displayValue}
         </p>
     );
 
@@ -170,7 +202,7 @@ const ReadOnlyRow = ({
             {valueContent}
         </div>
     ) : (
-        <div className="flex items-start gap-6 border-b border-slate-100 py-0 last:border-0">
+        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-0 last:border-0">
             <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
                 {label}
             </label>
@@ -258,8 +290,9 @@ const formatFileSize = (bytes?: number) => {
 };
 
 export default function ShowRequest() {
-    const { formInput, bankAccounts, uacsList, paymentOptions, flash } =
+    const { auth, formInput, bankAccounts, uacsList, paymentOptions, flash } =
         usePage().props as unknown as PageProps;
+    const isCashier = auth?.user?.role === 'cashier';
     const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
     const [isEmailPreviewOpen, setIsEmailPreviewOpen] = useState(false);
@@ -365,6 +398,9 @@ export default function ShowRequest() {
     // redirecting to the separate edit screen.
     const [isEditingStaffInput, setIsEditingStaffInput] = useState(false);
 
+    // Toggles the inline edit form for OR fields (cashier only).
+    const [isEditingOr, setIsEditingOr] = useState(false);
+
     useEffect(() => {
         if (formInput.staff_input) {
             setIsProcessing(false);
@@ -450,8 +486,10 @@ export default function ShowRequest() {
         uacs_id: formInput.staff_input?.uacs
             ? String(formInput.staff_input.uacs.id)
             : '',
-        status: formInput.staff_input?.status ?? 'pending',
+        status: formInput.staff_input?.status ?? 'processed',
         purpose: formInput.staff_input?.purpose ?? '',
+        or_no: formInput.staff_input?.or_no ?? '',
+        or_date: formInput.staff_input?.or_date ?? '',
     });
 
     const handleStaffInputSubmit = (e: React.FormEvent) => {
@@ -475,6 +513,41 @@ export default function ShowRequest() {
         setIsEditingStaffInput(false);
     };
 
+    // ---- Inline "Edit OR" form (cashier only) -------------------------------
+    const {
+        data: orData,
+        setData: setOrData,
+        put: putOr,
+        processing: isSubmittingOr,
+        errors: orErrors,
+        reset: resetOrForm,
+    } = useForm({
+        or_no: formInput.staff_input?.or_no ?? '',
+        or_date: formInput.staff_input?.or_date ?? '',
+    });
+
+    const handleOrSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!formInput.staff_input) {
+            return;
+        }
+
+        putOr(staff.requests.update.url(formInput.staff_input.id), {
+            preserveScroll: true,
+            forceFormData: false,
+            onSuccess: () => {
+                resetOrForm();
+                setIsEditingOr(false);
+            },
+        });
+    };
+
+    const cancelOrEdit = () => {
+        resetOrForm();
+        setIsEditingOr(false);
+    };
+
     // ---- Inline "Process Now" form ----------------------------------------
     const {
         data: processData,
@@ -489,8 +562,10 @@ export default function ShowRequest() {
         ref_document_id: '',
         ref_date: new Date().toISOString().slice(0, 10),
         uacs_id: '',
-        status: '',
+        status: 'processed',
         purpose: '',
+        or_no: '',
+        or_date: '',
     });
     const [isOpDropdownOpen, setIsOpDropdownOpen] = useState(false);
     const handleProcessSubmit = (e: React.FormEvent) => {
@@ -697,7 +772,7 @@ export default function ShowRequest() {
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
-                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="First Name  / Office"
                                                 value={
@@ -706,7 +781,7 @@ export default function ShowRequest() {
                                                 valueClass="text-black-400"
                                             />
                                         </div>
-                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="Middlename / Project"
                                                 value={
@@ -715,7 +790,7 @@ export default function ShowRequest() {
                                                 valueClass="text-black-400"
                                             />
                                         </div>
-                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="Last Name / Agency"
                                                 value={
@@ -724,7 +799,7 @@ export default function ShowRequest() {
                                                 valueClass="text-black-400"
                                             />
                                         </div>
-                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="Office / College"
                                                 value={
@@ -733,7 +808,7 @@ export default function ShowRequest() {
                                                 valueClass="text-black-400"
                                             />
                                         </div>
-                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="Position / Desgination"
                                                 value={
@@ -742,21 +817,21 @@ export default function ShowRequest() {
                                                 valueClass="text-black-400"
                                             />
                                         </div>
-                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="Email"
                                                 value={formInput.email}
                                                 valueClass="text-blue-400"
                                             />
                                         </div>
-                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="Contact Number"
                                                 value={formInput.contact_num}
                                                 valueClass="text-blue-400"
                                             />
                                         </div>
-                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="Address"
                                                 value={formInput.address}
@@ -769,7 +844,7 @@ export default function ShowRequest() {
                         </section>
 
                         {/* Payment Information */}
-                        <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+                        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
                             <div className="flex items-center gap-2 border-b border-slate-200 px-6 py-4">
                                 <h3 className="text-base font-semibold text-slate-900">
                                     Payment Information
@@ -951,7 +1026,7 @@ export default function ShowRequest() {
                                     </form>
                                 ) : (
                                     <div className="space-y-3">
-                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                             <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
                                                 Request Type
                                             </label>
@@ -962,7 +1037,7 @@ export default function ShowRequest() {
                                                 className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
                                             />
                                         </div>
-                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                             <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
                                                 Amount
                                             </label>
@@ -975,7 +1050,7 @@ export default function ShowRequest() {
                                                 className="flex-1 border-0 bg-transparent p-0 text-sm text-blue-400 outline-none disabled:opacity-100"
                                             />
                                         </div>
-                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="Membership"
                                                 value={
@@ -986,7 +1061,7 @@ export default function ShowRequest() {
                                                 valueClass="text-black-400"
                                             />
                                         </div>
-                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="Payment Option"
                                                 value={
@@ -997,7 +1072,7 @@ export default function ShowRequest() {
                                                 valueClass="text-black-400"
                                             />
                                         </div>
-                                        <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="Submission Date"
                                                 value={formatDateTime(
@@ -1014,7 +1089,7 @@ export default function ShowRequest() {
 
                     <div className="space-y-6">
                         {/* Staff Processing Information */}
-                        <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+                        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
                             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
                                 <h3 className="text-base font-semibold text-slate-900">
                                     Staff Processing
@@ -1080,11 +1155,19 @@ export default function ShowRequest() {
                                                             formInput
                                                                 .staff_input
                                                                 ?.status ??
-                                                            'pending',
+                                                            'processed',
                                                         purpose:
                                                             formInput
                                                                 .staff_input
                                                                 ?.purpose ?? '',
+                                                        or_no:
+                                                            formInput
+                                                                .staff_input
+                                                                ?.or_no ?? '',
+                                                        or_date:
+                                                            formInput
+                                                                .staff_input
+                                                                ?.or_date ?? '',
                                                     });
                                                     setIsEditingStaffInput(
                                                         true,
@@ -1343,6 +1426,12 @@ export default function ShowRequest() {
                                                         <option value="pending">
                                                             Pending
                                                         </option>
+                                                        <option value="processed">
+                                                            Processed
+                                                        </option>
+                                                        <option value="paid">
+                                                            Paid
+                                                        </option>
                                                         <option value="approved">
                                                             Approved
                                                         </option>
@@ -1413,7 +1502,7 @@ export default function ShowRequest() {
                                         </form>
                                     ) : (
                                         <div className="space-y-3">
-                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                                 <ReadOnlyRow
                                                     label="Bank Account"
                                                     value={
@@ -1425,7 +1514,7 @@ export default function ShowRequest() {
                                                     valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                                 <ReadOnlyRow
                                                     label="Bank"
                                                     value={
@@ -1436,7 +1525,7 @@ export default function ShowRequest() {
                                                     valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                                 <ReadOnlyRow
                                                     label="Fund Cluster"
                                                     value={
@@ -1448,7 +1537,7 @@ export default function ShowRequest() {
                                                     valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                                 <ReadOnlyRow
                                                     label="Account Number"
                                                     value={
@@ -1460,7 +1549,7 @@ export default function ShowRequest() {
                                                     valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                                 <ReadOnlyRow
                                                     label="Reference Date"
                                                     value={
@@ -1476,7 +1565,7 @@ export default function ShowRequest() {
                                                     valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                                 <ReadOnlyRow
                                                     label="UACS"
                                                     value={
@@ -1488,7 +1577,7 @@ export default function ShowRequest() {
                                                     valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                                 <ReadOnlyRow
                                                     label="Reference Document"
                                                     value={
@@ -1498,6 +1587,7 @@ export default function ShowRequest() {
                                                         'N/A'
                                                     }
                                                     valueClass="text-black-400"
+                                                    truncate
                                                 />
                                             </div>
                                             <div className="w-full border-b border-slate-100 py-3 last:border-0">
@@ -1511,14 +1601,14 @@ export default function ShowRequest() {
                                                     scrollable
                                                 />
                                             </div>
-                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                                 <ReadOnlyRow
                                                     label="Processed By"
                                                     value="Staff User"
                                                     valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
                                                 <ReadOnlyRow
                                                     label="Processed Date"
                                                     value={formatDateTime(
@@ -1733,6 +1823,12 @@ export default function ShowRequest() {
                                                 <option value="pending">
                                                     Pending
                                                 </option>
+                                                <option value="processed">
+                                                    Processed
+                                                </option>
+                                                <option value="paid">
+                                                    Paid
+                                                </option>
                                                 <option value="approved">
                                                     Approved
                                                 </option>
@@ -1834,8 +1930,150 @@ export default function ShowRequest() {
                             </div>
                         </section>
 
+                        {/* Official Receipt Information */}
+                        {formInput.staff_input && (
+                            <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                                <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+                                    <h3 className="text-base font-semibold text-slate-900">
+                                        Official Receipt
+                                    </h3>
+                                    <div className="flex items-center gap-2">
+                                        {formInput.staff_input?.or_no && (
+                                            <span className="inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-800">
+                                                Paid
+                                            </span>
+                                        )}
+                                        {isCashier && !isEditingOr && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setOrData({
+                                                        or_no: formInput.staff_input?.or_no ?? '',
+                                                        or_date: formInput.staff_input?.or_date ?? '',
+                                                    });
+                                                    setIsEditingOr(true);
+                                                }}
+                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100"
+                                            >
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    className="h-3.5 w-3.5"
+                                                >
+                                                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                                                </svg>
+                                                Edit
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="p-6">
+                                    {isCashier && isEditingOr ? (
+                                        <form onSubmit={handleOrSubmit}>
+                                            <div className="space-y-4">
+                                                <FormField
+                                                    label="OR Number"
+                                                    required
+                                                    error={orErrors.or_no}
+                                                >
+                                                    <input
+                                                        type="text"
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                            orErrors.or_no
+                                                                ? 'border-rose-400'
+                                                                : 'border-slate-200'
+                                                        }`}
+                                                        value={orData.or_no}
+                                                        onChange={(e) =>
+                                                            setOrData('or_no', e.target.value)
+                                                        }
+                                                        required
+                                                    />
+                                                </FormField>
+                                                <FormField
+                                                    label="OR Date"
+                                                    required
+                                                    error={orErrors.or_date}
+                                                >
+                                                    <input
+                                                        type="date"
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                            orErrors.or_date
+                                                                ? 'border-rose-400'
+                                                                : 'border-slate-200'
+                                                        }`}
+                                                        value={orData.or_date}
+                                                        onChange={(e) =>
+                                                            setOrData('or_date', e.target.value)
+                                                        }
+                                                        required
+                                                    />
+                                                </FormField>
+                                                <div className="flex justify-end gap-2 pt-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={cancelOrEdit}
+                                                        className="cursor-pointer rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button
+                                                        type="submit"
+                                                        disabled={isSubmittingOr}
+                                                        className="inline-flex items-center gap-2 rounded-full bg-violet-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-violet-700 disabled:opacity-60"
+                                                    >
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="2.5"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            className="h-4 w-4"
+                                                        >
+                                                            <path d="M20 6 9 17l-5-5" />
+                                                        </svg>
+                                                        {isSubmittingOr ? 'Saving...' : 'Save OR'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <div className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${!isCashier ? 'opacity-60' : ''}`}>
+                                                <ReadOnlyRow
+                                                    label="OR Number"
+                                                    value={formInput.staff_input?.or_no ?? 'N/A'}
+                                                    valueClass="text-black-400"
+                                                />
+                                            </div>
+                                            <div className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${!isCashier ? 'opacity-60' : ''}`}>
+                                                <ReadOnlyRow
+                                                    label="OR Date"
+                                                    value={
+                                                        formInput.staff_input?.or_date
+                                                            ? formatDateOnly(
+                                                                  formInput.staff_input.or_date,
+                                                              )
+                                                            : 'N/A'
+                                                    }
+                                                    valueClass="text-black-400"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </section>
+                        )}
+
                         {/* Supporting Documents */}
-                        <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+                        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
                             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
                                 <h3 className="text-base font-semibold text-slate-900">
                                     Supporting Documents
@@ -1852,7 +2090,7 @@ export default function ShowRequest() {
                                                 key={document.id}
                                                 className="flex items-center justify-between px-2 py-3"
                                             >
-                                                <div className="flex items-center gap-2 text-sm">
+                                                <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
                                                     <svg
                                                         xmlns="http://www.w3.org/2000/svg"
                                                         viewBox="0 0 24 24"
@@ -1866,18 +2104,36 @@ export default function ShowRequest() {
                                                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                                                         <path d="M14 2v6h6" />
                                                     </svg>
-                                                    <a
-                                                        href={staff.documents.download.url(
-                                                            document.id,
-                                                        )}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-blue-600 hover:underline"
-                                                    >
-                                                        {
-                                                            document.original_filename
-                                                        }
-                                                    </a>
+                                                    <TooltipProvider delayDuration={150}>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <a
+                                                                    href={staff.documents.download.url(
+                                                                        document.id,
+                                                                    )}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    title={
+                                                                        document.original_filename
+                                                                    }
+                                                                    className="block min-w-0 max-w-[260px] truncate text-blue-600 hover:underline"
+                                                                >
+                                                                    {
+                                                                        document.original_filename
+                                                                    }
+                                                                </a>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent
+                                                                side="top"
+                                                                align="start"
+                                                                className="max-w-sm break-all"
+                                                            >
+                                                                {
+                                                                    document.original_filename
+                                                                }
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
                                                     <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
                                                         {document.file_extension?.toUpperCase() ??
                                                             'FILE'}

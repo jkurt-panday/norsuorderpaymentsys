@@ -18,12 +18,17 @@ class StaffInput extends Model
         'ref_date',
         'uacs_id',
         'status',
+        'or_no',
+        'or_date',
     ];
 
     protected $casts = [
         'ref_date' => 'date',
+        'or_date' => 'date',
         'status' => 'string',
     ];
+
+    public const STATUSES = ['pending', 'processed', 'paid', 'approved', 'cancelled'];
 
     public function formInput(): BelongsTo
     {
@@ -42,7 +47,7 @@ class StaffInput extends Model
 
     public function uacs(): BelongsTo
     {
-        return $this->belongsTo(Uacs::class);
+        return $this->belongsTo(UACS::class, 'uacs_id');
     }
 
     // Accessor for status badge

@@ -117,7 +117,7 @@
                                     <strong>Serial No.</strong> {{ $formInput->reference_number }}
                                 </td>
                             </tr>
-                            <tr>
+                                <tr>
                                 <td style="vertical-align:top; padding:1px 6px 0 0;">
                                     <strong style="white-space:nowrap;">Fund Cluster:</strong>
                                     <span style="border:1px solid #999; padding:0 5px 0 2px; display:inline-block;">
@@ -127,7 +127,7 @@
                                 <td style="vertical-align:top; padding:1px 0 0; white-space:nowrap;">
                                     <strong>Date:</strong>
                                     <span style="text-decoration:underline; padding:0 2px;">
-                                        {{ $formInput->staffInput->ref_date ? \Carbon\Carbon::parse($formInput->staffInput->ref_date)->format('F j, Y') : '' }}
+                                        {{ $formInput->created_at ? \Carbon\Carbon::parse($formInput->created_at)->format('F j, Y') : '' }}
                                     </span>
                                 </td>
                             </tr>
@@ -278,7 +278,15 @@
                             </tr>
                         </table>
 
-                        <p style="margin:40px 0 0;">OR No.: ______________________</p>
+                        @php
+                            $orNo = $formInput->staffInput->or_no ?? '';
+                            $orDate = $formInput->staffInput->or_date ? \Carbon\Carbon::parse($formInput->staffInput->or_date)->format('F j, Y') : '';
+                        @endphp
+
+                        <p style="margin:40px 0 0;">OR No.: <strong>{{ $orNo ?: '______________________' }}</strong></p>
+                        @if($orDate)
+                            <p style="margin:2px 0 0;">OR Date: <strong>{{ $orDate }}</strong></p>
+                        @endif
                     </div>
                 </td>
             @endforeach

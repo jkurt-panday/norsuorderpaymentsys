@@ -169,7 +169,7 @@ class AdminUserController extends Controller
     }
 
     /**
-     * Toggle the specified user active/inactive status.
+     * Toggle the specified user active/deactivated status.
      */
     public function toggle(int $id): RedirectResponse
     {

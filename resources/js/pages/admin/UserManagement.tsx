@@ -103,12 +103,14 @@ interface UserFilters {
 const ROLE_BADGE_CLASSES: Record<string, string> = {
     admin: 'bg-emerald-100 text-emerald-800',
     staff: 'bg-blue-100 text-blue-800',
+    cashier: 'bg-violet-100 text-violet-800',
     client: 'bg-slate-100 text-slate-800',
 };
 
 const ROLE_OPTIONS = [
     { value: 'admin', label: 'Admin' },
     { value: 'staff', label: 'Staff' },
+    { value: 'cashier', label: 'Cashier' },
     { value: 'client', label: 'Client' },
 ];
 
@@ -126,7 +128,11 @@ function formatDateTime(value?: string | null) {
 }
 
 export default function AdminUserManagement() {
-    const { users = { data: [] }, userFilters = {}, auth } = usePage<{
+    const {
+        users = { data: [] },
+        userFilters = {},
+        auth,
+    } = usePage<{
         users: UsersPaginator;
         userFilters: UserFilters;
         auth: { user: { id: number } | null };
@@ -151,15 +157,7 @@ export default function AdminUserManagement() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [userToToggle, setUserToToggle] = useState<User | null>(null);
 
-    const {
-        data,
-        setData,
-        post,
-        put,
-        processing,
-        errors,
-        reset,
-    } = useForm({
+    const { data, setData, post, put, processing, errors, reset } = useForm({
         name: '',
         email: '',
         password: '',
@@ -327,6 +325,7 @@ export default function AdminUserManagement() {
         if (editingUser) {
             put(updateAdminUser.url({ id: editingUser.id }), {
                 onSuccess: () => {
+                    toast.success('User updated successfully!');
                     setDialogOpen(false);
                     setEditingUser(null);
                     reset('name', 'email', 'password', 'role');
@@ -335,6 +334,7 @@ export default function AdminUserManagement() {
         } else {
             post(routes.admin.users.store(), {
                 onSuccess: () => {
+                    toast.success('User added successfully!');
                     setDialogOpen(false);
                     reset('name', 'email', 'password', 'role');
                 },
@@ -355,12 +355,18 @@ export default function AdminUserManagement() {
 
     const handleToggle = () => {
         if (userToToggle) {
+            const willActivate = !!userToToggle.deleted_at;
             router.post(
                 toggleAdminUser.url({ id: userToToggle.id }),
                 { _method: 'PUT' },
                 {
                     preserveScroll: true,
                     onSuccess: () => {
+                        toast.success(
+                            willActivate
+                                ? 'Account reactivated successfully!'
+                                : 'Account deactivated successfully!',
+                        );
                         setIsDeleteDialogOpen(false);
                         setUserToToggle(null);
                     },
@@ -568,7 +574,7 @@ export default function AdminUserManagement() {
                                                         variant="secondary"
                                                         className="bg-rose-100 text-rose-800"
                                                     >
-                                                        Inactive
+                                                        Deactivated
                                                     </Badge>
                                                 ) : (
                                                     <Badge
@@ -930,12 +936,15 @@ export default function AdminUserManagement() {
                                         onValueChange={(value) =>
                                             setData('role', value)
                                         }
-                                        disabled={editingUser?.id === currentUserId}
+                                        disabled={
+                                            editingUser?.id === currentUserId
+                                        }
                                     >
                                         <SelectTrigger
                                             className={
-                                                editingUser?.id === currentUserId
-                                                    ? 'opacity-50 cursor-not-allowed'
+                                                editingUser?.id ===
+                                                currentUserId
+                                                    ? 'cursor-not-allowed opacity-50'
                                                     : 'w-full'
                                             }
                                         >
@@ -996,11 +1005,15 @@ export default function AdminUserManagement() {
                     <DialogContent className="max-w-md">
                         <DialogHeader>
                             <DialogTitle>
-                                {userToToggle?.deleted_at ? 'Activate User' : 'Deactivate User'}
+                                {userToToggle?.deleted_at
+                                    ? 'Activate User'
+                                    : 'Deactivate User'}
                             </DialogTitle>
                             <DialogDescription>
                                 Are you sure you want to{' '}
-                                {userToToggle?.deleted_at ? 'activate' : 'deactivate'}{' '}
+                                {userToToggle?.deleted_at
+                                    ? 'activate'
+                                    : 'deactivate'}{' '}
                                 <strong>{userToToggle?.name}</strong> (
                                 {userToToggle?.email})?
                                 {!userToToggle?.deleted_at &&

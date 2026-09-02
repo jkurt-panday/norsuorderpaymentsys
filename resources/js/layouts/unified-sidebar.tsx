@@ -69,6 +69,11 @@ const staffNavItems: SidebarItem[] = [
     { title: 'Memberships', href: '/staff/memberships', icon: Users },
     { title: 'UACS', href: '/staff/uacs', icon: Logs },
     { title: 'Course', href: '/staff/courses', icon: School },
+    { title: 'Activity Log', href: '/staff/activity-log', icon: Activity },
+];
+
+const cashierNavItems: SidebarItem[] = [
+    { title: 'Requests', href: '/staff/requests', icon: FileText },
 ];
 
 const staffCollapsibleItems = [
@@ -103,7 +108,8 @@ export default function UnifiedSidebar() {
         auth?: { user?: { role?: string } | null };
     }>();
     const isAdmin = props?.auth?.user?.role === 'admin';
-    const portalLabel = isAdmin ? 'Admin Portal' : 'Staff Portal';
+    const isCashier = props?.auth?.user?.role === 'cashier';
+    const portalLabel = isAdmin ? 'Admin Portal' : isCashier ? 'Cashier Portal' : 'Staff Portal';
 
     const isActive = (href: string) => {
         const currentPath = url.split('?')[0];
@@ -166,9 +172,11 @@ export default function UnifiedSidebar() {
                             isAdmin ? 'mt-4' : ''
                         }`}
                     >
-                        Staff
+                        {isCashier ? 'Cashier' : 'Staff'}
                     </div>
-                    {staffNavItems.map((item, index) => (
+                    {(isCashier ? cashierNavItems : staffNavItems)
+                        .filter((item) => !isAdmin || item.href !== '/staff/activity-log')
+                        .map((item, index) => (
                         <SidebarMenuItem key={index}>
                             <SidebarMenuButton
                                 render={
@@ -188,7 +196,7 @@ export default function UnifiedSidebar() {
                         </SidebarMenuItem>
                     ))}
 
-                    {staffCollapsibleItems.map((item, index) => (
+                    {!isCashier && staffCollapsibleItems.map((item, index) => (
                         <SidebarMenuItem key={index}>
                             <Collapsible
                                 defaultOpen
