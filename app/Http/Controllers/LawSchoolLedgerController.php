@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Exports\LawSchoolLedgerExport;
+use App\Http\Requests\StoreLawSchoolLedgerRequest;
+use App\Http\Requests\UpdateLawSchoolLedgerRequest;
 use App\Models\ActivityLog;
 use App\Models\LawAcademicTerm;
 use App\Models\LawCourse;
@@ -15,12 +17,11 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
-use Maatwebsite\Excel\Imports\HeadingRowFormatter;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class LawSchoolLedgerController extends Controller
 {
@@ -161,29 +162,9 @@ class LawSchoolLedgerController extends Controller
     /**
      * Stores a new law ledger transaction.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(StoreLawSchoolLedgerRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'student_id' => ['nullable', 'integer', 'exists:law_student,id'],
-            'new_student' => ['nullable', 'array'],
-            'new_student.student_number' => ['nullable', 'string', 'max:255'],
-            'new_student.last_name' => ['required_with:new_student', 'string', 'max:255'],
-            'new_student.first_name' => ['required_with:new_student', 'string', 'max:255'],
-            'new_student.middle_name' => ['nullable', 'string', 'max:255'],
-            'course_id' => ['nullable', 'integer', 'exists:law_course,id'],
-            'academic_term_id' => ['nullable', 'integer', 'exists:law_academic_term,id'],
-            'school_year' => ['nullable', 'string', 'max:20'],
-            'semester' => ['nullable', 'string', 'max:50'],
-            'entry_type' => ['nullable', 'string', 'in:ar,payment,adjustment'],
-            'units' => ['nullable', 'numeric'],
-            'transaction_date' => ['nullable', 'date'],
-            'reference_or_jev_number' => ['nullable', 'string', 'max:255'],
-            'particulars' => ['nullable', 'string'],
-            'tuition_per_unit_or_misc' => ['nullable', 'numeric'],
-            'amount' => ['nullable', 'numeric'],
-            'remarks' => ['nullable', 'string'],
-            'input_by' => ['nullable', 'string', 'max:255'],
-        ]);
+        $data = $request->validated();
 
         DB::transaction(function () use ($data): void {
             $studentId = $data['student_id'] ?? null;
@@ -207,11 +188,27 @@ class LawSchoolLedgerController extends Controller
                 $studentId = $student->id;
             }
 
-            LawSchoolLedger::create($this->ledgerAttributes(
-                $data,
-                (int) $studentId,
-                $this->resolveAcademicTermId($data),
-            ));
+            $studentId = (int) $studentId;
+
+            // Pull name columns from the chosen student when not provided
+            if ($studentId && empty($data['last_name'])) {
+                $student = LawStudent::find($studentId);
+                if ($student) {
+                    $data['last_name'] = $student->last_name;
+                    $data['first_name'] = $student->first_name;
+                    $data['middle_name'] = $data['middle_name'] ?? $student->middle_name;
+                }
+            }
+
+            $attributes = $this->buildLedgerRow($data, $studentId, $this->resolveAcademicTermId($data));
+            $attributes['entry_type'] = $data['entry_type'] ?? 'ar';
+            $attributes['ar_or_payment'] = $this->entryTypeToLabel($attributes['entry_type']);
+            $attributes['status'] = $this->determineStatus(
+                (float) ($attributes['amount'] ?? 0),
+                $data['status'] ?? null,
+            );
+
+            LawSchoolLedger::create($attributes);
         });
 
         return redirect()->route('law-ledger.index')->with('success', 'Transaction created successfully.');
@@ -222,10 +219,13 @@ class LawSchoolLedgerController extends Controller
      */
     public function edit(int $id): Response
     {
-        $record = LawSchoolLedger::findOrFail($id);
+        $record = LawSchoolLedger::with(['lawStudent', 'lawCourse', 'lawAcademicTerm'])->findOrFail($id);
 
         return Inertia::render('law-ledger/EditTransaction', [
-            'record' => $record,
+            'record' => $this->recordForForm($record),
+            'students' => $this->studentList(),
+            'courses' => $this->courseList(),
+            'academicTerms' => $this->academicTermList(),
             'filterOptions' => $this->getFilterOptions(),
         ]);
     }
@@ -233,32 +233,57 @@ class LawSchoolLedgerController extends Controller
     /**
      * Updates an existing law ledger transaction.
      */
-    public function update(Request $request, int $id): RedirectResponse
+    public function update(UpdateLawSchoolLedgerRequest $request, int $id): RedirectResponse
     {
         $record = LawSchoolLedger::findOrFail($id);
+        $data = $request->validated();
 
-        $data = $request->validate([
-            'last_name' => ['required', 'string', 'max:255'],
-            'first_name' => ['required', 'string', 'max:255'],
-            'middle_initial' => ['nullable', 'string', 'max:10'],
-            'middle_name' => ['nullable', 'string', 'max:255'],
-            'student_id' => ['nullable', 'string', 'max:255'],
-            'course' => ['nullable', 'string', 'max:255'],
-            'school_year' => ['nullable', 'string', 'max:20'],
-            'semester_or_summer' => ['nullable', 'string', 'max:50'],
-            'units' => ['nullable', 'numeric'],
-            'transaction_date' => ['nullable', 'date'],
-            'reference_jev_or_number' => ['nullable', 'string', 'max:255'],
-            'particulars' => ['nullable', 'string'],
-            'tuition_per_unit_or_fee_per_semester' => ['nullable', 'numeric'],
-            'ar_or_payment' => ['nullable', 'string', 'max:50'],
-            'amount' => ['nullable', 'numeric'],
-            'status' => ['nullable', 'string'],
-            'remarks' => ['nullable', 'string'],
-            'input_by' => ['nullable', 'string', 'max:255'],
-        ]);
+        DB::transaction(function () use ($data, $record): void {
+            $data = array_replace([
+                'student_id' => $record->student_id_fk,
+                'course_id' => $record->course_id,
+                'academic_term_id' => $record->academic_term_id,
+                'school_year' => $record->school_year,
+                'semester_or_summer' => $record->semester_or_summer,
+                'last_name' => $record->last_name,
+                'first_name' => $record->first_name,
+                'middle_initial' => $record->middle_initial,
+                'middle_name' => $record->middle_name,
+                'course' => $record->course,
+                'units' => $record->units,
+                'transaction_date' => $record->transaction_date,
+                'reference_jev_or_number' => $record->reference_jev_or_number,
+                'particulars' => $record->particulars,
+                'tuition_per_unit_or_fee_per_semester' => $record->tuition_per_unit_or_fee_per_semester,
+                'amount' => $record->amount,
+                'remarks' => $record->remarks,
+                'input_by' => $record->input_by,
+            ], $data);
 
-        $record->update($data);
+            $studentId = isset($data['student_id']) && $data['student_id'] !== null
+                ? (int) $data['student_id']
+                : null;
+
+            // Sync name columns from the chosen student
+            if ($studentId) {
+                $student = LawStudent::find($studentId);
+                if ($student) {
+                    $data['last_name'] = $data['last_name'] ?? $student->last_name;
+                    $data['first_name'] = $data['first_name'] ?? $student->first_name;
+                    $data['middle_name'] = $data['middle_name'] ?? $student->middle_name;
+                }
+            }
+
+            $attributes = $this->buildLedgerRow($data, $studentId, $this->resolveAcademicTermId($data));
+            $attributes['entry_type'] = $data['entry_type'] ?? ($record->entry_type ?? 'ar');
+            $attributes['ar_or_payment'] = $data['ar_or_payment'] ?? $this->entryTypeToLabel($attributes['entry_type']);
+            $attributes['status'] = $this->determineStatus(
+                (float) ($attributes['amount'] ?? 0),
+                $data['status'] ?? null,
+            );
+
+            $record->update($attributes);
+        });
 
         return redirect()->route('law-ledger.index')->with('success', 'Transaction updated successfully.');
     }
@@ -300,49 +325,129 @@ class LawSchoolLedgerController extends Controller
         $now          = now();
 
         if ($extension === 'csv') {
-            $handle = fopen($path, 'r');
-            if (! $handle) {
-                return redirect()->route('law-ledger.index')->with('error', 'Could not open CSV file.');
-            }
-            $headerRow = fgetcsv($handle);
-            $headers   = $headerRow ? array_map(fn ($h) => Str::slug((string) $h, '_'), $headerRow) : [];
-            $insertData = [];
-
-            while (($row = fgetcsv($handle)) !== false) {
-                $rowData = [];
-                foreach ($row as $index => $value) {
-                    $key = $headers[$index] ?? 'column_'.$index;
-                    $rowData[$key] = $value;
-                }
-                $data = $this->mapImportRow($rowData, $warnings);
-                if ($data !== null) {
-                    $data['created_at'] = $now;
-                    $data['updated_at'] = $now;
-                    $insertData[]       = $data;
-                } else {
-                    $skipped++;
-                }
-
-                if (count($insertData) >= 1000) {
-                    DB::transaction(fn () => LawSchoolLedger::insert($insertData));
-                    $imported  += count($insertData);
-                    $insertData = [];
-                }
-            }
-            if (! empty($insertData)) {
-                DB::transaction(fn () => LawSchoolLedger::insert($insertData));
-                $imported += count($insertData);
-            }
-            fclose($handle);
-
-            ActivityLog::recordImport(LawSchoolLedger::class, $imported, 'Law School Ledger');
-
-            return redirect()->route('law-ledger.index')
-                ->with('success', $this->importSummary($imported, $skipped, $warnings));
+            return $this->importCsv($path, $imported, $skipped, $warnings, $now);
         }
 
-        // Excel (.xlsx, .xls)
-        $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($path);
+        return $this->importExcel($path, $imported, $skipped, $warnings, $now);
+    }
+
+    /**
+     * Two-pass memory-efficient CSV importer.
+     * Pass 1: stream rows, collect distinct course codes + (school_year, semester) pairs,
+     *         and bulk-resolve FK lookup maps.
+     * Pass 2: stream again, map each row to normalized columns, chunk-insert 1000 at a time.
+     *
+     * @param  array<string, int>  $warnings
+     */
+    private function importCsv(string $path, int &$imported, int &$skipped, array &$warnings, $now): RedirectResponse
+    {
+        // ── Pass 1: collect distinct courses + terms + students ───────────────
+        $handle = fopen($path, 'r');
+        if (! $handle) {
+            return redirect()->route('law-ledger.index')->with('error', 'Could not open CSV file.');
+        }
+
+        $headerRow = fgetcsv($handle);
+        $headers   = $headerRow ? array_map(fn ($h) => Str::slug((string) $h, '_'), $headerRow) : [];
+
+        $distinctCourses = [];
+        $distinctTerms = [];
+        $distinctStudents = [];
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $rowData = [];
+            foreach ($row as $index => $value) {
+                $key = $headers[$index] ?? 'column_'.$index;
+                $rowData[$key] = $value;
+            }
+
+            $code = trim((string) Arr::get($rowData, 'course', ''));
+            if ($code !== '') {
+                $distinctCourses[$code] = true;
+            }
+
+            $sy = trim((string) (Arr::get($rowData, 'school_year') ?? Arr::get($rowData, 'academic_year') ?? ''));
+            $semRaw = trim((string) (
+                Arr::get($rowData, 'semester_or_summer')
+                ?? Arr::get($rowData, 'semester_summer')
+                ?? Arr::get($rowData, 'semester')
+                ?? ''
+            ));
+            if ($sy !== '' && $semRaw !== '') {
+                $sem = LawAcademicTerm::normalizeSemester($semRaw);
+                $distinctTerms["{$sy}|||{$sem}"] = ['school_year' => $sy, 'semester' => $sem];
+            }
+
+            $last = trim((string) Arr::get($rowData, 'last_name', ''));
+            $first = trim((string) Arr::get($rowData, 'first_name', ''));
+            $mi = trim((string) Arr::get($rowData, 'middle_initial', ''));
+            if ($last !== '' && $first !== '') {
+                $distinctStudents["{$last}|||{$first}|||{$mi}"] = true;
+            }
+        }
+        fclose($handle);
+
+        // Bulk-resolve lookup maps for courses, terms, and students
+        [$courseMap, $termMap, $studentMap] = $this->buildImportLookupMaps(
+            $distinctCourses,
+            $distinctTerms,
+            $distinctStudents,
+            $now,
+        );
+
+        // ── Pass 2: stream again, map rows, chunk-insert ───────────────────────
+        $handle = fopen($path, 'r');
+        $headerRow = fgetcsv($handle);
+        $headers   = $headerRow ? array_map(fn ($h) => Str::slug((string) $h, '_'), $headerRow) : [];
+
+        $insertData = [];
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $rowData = [];
+            foreach ($row as $index => $value) {
+                $key = $headers[$index] ?? 'column_'.$index;
+                $rowData[$key] = $value;
+            }
+
+            $data = $this->mapImportRow($rowData, $warnings);
+
+            if ($data !== null) {
+                $data = $this->resolveImportRowFks($data, $courseMap, $termMap, $studentMap);
+                $data['created_at'] = $now;
+                $data['updated_at'] = $now;
+                $insertData[] = $data;
+            } else {
+                $skipped++;
+            }
+
+            if (count($insertData) >= 1000) {
+                DB::transaction(fn () => LawSchoolLedger::insert($insertData));
+                $imported += count($insertData);
+                $insertData = [];
+            }
+        }
+
+        if (! empty($insertData)) {
+            DB::transaction(fn () => LawSchoolLedger::insert($insertData));
+            $imported += count($insertData);
+        }
+        fclose($handle);
+
+        ActivityLog::recordImport(LawSchoolLedger::class, $imported, 'Law School Ledger');
+
+        return redirect()->route('law-ledger.index')
+            ->with('success', $this->importSummary($imported, $skipped, $warnings));
+    }
+
+    /**
+     * Two-pass memory-efficient Excel importer (xlsx/xls) using PhpSpreadsheet.
+     * Same pattern as importCsv() but reads from the in-memory sheet.
+     *
+     * @param  array<string, int>  $warnings
+     */
+    private function importExcel(string $path, int &$imported, int &$skipped, array &$warnings, $now): RedirectResponse
+    {
+        $reader = IOFactory::createReaderForFile($path);
         $reader->setReadDataOnly(false);
 
         $spreadsheet = $reader->load($path);
@@ -365,6 +470,43 @@ class LawSchoolLedgerController extends Controller
             $headerRow[] = Str::slug((string) $sheet->getCell($colLetter . '1')->getValue(), '_');
         }
 
+        // ── Pass 1: collect distinct values (rows 2..highestRow) ───────────────
+        $distinctCourses = [];
+        $distinctTerms = [];
+        $distinctStudents = [];
+
+        for ($r = 2; $r <= $highestRow; $r++) {
+            $code = trim((string) $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($this->headerIndex($headerRow, ['course', 'program'])) . $r)->getValue());
+            if ($code !== '') {
+                $distinctCourses[$code] = true;
+            }
+
+            $sy = trim((string) $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($this->headerIndex($headerRow, ['school_year', 'academic_year', 'sy'])) . $r)->getValue());
+            $semRaw = trim((string) $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($this->headerIndex($headerRow, ['semester_or_summer', 'semester_summer', 'semester', 'term'])) . $r)->getValue());
+            if ($sy !== '' && $semRaw !== '') {
+                $sem = LawAcademicTerm::normalizeSemester($semRaw);
+                $distinctTerms["{$sy}|||{$sem}"] = ['school_year' => $sy, 'semester' => $sem];
+            }
+
+            $lastIdx = $this->headerIndex($headerRow, ['last_name']);
+            $firstIdx = $this->headerIndex($headerRow, ['first_name']);
+            $miIdx = $this->headerIndex($headerRow, ['middle_initial']);
+            $last = $lastIdx ? trim((string) $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($lastIdx) . $r)->getValue()) : '';
+            $first = $firstIdx ? trim((string) $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($firstIdx) . $r)->getValue()) : '';
+            $mi = $miIdx ? trim((string) $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($miIdx) . $r)->getValue()) : '';
+            if ($last !== '' && $first !== '') {
+                $distinctStudents["{$last}|||{$first}|||{$mi}"] = true;
+            }
+        }
+
+        [$courseMap, $termMap, $studentMap] = $this->buildImportLookupMaps(
+            $distinctCourses,
+            $distinctTerms,
+            $distinctStudents,
+            $now,
+        );
+
+        // ── Pass 2: stream rows, chunk-insert ──────────────────────────────────
         $insertData = [];
 
         for ($r = 2; $r <= $highestRow; $r++) {
@@ -379,17 +521,19 @@ class LawSchoolLedgerController extends Controller
             }
 
             $data = $this->mapImportRow($rowData, $warnings);
+
             if ($data !== null) {
+                $data = $this->resolveImportRowFks($data, $courseMap, $termMap, $studentMap);
                 $data['created_at'] = $now;
                 $data['updated_at'] = $now;
-                $insertData[]       = $data;
+                $insertData[] = $data;
             } else {
                 $skipped++;
             }
 
             if (count($insertData) >= 1000) {
                 DB::transaction(fn () => LawSchoolLedger::insert($insertData));
-                $imported  += count($insertData);
+                $imported += count($insertData);
                 $insertData = [];
             }
         }
@@ -406,6 +550,160 @@ class LawSchoolLedgerController extends Controller
 
         return redirect()->route('law-ledger.index')
             ->with('success', $this->importSummary($imported, $skipped, $warnings));
+    }
+
+    /**
+     * Returns the 1-based column index of the first matching header slug, or null.
+     *
+     * @param  array<int, string>  $headerRow
+     * @param  array<int, string>  $candidates
+     */
+    private function headerIndex(array $headerRow, array $candidates): ?int
+    {
+        foreach ($candidates as $candidate) {
+            $idx = array_search($candidate, $headerRow, true);
+            if ($idx !== false) {
+                return $idx + 1;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Bulk-resolves lookup maps for courses, academic terms, and students.
+     * Avoids N+1 INSERTs by chunking new rows at 500 per insert.
+     *
+     * @param  array<string, true>  $distinctCourses
+     * @param  array<string, array{school_year:string, semester:string}>  $distinctTerms
+     * @param  array<string, true>  $distinctStudents
+     * @return array{0: array<string, int>, 1: array<string, int>, 2: array<string, int>}
+     */
+    private function buildImportLookupMaps(
+        array $distinctCourses,
+        array $distinctTerms,
+        array $distinctStudents,
+        $now,
+    ): array {
+        // Courses
+        $courseMap = LawCourse::pluck('id', 'code')->toArray();
+        $newCourses = [];
+        foreach (array_keys($distinctCourses) as $code) {
+            if (! isset($courseMap[$code])) {
+                $newCourses[] = [
+                    'code' => $code,
+                    'title' => null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+        }
+        if (! empty($newCourses)) {
+            foreach (array_chunk($newCourses, 500) as $chunk) {
+                LawCourse::insert($chunk);
+            }
+            $courseMap = LawCourse::pluck('id', 'code')->toArray();
+        }
+
+        // Academic terms
+        $termsInDb = LawAcademicTerm::get(['id', 'school_year', 'semester'])->toArray();
+        $termMap = [];
+        foreach ($termsInDb as $t) {
+            $termMap["{$t['school_year']}|||{$t['semester']}"] = $t['id'];
+        }
+        $newTerms = [];
+        foreach ($distinctTerms as $key => $pair) {
+            if (! isset($termMap[$key])) {
+                $newTerms[] = [
+                    'school_year' => $pair['school_year'],
+                    'semester_short' => $this->semesterShort($pair['semester']),
+                    'semester' => $pair['semester'],
+                    'sort_order' => LawAcademicTerm::sortOrder($pair['semester']),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+        }
+        if (! empty($newTerms)) {
+            LawAcademicTerm::insert($newTerms);
+            $termsInDb = LawAcademicTerm::get(['id', 'school_year', 'semester'])->toArray();
+            $termMap = [];
+            foreach ($termsInDb as $t) {
+                $termMap["{$t['school_year']}|||{$t['semester']}"] = $t['id'];
+            }
+        }
+
+        // Students
+        $studentMap = LawStudent::get(['id', 'last_name', 'first_name', 'middle_name'])
+            ->mapWithKeys(fn ($s) => ["{$s->last_name}|||{$s->first_name}|||{$s->middle_name}" => $s->id])
+            ->toArray();
+
+        $newStudents = [];
+        foreach (array_keys($distinctStudents) as $key) {
+            if (! isset($studentMap[$key])) {
+                [$last, $first, $mi] = explode('|||', $key, 3);
+                $newStudents[] = [
+                    'last_name' => $last,
+                    'first_name' => $first,
+                    'middle_name' => $mi !== '' ? $mi : null,
+                    'raw_name_from_csv' => "{$last}, {$first}",
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+        }
+        if (! empty($newStudents)) {
+            foreach (array_chunk($newStudents, 500) as $chunk) {
+                LawStudent::insert($chunk);
+            }
+            $studentMap = LawStudent::get(['id', 'last_name', 'first_name', 'middle_name'])
+                ->mapWithKeys(fn ($s) => ["{$s->last_name}|||{$s->first_name}|||{$s->middle_name}" => $s->id])
+                ->toArray();
+        }
+
+        return [$courseMap, $termMap, $studentMap];
+    }
+
+    /**
+     * Resolves course_id / academic_term_id / student_id_fk on an import row
+     * using the bulk-built lookup maps. The legacy raw columns are preserved.
+     *
+     * @param  array<string, mixed>  $data
+     * @param  array<string, int>  $courseMap
+     * @param  array<string, int>  $termMap
+     * @param  array<string, int>  $studentMap
+     * @return array<string, mixed>
+     */
+    private function resolveImportRowFks(array $data, array $courseMap, array $termMap, array $studentMap): array
+    {
+        $code = trim((string) ($data['course'] ?? ''));
+        if ($code !== '' && isset($courseMap[$code])) {
+            $data['course_id'] = $courseMap[$code];
+        }
+
+        $sy = trim((string) ($data['school_year'] ?? ''));
+        $semRaw = (string) ($data['semester_or_summer'] ?? '');
+        if ($sy !== '' && $semRaw !== '') {
+            $sem = LawAcademicTerm::normalizeSemester($semRaw);
+            $key = "{$sy}|||{$sem}";
+            if (isset($termMap[$key])) {
+                $data['academic_term_id'] = $termMap[$key];
+                // Promote semester_or_summer to canonical form for consistent filtering
+                $data['semester_or_summer'] = $sem;
+            }
+        }
+
+        $last = trim((string) ($data['last_name'] ?? ''));
+        $first = trim((string) ($data['first_name'] ?? ''));
+        $mi = trim((string) ($data['middle_name'] ?? ($data['middle_initial'] ?? '')));
+        if ($last !== '' && $first !== '') {
+            $key = "{$last}|||{$first}|||{$mi}";
+            if (isset($studentMap[$key])) {
+                $data['student_id_fk'] = $studentMap[$key];
+            }
+        }
+
+        return $data;
     }
 
     /**
@@ -469,7 +767,7 @@ class LawSchoolLedgerController extends Controller
 
         $studentName = str_replace(['−', '–', '—'], '-', (string) ($validated['student'] ?? $validated['student_id']));
         $recordsQuery = isset($validated['student_id'])
-            ? LawSchoolLedger::query()->where('student_id', $validated['student_id'])
+            ? LawSchoolLedger::query()->where('student_id_fk', $validated['student_id'])
             : $this->queryStudentByName($studentName);
 
         $records = $recordsQuery
@@ -482,7 +780,7 @@ class LawSchoolLedgerController extends Controller
             ->when(
                 $validated['semester'] ?? null,
                 fn ($records, $semester) => $records->filter(
-                    fn (LawSchoolLedger $record) => AcademicTerm::normalizeSemester(
+                    fn (LawSchoolLedger $record) => LawAcademicTerm::normalizeSemester(
                         (string) $record->semester_or_summer,
                     ) === $semester,
                 )->values(),
@@ -612,6 +910,7 @@ class LawSchoolLedgerController extends Controller
             'first_name' => $nameParts['first_name'],
             'middle_initial' => $nameParts['middle_initial'],
             'student_id' => Arr::get($normalized, 'student_id'),
+            'student_id_fk' => null,
             'course' => Arr::get($normalized, 'course') ?? Arr::get($normalized, 'program'),
             'school_year' => Arr::get($normalized, 'school_year') ?? Arr::get($normalized, 'academic_year') ?? Arr::get($normalized, 'sy'),
             'semester_or_summer' => Arr::get($normalized, 'semester_or_summer')
@@ -791,10 +1090,10 @@ class LawSchoolLedgerController extends Controller
     {
         return [
             'id' => $r->id,
-            'studentId' => $r->student_id,
+            'studentId' => $r->student_id_fk,
             'lastName' => $r->last_name,
             'firstName' => $r->first_name,
-            'middleInitial' => $r->middle_initial,
+            'middleInitial' => $this->normalizeMiddleInitial($r->middle_initial),
             'name' => trim("$r->last_name, $r->first_name ".($r->middle_initial ? "$r->middle_initial" : '')),
             'course' => $r->course,
             'schoolYear' => $r->school_year,
@@ -805,7 +1104,9 @@ class LawSchoolLedgerController extends Controller
             'particulars' => $r->particulars,
             'tuitionPerUnitOrFeePerSemester' => (float) ($r->tuition_per_unit_or_fee_per_semester ?? 0),
             'arOrPayment' => $r->ar_or_payment,
-            'amount' => (float) $r->amount,
+            'arPayment' => $this->entryTypeToLabel($r->entry_type),
+            'entryType' => $r->entry_type,
+            'amount' => $this->cleanAmount($r->amount),
             'status' => $r->status,
             'remark' => $r->remarks,
             'inputBy' => $r->input_by,
@@ -854,82 +1155,235 @@ class LawSchoolLedgerController extends Controller
     }
 
     /**
+     * Resolves a LawAcademicTerm id from either an explicit academic_term_id or
+     * from the school_year/semester pair (auto-creates a new term when missing).
+     *
      * @param  array<string, mixed>  $data
      */
-    private function resolveAcademicTermId(array $data): int
+    private function resolveAcademicTermId(array $data): ?int
     {
         if (! empty($data['academic_term_id'])) {
             return (int) $data['academic_term_id'];
         }
 
+        if (empty($data['school_year']) || empty($data['semester'])) {
+            return null;
+        }
+
+        $semester = LawAcademicTerm::normalizeSemester((string) $data['semester']);
+
         $term = LawAcademicTerm::firstOrCreate(
             [
                 'school_year' => $data['school_year'],
-                'semester' => $data['semester'],
+                'semester_short' => $this->semesterShort($semester),
             ],
-            ['sort_order' => LawAcademicTerm::sortOrder($data['semester'])]
+            [
+                'semester' => $semester,
+                'sort_order' => LawAcademicTerm::sortOrder($semester),
+            ]
         );
 
         return $term->id;
     }
 
+    private function semesterShort(string $semester): string
+    {
+        return match ($semester) {
+            'First Semester' => '1st Sem',
+            'Second Semester' => '2nd Sem',
+            default => 'Summer',
+        };
+    }
+
     /**
+     * Builds the row payload for LawSchoolLedger::create() / update().
+     * Maps validated input → actual `law_school_ledgers` columns and auto-computes
+     * `amount = units × tuition_per_unit_or_fee_per_semester` when entry_type is `ar`
+     * and the user did not supply an explicit amount.
+     *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    private function ledgerAttributes(array $data, int $studentId, int $academicTermId): array
+    private function buildLedgerRow(array $data, ?int $studentId, ?int $academicTermId): array
     {
-        $attributes = Arr::only($data, [
-            'course_id',
-            'entry_type',
-            'units',
-            'transaction_date',
-            'reference_or_jev_number',
-            'particulars',
-            'tuition_per_unit_or_misc',
-            'amount',
-            'remarks',
-            'input_by',
-        ]);
+        $attributes = [
+            'student_id_fk' => $studentId,
+            'course_id' => $data['course_id'] ?? null,
+            'academic_term_id' => $academicTermId,
+            'last_name' => $data['last_name'] ?? null,
+            'first_name' => $data['first_name'] ?? null,
+            'middle_initial' => $this->normalizeMiddleInitial($data['middle_initial'] ?? null),
+            'middle_name' => $data['middle_name'] ?? null,
+            'course' => $data['course'] ?? LawCourse::find($data['course_id'] ?? null)?->code,
+            'school_year' => $data['school_year'] ?? null,
+            'semester_or_summer' => $data['semester_or_summer']
+                ?? ($data['semester'] ?? null),
+            'units' => $data['units'] ?? null,
+            'transaction_date' => $data['transaction_date'] ?? null,
+            'reference_jev_or_number' => $data['reference_jev_or_number'] ?? null,
+            'particulars' => $data['particulars'] ?? 'Tuition',
+            'tuition_per_unit_or_fee_per_semester' => $data['tuition_per_unit_or_fee_per_semester'] ?? '0.00',
+            'ar_or_payment' => $data['ar_or_payment'] ?? 'AR',
+            'amount' => $data['amount'] ?? null,
+            'remarks' => $data['remarks'] ?? null,
+            'input_by' => $data['input_by'] ?? null,
+        ];
 
-        $attributes['student_id'] = $studentId;
-        $attributes['academic_term_id'] = $academicTermId;
-        $attributes['tuition_per_unit_or_misc'] = $data['tuition_per_unit_or_misc'] ?? '0.00';
+        $entryType = $attributes['entry_type'] ?? ($data['entry_type'] ?? 'ar');
 
-        if ($data['entry_type'] === 'ar' && empty($data['amount'])) {
+        // Auto-compute amount when AR and no amount supplied (mirrors Graduate behavior)
+        if ($entryType === 'ar' && blank($attributes['amount'])) {
             $attributes['amount'] = round(
-                (float) ($data['units'] ?? 0) * (float) $attributes['tuition_per_unit_or_misc'],
+                (float) ($attributes['units'] ?? 0) * (float) $attributes['tuition_per_unit_or_fee_per_semester'],
                 2,
             );
         }
 
+        $attributes['amount'] = $this->cleanAmount($attributes['amount'] ?? 0);
+
         return $attributes;
     }
 
-    private function calculateStudentBalance($records): array
+    /**
+     * Returns the record shape expected by the Add/Edit form (ID-based fields
+     * plus resolved school_year/semester pulled from the academic term relation).
+     *
+     * @return array<string, mixed>
+     */
+    private function recordForForm(LawSchoolLedger $r): array
     {
-        $totalAssessments = 0;
-        $totalPayments = 0;
+        $middleInitial = $this->normalizeMiddleInitial($r->middle_initial);
+
+        return [
+            'id' => $r->id,
+            'student_id' => $r->student_id_fk,
+            'course_id' => $r->course_id,
+            'academic_term_id' => $r->academic_term_id,
+            'last_name' => $r->last_name,
+            'first_name' => $r->first_name,
+            'middle_initial' => $middleInitial,
+            'middle_name' => $r->middle_name,
+            'course' => $r->course,
+            'school_year' => $r->lawAcademicTerm?->school_year ?? ($r->school_year ?? ''),
+            'semester' => $r->lawAcademicTerm?->semester ?? $this->normalizeSemester((string) ($r->semester_or_summer ?? '')),
+            'semester_or_summer' => $r->semester_or_summer,
+            'entry_type' => $r->entry_type ?? 'ar',
+            'units' => $r->units,
+            'transaction_date' => $r->transaction_date ? (string) $r->transaction_date : '',
+            'reference_jev_or_number' => $r->reference_jev_or_number ?? '',
+            'particulars' => $r->particulars ?? 'Tuition',
+            'tuition_per_unit_or_fee_per_semester' => $r->tuition_per_unit_or_fee_per_semester,
+            'ar_or_payment' => $r->ar_or_payment,
+            'amount' => $r->amount,
+            'status' => $r->status,
+            'remarks' => $r->remarks ?? '',
+            'input_by' => $r->input_by ?? '',
+        ];
+    }
+
+    /**
+     * Converts entry_type enum value → UI display label.
+     */
+    private function entryTypeToLabel(?string $entryType): string
+    {
+        return match ($entryType) {
+            'ar' => 'AR',
+            'adjustment' => 'Adjustment',
+            default => 'Payment',
+        };
+    }
+
+    /**
+     * Strips trailing dots/whitespace from a middle initial.
+     */
+    private function normalizeMiddleInitial(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        $clean = rtrim(trim($value), '.');
+        if ($clean === '') {
+            return null;
+        }
+        // Middle initial is conventionally a single letter; preserve longer inputs as-is.
+        if (mb_strlen($clean) === 1) {
+            return strtoupper($clean);
+        }
+
+        return strtoupper($clean);
+    }
+
+    /**
+     * Clamps an amount value to the PostgreSQL decimal(10,2) max (99,999,999.99)
+     * and strips any stray formula prefixes. Mirrors Graduate::cleanAmount().
+     */
+    private function cleanAmount($rawAmount): float
+    {
+        $str = trim((string) ($rawAmount ?? ''));
+
+        if (str_starts_with($str, '=')) {
+            $str = ltrim($str, '=');
+        }
+
+        $cleaned = (float) preg_replace('/[^\d.\-]/', '', $str);
+
+        if ($cleaned >= 100000000.00) {
+            return 99999999.99;
+        }
+        if ($cleaned <= -100000000.00) {
+            return -99999999.99;
+        }
+
+        return $cleaned;
+    }
+
+    /**
+     * Computes charges/payments/outstanding balance from normalized records.
+     * Mirrors GraduateLedgerController::calculateStudentBalanceNormalized() — uses
+     * the `entry_type` column (positive magnitudes) so callers do not need to know
+     * whether payments were stored with a sign.
+     *
+     * @param  \Illuminate\Support\Collection<int, LawSchoolLedger>|\Illuminate\Database\Eloquent\Collection<int, LawSchoolLedger>|array<int, LawSchoolLedger>  $records
+     * @return array<string, float>
+     */
+    private function calculateStudentBalanceNormalized($records): array
+    {
+        $totalCharges = 0.0;
+        $totalPayments = 0.0;
 
         foreach ($records as $record) {
-            // Support both Eloquent models and transformed arrays
-            $rawType = strtoupper(trim($record->ar_or_payment ?? $record['arOrPayment'] ?? $record['ar_or_payment'] ?? ''));
-            $cleanAmount = (float) ($record->amount ?? $record['amount'] ?? 0);
+            $entryType = strtolower((string) ($record->entry_type ?? ''));
+            $amount = $this->cleanAmount($record->amount ?? 0);
 
-            if ($rawType === 'AR' || $rawType === 'ASSESSMENT') {
-                $totalAssessments += $cleanAmount;
+            if ($entryType === 'ar') {
+                $totalCharges += abs($amount);
+            } elseif (in_array($entryType, ['payment', 'adjustment'], true)) {
+                $totalPayments += abs($amount);
             } else {
-                // Payments and adjustments are stored as negative amounts; accumulate
-                // their magnitudes so the summary shows positive credit figures.
-                $totalPayments += abs($cleanAmount);
+                // Legacy rows without an entry_type: fall back to the text label
+                $label = strtoupper(trim((string) ($record->ar_or_payment ?? '')));
+                if ($label === 'AR' || $label === 'ASSESSMENT') {
+                    $totalCharges += abs($amount);
+                } else {
+                    $totalPayments += abs($amount);
+                }
             }
         }
 
         return [
-            'totalCharges' => $totalAssessments,
+            'totalCharges' => $totalCharges,
             'totalPayments' => $totalPayments,
-            'outstandingBalance' => $totalAssessments - $totalPayments,
+            'outstandingBalance' => $totalCharges - $totalPayments,
         ];
+    }
+
+    /**
+     * @deprecated Use calculateStudentBalanceNormalized() instead.
+     * Kept for backwards compatibility with any callers passing pre-transformed arrays.
+     */
+    private function calculateStudentBalance($records): array
+    {
+        return $this->calculateStudentBalanceNormalized($records);
     }
 
     private function getFilterOptions(): array
