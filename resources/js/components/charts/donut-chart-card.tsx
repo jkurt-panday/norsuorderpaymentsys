@@ -99,10 +99,10 @@ export function DonutChartCard({
                                     if (viewBox && "cx" in viewBox && "cy" in viewBox) {
                                       return (
                                         <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle">
-                                          <tspan x={viewBox.cx} y={(viewBox.cy ?? 0) - 25} className="fill-foreground text-2xl font-bold">
+                                          <tspan x={viewBox.cx} y={(viewBox.cy ?? 0) - 3} className="fill-foreground text-2xl font-bold">
                                             {total.toLocaleString()}
                                           </tspan>
-                                          <tspan x={viewBox.cx} y={(viewBox.cy ?? 0) + 1} className="fill-muted-foreground text-xs">
+                                          <tspan x={viewBox.cx} y={(viewBox.cy ?? 0) + 20} className="fill-muted-foreground text-xs">
                                             {centerLabel}
                                           </tspan>
                                         </text>
