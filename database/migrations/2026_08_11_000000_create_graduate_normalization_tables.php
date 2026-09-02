@@ -37,7 +37,7 @@ return new class extends Migration
         Schema::create('graduate_academic_term', function (Blueprint $table) {
             $table->id();
             $table->string('school_year', 20);
-            $table->string('semester_short', 20);
+            $table->string('semester_short', 20); 
             $table->string('semester', 50);
             $table->unsignedTinyInteger('sort_order');
             $table->timestamps();

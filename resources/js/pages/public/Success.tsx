@@ -459,16 +459,16 @@ export default function Success({
                                                 </p>
                                             </div>
                                         </div>
-                                        <Button
-                                            asChild
-                                            className="flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 md:w-auto"
-                                        >
-                                            <a
-                                                href={`/auth/google?ref=${formInput.reference_number}`}
-                                            >
-                                                Save Info with Google
-                                            </a>
-                                        </Button>
+                         <Button
+                                render={
+                                    <a
+                                        href={`/auth/google?ref=${formInput.reference_number}`}
+                                    />
+                                }
+                                className="flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 md:w-auto"
+                            >
+                                Save Info with Google
+                            </Button>
                                     </div>
                                 )}
 

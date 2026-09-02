@@ -61,7 +61,11 @@ const staffNavItems: SidebarItem[] = [
     { title: 'Dashboard', href: '/staff/staffdashboard', icon: Home },
     { title: 'Requests', href: '/staff/requests', icon: FileText },
     { title: 'Bank Accounts', href: '/staff/bank-accounts', icon: Building },
-    { title: 'Payment Options', href: '/staff/payment-options', icon: CreditCard },
+    {
+        title: 'Payment Options',
+        href: '/staff/payment-options',
+        icon: CreditCard,
+    },
     { title: 'Memberships', href: '/staff/memberships', icon: Users },
     { title: 'UACS', href: '/staff/uacs', icon: Logs },
     { title: 'Course', href: '/staff/courses', icon: School },
@@ -81,7 +85,7 @@ const staffCollapsibleItems = [
         icon: GraduationCap,
         items: [
             { title: 'Ledger Overview', href: '/graduate-ledger' },
-            { title: 'Print Statement', href: '/graduate-ledger/print-select' },
+            { title: 'Search Student', href: '/graduate-ledger/print-select' },
         ],
     },
     {
@@ -115,7 +119,8 @@ export default function UnifiedSidebar() {
                         alt="NORSU Order of Payment System"
                         className="w-40 rounded-md object-contain"
                         onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
+                            (e.target as HTMLImageElement).style.display =
+                                'none';
                         }}
                     />
                     <div className="text-center">
@@ -185,7 +190,10 @@ export default function UnifiedSidebar() {
 
                     {staffCollapsibleItems.map((item, index) => (
                         <SidebarMenuItem key={index}>
-                            <Collapsible defaultOpen className="group/collapsible">
+                            <Collapsible
+                                defaultOpen
+                                className="group/collapsible"
+                            >
                                 <CollapsibleTrigger
                                     render={
                                         <SidebarMenuButton className="my-0.5 rounded-lg px-3 py-2.5 text-[15px] font-medium text-white hover:bg-white/5 hover:text-white" />
@@ -204,7 +212,9 @@ export default function UnifiedSidebar() {
                                                         <Link
                                                             href={subItem.href}
                                                             className={`my-0.5 flex w-full items-center rounded-md px-3 py-2 text-[14px] transition-colors duration-200 ${
-                                                                isActive(subItem.href)
+                                                                isActive(
+                                                                    subItem.href,
+                                                                )
                                                                     ? 'bg-[#0078d4] font-medium text-white shadow-sm'
                                                                     : 'text-white/70 hover:bg-white/5 hover:text-white'
                                                             }`}
@@ -242,7 +252,9 @@ export default function UnifiedSidebar() {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => router.post('/logout')}>
+                            <AlertDialogAction
+                                onClick={() => router.post('/logout')}
+                            >
                                 Logout
                             </AlertDialogAction>
                         </AlertDialogFooter>
