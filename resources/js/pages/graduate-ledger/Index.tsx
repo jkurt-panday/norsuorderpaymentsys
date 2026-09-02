@@ -515,7 +515,9 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                 </Button>
               </form>
             </div>
-          </CardHeader>
+                  </CardHeader>
+        <div className="rotate-180 overflow-x-auto custom-scrollbar border-collapse">
+            <div className="rotate-180 min-w-max">
           <CardContent className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
@@ -593,7 +595,9 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                 )}
               </tbody>
             </table>
-          </CardContent>
+                          </CardContent>
+                      </div>
+                  </div>
 
           {paginationLinks.length > 3 && (
             <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#CFE3FF] pt-4 pb-4">

@@ -598,7 +598,9 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                 </Button>
               </form>
             </div>
-          </CardHeader>
+              </CardHeader>
+              <div className="rotate-180 overflow-x-auto custom-scrollbar border-collapse">
+                  <div className="rotate-180 min-w-max">
           <CardContent className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
@@ -684,7 +686,9 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                   )}
                 </tbody>
               </table>
-          </CardContent>
+                      </CardContent>
+                  </div>
+              </div>
 
           {/* ---- Pagination Footer ---- */}
           {paginationLinks.length > 3 && (
