@@ -3,7 +3,7 @@
     <head>
         @php
             $studentName = $selectedStudent['name']
-                ?? trim(($assessment->first_name ?? '') . ' ' . ($assessment->last_name ?? '') . ' ' . ($assessment->middle_name)) ?: '—';
+                ?? trim(($assessment->last_name ?? '') . ', ' . ($assessment->first_name ?? '') . ' ' . ($assessment->middle_name)) ?: '—';
         @endphp
         
         <meta charset="utf-8">
