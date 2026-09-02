@@ -12,6 +12,7 @@ class LawSchoolLedger extends Model
 
     protected $fillable = [
         'student_id',
+        'student_id_fk',
         'course_id',
         'academic_term_id',
         'entry_type',
@@ -46,7 +47,7 @@ class LawSchoolLedger extends Model
     /** @return BelongsTo<LawStudent, $this> */
     public function lawStudent(): BelongsTo
     {
-        return $this->belongsTo(LawStudent::class, 'student_id');
+        return $this->belongsTo(LawStudent::class, 'student_id_fk');
     }
 
     /** @return BelongsTo<LawCourse, $this> */

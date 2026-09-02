@@ -13,6 +13,7 @@ class LawAcademicTerm extends Model
 
     protected $fillable = [
         'school_year',
+        'semester_short',
         'semester',
         'sort_order',
     ];

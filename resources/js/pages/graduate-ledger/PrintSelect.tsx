@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { Printer, ArrowLeft, Search, X } from 'lucide-react';
+import { ArrowLeft, Filter, Printer, Search, X } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -45,8 +45,8 @@ function currency(n: number) {
 
 function absAmount(val: unknown): number {
     if (!val) {
-return 0;
-}
+        return 0;
+    }
 
     const num = parseFloat(String(val).replace(/[^\d.]/g, ''));
 
@@ -70,8 +70,8 @@ function formatTransactionDate(value?: string | null) {
     const parsedDate = new Date(`${datePart}T00:00:00`);
 
     if (Number.isNaN(parsedDate.getTime())) {
-return datePart;
-}
+        return datePart;
+    }
 
     return parsedDate.toLocaleDateString('en-US', {
         year: 'numeric',
@@ -80,16 +80,34 @@ return datePart;
     });
 }
 
+function transactionTimestamp(value?: string | null) {
+    if (!value) {
+        return 0;
+    }
+
+    const timestamp = new Date(value).getTime();
+
+    return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
 export default function PrintSelect({
     students = [],
     selectedStudent,
     records = [],
     summary,
 }: Props) {
-    const [selected, setSelected] = useState<string | number>(selectedStudent || '');
+    const [selected, setSelected] = useState<string | number>(
+        selectedStudent || '',
+    );
     const [search, setSearch] = useState('');
+    const [schoolYearFilter, setSchoolYearFilter] = useState('all');
+    const [semesterFilter, setSemesterFilter] = useState('all');
+    const [typeFilter, setTypeFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
 
-    const isNumericId = typeof selected === 'number' || (typeof selected === 'string' && /^\d+$/.test(selected));
+    const isNumericId =
+        typeof selected === 'number' ||
+        (typeof selected === 'string' && /^\d+$/.test(selected));
 
     const filteredStudents = useMemo(() => {
         const term = search.trim().toLowerCase();
@@ -97,7 +115,9 @@ export default function PrintSelect({
         if (!term) {
             return students;
         }
-        const matched = students.filter((s) => s.full_name.toLowerCase().includes(term));
+        const matched = students.filter((s) =>
+            s.full_name.toLowerCase().includes(term),
+        );
         // starts-with results float to top, contains-only results follow
         return matched.sort((a: StudentItem, b: StudentItem) => {
             const aStarts = a.full_name.toLowerCase().startsWith(term) ? 0 : 1;
@@ -106,9 +126,81 @@ export default function PrintSelect({
         });
     }, [students, search]);
 
+    const schoolYears = useMemo(
+        () =>
+            Array.from(
+                new Set(
+                    records
+                        .map((record) => record.schoolYear)
+                        .filter((value): value is string => Boolean(value)),
+                ),
+            ).sort((a, b) => b.localeCompare(a, undefined, { numeric: true })),
+        [records],
+    );
+
+    const semesters = useMemo(
+        () =>
+            Array.from(
+                new Set(
+                    records
+                        .map((record) => record.semester)
+                        .filter((value): value is string => Boolean(value)),
+                ),
+            ).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
+        [records],
+    );
+
+    const recordTypes = useMemo(
+        () =>
+            Array.from(
+                new Set(
+                    records
+                        .map((record) => record.arPayment)
+                        .filter((value): value is string => Boolean(value)),
+                ),
+            ).sort(),
+        [records],
+    );
+
+    const filteredRecords = useMemo(() => {
+        return records
+            .filter(
+                (record) =>
+                    (schoolYearFilter === 'all' ||
+                        record.schoolYear === schoolYearFilter) &&
+                    (semesterFilter === 'all' ||
+                        record.semester === semesterFilter) &&
+                    (typeFilter === 'all' || record.arPayment === typeFilter),
+            )
+            .sort((a, b) => {
+                const dateDifference =
+                    transactionTimestamp(b.transactionDate) -
+                    transactionTimestamp(a.transactionDate);
+                const latestDifference = dateDifference || b.id - a.id;
+
+                return sortOrder === 'latest'
+                    ? latestDifference
+                    : -latestDifference;
+            });
+    }, [records, schoolYearFilter, semesterFilter, typeFilter, sortOrder]);
+
+    const hasActiveFilters =
+        schoolYearFilter !== 'all' ||
+        semesterFilter !== 'all' ||
+        typeFilter !== 'all' ||
+        sortOrder !== 'latest';
+
+    const resetRecordFilters = () => {
+        setSchoolYearFilter('all');
+        setSemesterFilter('all');
+        setTypeFilter('all');
+        setSortOrder('latest');
+    };
+
     const handleSelect = (idOrName: string | number) => {
         setSelected(idOrName);
-        
+        resetRecordFilters();
+
         const params: Record<string, any> = {};
         if (typeof idOrName === 'number' || /^\d+$/.test(String(idOrName))) {
             params.student_id = idOrName;
@@ -116,11 +208,9 @@ export default function PrintSelect({
             params.student = idOrName;
         }
 
-        router.get(
-            '/graduate-ledger/print-select',
-            params,
-            { preserveState: true },
-        );
+        router.get('/graduate-ledger/print-select', params, {
+            preserveState: true,
+        });
     };
 
     const handleStudentSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -140,7 +230,7 @@ export default function PrintSelect({
 
     return (
         <div className="min-h-full bg-[#FAFAF5] p-4 md:p-8">
-            <Head title="Print Student Statement" />
+            <Head title="Search Student" />
 
             <div className="mx-auto max-w-5xl space-y-6">
                 {/* Header */}
@@ -156,11 +246,12 @@ export default function PrintSelect({
                                 <ArrowLeft className="mr-1 h-4 w-4" /> Back
                             </Button>
                             <h1 className="text-2xl font-bold text-[#0B3D91]">
-                                Student Statement Printer
+                                Search Student
                             </h1>
                         </div>
                         <p className="mt-1 text-sm text-[#5C7A9E]">
-                            Select a graduate student to review their transaction breakdown and print a formal SOA PDF.
+                            Select a graduate student to review their
+                            transaction breakdown and print a formal SOA PDF.
                         </p>
                     </div>
                 </div>
@@ -178,18 +269,18 @@ export default function PrintSelect({
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="relative">
-                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#8AA8CC]" />
+                                <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-[#8AA8CC]" />
                                 <Input
                                     type="text"
                                     placeholder="Type to filter list..."
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
-                                    className="pl-9 pr-8"
+                                    className="pr-8 pl-9"
                                 />
                                 {search && (
                                     <button
                                         onClick={() => setSearch('')}
-                                        className="absolute right-2.5 top-2.5 text-[#8AA8CC] hover:text-[#0B3D91]"
+                                        className="absolute top-2.5 right-2.5 text-[#8AA8CC] hover:text-[#0B3D91]"
                                     >
                                         <X className="h-4 w-4" />
                                     </button>
@@ -203,7 +294,9 @@ export default function PrintSelect({
                                     onChange={handleStudentSelect}
                                     className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
                                 >
-                                    <option value="">-- Choose Student --</option>
+                                    <option value="">
+                                        -- Choose Student --
+                                    </option>
                                     {filteredStudents.map((s) => (
                                         <option key={s.id} value={String(s.id)}>
                                             {s.full_name}
@@ -213,7 +306,7 @@ export default function PrintSelect({
                             </div>
 
                             {/* List for Desktop */}
-                            <div className="hidden max-h-[380px] overflow-y-auto border border-[#EAF2FF] rounded-md md:block">
+                            <div className="hidden max-h-[380px] overflow-y-auto rounded-md border border-[#EAF2FF] md:block">
                                 {filteredStudents.length === 0 ? (
                                     <p className="p-4 text-center text-xs text-[#8AA8CC]">
                                         No students found.
@@ -221,13 +314,17 @@ export default function PrintSelect({
                                 ) : (
                                     <div className="divide-y divide-[#EAF2FF]">
                                         {filteredStudents.map((s) => {
-                                            const isActive = String(selected) === String(s.id);
+                                            const isActive =
+                                                String(selected) ===
+                                                String(s.id);
                                             return (
                                                 <button
                                                     key={s.id}
                                                     type="button"
-                                                    onClick={() => handleSelect(s.id)}
-                                                    className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[#F3F8FF] ${
+                                                    onClick={() =>
+                                                        handleSelect(s.id)
+                                                    }
+                                                    className={`w-full px-3 py-2 text-left text-xs transition-colors hover:bg-[#F3F8FF] ${
                                                         isActive
                                                             ? 'bg-[#EAF2FF] font-medium text-[#0B3D91]'
                                                             : 'text-[#334E68]'
@@ -244,11 +341,35 @@ export default function PrintSelect({
                     </Card>
 
                     {/* Right: Detailed SOA preview */}
-                    <div className="md:col-span-2 space-y-6">
+                    <div className="space-y-6 md:col-span-2">
                         {selected ? (
                             <div className="space-y-6">
+                                {/* Selected Student Information */}
+                                <Card className="border-[#CFE3FF] bg-white">
+                                    <CardHeader className="flex flex-row items-center justify-between pb-3">
+                                        <div>
+                                            <CardTitle className="text-lg font-bold text-[#0B3D91]">
+                                                {records[0]?.name ||
+                                                    'Student Record'}
+                                            </CardTitle>
+                                            <CardDescription className="text-xs text-[#7FA6D6]">
+                                                Showing {filteredRecords.length}{' '}
+                                                of {records.length} transactions
+                                            </CardDescription>
+                                        </div>
+                                        <Button
+                                            onClick={handleOpenPdf}
+                                            className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
+                                            size="sm"
+                                        >
+                                            <Printer className="mr-1.5 h-4 w-4" />{' '}
+                                            Print Statement
+                                        </Button>
+                                    </CardHeader>
+                                </Card>
+
                                 {/* Stats Row */}
-                                <div className="grid grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                                     <Card className="border-[#CFE3FF] bg-white p-4">
                                         <p className="text-xs text-[#5C7A9E]">
                                             Total Billed Charges (AR)
@@ -270,96 +391,267 @@ export default function PrintSelect({
                                             Outstanding Balance
                                         </p>
                                         <h3 className="mt-1 text-base font-bold text-[#0B3D91]">
-                                            {currency(summary.outstandingBalance)}
+                                            {currency(
+                                                summary.outstandingBalance,
+                                            )}
                                         </h3>
                                     </Card>
                                 </div>
 
                                 <Card className="border-[#CFE3FF] bg-white">
-                                    <CardHeader className="flex flex-row items-center justify-between pb-3">
-                                        <div>
-                                            <CardTitle className="text-lg font-bold text-[#0B3D91]">
-                                                {records[0]?.name || 'Student Record'}
-                                            </CardTitle>
-                                            <CardDescription className="text-xs text-[#7FA6D6]">
-                                                {records.length} transactions on ledger
-                                            </CardDescription>
-                                        </div>
-                                        <Button
-                                            onClick={handleOpenPdf}
-                                            className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white"
-                                            size="sm"
-                                        >
-                                            <Printer className="mr-1.5 h-4 w-4" /> Print Statement
-                                        </Button>
-                                    </CardHeader>
-                                    <CardContent className="overflow-x-auto">
-                                        <table className="w-full border-collapse text-left text-xs">
-                                            <thead>
-                                                <tr className="border-b border-[#CFE3FF] bg-[#F7FAFE] text-[#0B3D91] font-semibold">
-                                                    <th className="py-3 px-3">Date</th>
-                                                    <th className="py-3 px-3">S.Y. / Term</th>
-                                                    <th className="py-3 px-3">Ref / OR #</th>
-                                                    <th className="py-3 px-3">Particulars</th>
-                                                    <th className="py-3 px-3">Type</th>
-                                                    <th className="py-3 px-3 text-right">Amount</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {records.length === 0 ? (
-                                                    <tr>
-                                                        <td colSpan={6} className="text-center py-6 text-[#8AA8CC]">
-                                                            No records found for this student.
-                                                        </td>
-                                                    </tr>
-                                                ) : (
-                                                    records.map((r) => (
-                                                        <tr key={r.id} className="border-b border-[#EAF2FF] hover:bg-[#F3F8FF]">
-                                                            <td className="py-2 px-3 text-[#334E68]">
-                                                                {formatTransactionDate(r.transactionDate)}
-                                                            </td>
-                                                            <td className="py-2 px-3 text-[#334E68]">
-                                                                {r.schoolYear} ({r.semester})
-                                                            </td>
-                                                            <td className="py-2 px-3 text-[#334E68]">
-                                                                {r.referenceNo || '-'}
-                                                            </td>
-                                                            <td className="py-2 px-3 text-[#334E68]">
-                                                                {r.particulars || '-'}
-                                                            </td>
-                                                            <td className="py-2 px-3">
-                                                                <Badge
-                                                                    variant={
-                                                                        r.arPayment === 'AR'
-                                                                            ? 'outline'
-                                                                            : r.arPayment === 'Payment'
-                                                                              ? 'secondary'
-                                                                              : 'destructive'
+                                    <CardContent className="pt-6">
+                                        <div className="mb-5 rounded-lg border border-[#EAF2FF] bg-[#F7FAFE] p-4">
+                                            <div className="mb-3 flex items-center justify-between gap-3">
+                                                <div className="flex items-center gap-2 text-sm font-semibold text-[#0B3D91]">
+                                                    <Filter className="h-4 w-4" />
+                                                    Transaction Filters
+                                                </div>
+                                                {hasActiveFilters && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={
+                                                            resetRecordFilters
+                                                        }
+                                                        className="h-7 text-xs text-[#0F6FFF]"
+                                                    >
+                                                        Reset
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                                <label className="space-y-1 text-xs text-[#5C7A9E]">
+                                                    <span>School Year</span>
+                                                    <select
+                                                        value={schoolYearFilter}
+                                                        onChange={(event) =>
+                                                            setSchoolYearFilter(
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                        className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                                    >
+                                                        <option value="all">
+                                                            All school years
+                                                        </option>
+                                                        {schoolYears.map(
+                                                            (schoolYear) => (
+                                                                <option
+                                                                    key={
+                                                                        schoolYear
                                                                     }
-                                                                    className="text-[10px]"
+                                                                    value={
+                                                                        schoolYear
+                                                                    }
                                                                 >
-                                                                    {r.arPayment}
-                                                                </Badge>
-                                                            </td>
-                                                            <td className="py-2 px-3 text-right font-medium text-[#0B3D91]">
-                                                                {currency(absAmount(r.amount))}
+                                                                    {schoolYear}
+                                                                </option>
+                                                            ),
+                                                        )}
+                                                    </select>
+                                                </label>
+                                                <label className="space-y-1 text-xs text-[#5C7A9E]">
+                                                    <span>Term</span>
+                                                    <select
+                                                        value={semesterFilter}
+                                                        onChange={(event) =>
+                                                            setSemesterFilter(
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                        className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                                    >
+                                                        <option value="all">
+                                                            All terms
+                                                        </option>
+                                                        {semesters.map(
+                                                            (semester) => (
+                                                                <option
+                                                                    key={
+                                                                        semester
+                                                                    }
+                                                                    value={
+                                                                        semester
+                                                                    }
+                                                                >
+                                                                    {semester}
+                                                                </option>
+                                                            ),
+                                                        )}
+                                                    </select>
+                                                </label>
+                                                <label className="space-y-1 text-xs text-[#5C7A9E]">
+                                                    <span>Type</span>
+                                                    <select
+                                                        value={typeFilter}
+                                                        onChange={(event) =>
+                                                            setTypeFilter(
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                        className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                                    >
+                                                        <option value="all">
+                                                            All types
+                                                        </option>
+                                                        {recordTypes.map(
+                                                            (recordType) => (
+                                                                <option
+                                                                    key={
+                                                                        recordType
+                                                                    }
+                                                                    value={
+                                                                        recordType
+                                                                    }
+                                                                >
+                                                                    {recordType}
+                                                                </option>
+                                                            ),
+                                                        )}
+                                                    </select>
+                                                </label>
+                                                <label className="space-y-1 text-xs text-[#5C7A9E]">
+                                                    <span>Order</span>
+                                                    <select
+                                                        value={sortOrder}
+                                                        onChange={(event) =>
+                                                            setSortOrder(
+                                                                event.target
+                                                                    .value as
+                                                                    | 'latest'
+                                                                    | 'oldest',
+                                                            )
+                                                        }
+                                                        className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                                    >
+                                                        <option value="latest">
+                                                            Latest first
+                                                        </option>
+                                                        <option value="oldest">
+                                                            Oldest first
+                                                        </option>
+                                                    </select>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full border-collapse text-left text-xs">
+                                                <thead>
+                                                    <tr className="border-b border-[#CFE3FF] bg-[#F7FAFE] font-semibold text-[#0B3D91]">
+                                                        <th className="px-3 py-3">
+                                                            Date
+                                                        </th>
+                                                        <th className="px-3 py-3">
+                                                            S.Y. / Term
+                                                        </th>
+                                                        <th className="px-3 py-3">
+                                                            Ref / OR #
+                                                        </th>
+                                                        <th className="px-3 py-3">
+                                                            Particulars
+                                                        </th>
+                                                        <th className="px-3 py-3">
+                                                            Type
+                                                        </th>
+                                                        <th className="px-3 py-3 text-right">
+                                                            Amount
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {filteredRecords.length ===
+                                                    0 ? (
+                                                        <tr>
+                                                            <td
+                                                                colSpan={6}
+                                                                className="py-6 text-center text-[#8AA8CC]"
+                                                            >
+                                                                No transactions
+                                                                match the
+                                                                selected
+                                                                filters.
                                                             </td>
                                                         </tr>
-                                                    ))
-                                                )}
-                                            </tbody>
-                                        </table>
+                                                    ) : (
+                                                        filteredRecords.map(
+                                                            (r) => (
+                                                                <tr
+                                                                    key={r.id}
+                                                                    className="border-b border-[#EAF2FF] hover:bg-[#F3F8FF]"
+                                                                >
+                                                                    <td className="px-3 py-2 text-[#334E68]">
+                                                                        {formatTransactionDate(
+                                                                            r.transactionDate,
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="px-3 py-2 text-[#334E68]">
+                                                                        {
+                                                                            r.schoolYear
+                                                                        }{' '}
+                                                                        (
+                                                                        {
+                                                                            r.semester
+                                                                        }
+                                                                        )
+                                                                    </td>
+                                                                    <td className="px-3 py-2 text-[#334E68]">
+                                                                        {r.referenceNo ||
+                                                                            '-'}
+                                                                    </td>
+                                                                    <td className="px-3 py-2 text-[#334E68]">
+                                                                        {r.particulars ||
+                                                                            '-'}
+                                                                    </td>
+                                                                    <td className="px-3 py-2">
+                                                                        <Badge
+                                                                            variant={
+                                                                                r.arPayment ===
+                                                                                'AR'
+                                                                                    ? 'outline'
+                                                                                    : r.arPayment ===
+                                                                                        'Payment'
+                                                                                      ? 'secondary'
+                                                                                      : 'destructive'
+                                                                            }
+                                                                            className="text-[10px]"
+                                                                        >
+                                                                            {
+                                                                                r.arPayment
+                                                                            }
+                                                                        </Badge>
+                                                                    </td>
+                                                                    <td className="px-3 py-2 text-right font-medium text-[#0B3D91]">
+                                                                        {currency(
+                                                                            absAmount(
+                                                                                r.amount,
+                                                                            ),
+                                                                        )}
+                                                                    </td>
+                                                                </tr>
+                                                            ),
+                                                        )
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             </div>
                         ) : (
-                            <Card className="border-dashed border-[#CFE3FF] bg-white flex flex-col items-center justify-center p-12 text-center">
-                                <Printer className="h-12 w-12 text-[#8AA8CC] mb-4" />
+                            <Card className="flex flex-col items-center justify-center border-dashed border-[#CFE3FF] bg-white p-12 text-center">
+                                <Printer className="mb-4 h-12 w-12 text-[#8AA8CC]" />
                                 <h3 className="text-lg font-semibold text-[#0B3D91]">
                                     No Student Selected
                                 </h3>
-                                <p className="text-sm text-[#7FA6D6] mt-1 max-w-sm">
-                                    Choose a graduate student from the left panel to preview their statement and generate a print-ready SOA PDF.
+                                <p className="mt-1 max-w-sm text-sm text-[#7FA6D6]">
+                                    Choose a graduate student from the left
+                                    panel to preview their statement and
+                                    generate a print-ready SOA PDF.
                                 </p>
                             </Card>
                         )}
