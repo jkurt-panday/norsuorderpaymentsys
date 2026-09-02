@@ -75,6 +75,10 @@ class AssessmentFormController extends Controller
             DB::commit();
 
             // dd($assessment);
+            
+            session([
+                'success_reference_number' => $assessment->reference_number,
+            ]);
 
             // 2. Return Inertia response with success notification
             // return redirect()->back()->with('success', 'Assessment request submitted successfully!');
@@ -97,6 +101,10 @@ class AssessmentFormController extends Controller
 
     public function complete(string $reference_number): InertiaResponse
     {
+        if (session('success_reference_number') !== $reference_number) {
+            abort(404);
+        }
+        
         $assessmentForm = AssessmentForm::query()->where('reference_number', $reference_number)->firstOrFail();
         $assessmentForm->load(['course']);
 
