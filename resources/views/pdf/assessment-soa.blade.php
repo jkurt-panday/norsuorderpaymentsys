@@ -1,8 +1,13 @@
 <!DOCTYPE html>
 <html>
     <head>
+        @php
+            $studentName = $selectedStudent['name']
+                ?? trim(($assessment->first_name ?? '') . ' ' . ($assessment->last_name ?? '')) ?: '—';
+        @endphp
+        
         <meta charset="utf-8">
-        <title>Statement of Account - {{ $assessment->reference_number }}</title>
+        <title>Statement of Account - {{ $studentName }}</title>
         @vite(['resources/css/app.css'])
     </head>
 <body class="text-[11px] text-gray-900 font-sans">
@@ -27,8 +32,8 @@
 
         // No "address" field exists anywhere in this payload or on AssessmentForm as loaded —
         // left out of the layout below. Add it back in if you have a real source for it.
-        $studentName = $selectedStudent['name']
-            ?? trim(($assessment->first_name ?? '') . ' ' . ($assessment->last_name ?? '')) ?: '—';
+        // $studentName = $selectedStudent['name']
+            // ?? trim(($assessment->first_name ?? '') . ' ' . ($assessment->last_name ?? '')) ?: '—';
         $studentId   = $assessment['student_id'] ?? '—';
         $courseTitle = $assessment->course->course_desc ?? $assessment->course->code ?? '—';
 
@@ -115,7 +120,7 @@
 
             <tr class="border-t-2 border-black font-bold">
                 <td colspan="3"></td>
-                <td class="text-right px-1.5 py-1.5">Balance</td>
+                <td class="text-right px-1.5 py-1.5">Outstanding Balance</td>
                 <td class="text-right px-1.5 py-1.5">{{ number_format($summary['outstandingBalance'] ?? 0, 2) }}</td>
             </tr>
         </tbody>
@@ -130,19 +135,19 @@
                     (SGD)
                 </div>
     
-                <div class="font-bold mt-6">
+                <div class="text-center font-bold mt-6">
                     Donna Belle C. Tawing
                 </div>
     
-                <div class="mt-1">
+                <div class="text-center mt-1">
                     Accounting Staff
                 </div>
 
-                <div class="">
+                <div class="text-center ">
                     &nbsp;
                 </div>
     
-                <div class="mt-3.5">
+                <div class="text-center mt-3.5">
                     Date: {{ date('n/j/Y') }}
                 </div>
             </td>
