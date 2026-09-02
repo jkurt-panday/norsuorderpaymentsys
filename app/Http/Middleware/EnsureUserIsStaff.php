@@ -19,7 +19,7 @@ class EnsureUserIsStaff
             return redirect()->route('login')->with('error', 'Please log in to access this area.');
         }
 
-        if (in_array($request->user()->role, ['staff', 'admin'])) {
+        if (in_array($request->user()->role, ['staff', 'admin', 'cashier'])) {
             return $next($request);
         }
 

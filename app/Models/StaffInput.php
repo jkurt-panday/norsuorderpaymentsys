@@ -18,12 +18,17 @@ class StaffInput extends Model
         'ref_date',
         'uacs_id',
         'status',
+        'or_no',
+        'or_date',
     ];
 
     protected $casts = [
         'ref_date' => 'date',
+        'or_date' => 'date',
         'status' => 'string',
     ];
+
+    public const STATUSES = ['pending', 'processed', 'paid', 'approved', 'cancelled'];
 
     public function formInput(): BelongsTo
     {

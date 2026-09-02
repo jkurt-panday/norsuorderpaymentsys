@@ -56,13 +56,15 @@ interface ReferenceDocument {
 
 interface StaffInput {
     id: number;
-    status: 'pending' | 'approved' | 'cancelled' | 'unprocessed';
+    status: 'pending' | 'processed' | 'paid' | 'approved' | 'cancelled' | 'unprocessed';
     ref_date: string | null;
     bank_account: BankAccount | null;
     uacs: Uacs | null;
     reference_document: ReferenceDocument | null;
     created_at: string;
     purpose: string | null;
+    or_no: string | null;
+    or_date: string | null;
 }
 
 interface SupportingDocument {
@@ -100,7 +102,12 @@ interface FlashProps {
     warning?: string;
 }
 
+interface AuthUser {
+    role: string;
+}
+
 interface PageProps {
+    auth: { user: AuthUser | null };
     formInput: FormInput;
     bankAccounts: BankAccount[];
     uacsList: Uacs[];
@@ -112,6 +119,10 @@ const statusBadgeClass = (status: string) => {
     switch (status) {
         case 'approved':
             return 'bg-emerald-100 text-emerald-800';
+        case 'processed':
+            return 'bg-blue-100 text-blue-800';
+        case 'paid':
+            return 'bg-violet-100 text-violet-800';
         case 'cancelled':
             return 'bg-rose-100 text-rose-800';
         case 'pending':
@@ -279,8 +290,9 @@ const formatFileSize = (bytes?: number) => {
 };
 
 export default function ShowRequest() {
-    const { formInput, bankAccounts, uacsList, paymentOptions, flash } =
+    const { auth, formInput, bankAccounts, uacsList, paymentOptions, flash } =
         usePage().props as unknown as PageProps;
+    const isCashier = auth?.user?.role === 'cashier';
     const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
     const [isEmailPreviewOpen, setIsEmailPreviewOpen] = useState(false);
@@ -386,6 +398,9 @@ export default function ShowRequest() {
     // redirecting to the separate edit screen.
     const [isEditingStaffInput, setIsEditingStaffInput] = useState(false);
 
+    // Toggles the inline edit form for OR fields (cashier only).
+    const [isEditingOr, setIsEditingOr] = useState(false);
+
     useEffect(() => {
         if (formInput.staff_input) {
             setIsProcessing(false);
@@ -471,8 +486,10 @@ export default function ShowRequest() {
         uacs_id: formInput.staff_input?.uacs
             ? String(formInput.staff_input.uacs.id)
             : '',
-        status: formInput.staff_input?.status ?? 'pending',
+        status: formInput.staff_input?.status ?? 'processed',
         purpose: formInput.staff_input?.purpose ?? '',
+        or_no: formInput.staff_input?.or_no ?? '',
+        or_date: formInput.staff_input?.or_date ?? '',
     });
 
     const handleStaffInputSubmit = (e: React.FormEvent) => {
@@ -496,6 +513,41 @@ export default function ShowRequest() {
         setIsEditingStaffInput(false);
     };
 
+    // ---- Inline "Edit OR" form (cashier only) -------------------------------
+    const {
+        data: orData,
+        setData: setOrData,
+        put: putOr,
+        processing: isSubmittingOr,
+        errors: orErrors,
+        reset: resetOrForm,
+    } = useForm({
+        or_no: formInput.staff_input?.or_no ?? '',
+        or_date: formInput.staff_input?.or_date ?? '',
+    });
+
+    const handleOrSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!formInput.staff_input) {
+            return;
+        }
+
+        putOr(staff.requests.update.url(formInput.staff_input.id), {
+            preserveScroll: true,
+            forceFormData: false,
+            onSuccess: () => {
+                resetOrForm();
+                setIsEditingOr(false);
+            },
+        });
+    };
+
+    const cancelOrEdit = () => {
+        resetOrForm();
+        setIsEditingOr(false);
+    };
+
     // ---- Inline "Process Now" form ----------------------------------------
     const {
         data: processData,
@@ -510,8 +562,10 @@ export default function ShowRequest() {
         ref_document_id: '',
         ref_date: new Date().toISOString().slice(0, 10),
         uacs_id: '',
-        status: '',
+        status: 'processed',
         purpose: '',
+        or_no: '',
+        or_date: '',
     });
     const [isOpDropdownOpen, setIsOpDropdownOpen] = useState(false);
     const handleProcessSubmit = (e: React.FormEvent) => {
@@ -1101,11 +1155,19 @@ export default function ShowRequest() {
                                                             formInput
                                                                 .staff_input
                                                                 ?.status ??
-                                                            'pending',
+                                                            'processed',
                                                         purpose:
                                                             formInput
                                                                 .staff_input
                                                                 ?.purpose ?? '',
+                                                        or_no:
+                                                            formInput
+                                                                .staff_input
+                                                                ?.or_no ?? '',
+                                                        or_date:
+                                                            formInput
+                                                                .staff_input
+                                                                ?.or_date ?? '',
                                                     });
                                                     setIsEditingStaffInput(
                                                         true,
@@ -1363,6 +1425,12 @@ export default function ShowRequest() {
                                                     >
                                                         <option value="pending">
                                                             Pending
+                                                        </option>
+                                                        <option value="processed">
+                                                            Processed
+                                                        </option>
+                                                        <option value="paid">
+                                                            Paid
                                                         </option>
                                                         <option value="approved">
                                                             Approved
@@ -1755,6 +1823,12 @@ export default function ShowRequest() {
                                                 <option value="pending">
                                                     Pending
                                                 </option>
+                                                <option value="processed">
+                                                    Processed
+                                                </option>
+                                                <option value="paid">
+                                                    Paid
+                                                </option>
                                                 <option value="approved">
                                                     Approved
                                                 </option>
@@ -1855,6 +1929,148 @@ export default function ShowRequest() {
                                 )}
                             </div>
                         </section>
+
+                        {/* Official Receipt Information */}
+                        {formInput.staff_input && (
+                            <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                                <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+                                    <h3 className="text-base font-semibold text-slate-900">
+                                        Official Receipt
+                                    </h3>
+                                    <div className="flex items-center gap-2">
+                                        {formInput.staff_input?.or_no && (
+                                            <span className="inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-800">
+                                                Paid
+                                            </span>
+                                        )}
+                                        {isCashier && !isEditingOr && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setOrData({
+                                                        or_no: formInput.staff_input?.or_no ?? '',
+                                                        or_date: formInput.staff_input?.or_date ?? '',
+                                                    });
+                                                    setIsEditingOr(true);
+                                                }}
+                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100"
+                                            >
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    className="h-3.5 w-3.5"
+                                                >
+                                                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                                                </svg>
+                                                Edit
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="p-6">
+                                    {isCashier && isEditingOr ? (
+                                        <form onSubmit={handleOrSubmit}>
+                                            <div className="space-y-4">
+                                                <FormField
+                                                    label="OR Number"
+                                                    required
+                                                    error={orErrors.or_no}
+                                                >
+                                                    <input
+                                                        type="text"
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                            orErrors.or_no
+                                                                ? 'border-rose-400'
+                                                                : 'border-slate-200'
+                                                        }`}
+                                                        value={orData.or_no}
+                                                        onChange={(e) =>
+                                                            setOrData('or_no', e.target.value)
+                                                        }
+                                                        required
+                                                    />
+                                                </FormField>
+                                                <FormField
+                                                    label="OR Date"
+                                                    required
+                                                    error={orErrors.or_date}
+                                                >
+                                                    <input
+                                                        type="date"
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                            orErrors.or_date
+                                                                ? 'border-rose-400'
+                                                                : 'border-slate-200'
+                                                        }`}
+                                                        value={orData.or_date}
+                                                        onChange={(e) =>
+                                                            setOrData('or_date', e.target.value)
+                                                        }
+                                                        required
+                                                    />
+                                                </FormField>
+                                                <div className="flex justify-end gap-2 pt-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={cancelOrEdit}
+                                                        className="cursor-pointer rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button
+                                                        type="submit"
+                                                        disabled={isSubmittingOr}
+                                                        className="inline-flex items-center gap-2 rounded-full bg-violet-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-violet-700 disabled:opacity-60"
+                                                    >
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="2.5"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            className="h-4 w-4"
+                                                        >
+                                                            <path d="M20 6 9 17l-5-5" />
+                                                        </svg>
+                                                        {isSubmittingOr ? 'Saving...' : 'Save OR'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <div className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${!isCashier ? 'opacity-60' : ''}`}>
+                                                <ReadOnlyRow
+                                                    label="OR Number"
+                                                    value={formInput.staff_input?.or_no ?? 'N/A'}
+                                                    valueClass="text-black-400"
+                                                />
+                                            </div>
+                                            <div className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${!isCashier ? 'opacity-60' : ''}`}>
+                                                <ReadOnlyRow
+                                                    label="OR Date"
+                                                    value={
+                                                        formInput.staff_input?.or_date
+                                                            ? formatDateOnly(
+                                                                  formInput.staff_input.or_date,
+                                                              )
+                                                            : 'N/A'
+                                                    }
+                                                    valueClass="text-black-400"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </section>
+                        )}
 
                         {/* Supporting Documents */}
                         <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
