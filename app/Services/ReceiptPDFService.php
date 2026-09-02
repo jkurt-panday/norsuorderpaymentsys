@@ -53,6 +53,7 @@ class ReceiptPDFService
         return Pdf::view('pdf.assessment-soa', [
             'assessment'  => $assessment,
             'ledgerStatement' => $ledgerStatement,
-        ])->format('a5');
+            'preparedBy'    => $request->user()?->name ?? '—'
+        ])->format('a4');
     }
 }
