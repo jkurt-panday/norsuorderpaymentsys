@@ -279,14 +279,14 @@
                         </table>
 
                         @php
-                            $orNo = $formInput->staffInput->or_no ?? '';
-                            $orDate = $formInput->staffInput->or_date ? \Carbon\Carbon::parse($formInput->staffInput->or_date)->format('F j, Y') : '';
+                            $orNo = $formInput->staffInput?->or_no ?? '';
+                            $orDate = $formInput->staffInput?->or_date ? \Carbon\Carbon::parse($formInput->staffInput?->or_date)->format('F j, Y') : '';
                         @endphp
 
-                        <p style="margin:40px 0 0;">OR No.: <strong>{{ $orNo ?: '______________________' }}</strong></p>
                         @if($orDate)
-                            <p style="margin:2px 0 0;">OR Date: <strong>{{ $orDate }}</strong></p>
+                            <p style="margin:40px 0 0;"><strong>{{ $orDate }}</strong></p>
                         @endif
+                        <p style="margin:2px 0 0;"><strong>OR No.</strong>: <span style="text-decoration:underline;">{{ $orNo ?: '______________________' }}</span></p>
                     </div>
                 </td>
             @endforeach

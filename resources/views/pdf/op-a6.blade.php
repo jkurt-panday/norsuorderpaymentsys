@@ -57,20 +57,20 @@
                         <strong>Serial No.</strong> {{ $formInput->reference_number }}
                     </td>
                 </tr>
-                <tr>
-                    <td style="vertical-align:top; padding:1px 6px 0 0;">
-                        <strong style="white-space:nowrap;">Fund Cluster:</strong>
-                        <span style="border:1px solid #999; padding:0 5px 0 2px; display:inline-block;">
-                            {{ $formInput->staffInput->bankAccount->fund_cluster ?? '' }}
-                        </span>
-                    </td>
-                    <td style="vertical-align:top; padding:1px 0 0; white-space:nowrap;">
-                        <strong>Date:</strong>
-                        <span style="text-decoration:underline; padding:0 2px;">
-                            {{ $formInput->staffInput->ref_date ? \Carbon\Carbon::parse($formInput->staffInput->ref_date)->format('F j, Y') : '' }}
-                        </span>
-                    </td>
-                </tr>
+                    <tr>
+                        <td style="vertical-align:top; padding:1px 6px 0 0;">
+                            <strong style="white-space:nowrap;">Fund Cluster:</strong>
+                            <span style="border:1px solid #999; padding:0 5px 0 2px; display:inline-block;">
+                                {{ $formInput->staffInput?->bankAccount?->fund_cluster ?? '' }}
+                            </span>
+                        </td>
+                        <td style="vertical-align:top; padding:1px 0 0; white-space:nowrap;">
+                            <strong>Date:</strong>
+                            <span style="text-decoration:underline; padding:0 2px;">
+                                {{ $formInput->created_at ? \Carbon\Carbon::parse($formInput->created_at)->format('F j, Y') : '' }}
+                            </span>
+                        </td>
+                    </tr>
             </table>
 
             <h2 style="text-align:center; margin:3px 0; font-size:8.5px; letter-spacing:0.3px;">ORDER OF PAYMENT</h2>
@@ -217,7 +217,15 @@
                             </tr>
                         </table>
 
-            <p style="margin:3px 0px 6px 0px;">OR No.: ______________________</p>
+            @php
+    $orNo = $formInput->staffInput?->or_no ?? '';
+    $orDate = $formInput->staffInput?->or_date ? \Carbon\Carbon::parse($formInput->staffInput?->or_date)->format('F j, Y') : '';
+@endphp
+
+@if($orDate)
+    <p style="margin:3px 0px 0px 0px;"><strong>{{ $orDate }}</strong></p>
+@endif
+<p style="margin:2px 0px 6px 0px;"><strong>OR No.</strong>: <span style="text-decoration:underline;">{{ $orNo ?: '______________________' }}</span></p>
         </div>
     @endforeach
 </body>

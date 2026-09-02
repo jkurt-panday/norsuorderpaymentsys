@@ -152,6 +152,7 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
         Route::put('/{formInput}/details',   [StaffInputController::class, 'updateDetails'])->name('updateDetails');
         Route::get('/{staffInput}/edit',     [StaffInputController::class, 'edit'])->name('edit');
         Route::put('/{staffInput}',          [StaffInputController::class, 'update'])->name('update');
+        Route::put('/{staffInput}/or',       [StaffInputController::class, 'updateOr'])->name('updateOr');
     });
 
     // ── Master Data (Resource Routes) ───────────────────────────────────────

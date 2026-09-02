@@ -28,7 +28,7 @@ class StaffInput extends Model
         'status' => 'string',
     ];
 
-    public const STATUSES = ['pending', 'processed', 'paid', 'approved', 'cancelled'];
+    public const STATUSES = ['pending', 'processed', 'paid', 'cancelled'];
 
     public function formInput(): BelongsTo
     {

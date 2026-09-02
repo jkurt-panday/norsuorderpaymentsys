@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StaffProcessingRequest;
+use App\Http\Requests\StaffOrRequest;
 use App\Mail\OrderOfPaymentMail;
 use App\Models\ActivityLog;
 use App\Models\BankAccountInfo;
@@ -354,7 +355,10 @@ class StaffInputController extends Controller
             DB::beginTransaction();
 
             $status = $validated['status'];
-            if ($request->filled('or_no')) {
+            $existingOrNo = $staffInput->or_no;
+            $submittedOrNo = $request->input('or_no');
+            $isAddingOrForFirstTime = empty($existingOrNo) && !empty($submittedOrNo);
+            if ($isAddingOrForFirstTime) {
                 $status = 'paid';
             }
 
@@ -365,8 +369,8 @@ class StaffInputController extends Controller
                 'uacs_id' => $validated['uacs_id'],
                 'status' => $status,
                 'purpose' => $validated['purpose'] ?? null,
-                'or_no' => $validated['or_no'] ?? null,
-                'or_date' => $validated['or_date'] ?? null,
+                'or_no' => $submittedOrNo ?: null,
+                'or_date' => $request->input('or_date') ?: null,
             ]);
 
             DB::commit();
@@ -376,8 +380,41 @@ class StaffInputController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Staff processing update failed: '.$e->getMessage(), [
+                'staff_input_id' => $staffInput->id,
+                'request_data' => $request->all(),
+            ]);
 
             return back()->withInput()->with('error', 'Failed to update processing: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Update only OR fields — separate from the main update() which requires
+     * bank/UACS/status. Cashier uses this to place OR number and date.
+     * Status automatically becomes 'paid' (cashier can edit it later via the
+     * main update if they need to correct a human error).
+     */
+    public function updateOr(StaffOrRequest $request, StaffInput $staffInput)
+    {
+        try {
+            DB::beginTransaction();
+
+            $staffInput->update([
+                'or_no' => $request->or_no,
+                'or_date' => $request->or_date,
+                'status' => 'paid',
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('staff.requests.show', $staffInput->formInput)
+                ->with('success', 'OR number saved. Status set to Paid.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return back()->withInput()->with('error', 'Failed to save OR: '.$e->getMessage());
         }
     }
 

@@ -82,6 +82,8 @@ export interface ColumnDef<T> {
 
 export const STATUS_COLORS = {
     green: 'bg-emerald-500',
+    'light-green': 'bg-green-300',
+    'dark-green': 'bg-green-600',
     blue: 'bg-blue-500',
     purple: 'bg-violet-500',
     red: 'bg-red-500',

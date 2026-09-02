@@ -56,7 +56,7 @@ interface ReferenceDocument {
 
 interface StaffInput {
     id: number;
-    status: 'pending' | 'processed' | 'paid' | 'approved' | 'cancelled' | 'unprocessed';
+    status: 'pending' | 'processed' | 'paid' | 'cancelled' | 'unprocessed';
     ref_date: string | null;
     bank_account: BankAccount | null;
     uacs: Uacs | null;
@@ -117,12 +117,10 @@ interface PageProps {
 
 const statusBadgeClass = (status: string) => {
     switch (status) {
-        case 'approved':
-            return 'bg-emerald-100 text-emerald-800';
         case 'processed':
-            return 'bg-blue-100 text-blue-800';
+            return 'bg-green-50 text-green-700';
         case 'paid':
-            return 'bg-violet-100 text-violet-800';
+            return 'bg-green-100 text-green-800';
         case 'cancelled':
             return 'bg-rose-100 text-rose-800';
         case 'pending':
@@ -482,14 +480,18 @@ export default function ShowRequest() {
         ref_document_id: formInput.staff_input?.reference_document
             ? String(formInput.staff_input.reference_document.id)
             : '',
-        ref_date: formInput.staff_input?.ref_date ?? '',
+        ref_date: formInput.staff_input?.ref_date
+            ? formInput.staff_input.ref_date.split('T')[0]
+            : '',
         uacs_id: formInput.staff_input?.uacs
             ? String(formInput.staff_input.uacs.id)
             : '',
         status: formInput.staff_input?.status ?? 'processed',
         purpose: formInput.staff_input?.purpose ?? '',
         or_no: formInput.staff_input?.or_no ?? '',
-        or_date: formInput.staff_input?.or_date ?? '',
+        or_date: formInput.staff_input?.or_date
+            ? formInput.staff_input.or_date.split('T')[0]
+            : '',
     });
 
     const handleStaffInputSubmit = (e: React.FormEvent) => {
@@ -499,11 +501,14 @@ export default function ShowRequest() {
             return;
         }
 
-        putStaffInput(staff.requests.update.url(formInput.staff_input.id), {
+        router.put(staff.requests.update.url(formInput.staff_input.id), staffInputData, {
             preserveScroll: true,
             onSuccess: () => {
                 resetStaffInputForm();
                 setIsEditingStaffInput(false);
+            },
+            onError: (errors) => {
+                console.error('Staff input update errors:', errors);
             },
         });
     };
@@ -523,7 +528,9 @@ export default function ShowRequest() {
         reset: resetOrForm,
     } = useForm({
         or_no: formInput.staff_input?.or_no ?? '',
-        or_date: formInput.staff_input?.or_date ?? '',
+        or_date: formInput.staff_input?.or_date
+            ? formInput.staff_input.or_date.split('T')[0]
+            : '',
     });
 
     const handleOrSubmit = (e: React.FormEvent) => {
@@ -533,9 +540,8 @@ export default function ShowRequest() {
             return;
         }
 
-        putOr(staff.requests.update.url(formInput.staff_input.id), {
+        putOr(staff.requests.updateOr.url(formInput.staff_input.id), {
             preserveScroll: true,
-            forceFormData: false,
             onSuccess: () => {
                 resetOrForm();
                 setIsEditingOr(false);
@@ -1111,7 +1117,8 @@ export default function ShowRequest() {
                                                 fields stay on the same page and behave like the
                                                 left-side request details card. */}
                                     {formInput.staff_input &&
-                                        !isEditingStaffInput && (
+                                        !isEditingStaffInput &&
+                                        !isCashier && (
                                             <button
                                                 type="button"
                                                 onClick={() => {
@@ -1141,8 +1148,12 @@ export default function ShowRequest() {
                                                         ref_date:
                                                             formInput
                                                                 .staff_input
-                                                                ?.ref_date ??
-                                                            '',
+                                                                ?.ref_date
+                                                                ? formInput
+                                                                    .staff_input
+                                                                    .ref_date
+                                                                    .split('T')[0]
+                                                                : '',
                                                         uacs_id: formInput
                                                             .staff_input?.uacs
                                                             ? String(
@@ -1167,7 +1178,12 @@ export default function ShowRequest() {
                                                         or_date:
                                                             formInput
                                                                 .staff_input
-                                                                ?.or_date ?? '',
+                                                                ?.or_date
+                                                                ? formInput
+                                                                    .staff_input
+                                                                    .or_date
+                                                                    .split('T')[0]
+                                                                : '',
                                                     });
                                                     setIsEditingStaffInput(
                                                         true,
@@ -1191,7 +1207,8 @@ export default function ShowRequest() {
                                             </button>
                                         )}
                                     {!formInput.staff_input &&
-                                        !isProcessing && (
+                                        !isProcessing &&
+                                        !isCashier && (
                                             <button
                                                 type="button"
                                                 onClick={() =>
@@ -1431,9 +1448,6 @@ export default function ShowRequest() {
                                                         </option>
                                                         <option value="paid">
                                                             Paid
-                                                        </option>
-                                                        <option value="approved">
-                                                            Approved
                                                         </option>
                                                         <option value="cancelled">
                                                             Cancelled
@@ -1829,9 +1843,6 @@ export default function ShowRequest() {
                                                 <option value="paid">
                                                     Paid
                                                 </option>
-                                                <option value="approved">
-                                                    Approved
-                                                </option>
                                                 <option value="cancelled">
                                                     Cancelled
                                                 </option>
@@ -1938,18 +1949,15 @@ export default function ShowRequest() {
                                         Official Receipt
                                     </h3>
                                     <div className="flex items-center gap-2">
-                                        {formInput.staff_input?.or_no && (
-                                            <span className="inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-800">
-                                                Paid
-                                            </span>
-                                        )}
                                         {isCashier && !isEditingOr && (
                                             <button
                                                 type="button"
                                                 onClick={() => {
                                                     setOrData({
                                                         or_no: formInput.staff_input?.or_no ?? '',
-                                                        or_date: formInput.staff_input?.or_date ?? '',
+                                                        or_date: formInput.staff_input?.or_date
+                                                            ? formInput.staff_input.or_date.split('T')[0]
+                                                            : '',
                                                     });
                                                     setIsEditingOr(true);
                                                 }}
@@ -1967,7 +1975,7 @@ export default function ShowRequest() {
                                                 >
                                                     <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
                                                 </svg>
-                                                Edit
+                                                {formInput.staff_input?.or_no ? 'Edit OR' : 'Place OR Number'}
                                             </button>
                                         )}
                                     </div>
@@ -2025,7 +2033,7 @@ export default function ShowRequest() {
                                                     <button
                                                         type="submit"
                                                         disabled={isSubmittingOr}
-                                                        className="inline-flex items-center gap-2 rounded-full bg-violet-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-violet-700 disabled:opacity-60"
+                                                        className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-60"
                                                     >
                                                         <svg
                                                             xmlns="http://www.w3.org/2000/svg"
@@ -2039,7 +2047,7 @@ export default function ShowRequest() {
                                                         >
                                                             <path d="M20 6 9 17l-5-5" />
                                                         </svg>
-                                                        {isSubmittingOr ? 'Saving...' : 'Save OR'}
+                                                        {isSubmittingOr ? 'Saving...' : formInput.staff_input?.or_no ? 'Update OR' : 'Place OR Number'}
                                                     </button>
                                                 </div>
                                             </div>
