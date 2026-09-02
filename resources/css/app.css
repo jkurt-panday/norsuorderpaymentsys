@@ -447,3 +447,17 @@
         row-gap: 0.75rem !important;
     }
 }
+
+/* scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    height: 15px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #4DA5FF;
+    border-radius: 9999px;
+}
