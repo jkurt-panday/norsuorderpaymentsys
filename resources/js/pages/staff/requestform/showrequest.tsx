@@ -1991,15 +1991,19 @@ export default function ShowRequest() {
                                                 >
                                                     <input
                                                         type="text"
+                                                        inputMode="numeric"
+                                                        pattern="[0-9\-\.\/\s]+"
+                                                        title="Only numbers, dashes, slashes, dots and spaces are allowed"
                                                         className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
                                                             orErrors.or_no
                                                                 ? 'border-rose-400'
                                                                 : 'border-slate-200'
                                                         }`}
                                                         value={orData.or_no}
-                                                        onChange={(e) =>
-                                                            setOrData('or_no', e.target.value)
-                                                        }
+                                                        onChange={(e) => {
+                                                            const filtered = e.target.value.replace(/[^0-9\-\.\/\s]/g, '');
+                                                            setOrData('or_no', filtered);
+                                                        }}
                                                         required
                                                     />
                                                 </FormField>

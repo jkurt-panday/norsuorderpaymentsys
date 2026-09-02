@@ -105,7 +105,7 @@
 <p style="margin:0 0 2px; font-size:5.2px;">(Purpose)</p>
 
 @php
-    $purposeText = ($formInput->membership->member_desc ?? '') . ' - ' . '₱' . number_format($formInput->amount, 2) . ' - ' . ($formInput->staffInput->purpose ?? '');
+    $purposeText = $formInput->staffInput?->purpose ?? '';
 
     $purposeFontSize = 6.5;
     $minFontSize = 5.2;
