@@ -1,13 +1,17 @@
 'use client';
 
-import {
-    useTable,
-    type ColumnDef,
-    type RowData,
-    type SortingState,
-} from '@tanstack/react-table';
-import { useState, useEffect, useRef } from 'react';
 import { router } from '@inertiajs/react';
+import {
+    useTable
+    
+    
+    
+} from '@tanstack/react-table';
+import type {ColumnDef, RowData, SortingState} from '@tanstack/react-table';
+import { Search } from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
     Table,
     TableBody,
@@ -16,10 +20,8 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Search } from 'lucide-react';
-import { features, type DataTableFeatures } from './data-table-features';
+import { features  } from './data-table-features';
+import type {DataTableFeatures} from './data-table-features';
 
 interface DataTableProps<TData extends RowData> {
     columns: ColumnDef<DataTableFeatures, TData>[];
@@ -78,11 +80,6 @@ export function DataTable<TData extends RowData>({
 
     // In client mode, typing directly filters the in-memory data via TanStack's
     // own filter state — no network request, no router.get.
-    const handleClientSearch = (value: string) => {
-        setSearch(value);
-        table.setGlobalFilter(value); // needs globalFilteringFeature — see note below
-    };
-
     const table = useTable({
         features,
         data,
@@ -90,6 +87,8 @@ export function DataTable<TData extends RowData>({
         manualSorting: mode === 'server',
         manualFiltering: mode === 'server',
         manualPagination: mode === 'server',
+        onSortingChange: handleSortingChange,
+        state: { sorting },
     });
 
     return (

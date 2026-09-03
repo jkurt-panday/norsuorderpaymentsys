@@ -1,10 +1,6 @@
-import PublicLayout from '@/pages/layouts/PublicLayout';
-import React, { useRef } from 'react';
-import { Button } from '@/components/ui/button';
 import { Link } from '@inertiajs/react';
 import {
     CheckCircle,
-    FileText,
     Mail,
     Phone,
     MapPin,
@@ -14,6 +10,9 @@ import {
     Printer,
     Hash,
 } from 'lucide-react';
+import React, { useRef } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -23,7 +22,7 @@ import {
     CardFooter,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
+import PublicLayout from '@/pages/layouts/PublicLayout';
 
 interface Courses {
     id: number | string;
@@ -65,7 +64,9 @@ export default function AssessmentSuccess({ assessmentForm }: Props) {
     };
 
     const formatContactNumber = (contactNum: string) => {
-        if (!contactNum) return '';
+        if (!contactNum) {
+return '';
+}
     
         return contactNum.replace(
             /^(\d{4})(\d{3})(\d{4})$/,

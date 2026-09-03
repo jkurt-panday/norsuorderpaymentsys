@@ -15,7 +15,8 @@ import {
     ChartTooltip,
     ChartTooltipContent,
 } from '@/components/ui/chart';
-import { buildCategoryChartData, type CategoryDatum } from './types';
+import { buildCategoryChartData  } from './types';
+import type {CategoryDatum} from './types';
 
 interface DonutChartCardProps {
     title: string;

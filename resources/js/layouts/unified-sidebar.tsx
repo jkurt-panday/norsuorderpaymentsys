@@ -117,6 +117,7 @@ export default function UnifiedSidebar() {
 
     const isActive = (href: string) => {
         const currentPath = url.split('?')[0];
+
         return currentPath === href || currentPath.startsWith(href + '/');
     };
 

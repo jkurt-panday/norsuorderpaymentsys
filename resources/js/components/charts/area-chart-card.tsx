@@ -1,5 +1,4 @@
 import { useId } from "react"
-import { TrendingDown, TrendingUp } from "lucide-react"
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import {
   Card,
@@ -10,7 +9,8 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { buildChartConfig, type ChartSeries } from "./types"
+import { buildChartConfig  } from "./types"
+import type {ChartSeries} from "./types";
 
 interface AreaChartCardProps {
   title: string

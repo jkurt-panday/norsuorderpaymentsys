@@ -1,4 +1,11 @@
-import { Head, Link, router, usePoll } from '@inertiajs/react';
+import {
+    Head,
+    Link,
+    router,
+    usePoll
+    
+} from '@inertiajs/react';
+import type {InertiaLinkProps} from '@inertiajs/react';
 import {
     Plus,
     Pencil,
@@ -6,7 +13,6 @@ import {
     ChevronLeft,
     ChevronRight,
     Search,
-    ChevronDown,
     ArrowUpDown,
     ArrowUp,
     ArrowDown,
@@ -14,7 +20,7 @@ import {
     RefreshCw,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useConfirm } from '@/components/confirm-dialog';
 import { Card, CardContent } from '@/components/ui/card';
@@ -68,11 +74,11 @@ export interface ResourceTableProps<T extends { id: number }> {
     description?: string;
     icon?: LucideIcon;
     addLabel: string;
-    addHref: string | { url: string; method?: string };
+    addHref: NonNullable<InertiaLinkProps['href']>;
     columns: ColumnDef<T>[];
     resource: PaginatedData<T>;
     resourceKey?: string;
-    editHref: (row: T) => string | { url: string; method?: string };
+    editHref: (row: T) => NonNullable<InertiaLinkProps['href']>;
     deleteUrl: (id: number) => string;
     emptyIcon: LucideIcon;
     emptyMessage: string;
@@ -124,11 +130,10 @@ export default function ResourceTable<T extends { id: number }>({
 }: ResourceTableProps<T>) {
     const confirm = useConfirm();
 
-    const [displayData, setDisplayData] = useState<T[]>(resource.data);
-
-    useEffect(() => {
-        setDisplayData(resource.data);
-    }, [resource.data]);
+    const [optimisticSort, setOptimisticSort] = useState<{
+        key: string;
+        direction: 'asc' | 'desc';
+    } | null>(null);
 
     function compareValues(a: unknown, b: unknown): number {
         if (a === b) {
@@ -160,18 +165,23 @@ export default function ResourceTable<T extends { id: number }>({
         return String(a).localeCompare(String(b));
     }
 
-    function optimisticallySort(sortKey: string, direction: 'asc' | 'desc') {
-        setDisplayData((current) => {
-            const sorted = [...current].sort((rowA, rowB) => {
+    const displayData = useMemo(() => {
+        if (!optimisticSort) {
+            return resource.data;
+        }
+
+        return [...resource.data].sort((rowA, rowB) => {
+                const { key: sortKey, direction } = optimisticSort;
                 const valueA = (rowA as Record<string, unknown>)[sortKey];
                 const valueB = (rowB as Record<string, unknown>)[sortKey];
                 const result = compareValues(valueA, valueB);
 
                 return direction === 'asc' ? result : -result;
             });
+    }, [optimisticSort, resource.data]);
 
-            return sorted;
-        });
+    function optimisticallySort(sortKey: string, direction: 'asc' | 'desc') {
+        setOptimisticSort({ key: sortKey, direction });
     }
 
     const prevSignatures = useRef<Map<number, string> | null>(null);
@@ -230,9 +240,11 @@ export default function ResourceTable<T extends { id: number }>({
 
         prevSignatures.current = nextSignatures;
 
+        const timers = highlightTimers.current;
+
         return () => {
-            highlightTimers.current.forEach((t) => clearTimeout(t));
-            highlightTimers.current.clear();
+            timers.forEach((t) => clearTimeout(t));
+            timers.clear();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [resource.data]);
@@ -241,8 +253,6 @@ export default function ResourceTable<T extends { id: number }>({
         pollInterval ?? 15000,
         {
             only: resourceKey ? [resourceKey] : undefined,
-            preserveScroll: true,
-            preserveState: true,
         },
         { autoStart: false },
     );
@@ -330,6 +340,7 @@ export default function ResourceTable<T extends { id: number }>({
                 onStart: () => setIsNavigating(true),
                 onFinish: () => {
                     setIsNavigating(false);
+
                     if (pollInterval) {
                         start();
                     }
@@ -398,6 +409,7 @@ export default function ResourceTable<T extends { id: number }>({
             optimisticallySort(sortKey, 'desc');
             navigateWithParams({ sort: sortKey, direction: 'desc' });
         } else {
+            setOptimisticSort(null);
             navigateWithParams({ sort: undefined, direction: undefined });
         }
     };

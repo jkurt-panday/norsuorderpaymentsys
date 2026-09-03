@@ -215,7 +215,7 @@ export function ChartCard({
                                             fontSize: 12,
                                         }}
                                         labelFormatter={(label) =>
-                                            new Date(label).toLocaleDateString(
+                                            new Date(String(label)).toLocaleDateString(
                                                 'en-US',
                                                 {
                                                     month: 'short',

@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
+import { store as storeAdminUser } from '@/routes/admin/users';
 import { dashboard } from '@/routes/index';
 
 export default function Dashboard() {
