@@ -291,6 +291,7 @@ export default function ShowRequest() {
     const { auth, formInput, bankAccounts, uacsList, paymentOptions, flash } =
         usePage().props as unknown as PageProps;
     const isCashier = auth?.user?.role === 'cashier';
+    const isAdmin = auth?.user?.role === 'admin';
     const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
     const [isEmailPreviewOpen, setIsEmailPreviewOpen] = useState(false);
@@ -1949,7 +1950,7 @@ export default function ShowRequest() {
                                         Official Receipt
                                     </h3>
                                     <div className="flex items-center gap-2">
-                                        {isCashier && !isEditingOr && (
+                                        {(isCashier || isAdmin) && !isEditingOr && (
                                             <button
                                                 type="button"
                                                 onClick={() => {
@@ -1991,9 +1992,8 @@ export default function ShowRequest() {
                                                 >
                                                     <input
                                                         type="text"
-                                                        inputMode="numeric"
-                                                        pattern="[0-9\-\.\/\s]+"
-                                                        title="Only numbers, dashes, slashes, dots and spaces are allowed"
+                                                        inputMode="text"
+                                                        placeholder="e.g. 56-980 or 2024/001"
                                                         className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
                                                             orErrors.or_no
                                                                 ? 'border-rose-400'
@@ -2056,16 +2056,16 @@ export default function ShowRequest() {
                                                 </div>
                                             </div>
                                         </form>
-                                    ) : (
+                                        ) : (
                                         <div className="space-y-3">
-                                            <div className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${!isCashier ? 'opacity-60' : ''}`}>
+                                            <div className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${!isCashier && !isAdmin ? 'opacity-60' : ''}`}>
                                                 <ReadOnlyRow
                                                     label="OR Number"
                                                     value={formInput.staff_input?.or_no ?? 'N/A'}
                                                     valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${!isCashier ? 'opacity-60' : ''}`}>
+                                            <div className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${!isCashier && !isAdmin ? 'opacity-60' : ''}`}>
                                                 <ReadOnlyRow
                                                     label="OR Date"
                                                     value={
