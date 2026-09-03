@@ -1,10 +1,10 @@
 'use client';
 
-import { createColumnHelper } from '@tanstack/react-table';
-import { Pencil, Trash2, Eye } from 'lucide-react';
 import { Link } from '@inertiajs/react';
+import { createColumnHelper } from '@tanstack/react-table';
+import { Pencil, Trash2 } from 'lucide-react';
+import type {DataTableFeatures} from '@/components/data-table/data-table-features';
 import { Badge } from '@/components/ui/badge';
-import { type DataTableFeatures } from '@/components/data-table/data-table-features';
 import {
   Tooltip,
   TooltipContent,
@@ -86,9 +86,10 @@ export const columns = columnHelper.columns([
             const middleInitial = middle_name
                 ? `${middle_name.charAt(0)}.`
                 : '';
+
             return (
                 <div className="text-center text-slate-700">
-                    {first_name} {middle_name} {last_name}
+                    {first_name} {middleInitial} {last_name}
                 </div>
             );
         },
@@ -195,25 +196,26 @@ export const columns = columnHelper.columns([
         enableSorting: false,
         cell: ({ row }) => {
             const assessment = row.original;
+
             return (
                 <div className="flex justify-center">
-                    <div className="grid w-max grid-cols-3">
-                        <Link
+                    <div className="grid w-max grid-cols-2">
+                        {/*<Link
                             href={`/staff/assessments/${assessment.id}`}
                             className="flex h-8 w-8 items-center justify-center rounded-l-2xl bg-slate-500 text-white transition-colors hover:bg-slate-600"
                         >
                             <Eye className="h-4 w-4" />
-                        </Link>
+                        </Link>*/}
                         <Link
                             href={`/staff/assessments/edit/${assessment.id}`}
-                            className="flex h-8 w-8 items-center justify-center bg-amber-400 text-white transition-colors hover:bg-amber-500"
+                            className="flex h-8 w-8 items-center justify-center rounded-l-2xl bg-amber-400 text-white transition-colors hover:bg-amber-500"
                         >
                             <Pencil className="h-4 w-4" />
                         </Link>
                         <Link
                             as="button"
                             method="delete"
-                            href={`/staff/assessments/${assessment.id}`}
+                            href={`/staff/assessments/delete/${assessment.id}`}
                             className="flex h-8 w-8 items-center justify-center rounded-r-2xl bg-red-600 text-white transition-colors hover:bg-red-700"
                         >
                             <Trash2 className="h-4 w-4" />

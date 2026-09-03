@@ -1,15 +1,15 @@
 import { Link, usePage } from '@inertiajs/react';
 import { ChevronRight } from 'lucide-react';
 import React from 'react';
-import ClientLayoutTemplate from '@/layouts/client/layout';
 import { Separator } from '@/components/ui/separator';
 import {
     SidebarInset,
     SidebarProvider,
     SidebarTrigger,
 } from '@/components/ui/sidebar';
-import type { AppLayoutProps, BreadcrumbItem } from '@/types';
+import ClientLayoutTemplate from '@/layouts/client/layout';
 import UnifiedSidebar from '@/layouts/unified-sidebar';
+import type { AppLayoutProps, BreadcrumbItem } from '@/types';
 
 function AppSidebarHeader({
     breadcrumbs = [],

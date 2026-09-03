@@ -8,6 +8,7 @@ import {
     SidebarHeader,
     useSidebar,
 } from '@/components/ui/sidebar';
+import { logout } from '@/routes';
 import graduateLedger from '@/routes/graduate-ledger';
 import lawLedger from '@/routes/law-ledger';
 import staff from '@/routes/staff';
@@ -114,7 +115,7 @@ export function AppSidebar() {
                             </span>
                         </div>
                         <Link
-                            href={staff.logout ? staff.logout() : '/logout'}
+                            href={logout()}
                             method="post"
                             as="button"
                             className="shrink-0 rounded-md p-1.5 text-blue-200/70 hover:bg-blue-500/40 hover:text-white"

@@ -22,7 +22,7 @@ Route::prefix('client')->group(function () {
 // Staff Routes (Sanctum token auth protected)
 // ─────────────────────────────────────────────────────────────────────────────
 
-Route::prefix('staff')->middleware(['auth:sanctum'])->group(function () {
+Route::prefix('staff')->middleware(['auth:sanctum', 'staff'])->group(function () {
     // Staff input management
     Route::post('/staff-input', [StaffInputController::class, 'store']);
     Route::put('/staff-input/{id}', [StaffInputController::class, 'update']);

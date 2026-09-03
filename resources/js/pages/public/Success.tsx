@@ -10,7 +10,6 @@ import {
     Receipt,
     IdCard,
     Printer,
-    Home,
 } from 'lucide-react';
 import React, { useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -73,7 +72,6 @@ interface Props {
 export default function Success({
     reference_number,
     formInput,
-    dashboardUrl,
 }: Props) {
     const { auth } = usePage<any>().props;
 
@@ -99,7 +97,9 @@ export default function Success({
     };
 
     const formatContactNumber = (contactNum: string) => {
-        if (!contactNum) return '';
+        if (!contactNum) {
+return '';
+}
 
         return contactNum.replace(/^(\d{4})(\d{3})(\d{4})$/, '$1 $2 $3');
     };
@@ -460,20 +460,20 @@ export default function Success({
                                             </div>
                                         </div>
                                         <Button
-                                            asChild
+                                            render={
+                                                <a
+                                                    href={`/auth/google?ref=${formInput.reference_number}`}
+                                                />
+                                            }
                                             className="flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 md:w-auto"
                                         >
-                                            <a
-                                                href={`/auth/google?ref=${formInput.reference_number}`}
-                                            >
-                                                Save Info with Google
-                                            </a>
+                                            Save Info with Google
                                         </Button>
                                     </div>
                                 )}
 
-                                <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3 sm:gap-4 justify-center">
-                                    <Button className="h-11 sm:h-12 w-full sm:w-auto rounded-xl bg-blue-700 px-6 sm:px-8 text-sm sm:text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-800 hover:shadow-lg active:scale-[0.98]">
+                                <div className="flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row sm:gap-4">
+                                    <Button className="h-11 w-full rounded-xl bg-blue-700 px-6 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-800 hover:shadow-lg active:scale-[0.98] sm:h-12 sm:w-auto sm:px-8 sm:text-base">
                                         <Link href="/public/opform">
                                             Submit Another Request
                                         </Link>

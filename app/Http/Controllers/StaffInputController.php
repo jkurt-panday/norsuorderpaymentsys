@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StaffProcessingRequest;
-use App\Http\Requests\StaffOrRequest;
 use App\Mail\OrderOfPaymentMail;
 use App\Models\ActivityLog;
 use App\Models\BankAccountInfo;
@@ -319,16 +318,11 @@ class StaffInputController extends Controller
                 throw new \Exception('This request has already been processed.');
             }
 
-            $status = $request->status ?: 'processed';
-            if ($request->filled('or_no')) {
-                $status = 'paid';
-            }
-
             StaffInput::create(array_merge(
                 $request->validated(),
                 [
                     'form_input_id' => $formInput->id,
-                    'status' => $status,
+                    'status' => $request->status ?: 'processed',
                 ]
             ));
 
@@ -349,19 +343,14 @@ class StaffInputController extends Controller
 
     public function update(StaffProcessingRequest $request, StaffInput $staffInput)
     {
+        abort_if($staffInput->status === 'paid', 422, 'Paid requests can no longer be changed by Accounting.');
+
         $validated = $request->validated();
 
         try {
             DB::beginTransaction();
 
             $status = $validated['status'];
-            $existingOrNo = $staffInput->or_no;
-            $submittedOrNo = $request->input('or_no');
-            $isAddingOrForFirstTime = empty($existingOrNo) && !empty($submittedOrNo);
-            if ($isAddingOrForFirstTime) {
-                $status = 'paid';
-            }
-
             $staffInput->update([
                 'fundcluster_id' => $validated['fundcluster_id'],
                 'ref_document_id' => $validated['ref_document_id'] ?? null,
@@ -369,8 +358,6 @@ class StaffInputController extends Controller
                 'uacs_id' => $validated['uacs_id'],
                 'status' => $status,
                 'purpose' => $validated['purpose'] ?? null,
-                'or_no' => $submittedOrNo ?: null,
-                'or_date' => $request->input('or_date') ?: null,
             ]);
 
             DB::commit();
@@ -386,35 +373,6 @@ class StaffInputController extends Controller
             ]);
 
             return back()->withInput()->with('error', 'Failed to update processing: '.$e->getMessage());
-        }
-    }
-
-    /**
-     * Update only OR fields — separate from the main update() which requires
-     * bank/UACS/status. Cashier uses this to place OR number and date.
-     * Status automatically becomes 'paid' (cashier can edit it later via the
-     * main update if they need to correct a human error).
-     */
-    public function updateOr(StaffOrRequest $request, StaffInput $staffInput)
-    {
-        try {
-            DB::beginTransaction();
-
-            $staffInput->update([
-                'or_no' => $request->or_no,
-                'or_date' => $request->or_date,
-                'status' => 'paid',
-            ]);
-
-            DB::commit();
-
-            return redirect()->route('staff.requests.show', $staffInput->formInput)
-                ->with('success', 'OR number saved. Status set to Paid.');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return back()->withInput()->with('error', 'Failed to save OR: '.$e->getMessage());
         }
     }
 

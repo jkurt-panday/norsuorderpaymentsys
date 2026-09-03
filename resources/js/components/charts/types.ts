@@ -1,4 +1,4 @@
-import { type ChartConfig } from "@/components/ui/chart"
+import type {ChartConfig} from "@/components/ui/chart";
 
 export interface ChartSeries {
   key: string
@@ -43,8 +43,10 @@ export const PALETTE = [
    const chartData = data.map((d, i) => {
      const key = slugifyKey(d.category)
      config[key] = { label: d.category, color: d.color ?? PALETTE[i % PALETTE.length] }
+
      return { ...d, key, fill: `var(--color-${key})` }
    })
+
    return { chartData, config }
  }
 
@@ -54,6 +56,7 @@ export function buildChartConfig(series: ChartSeries[]): ChartConfig {
       label: s.label,
       color: s.color ?? PALETTE[i % PALETTE.length],
     }
+
     return config
   }, {} as ChartConfig)
 }

@@ -1,7 +1,7 @@
 'use client';
 
-import * as React from 'react';
 import { CalendarIcon } from 'lucide-react';
+import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -62,7 +62,7 @@ interface DateRangeFilterProps {
     onFromChange: (date: Date | undefined) => void;
     onToChange: (date: Date | undefined) => void;
     /** Fires when either date changes — the caller decides when to actually apply/fetch. */
-    // onApply?: (range: { from: Date | undefined; to: Date | undefined }) => void
+    onApply?: (range: { from: Date | undefined; to: Date | undefined }) => void;
 }
 
 /**
@@ -76,28 +76,32 @@ export function DateRangeFilter({
     to,
     onFromChange,
     onToChange,
+    onApply,
 }: DateRangeFilterProps) {
-    // const handleFromChange = (date: Date | undefined) => {
-    //   onFromChange(date)
-    //   // Only fire the request once BOTH ends are picked — selecting "From"
-    //   // alone would otherwise send a half-finished range to Laravel.
-    //   if (date && to) onApply?.({ from: date, to })
-    // }
+    const handleFromChange = (date: Date | undefined) => {
+        onFromChange(date);
 
-    // const handleToChange = (date: Date | undefined) => {
-    //   onToChange(date)
-    //   // Same rule in the other direction, in case "To" is picked first.
-    //   if (from && date) onApply?.({ from, to: date })
-    // }
+        if (date && to) {
+onApply?.({ from: date, to });
+}
+    };
+
+    const handleToChange = (date: Date | undefined) => {
+        onToChange(date);
+
+        if (from && date) {
+onApply?.({ from, to: date });
+}
+    };
 
     return (
         <div className="flex flex-wrap items-center gap-4">
             <SingleDatePicker
                 label="From"
                 value={from}
-                onChange={onFromChange}
+                onChange={handleFromChange}
             />
-            <SingleDatePicker label="To" value={to} onChange={onToChange} />
+            <SingleDatePicker label="To" value={to} onChange={handleToChange} />
         </div>
     );
 }

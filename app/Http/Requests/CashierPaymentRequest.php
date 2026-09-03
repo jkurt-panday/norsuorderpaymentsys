@@ -2,15 +2,17 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
 
-class StaffOrRequest extends FormRequest
+class CashierPaymentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->role === UserRole::Cashier->value;
     }
 
+    /** @return array<string, string> */
     public function rules(): array
     {
         return [
@@ -19,6 +21,7 @@ class StaffOrRequest extends FormRequest
         ];
     }
 
+    /** @return array<string, string> */
     public function messages(): array
     {
         return [

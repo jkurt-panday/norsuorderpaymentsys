@@ -1,4 +1,6 @@
 import { useForm, Head, Link } from '@inertiajs/react';
+import { ArrowLeft, Save } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -6,15 +8,13 @@ import {
 import {
     FieldDescription,
 } from '@/components/ui/field';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Save } from 'lucide-react';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 
 export default function CreateCourses() {
     // form
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors } = useForm({
         course_code: '',
         course_desc: '',
     });

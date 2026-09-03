@@ -1,12 +1,8 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 @import '@fontsource-variable/geist';
 @import '@fontsource/instrument-sans';
-@import 'tailwindcss/preflight' @tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -446,4 +442,18 @@
         padding-bottom: 0.75rem !important;
         row-gap: 0.75rem !important;
     }
+}
+
+/* scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    height: 15px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #4DA5FF;
+    border-radius: 9999px;
 }

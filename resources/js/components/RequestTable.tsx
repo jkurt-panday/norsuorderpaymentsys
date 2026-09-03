@@ -98,42 +98,6 @@ export interface StatusOption {
     color?: keyof typeof STATUS_COLORS | string;
 }
 
-const ReadOnlyRow = ({
-    label,
-    value,
-    valueClass = 'text-slate-900',
-}: {
-    label: string;
-    value: string;
-    valueClass?: string;
-}) => (
-    <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
-        <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
-            {label}
-        </label>
-        <input
-            type="text"
-            value={value}
-            disabled
-            className={`flex-1 border-0 bg-transparent p-0 text-sm ${valueClass} outline-none disabled:opacity-100`}
-        />
-    </div>
-);
-
-const ReadOnlyStat = ({ label, value }: { label: string; value: string }) => (
-    <div>
-        <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
-            {label}
-        </label>
-        <input
-            type="text"
-            value={value}
-            disabled
-            className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
-        />
-    </div>
-);
-
 const resolveStatusColor = (color?: string) =>
     (color && STATUS_COLORS[color as keyof typeof STATUS_COLORS]) ||
     color ||
@@ -278,9 +242,11 @@ export default function RequestTable<T extends { id: number | string }>({
 
         prevSignatures.current = nextSignatures;
 
+        const timers = highlightTimers.current;
+
         return () => {
-            highlightTimers.current.forEach((t) => clearTimeout(t));
-            highlightTimers.current.clear();
+            timers.forEach((t) => clearTimeout(t));
+            timers.clear();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [rows]);
@@ -289,8 +255,6 @@ export default function RequestTable<T extends { id: number | string }>({
         pollInterval ?? 5000,
         {
             only: resourceKey ? [resourceKey] : undefined,
-            preserveScroll: true,
-            preserveState: true,
         },
         { autoStart: false },
     );
@@ -462,7 +426,9 @@ export default function RequestTable<T extends { id: number | string }>({
                                 <Select
                                     value={status || 'all'}
                                     onValueChange={(v) =>
-                                        onStatusChange(v === 'all' ? '' : v)
+                                        onStatusChange(
+                                            v === null || v === 'all' ? '' : v,
+                                        )
                                     }
                                 >
                                     <SelectTrigger className="h-10 w-full rounded-lg border-slate-200 bg-white shadow-sm transition-colors hover:bg-slate-50 focus:ring-2 focus:ring-blue-500/20">
@@ -490,9 +456,8 @@ export default function RequestTable<T extends { id: number | string }>({
                                         </SelectValue>
                                     </SelectTrigger>
                                     <SelectContent
-                                        position="popper"
                                         sideOffset={6}
-                                        className="min-w-[var(--radix-select-trigger-width)] rounded-lg border-slate-200 shadow-lg"
+                                        className="min-w-(--anchor-width) rounded-lg border-slate-200 shadow-lg"
                                     >
                                         <SelectItem
                                             value="all"
@@ -802,15 +767,16 @@ export default function RequestTable<T extends { id: number | string }>({
                                                 }
                                             }}
                                         >
-                                            <PopoverTrigger asChild>
-                                                <span
-                                                    role="button"
-                                                    tabIndex={0}
-                                                    className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
-                                                >
-                                                    Page {resource.current_page}{' '}
-                                                    of {resource.last_page}
-                                                </span>
+                                            <PopoverTrigger
+                                                render={
+                                                    <button
+                                                        type="button"
+                                                        className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+                                                    />
+                                                }
+                                            >
+                                                Page {resource.current_page} of{' '}
+                                                {resource.last_page}
                                             </PopoverTrigger>
                                             <PopoverContent
                                                 align="center"

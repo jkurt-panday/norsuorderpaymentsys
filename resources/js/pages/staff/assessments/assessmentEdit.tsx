@@ -1,19 +1,3 @@
-import {
-    edit as editAssessment,
-    index as assessmentsIndex,
-} from '@/actions/App/Http/Controllers/AssessmentController';
-import { generatePdf as generateGraduatePdf } from '@/actions/App/Http/Controllers/GraduateLedgerController';
-import { generatePdf as generateLawPdf } from '@/actions/App/Http/Controllers/LawSchoolLedgerController';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Head, Link, router } from '@inertiajs/react';
 import {
     AlertCircle,
@@ -25,6 +9,20 @@ import {
     X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import {
+    edit as editAssessment,
+    index as assessmentsIndex,
+} from '@/actions/App/Http/Controllers/AssessmentController';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 
 interface Course {
     id: number;
@@ -156,23 +154,11 @@ export default function AssessmentEdit({
     };
 
     const printStatement = () => {
-        const selected = ledgerStatement.selectedStudent;
-
-        if (!selected || ledgerStatement.source === 'unsupported') {
-            return;
-        }
-
-        const query = {
-            [selected.pdfQueryKey]: selected.pdfQueryValue,
-            school_year: ledgerStatement.schoolYear,
-            semester: ledgerStatement.semester,
-        };
-        const url =
-            ledgerStatement.source === 'graduate'
-                ? generateGraduatePdf.url({ query })
-                : generateLawPdf.url({ query });
-
-        window.open(url, '_blank', 'noopener,noreferrer');
+      const url = `/staff/assessments/print_soa/${assessment.id}` +
+        (ledgerStatement.selectedStudent
+          ? `?ledger_student=${encodeURIComponent(ledgerStatement.selectedStudent.key)}`
+          : '');
+      window.open(url, '_blank');
     };
 
     return (
