@@ -1,11 +1,13 @@
-import { useState } from 'react';
 import { router } from '@inertiajs/react';
 import {
-    useTable,
-    type ColumnDef,
-    type RowData,
-    ColumnVisibilityState,
+    useTable
+    
+    
 } from '@tanstack/react-table';
+import type {
+    ColumnVisibilityState} from '@tanstack/react-table';
+import type {ColumnDef, RowData} from '@tanstack/react-table';
+import { format } from 'date-fns';
 import {
     ArrowUpDown,
     ArrowUp,
@@ -14,16 +16,21 @@ import {
     RotateCw,
     SlidersHorizontal,
 } from 'lucide-react';
+import { useState } from 'react';
+
+
+import { features  } from './data-table-features';
+import type {DataTableFeatures} from './data-table-features';
+import { DataTablePagination } from './data-table-pagination';
+import { DateRangeFilter } from './date-range-picker';
+import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { format } from 'date-fns';
-import { DateRangeFilter } from './date-range-picker';
-import { DataTablePagination } from './data-table-pagination';
-
+import { Input } from '@/components/ui/input';
 import {
     Table,
     TableBody,
@@ -32,10 +39,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-
-import { features, type DataTableFeatures } from './data-table-features';
 
 interface ServerFilters {
     search: string;

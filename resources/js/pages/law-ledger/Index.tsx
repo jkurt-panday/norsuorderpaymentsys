@@ -180,7 +180,9 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const [importSuccess, setImportSuccess] = useState(false);
 
   const handleImportFile = (file: File | null, inputEl: HTMLInputElement) => {
-    if (!file || isImporting) return;
+    if (!file || isImporting) {
+return;
+}
 
     setIsImporting(true);
     setImportProgress(10);
@@ -188,7 +190,10 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
 
     const interval = setInterval(() => {
       setImportProgress((prev) => {
-        if (prev >= 90) return 90;
+        if (prev >= 90) {
+return 90;
+}
+
         return prev + Math.floor(Math.random() * 8) + 5;
       });
     }, 250);
@@ -265,6 +270,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
     e.preventDefault();
     const pageNum = parseInt(goToPage, 10);
     const last = records?.meta?.last_page ?? records?.last_page ?? 1;
+
     if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= last) {
       const currentParams = new URLSearchParams(window.location.search);
       currentParams.set('page', String(pageNum));

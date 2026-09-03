@@ -1,4 +1,6 @@
 import { Bar, BarChart, CartesianGrid, Rectangle, XAxis, YAxis } from "recharts"
+import { buildChartConfig,  PALETTE } from "./types"
+import type {ChartSeries} from "./types";
 import {
   Card,
   CardContent,
@@ -13,7 +15,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { buildChartConfig, type ChartSeries, PALETTE } from "./types"
 
 interface BarChartCardProps {
   title: string
@@ -85,6 +86,7 @@ export function BarChartCard({
                   shape={(props: any) => {
                     const i = data.indexOf(props.payload)
                     const fill = series.length === 1 ? PALETTE[i % PALETTE.length] : `var(--color-${s.key})`
+
                     return <Rectangle {...props} fill={fill} />
                   }}
                 />

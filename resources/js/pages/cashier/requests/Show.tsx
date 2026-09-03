@@ -1,6 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
-import { FormEvent } from 'react';
+import type { FormEvent } from 'react';
 import cashier from '@/routes/cashier';
 
 interface PaymentRequest {

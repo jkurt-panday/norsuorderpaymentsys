@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 import { Label, Pie, PieChart } from 'recharts';
+import { buildCategoryChartData  } from './types';
+import type {CategoryDatum} from './types';
 import {
     Card,
     CardContent,
@@ -15,7 +17,6 @@ import {
     ChartTooltip,
     ChartTooltipContent,
 } from '@/components/ui/chart';
-import { buildCategoryChartData, type CategoryDatum } from './types';
 
 interface DonutChartCardProps {
     title: string;

@@ -1,10 +1,10 @@
 'use client';
 
+import { Link } from '@inertiajs/react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { Pencil, Trash2, Eye } from 'lucide-react';
-import { Link } from '@inertiajs/react';
+import type {DataTableFeatures} from '@/components/data-table/data-table-features';
 import { Badge } from '@/components/ui/badge';
-import { type DataTableFeatures } from '@/components/data-table/data-table-features';
 import {
   Tooltip,
   TooltipContent,
@@ -86,6 +86,7 @@ export const columns = columnHelper.columns([
             const middleInitial = middle_name
                 ? `${middle_name.charAt(0)}.`
                 : '';
+
             return (
                 <div className="text-center text-slate-700">
                     {first_name} {middle_name} {last_name}
@@ -195,6 +196,7 @@ export const columns = columnHelper.columns([
         enableSorting: false,
         cell: ({ row }) => {
             const assessment = row.original;
+
             return (
                 <div className="flex justify-center">
                     <div className="grid w-max grid-cols-2">

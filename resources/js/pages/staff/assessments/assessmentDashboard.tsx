@@ -1,9 +1,9 @@
 import { Head } from '@inertiajs/react';
-import { Card, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChartCard } from '@/components/charts/bar-chart-card';
-import { LineChartCard } from '@/components/charts/line-chart-card';
 import { AreaChartCard } from '@/components/charts/area-chart-card';
+import { BarChartCard } from '@/components/charts/bar-chart-card';
 import { DonutChartCard } from '@/components/charts/donut-chart-card';
+import { LineChartCard } from '@/components/charts/line-chart-card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface AssessmentDashboardProps {
     byCourse: { course: string; total: number }[];

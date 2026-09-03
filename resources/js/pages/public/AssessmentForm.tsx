@@ -1,5 +1,4 @@
 import { useForm, Head } from '@inertiajs/react';
-import PublicLayout from '@/pages/layouts/PublicLayout';
 import { Mail, User, University } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,8 +25,9 @@ import {
     FieldTitle,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Separator } from '@/components/ui/separator';
+import PublicLayout from '@/pages/layouts/PublicLayout';
 
 const enlarge =
     'h-12 rounded-xl border-slate-300 bg-white px-4 text-base shadow-sm transition-all duration-200';
@@ -42,10 +42,12 @@ export const SCHOOL_YEAR_OPTIONS = (() => {
     const startAcademicYear = currentMonth >= 7 ? currentYear : currentYear - 1;
 
     const years: string[] = [];
+
     for (let i = 0; i < 27; i++) {
         const startYear = startAcademicYear - i;
         years.push(`${startYear}-${startYear + 1}`);
     }
+
     return years;
 })();
 

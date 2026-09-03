@@ -1,4 +1,6 @@
 import { CartesianGrid, Line, LineChart, XAxis } from "recharts"
+import { buildChartConfig  } from "./types"
+import type {ChartSeries} from "./types";
 import {
   Card,
   CardContent,
@@ -13,7 +15,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { buildChartConfig, type ChartSeries } from "./types"
 
 interface LineChartCardProps {
   title: string

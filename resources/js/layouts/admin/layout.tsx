@@ -7,8 +7,8 @@ import {
     SidebarProvider,
     SidebarTrigger,
 } from '@/components/ui/sidebar';
-import type { AppLayoutProps, BreadcrumbItem } from '@/types';
 import UnifiedSidebar from '@/layouts/unified-sidebar';
+import type { AppLayoutProps, BreadcrumbItem } from '@/types';
 
 function AdminSidebarHeader({
     breadcrumbs = [],

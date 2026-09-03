@@ -1,3 +1,14 @@
+import { Head, Link, router } from '@inertiajs/react';
+import {
+    AlertCircle,
+    ArrowLeft,
+    CheckCircle2,
+    FileQuestion,
+    Printer,
+    Search,
+    X,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
 import {
     edit as editAssessment,
     index as assessmentsIndex,
@@ -14,17 +25,6 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Head, Link, router } from '@inertiajs/react';
-import {
-    AlertCircle,
-    ArrowLeft,
-    CheckCircle2,
-    FileQuestion,
-    Printer,
-    Search,
-    X,
-} from 'lucide-react';
-import { useMemo, useState } from 'react';
 
 interface Course {
     id: number;

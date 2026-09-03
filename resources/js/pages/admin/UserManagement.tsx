@@ -1,5 +1,4 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
-import React, { useState } from 'react';
 import {
     Users,
     Plus,
@@ -14,6 +13,9 @@ import {
     ChevronRight,
     Power,
 } from 'lucide-react';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -23,8 +25,22 @@ import {
     CardDescription,
     CardFooter,
 } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import {
     Select,
     SelectContent,
@@ -40,22 +56,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogFooter,
-    DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from '@/components/ui/popover';
-import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
 import AdminLayout from '@/layouts/admin/layout';
 import {
     update as updateAdminUser,
@@ -115,9 +115,16 @@ const ROLE_OPTIONS = [
 ];
 
 function formatDateTime(value?: string | null) {
-    if (!value) return '-';
+    if (!value) {
+return '-';
+}
+
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
+
+    if (Number.isNaN(date.getTime())) {
+return value;
+}
+
     return date.toLocaleString('en-US', {
         month: 'short',
         day: '2-digit',
@@ -175,6 +182,7 @@ export default function AdminUserManagement() {
         overrides: Record<string, string | undefined>,
     ) => {
         const url = new URL(window.location.href);
+
         for (const [key, value] of Object.entries(overrides)) {
             if (value) {
                 url.searchParams.set(key, value);
@@ -182,6 +190,7 @@ export default function AdminUserManagement() {
                 url.searchParams.delete(key);
             }
         }
+
         url.searchParams.delete('page');
 
         router.get(
@@ -280,6 +289,7 @@ export default function AdminUserManagement() {
 
     const navigateToPage = (page: number) => {
         const url = new URL(window.location.href);
+
         if (page > 1) {
             url.searchParams.set('page', String(page));
         } else {
@@ -347,8 +357,10 @@ export default function AdminUserManagement() {
             toast.error('You cannot deactivate your own account', {
                 description: 'Currently logged in',
             });
+
             return;
         }
+
         setUserToToggle(user);
         setIsDeleteDialogOpen(true);
     };
@@ -676,12 +688,14 @@ export default function AdminUserManagement() {
                                                     open={pageJumpOpen}
                                                     onOpenChange={(open) => {
                                                         setPageJumpOpen(open);
-                                                        if (open)
-                                                            setPageJumpInput(
+
+                                                        if (open) {
+setPageJumpInput(
                                                                 String(
                                                                     currentPage,
                                                                 ),
                                                             );
+}
                                                     }}
                                                 >
                                                     <PopoverTrigger
@@ -707,6 +721,7 @@ export default function AdminUserManagement() {
                                                                     Number(
                                                                         pageJumpInput,
                                                                     );
+
                                                                 if (
                                                                     !Number.isNaN(
                                                                         parsed,

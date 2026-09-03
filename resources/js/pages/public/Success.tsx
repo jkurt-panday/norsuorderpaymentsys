@@ -99,7 +99,9 @@ export default function Success({
     };
 
     const formatContactNumber = (contactNum: string) => {
-        if (!contactNum) return '';
+        if (!contactNum) {
+return '';
+}
 
         return contactNum.replace(/^(\d{4})(\d{3})(\d{4})$/, '$1 $2 $3');
     };

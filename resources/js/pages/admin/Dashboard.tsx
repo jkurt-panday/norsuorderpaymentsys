@@ -29,9 +29,16 @@ export default function AdminDashboardPage() {
     } = usePage<AdminDashboardProps>().props;
 
     function formatDateTime(value?: string | null) {
-        if (!value) return '-';
+        if (!value) {
+return '-';
+}
+
         const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return value;
+
+        if (Number.isNaN(date.getTime())) {
+return value;
+}
+
         return date.toLocaleString('en-US', {
             month: 'short',
             day: '2-digit',
