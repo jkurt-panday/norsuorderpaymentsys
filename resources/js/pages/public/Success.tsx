@@ -486,6 +486,33 @@ export default function Success({
                                         <Printer className="mr-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
                                         Print Receipt
                                     </Button>
+                                    {(() => {
+                                        const role = (auth?.user as { role?: string } | undefined)?.role;
+                                        const homeHref =
+                                            role === 'admin'
+                                                ? '/admin/dashboard'
+                                                : role === 'staff' || role === 'cashier'
+                                                  ? '/staff/staffdashboard'
+                                                  : role === 'client'
+                                                    ? '/client/dashboard'
+                                                    : null;
+                                        if (!homeHref) return null;
+                                        return (
+                                            <Button
+                                                variant="outline"
+                                                asChild
+                                                className="h-11 w-full rounded-xl border-slate-200 px-6 text-sm font-semibold text-slate-700 transition-all duration-200 hover:bg-slate-50 sm:h-12 sm:w-auto sm:px-8 sm:text-base"
+                                            >
+                                                <Link
+                                                    href={homeHref}
+                                                    className="flex h-full w-full items-center justify-center"
+                                                >
+                                                    <Home className="mr-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
+                                                    Go back to Home
+                                                </Link>
+                                            </Button>
+                                        );
+                                    })()}
                                 </div>
                             </CardFooter>
                         </Card>

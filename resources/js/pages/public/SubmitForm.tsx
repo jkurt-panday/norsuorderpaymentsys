@@ -1,6 +1,6 @@
-import { useForm, Head, usePage } from '@inertiajs/react';
+import { Link, useForm, Head, usePage } from '@inertiajs/react';
 import { UploadCloud02 } from '@untitledui/icons';
-import { Mail, User, ClipboardList, FileText } from 'lucide-react';
+import { Mail, User, ClipboardList, FileText, Home } from 'lucide-react';
 import { useState } from 'react';
 import { FileUpload } from '@/components/application/file-upload/file-upload-base';
 import { Button } from '@/components/ui/button';
@@ -889,6 +889,38 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                 >
                                     Reset
                                 </Button>
+                                {(() => {
+                                    const role = (
+                                        auth?.user as
+                                            { role?: string } | undefined
+                                    )?.role;
+                                    const homeHref =
+                                        role === 'admin'
+                                            ? '/admin/dashboard'
+                                            : role === 'staff' ||
+                                                role === 'cashier'
+                                              ? '/staff/staffdashboard'
+                                              : role === 'client'
+                                                ? '/client/dashboard'
+                                                : null;
+                                    if (!homeHref) return null;
+                                    return (
+                                        <Button
+                                            variant="outline"
+                                            type="button"
+                                            asChild
+                                            className="cursor-pointer rounded-xl border-slate-300 font-semibold text-slate-700 hover:bg-slate-100"
+                                        >
+                                            <Link
+                                                href={homeHref}
+                                                className="flex items-center justify-center"
+                                            >
+                                                <Home className="mr-2 h-4 w-4 shrink-0" />
+                                                Go back to Home
+                                            </Link>
+                                        </Button>
+                                    );
+                                })()}
                                 <Button
                                     type="submit"
                                     disabled={processing}
