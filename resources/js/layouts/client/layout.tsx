@@ -25,7 +25,7 @@ import {
     SidebarProvider,
     SidebarTrigger,
 } from '@/components/ui/sidebar';
-import type { AppLayoutProps } from '@/types';
+import type { AppLayoutProps, BreadcrumbItem } from '@/types';
 
 interface ClientSidebarItem {
     title: string;
@@ -131,7 +131,7 @@ function ClientSidebar() {
 function ClientSidebarHeader({
     breadcrumbs = [],
 }: {
-    breadcrumbs?: { title: string; href?: string }[];
+    breadcrumbs?: BreadcrumbItem[];
 }) {
     return (
         <div className="flex h-16 items-center gap-4 border-b px-6">

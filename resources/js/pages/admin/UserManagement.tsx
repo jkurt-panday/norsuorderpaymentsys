@@ -63,13 +63,13 @@ import {
 } from '@/routes/admin/users';
 import { store as storeAdminUser } from '@/routes/admin/users';
 
-const routes = { admin: { users: { store: storeAdminUser } } };
+type UserRole = 'admin' | 'staff' | 'cashier' | 'client';
 
 interface User {
     id: number;
     name: string;
     email: string;
-    role: 'admin' | 'staff' | 'client';
+    role: UserRole;
     email_verified_at: string | null;
     deleted_at: string | null;
     created_at: string;
@@ -129,7 +129,7 @@ function formatDateTime(value?: string | null) {
 
 export default function AdminUserManagement() {
     const {
-        users = { data: [] },
+        users,
         userFilters = {},
         auth,
     } = usePage<{
@@ -157,7 +157,12 @@ export default function AdminUserManagement() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [userToToggle, setUserToToggle] = useState<User | null>(null);
 
-    const { data, setData, post, put, processing, errors, reset } = useForm({
+    const { data, setData, post, put, processing, errors, reset } = useForm<{
+        name: string;
+        email: string;
+        password: string;
+        role: UserRole;
+    }>({
         name: '',
         email: '',
         password: '',
@@ -332,7 +337,7 @@ export default function AdminUserManagement() {
                 },
             });
         } else {
-            post(routes.admin.users.store(), {
+            post(storeAdminUser.url(), {
                 onSuccess: () => {
                     toast.success('User added successfully!');
                     setDialogOpen(false);
@@ -933,9 +938,14 @@ export default function AdminUserManagement() {
                                     <Label htmlFor="role">Role</Label>
                                     <Select
                                         value={data.role}
-                                        onValueChange={(value) =>
-                                            setData('role', value)
-                                        }
+                                        onValueChange={(value) => {
+                                            if (value) {
+                                                setData(
+                                                    'role',
+                                                    value as UserRole,
+                                                );
+                                            }
+                                        }}
                                         disabled={
                                             editingUser?.id === currentUserId
                                         }

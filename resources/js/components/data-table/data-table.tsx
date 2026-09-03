@@ -78,11 +78,6 @@ export function DataTable<TData extends RowData>({
 
     // In client mode, typing directly filters the in-memory data via TanStack's
     // own filter state — no network request, no router.get.
-    const handleClientSearch = (value: string) => {
-        setSearch(value);
-        table.setGlobalFilter(value); // needs globalFilteringFeature — see note below
-    };
-
     const table = useTable({
         features,
         data,

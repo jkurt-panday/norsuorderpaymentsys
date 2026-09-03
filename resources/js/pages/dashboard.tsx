@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 import { dashboard } from '@/routes/index';
+import { store as storeAdminUser } from '@/routes/admin/users';
 
 export default function Dashboard() {
     const { auth } = usePage<{ auth: { user: { role: string } | null } }>().props;

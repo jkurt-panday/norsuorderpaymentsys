@@ -158,7 +158,7 @@ export default function AssessmentEdit({
     const printStatement = () => {
       const url = `/staff/assessments/print_soa/${assessment.id}` +
         (ledgerStatement.selectedStudent
-          ? `?ledger_student=${encodeURIComponent(ledgerStatement.selectedStudent)}`
+          ? `?ledger_student=${encodeURIComponent(ledgerStatement.selectedStudent.key)}`
           : '');
       window.open(url, '_blank');
     };
