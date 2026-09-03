@@ -186,6 +186,7 @@ class LawSchoolLedgerController extends Controller
                         Arr::except($studentAttributes, ['last_name', 'first_name']),
                     );
                 $studentId = $student->id;
+                $data['middle_initial'] = $data['middle_initial'] ?? $this->normalizeMiddleInitial($newStudent['middle_name'] ?? null);
             }
 
             $studentId = (int) $studentId;
@@ -197,6 +198,7 @@ class LawSchoolLedgerController extends Controller
                     $data['last_name'] = $student->last_name;
                     $data['first_name'] = $student->first_name;
                     $data['middle_name'] = $data['middle_name'] ?? $student->middle_name;
+                    $data['middle_initial'] = $data['middle_initial'] ?? $this->normalizeMiddleInitial($student->middle_name);
                 }
             }
 
@@ -271,6 +273,7 @@ class LawSchoolLedgerController extends Controller
                     $data['last_name'] = $data['last_name'] ?? $student->last_name;
                     $data['first_name'] = $data['first_name'] ?? $student->first_name;
                     $data['middle_name'] = $data['middle_name'] ?? $student->middle_name;
+                    $data['middle_initial'] = $data['middle_initial'] ?? $this->normalizeMiddleInitial($student->middle_name);
                 }
             }
 
@@ -952,6 +955,7 @@ class LawSchoolLedgerController extends Controller
         $dateTo = $request->input('date_to');
 
         return LawSchoolLedger::query()
+            ->with('lawStudent')
             ->when($request->input('search'), function ($query, $search) {
                 // Lowercase the search term to match the LOWER() applied to columns.
                 // PostgreSQL's LIKE is case-sensitive, so "Juan" won't match "juan"
@@ -1003,11 +1007,13 @@ class LawSchoolLedgerController extends Controller
     {
         $cleanName = trim((string) str_replace(['−', '–', '—'], '-', $studentName));
 
-        return LawSchoolLedger::query()->where(function ($q) use ($cleanName) {
-            $q->whereRaw("TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_initial, ''))) = ?", [$cleanName])
-                ->orWhereRaw("TRIM(CONCAT(last_name, ', ', first_name)) = ?", [$cleanName])
-                ->orWhere('last_name', 'like', "%{$cleanName}%");
-        });
+        return LawSchoolLedger::query()
+            ->with('lawStudent')
+            ->where(function ($q) use ($cleanName) {
+                $q->whereRaw("TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_initial, ''))) = ?", [$cleanName])
+                    ->orWhereRaw("TRIM(CONCAT(last_name, ', ', first_name)) = ?", [$cleanName])
+                    ->orWhere('last_name', 'like', "%{$cleanName}%");
+            });
     }
 
     private function parseStudentName(string $name): ?array
@@ -1091,10 +1097,11 @@ class LawSchoolLedgerController extends Controller
         return [
             'id' => $r->id,
             'studentId' => $r->student_id_fk,
+            'studentNumber' => $r->lawStudent?->student_number,
             'lastName' => $r->last_name,
             'firstName' => $r->first_name,
             'middleInitial' => $this->normalizeMiddleInitial($r->middle_initial),
-            'name' => trim("$r->last_name, $r->first_name ".($r->middle_initial ? "$r->middle_initial" : '')),
+            'name' => $r->lawStudent?->full_name ?? trim("$r->last_name, $r->first_name ".($r->middle_initial ? "$r->middle_initial" : '')),
             'course' => $r->course,
             'schoolYear' => $r->school_year,
             'semesterOrSummer' => $r->semester_or_summer,
@@ -1206,13 +1213,17 @@ class LawSchoolLedgerController extends Controller
      */
     private function buildLedgerRow(array $data, ?int $studentId, ?int $academicTermId): array
     {
+        $middleInitialSource = $data['middle_initial']
+            ?? $data['middle_name']
+            ?? (is_array($data['new_student'] ?? null) ? ($data['new_student']['middle_name'] ?? null) : null);
+
         $attributes = [
             'student_id_fk' => $studentId,
             'course_id' => $data['course_id'] ?? null,
             'academic_term_id' => $academicTermId,
             'last_name' => $data['last_name'] ?? null,
             'first_name' => $data['first_name'] ?? null,
-            'middle_initial' => $this->normalizeMiddleInitial($data['middle_initial'] ?? null),
+            'middle_initial' => $this->normalizeMiddleInitial($middleInitialSource),
             'middle_name' => $data['middle_name'] ?? null,
             'course' => $data['course'] ?? LawCourse::find($data['course_id'] ?? null)?->code,
             'school_year' => $data['school_year'] ?? null,
@@ -1223,13 +1234,15 @@ class LawSchoolLedgerController extends Controller
             'reference_jev_or_number' => $data['reference_jev_or_number'] ?? null,
             'particulars' => $data['particulars'] ?? 'Tuition',
             'tuition_per_unit_or_fee_per_semester' => $data['tuition_per_unit_or_fee_per_semester'] ?? '0.00',
+            'entry_type' => $data['entry_type'] ?? 'ar',
             'ar_or_payment' => $data['ar_or_payment'] ?? 'AR',
             'amount' => $data['amount'] ?? null,
             'remarks' => $data['remarks'] ?? null,
+            'status' => $data['status'] ?? 'Active',
             'input_by' => $data['input_by'] ?? null,
         ];
 
-        $entryType = $attributes['entry_type'] ?? ($data['entry_type'] ?? 'ar');
+        $entryType = $attributes['entry_type'];
 
         // Auto-compute amount when AR and no amount supplied (mirrors Graduate behavior)
         if ($entryType === 'ar' && blank($attributes['amount'])) {
