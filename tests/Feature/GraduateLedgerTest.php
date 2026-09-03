@@ -16,7 +16,7 @@ class GraduateLedgerTest extends TestCase
 
     public function test_user_can_create_a_new_ledger_transaction(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->staff()->create();
 
         $student = Student::create([
             'last_name' => 'Dela Cruz',
@@ -60,7 +60,7 @@ class GraduateLedgerTest extends TestCase
 
     public function test_user_can_create_a_transaction_with_a_new_student_id(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->staff()->create();
 
         $response = $this->actingAs($user)->post('/graduate-ledger', [
             'new_student' => [
@@ -91,7 +91,7 @@ class GraduateLedgerTest extends TestCase
 
     public function test_new_student_rejects_an_existing_student_id(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->staff()->create();
         Student::create([
             'student_number' => '2026-00123',
             'last_name' => 'Existing',
@@ -121,7 +121,7 @@ class GraduateLedgerTest extends TestCase
 
     public function test_new_student_can_be_created_without_a_student_id(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->staff()->create();
 
         $response = $this->actingAs($user)->post('/graduate-ledger', [
             'new_student' => [
@@ -147,7 +147,7 @@ class GraduateLedgerTest extends TestCase
 
     public function test_index_can_filter_records_by_school_year_and_date_range(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->staff()->create();
 
         $studentA = Student::create(['last_name' => 'Filtered', 'first_name' => 'Student']);
         $studentB = Student::create(['last_name' => 'Other', 'first_name' => 'Student']);
@@ -200,7 +200,7 @@ class GraduateLedgerTest extends TestCase
 
     public function test_ar_transaction_resolves_a_canonical_term_and_computes_the_amount(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->staff()->create();
         $student = Student::create(['last_name' => 'Computed', 'first_name' => 'Student']);
 
         $response = $this->actingAs($user)->post('/graduate-ledger', [
@@ -233,7 +233,7 @@ class GraduateLedgerTest extends TestCase
 
     public function test_payment_defaults_a_blank_tuition_field_to_zero(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->staff()->create();
         $student = Student::create(['last_name' => 'Paying', 'first_name' => 'Student']);
         $term = AcademicTerm::create([
             'school_year' => '2026-2027',
@@ -262,7 +262,7 @@ class GraduateLedgerTest extends TestCase
 
     public function test_manual_transaction_rejects_fractional_units(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->staff()->create();
         $student = Student::create(['last_name' => 'Invalid', 'first_name' => 'Units']);
         $term = AcademicTerm::create([
             'school_year' => '2026-2027',
