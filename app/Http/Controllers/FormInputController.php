@@ -87,6 +87,11 @@ class FormInputController extends Controller
 
             DB::commit();
 
+            // success page is in session to prevent access to other resource
+            session([
+                'success_reference_number' => $formInput->reference_number,
+            ]);
+
             // If user is authenticated, save/update their profile preferences for next time
             if (auth()->check()) {
                 UserProfile::updateOrCreate(
@@ -125,6 +130,11 @@ class FormInputController extends Controller
 
     public function success(string $referenceNumber)
     {
+        // if session is not found, prevents access to other OP
+        if (session('success_reference_number') !== $referenceNumber) {
+                abort(404);
+            }
+        
         $formInput = FormInput::query()
             ->where('reference_number', $referenceNumber)
             ->firstOrFail();

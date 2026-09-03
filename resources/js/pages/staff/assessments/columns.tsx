@@ -197,23 +197,23 @@ export const columns = columnHelper.columns([
             const assessment = row.original;
             return (
                 <div className="flex justify-center">
-                    <div className="grid w-max grid-cols-3">
-                        <Link
+                    <div className="grid w-max grid-cols-2">
+                        {/*<Link
                             href={`/staff/assessments/${assessment.id}`}
                             className="flex h-8 w-8 items-center justify-center rounded-l-2xl bg-slate-500 text-white transition-colors hover:bg-slate-600"
                         >
                             <Eye className="h-4 w-4" />
-                        </Link>
+                        </Link>*/}
                         <Link
                             href={`/staff/assessments/edit/${assessment.id}`}
-                            className="flex h-8 w-8 items-center justify-center bg-amber-400 text-white transition-colors hover:bg-amber-500"
+                            className="flex h-8 w-8 items-center justify-center rounded-l-2xl bg-amber-400 text-white transition-colors hover:bg-amber-500"
                         >
                             <Pencil className="h-4 w-4" />
                         </Link>
                         <Link
                             as="button"
                             method="delete"
-                            href={`/staff/assessments/${assessment.id}`}
+                            href={`/staff/assessments/delete/${assessment.id}`}
                             className="flex h-8 w-8 items-center justify-center rounded-r-2xl bg-red-600 text-white transition-colors hover:bg-red-700"
                         >
                             <Trash2 className="h-4 w-4" />

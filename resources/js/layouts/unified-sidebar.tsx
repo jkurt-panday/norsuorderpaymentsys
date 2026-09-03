@@ -82,7 +82,7 @@ const staffCollapsibleItems = [
         icon: FileSearchIcon,
         items: [
             { title: 'Dashboard', href: '/staff/assessments/dashboard' },
-            { title: 'Assessments', href: '/staff/assessments/' },
+            { title: 'Assessments', href: '/staff/assessments' },
         ],
     },
     {
