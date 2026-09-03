@@ -6,6 +6,7 @@ use App\Models\AssessmentForm;
 use App\Models\Courses;
 use App\Services\AssessmentStatsService;
 use App\Services\LedgerMatchingService;
+use App\Services\ReceiptPDFService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -15,6 +16,7 @@ class AssessmentController extends Controller
     public function __construct(
         private readonly AssessmentStatsService $stats,
         private readonly LedgerMatchingService $ledgerMatcher,
+        private ReceiptPDFService $receiptPDFService,
     ) {}
     
     /**
@@ -130,6 +132,13 @@ class AssessmentController extends Controller
                 $validated['ledger_student'] ?? null,
             ),
         ]);
+    }
+
+    public function print(Request $request, AssessmentForm $assessment)
+    {
+        return $this->receiptPDFService
+            ->soaPrint($request, $assessment)
+            ->inline();
     }
 
     // /**

@@ -47,7 +47,7 @@ class FortifyServiceProvider extends ServiceProvider
                     }
 
                     if ($user?->role === 'cashier') {
-                        return redirect('/staff/requests');
+                        return redirect('/cashier/requests');
                     }
 
                     if ($user?->role === 'client') {
@@ -149,7 +149,7 @@ class FortifyServiceProvider extends ServiceProvider
         return match ($user->role) {
             'admin' => redirect('/admin/dashboard'),
             'staff' => redirect('/staff/staffdashboard'),
-            'cashier' => redirect('/staff/requests'),
+            'cashier' => redirect('/cashier/requests'),
             'client' => redirect('/client/dashboard'),
             default => redirect('/'),
         };

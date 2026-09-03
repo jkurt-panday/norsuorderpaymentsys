@@ -115,13 +115,16 @@ export default function PrintSelect({
         if (!term) {
             return students;
         }
+
         const matched = students.filter((s) =>
             s.full_name.toLowerCase().includes(term),
         );
+
         // starts-with results float to top, contains-only results follow
         return matched.sort((a: StudentItem, b: StudentItem) => {
             const aStarts = a.full_name.toLowerCase().startsWith(term) ? 0 : 1;
             const bStarts = b.full_name.toLowerCase().startsWith(term) ? 0 : 1;
+
             return aStarts - bStarts;
         });
     }, [students, search]);
@@ -202,6 +205,7 @@ export default function PrintSelect({
         resetRecordFilters();
 
         const params: Record<string, any> = {};
+
         if (typeof idOrName === 'number' || /^\d+$/.test(String(idOrName))) {
             params.student_id = idOrName;
         } else {
@@ -220,7 +224,10 @@ export default function PrintSelect({
     };
 
     const handleOpenPdf = () => {
-        if (!selected) return;
+        if (!selected) {
+return;
+}
+
         const queryKey = isNumericId ? 'student_id' : 'student';
         window.open(
             `/graduate-ledger/pdf?${queryKey}=${encodeURIComponent(selected)}`,
@@ -317,6 +324,7 @@ export default function PrintSelect({
                                             const isActive =
                                                 String(selected) ===
                                                 String(s.id);
+
                                             return (
                                                 <button
                                                     key={s.id}

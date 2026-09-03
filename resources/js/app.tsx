@@ -1,6 +1,6 @@
 import { createInertiaApp, router } from '@inertiajs/react';
-import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
-import { useEffect } from 'react';
+import { useEffect  } from 'react';
+import type {ComponentType} from 'react';
 import { ConfirmProvider } from '@/components/confirm-dialog';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -12,6 +12,40 @@ import SettingsLayout from '@/layouts/settings/layout';
 import { flashToast } from '@/utils/flashToast';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const pages = import.meta.glob<{ default: ComponentType }>('./pages/**/*.tsx');
+
+interface FlashMessages {
+    success?: string;
+    error?: string;
+}
+
+const showFlashToasts = (flash: FlashMessages | undefined) => {
+    if (flash?.success) {
+        flashToast('success', flash.success);
+    }
+
+    if (flash?.error) {
+        flashToast('error', flash.error);
+    }
+};
+
+function FlashToastBridge({
+    initialFlash,
+}: {
+    initialFlash: FlashMessages | undefined;
+}) {
+    useEffect(() => {
+        showFlashToasts(initialFlash);
+
+        return router.on('navigate', (event) => {
+            showFlashToasts(
+                event.detail.page.props.flash as FlashMessages | undefined,
+            );
+        });
+    }, [initialFlash]);
+
+    return null;
+}
 
 // Radix (used by shadcn's Dialog/Select/Dropdown/etc) sets
 // `pointer-events: none` on <body> while a component is open, and removes
@@ -25,11 +59,15 @@ router.on('navigate', () => {
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
-    resolve: (name) =>
-        resolvePageComponent(
-            `./pages/${name}.tsx`,
-            import.meta.glob('./pages/**/*.tsx'),
-        ),
+    resolve: async (name) => {
+        const loadPage = pages[`./pages/${name}.tsx`];
+
+        if (!loadPage) {
+            throw new Error(`Page not found: ${name}`);
+        }
+
+        return (await loadPage()).default;
+    },
     layout: (name) => {
         switch (true) {
             case name === 'welcome' ||
@@ -54,43 +92,15 @@ createInertiaApp({
         }
     },
     strictMode: true,
-    withApp(app) {
-        const FlashToastBridge = () => {
-            useEffect(() => {
-                const showFlash = () => {
-                    const page = (window as any).__inertia?.page;
-                    const flash = page?.props?.flash as
-                        { success?: string; error?: string } | undefined;
-
-                    if (!flash) {
-return;
-}
-
-                    if (flash.success) {
-flashToast('success', flash.success);
-}
-
-                    if (flash.error) {
-flashToast('error', flash.error);
-}
-                };
-
-                // Show any flash present on initial load
-                showFlash();
-
-                // Also show flashes after Inertia navigations
-                router.on('navigate', () => setTimeout(showFlash, 0));
-
-                // no cleanup required for router.on in this environment
-            }, []);
-
-            return null;
-        };
-
+    withApp(app, { page }) {
         return (
-            <TooltipProvider delayDuration={0}>
+            <TooltipProvider delay={0}>
                 <ConfirmProvider>
-                    <FlashToastBridge />
+                    <FlashToastBridge
+                        initialFlash={
+                            page.props.flash as FlashMessages | undefined
+                        }
+                    />
                     {app}
                     <Toaster />
                 </ConfirmProvider>

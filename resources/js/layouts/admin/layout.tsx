@@ -1,4 +1,4 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import { ChevronRight } from 'lucide-react';
 import React from 'react';
 import { Separator } from '@/components/ui/separator';
@@ -7,8 +7,8 @@ import {
     SidebarProvider,
     SidebarTrigger,
 } from '@/components/ui/sidebar';
-import type { AppLayoutProps, BreadcrumbItem } from '@/types';
 import UnifiedSidebar from '@/layouts/unified-sidebar';
+import type { AppLayoutProps, BreadcrumbItem } from '@/types';
 
 function AdminSidebarHeader({
     breadcrumbs = [],

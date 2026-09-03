@@ -13,7 +13,6 @@ import {
   Filter,
   Loader2,
   CheckCircle2,
-  Download,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -36,11 +35,11 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { Separator } from '@/components/ui/separator';
 
 export interface LawLedgerRecord {
   id: string | number;
   studentId: string;
+  studentNumber: string;
   lastName: string;
   firstName: string;
   middleInitial: string;
@@ -180,7 +179,9 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const [importSuccess, setImportSuccess] = useState(false);
 
   const handleImportFile = (file: File | null, inputEl: HTMLInputElement) => {
-    if (!file || isImporting) return;
+    if (!file || isImporting) {
+return;
+}
 
     setIsImporting(true);
     setImportProgress(10);
@@ -188,7 +189,10 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
 
     const interval = setInterval(() => {
       setImportProgress((prev) => {
-        if (prev >= 90) return 90;
+        if (prev >= 90) {
+return 90;
+}
+
         return prev + Math.floor(Math.random() * 8) + 5;
       });
     }, 250);
@@ -265,6 +269,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
     e.preventDefault();
     const pageNum = parseInt(goToPage, 10);
     const last = records?.meta?.last_page ?? records?.last_page ?? 1;
+
     if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= last) {
       const currentParams = new URLSearchParams(window.location.search);
       currentParams.set('page', String(pageNum));
@@ -598,7 +603,9 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                 </Button>
               </form>
             </div>
-          </CardHeader>
+              </CardHeader>
+              <div className="rotate-180 overflow-x-auto custom-scrollbar border-collapse">
+                  <div className="rotate-180 min-w-max">
           <CardContent className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
@@ -631,7 +638,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                   ) : (
                     rows.map((r) => (
                       <tr key={r.id} className="border-b border-[#EAF2FF] hover:bg-[#F3F8FF]">
-                        <td className="py-2 pr-4 pl-2 whitespace-nowrap text-[#334E68]">{r.studentId}</td>
+                        <td className="py-2 pr-4 pl-2 whitespace-nowrap text-[#334E68]">{r.studentNumber || r.studentId}</td>
                         <td className="py-2 pr-4 font-medium whitespace-nowrap text-[#0B3D91]">{r.name}</td>
                         <td className="py-2 pr-4 text-[#334E68]">{r.course}</td>
                         <td className="py-2 pr-4 text-[#334E68]">{r.schoolYear}</td>
@@ -684,7 +691,9 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
                   )}
                 </tbody>
               </table>
-          </CardContent>
+                      </CardContent>
+                  </div>
+              </div>
 
           {/* ---- Pagination Footer ---- */}
           {paginationLinks.length > 3 && (

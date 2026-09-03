@@ -1,11 +1,13 @@
-import { useState } from 'react';
 import { router } from '@inertiajs/react';
 import {
-    useTable,
-    type ColumnDef,
-    type RowData,
-    ColumnVisibilityState,
+    useTable
+    
+    
 } from '@tanstack/react-table';
+import type {
+    ColumnVisibilityState} from '@tanstack/react-table';
+import type {ColumnDef, RowData} from '@tanstack/react-table';
+import { format } from 'date-fns';
 import {
     ArrowUpDown,
     ArrowUp,
@@ -14,16 +16,16 @@ import {
     RotateCw,
     SlidersHorizontal,
 } from 'lucide-react';
+import { useState } from 'react';
+
+import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { format } from 'date-fns';
-import { DateRangeFilter } from './date-range-picker';
-import { DataTablePagination } from './data-table-pagination';
-
+import { Input } from '@/components/ui/input';
 import {
     Table,
     TableBody,
@@ -32,10 +34,11 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 
-import { features, type DataTableFeatures } from './data-table-features';
+import { features  } from './data-table-features';
+import type {DataTableFeatures} from './data-table-features';
+import { DataTablePagination } from './data-table-pagination';
+import { DateRangeFilter } from './date-range-picker';
 
 interface ServerFilters {
     search: string;
@@ -315,97 +318,99 @@ export function ServerDataTable<TData extends RowData>({
                 </div>
             </div>
 
-            <div className="overflow-hidden">
-                <Table>
-                    <TableHeader>
-                        {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow
-                                key={headerGroup.id}
-                                className="border-y border-slate-200 bg-slate-50/80 hover:bg-slate-50/80"
-                            >
-                                {headerGroup.headers.map((header) => {
-                                    const canSort = sortableColumns.includes(
-                                        header.column.id,
-                                    );
-                                    const isActive =
-                                        filters.sort === header.column.id;
-
-                                    return (
-                                        <TableHead
-                                            key={header.id}
-                                            className="px-4 py-3 text-xs font-semibold tracking-wide text-slate-500 uppercase"
-                                        >
-                                            {header.isPlaceholder ? null : canSort ? (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="inline-flex items-center gap-1.5 hover:text-slate-700"
-                                                    onClick={() =>
-                                                        toggleSort(
-                                                            header.column.id,
-                                                        )
-                                                    }
-                                                >
+            <div className="rotate-180 overflow-x-auto custom-scrollbar">
+                <div className="rotate-180 min-w-max">
+                    <Table>
+                        <TableHeader>
+                            {table.getHeaderGroups().map((headerGroup) => (
+                                <TableRow
+                                    key={headerGroup.id}
+                                    className="border-y border-slate-200 bg-slate-50/80 hover:bg-slate-50/80"
+                                >
+                                    {headerGroup.headers.map((header) => {
+                                        const canSort = sortableColumns.includes(
+                                            header.column.id,
+                                        );
+                                        const isActive =
+                                            filters.sort === header.column.id;
+    
+                                        return (
+                                            <TableHead
+                                                key={header.id}
+                                                className="px-4 py-3 text-xs font-semibold tracking-wide text-slate-500 uppercase"
+                                            >
+                                                {header.isPlaceholder ? null : canSort ? (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="inline-flex items-center gap-1.5 hover:text-slate-700"
+                                                        onClick={() =>
+                                                            toggleSort(
+                                                                header.column.id,
+                                                            )
+                                                        }
+                                                    >
+                                                        <table.FlexRender
+                                                            header={header}
+                                                        />
+                                                        {isActive &&
+                                                        filters.direction ===
+                                                            'asc' ? (
+                                                            <ArrowUp className="ml-2 h-4 w-4" />
+                                                        ) : isActive &&
+                                                        filters.direction ===
+                                                            'desc' ? (
+                                                            <ArrowDown className="ml-2 h-4 w-4" />
+                                                        ) : (
+                                                            <ArrowUpDown className="ml-2 h-4 w-4 opacity-40" />
+                                                        )}
+                                                    </Button>
+                                                ) : (
                                                     <table.FlexRender
                                                         header={header}
                                                     />
-                                                    {isActive &&
-                                                    filters.direction ===
-                                                        'asc' ? (
-                                                        <ArrowUp className="ml-2 h-4 w-4" />
-                                                    ) : isActive &&
-                                                      filters.direction ===
-                                                          'desc' ? (
-                                                        <ArrowDown className="ml-2 h-4 w-4" />
-                                                    ) : (
-                                                        <ArrowUpDown className="ml-2 h-4 w-4 opacity-40" />
-                                                    )}
-                                                </Button>
-                                            ) : (
-                                                <table.FlexRender
-                                                    header={header}
-                                                />
-                                            )}
-                                        </TableHead>
-                                    );
-                                })}
-                            </TableRow>
-                        ))}
-                    </TableHeader>
-                    <TableBody>
-                        {table.getRowModel().rows?.length ? (
-                            table.getRowModel().rows.map((row, i) => (
-                                <TableRow
-                                    key={row.id}
-                                    className={
-                                        (i % 2 === 0
-                                            ? 'bg-white'
-                                            : 'bg-slate-200/60') +
-                                        ' border-b border-slate-100 transition-colors last:border-0 hover:bg-gray-200'
-                                    }
-                                >
-                                    {row.getVisibleCells().map((cell) => (
-                                        <TableCell
-                                            key={cell.id}
-                                            className="px-4 py-4 text-sm text-slate-700"
-                                        >
-                                            <table.FlexRender cell={cell} />
-                                        </TableCell>
-                                    ))}
+                                                )}
+                                            </TableHead>
+                                        );
+                                    })}
                                 </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell
-                                    colSpan={columns.length}
-                                    className="h-24 text-center text-slate-400"
-                                >
-                                    {emptyMessage}
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
+                            ))}
+                        </TableHeader>
+                        <TableBody>
+                            {table.getRowModel().rows?.length ? (
+                                table.getRowModel().rows.map((row, i) => (
+                                    <TableRow
+                                        key={row.id}
+                                        className={
+                                            (i % 2 === 0
+                                                ? 'bg-white'
+                                                : 'bg-slate-200/60') +
+                                            ' border-b border-slate-100 transition-colors last:border-0 hover:bg-gray-200'
+                                        }
+                                    >
+                                        {row.getVisibleCells().map((cell) => (
+                                            <TableCell
+                                                key={cell.id}
+                                                className="px-4 py-4 text-sm text-slate-700"
+                                            >
+                                                <table.FlexRender cell={cell} />
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell
+                                        colSpan={columns.length}
+                                        className="h-24 text-center text-slate-400"
+                                    >
+                                        {emptyMessage}
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
 
             <div className="flex items-center justify-between px-4 py-4">

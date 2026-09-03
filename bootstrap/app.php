@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Middleware\EnsureUserIsAdmin;
+use App\Http\Middleware\EnsureUserIsCashier;
+use App\Http\Middleware\EnsureUserIsStaff;
 use App\Http\Middleware\HandleAppearance;
-use App\Http\Middleware\HandleInertiaRequests; // 🌟 1. Make sure to import your admin middleware
+use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -25,10 +27,10 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        // 🌟 2. ADD THIS ALIAS BLOCK HERE:
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
-                'staff' => \App\Http\Middleware\EnsureUserIsStaff::class,
+            'cashier' => EnsureUserIsCashier::class,
+            'staff' => EnsureUserIsStaff::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -42,10 +44,12 @@ return Application::configure(basePath: dirname(__DIR__))
                 $targetRoute = match ($user->role) {
                     'admin' => 'admin.dashboard',
                     'staff' => 'staff.dashboard',
+                    'cashier' => 'cashier.requests.index',
                     default => 'client.dashboard',
                 };
 
-                return redirect()->route($targetRoute)->with('error', $e->getMessage() ?: 'Unauthorized access.');
+                return redirect()->route($targetRoute)
+                    ->with('error', "You don't have permission to access that section.");
             }
         });
 

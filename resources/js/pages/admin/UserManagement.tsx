@@ -1,30 +1,37 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
-import React, { useState } from 'react';
 import {
-    Users,
     Plus,
     Pencil,
-    Eye,
-    Shield,
-    Mail,
-    Lock,
     Search,
     RefreshCw,
     ChevronLeft,
     ChevronRight,
     Power,
 } from 'lucide-react';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
     CardHeader,
-    CardTitle,
-    CardDescription,
-    CardFooter,
 } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import {
     Select,
     SelectContent,
@@ -40,22 +47,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogFooter,
-    DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from '@/components/ui/popover';
-import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
 import AdminLayout from '@/layouts/admin/layout';
 import {
     update as updateAdminUser,
@@ -63,13 +54,13 @@ import {
 } from '@/routes/admin/users';
 import { store as storeAdminUser } from '@/routes/admin/users';
 
-const routes = { admin: { users: { store: storeAdminUser } } };
+type UserRole = 'admin' | 'staff' | 'cashier' | 'client';
 
 interface User {
     id: number;
     name: string;
     email: string;
-    role: 'admin' | 'staff' | 'client';
+    role: UserRole;
     email_verified_at: string | null;
     deleted_at: string | null;
     created_at: string;
@@ -115,9 +106,16 @@ const ROLE_OPTIONS = [
 ];
 
 function formatDateTime(value?: string | null) {
-    if (!value) return '-';
+    if (!value) {
+return '-';
+}
+
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
+
+    if (Number.isNaN(date.getTime())) {
+return value;
+}
+
     return date.toLocaleString('en-US', {
         month: 'short',
         day: '2-digit',
@@ -129,7 +127,7 @@ function formatDateTime(value?: string | null) {
 
 export default function AdminUserManagement() {
     const {
-        users = { data: [] },
+        users,
         userFilters = {},
         auth,
     } = usePage<{
@@ -157,7 +155,12 @@ export default function AdminUserManagement() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [userToToggle, setUserToToggle] = useState<User | null>(null);
 
-    const { data, setData, post, put, processing, errors, reset } = useForm({
+    const { data, setData, post, put, processing, errors, reset } = useForm<{
+        name: string;
+        email: string;
+        password: string;
+        role: UserRole;
+    }>({
         name: '',
         email: '',
         password: '',
@@ -175,6 +178,7 @@ export default function AdminUserManagement() {
         overrides: Record<string, string | undefined>,
     ) => {
         const url = new URL(window.location.href);
+
         for (const [key, value] of Object.entries(overrides)) {
             if (value) {
                 url.searchParams.set(key, value);
@@ -182,6 +186,7 @@ export default function AdminUserManagement() {
                 url.searchParams.delete(key);
             }
         }
+
         url.searchParams.delete('page');
 
         router.get(
@@ -280,6 +285,7 @@ export default function AdminUserManagement() {
 
     const navigateToPage = (page: number) => {
         const url = new URL(window.location.href);
+
         if (page > 1) {
             url.searchParams.set('page', String(page));
         } else {
@@ -332,7 +338,7 @@ export default function AdminUserManagement() {
                 },
             });
         } else {
-            post(routes.admin.users.store(), {
+            post(storeAdminUser.url(), {
                 onSuccess: () => {
                     toast.success('User added successfully!');
                     setDialogOpen(false);
@@ -347,8 +353,10 @@ export default function AdminUserManagement() {
             toast.error('You cannot deactivate your own account', {
                 description: 'Currently logged in',
             });
+
             return;
         }
+
         setUserToToggle(user);
         setIsDeleteDialogOpen(true);
     };
@@ -676,12 +684,14 @@ export default function AdminUserManagement() {
                                                     open={pageJumpOpen}
                                                     onOpenChange={(open) => {
                                                         setPageJumpOpen(open);
-                                                        if (open)
-                                                            setPageJumpInput(
+
+                                                        if (open) {
+setPageJumpInput(
                                                                 String(
                                                                     currentPage,
                                                                 ),
                                                             );
+}
                                                     }}
                                                 >
                                                     <PopoverTrigger
@@ -707,6 +717,7 @@ export default function AdminUserManagement() {
                                                                     Number(
                                                                         pageJumpInput,
                                                                     );
+
                                                                 if (
                                                                     !Number.isNaN(
                                                                         parsed,
@@ -933,9 +944,14 @@ export default function AdminUserManagement() {
                                     <Label htmlFor="role">Role</Label>
                                     <Select
                                         value={data.role}
-                                        onValueChange={(value) =>
-                                            setData('role', value)
-                                        }
+                                        onValueChange={(value) => {
+                                            if (value) {
+                                                setData(
+                                                    'role',
+                                                    value as UserRole,
+                                                );
+                                            }
+                                        }}
                                         disabled={
                                             editingUser?.id === currentUserId
                                         }

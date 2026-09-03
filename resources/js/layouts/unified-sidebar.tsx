@@ -73,7 +73,7 @@ const staffNavItems: SidebarItem[] = [
 ];
 
 const cashierNavItems: SidebarItem[] = [
-    { title: 'Requests', href: '/staff/requests', icon: FileText },
+    { title: 'Requests', href: '/cashier/requests', icon: FileText },
 ];
 
 const staffCollapsibleItems = [
@@ -82,7 +82,7 @@ const staffCollapsibleItems = [
         icon: FileSearchIcon,
         items: [
             { title: 'Dashboard', href: '/staff/assessments/dashboard' },
-            { title: 'Assessments', href: '/staff/assessments/' },
+            { title: 'Assessments', href: '/staff/assessments' },
         ],
     },
     {
@@ -109,10 +109,15 @@ export default function UnifiedSidebar() {
     }>();
     const isAdmin = props?.auth?.user?.role === 'admin';
     const isCashier = props?.auth?.user?.role === 'cashier';
-    const portalLabel = isAdmin ? 'Admin Portal' : isCashier ? 'Cashier Portal' : 'Staff Portal';
+    const portalLabel = isAdmin
+        ? 'Admin Portal'
+        : isCashier
+          ? 'Cashier Portal'
+          : 'Staff Portal';
 
     const isActive = (href: string) => {
         const currentPath = url.split('?')[0];
+
         return currentPath === href || currentPath.startsWith(href + '/');
     };
 
@@ -175,69 +180,79 @@ export default function UnifiedSidebar() {
                         {isCashier ? 'Cashier' : 'Staff'}
                     </div>
                     {(isCashier ? cashierNavItems : staffNavItems)
-                        .filter((item) => !isAdmin || item.href !== '/staff/activity-log')
+                        .filter(
+                            (item) =>
+                                !isAdmin || item.href !== '/staff/activity-log',
+                        )
                         .map((item, index) => (
-                        <SidebarMenuItem key={index}>
-                            <SidebarMenuButton
-                                render={
-                                    <Link
-                                        href={item.href}
-                                        className={`my-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[15px] transition-colors duration-200 ${
-                                            isActive(item.href)
-                                                ? 'bg-[#0078d4] font-medium text-white shadow-sm'
-                                                : 'text-white/80 hover:bg-white/5 hover:text-white'
-                                        }`}
-                                    />
-                                }
-                            >
-                                <item.icon className="mr-2 h-4 w-4 shrink-0" />
-                                <span>{item.title}</span>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    ))}
-
-                    {!isCashier && staffCollapsibleItems.map((item, index) => (
-                        <SidebarMenuItem key={index}>
-                            <Collapsible
-                                defaultOpen
-                                className="group/collapsible"
-                            >
-                                <CollapsibleTrigger
+                            <SidebarMenuItem key={index}>
+                                <SidebarMenuButton
                                     render={
-                                        <SidebarMenuButton className="my-0.5 rounded-lg px-3 py-2.5 text-[15px] font-medium text-white hover:bg-white/5 hover:text-white" />
+                                        <Link
+                                            href={item.href}
+                                            className={`my-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[15px] transition-colors duration-200 ${
+                                                isActive(item.href)
+                                                    ? 'bg-[#0078d4] font-medium text-white shadow-sm'
+                                                    : 'text-white/80 hover:bg-white/5 hover:text-white'
+                                            }`}
+                                        />
                                     }
                                 >
                                     <item.icon className="mr-2 h-4 w-4 shrink-0" />
                                     <span>{item.title}</span>
-                                    <ChevronRight className="ml-auto h-4 w-4 text-white/60 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                                </CollapsibleTrigger>
-                                <CollapsibleContent>
-                                    <SidebarMenuSub className="ml-4 border-l border-blue-400/20 pl-3">
-                                        {item.items.map((subItem, subIndex) => (
-                                            <SidebarMenuSubItem key={subIndex}>
-                                                <SidebarMenuSubButton
-                                                    render={
-                                                        <Link
-                                                            href={subItem.href}
-                                                            className={`my-0.5 flex w-full items-center rounded-md px-3 py-2 text-[14px] transition-colors duration-200 ${
-                                                                isActive(
-                                                                    subItem.href,
-                                                                )
-                                                                    ? 'bg-[#0078d4] font-medium text-white shadow-sm'
-                                                                    : 'text-white/70 hover:bg-white/5 hover:text-white'
-                                                            }`}
-                                                        />
-                                                    }
-                                                >
-                                                    {subItem.title}
-                                                </SidebarMenuSubButton>
-                                            </SidebarMenuSubItem>
-                                        ))}
-                                    </SidebarMenuSub>
-                                </CollapsibleContent>
-                            </Collapsible>
-                        </SidebarMenuItem>
-                    ))}
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        ))}
+
+                    {!isCashier &&
+                        staffCollapsibleItems.map((item, index) => (
+                            <SidebarMenuItem key={index}>
+                                <Collapsible
+                                    defaultOpen
+                                    className="group/collapsible"
+                                >
+                                    <CollapsibleTrigger
+                                        render={
+                                            <SidebarMenuButton className="my-0.5 rounded-lg px-3 py-2.5 text-[15px] font-medium text-white hover:bg-white/5 hover:text-white" />
+                                        }
+                                    >
+                                        <item.icon className="mr-2 h-4 w-4 shrink-0" />
+                                        <span>{item.title}</span>
+                                        <ChevronRight className="ml-auto h-4 w-4 text-white/60 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                        <SidebarMenuSub className="ml-4 border-l border-blue-400/20 pl-3">
+                                            {item.items.map(
+                                                (subItem, subIndex) => (
+                                                    <SidebarMenuSubItem
+                                                        key={subIndex}
+                                                    >
+                                                        <SidebarMenuSubButton
+                                                            render={
+                                                                <Link
+                                                                    href={
+                                                                        subItem.href
+                                                                    }
+                                                                    className={`my-0.5 flex w-full items-center rounded-md px-3 py-2 text-[14px] transition-colors duration-200 ${
+                                                                        isActive(
+                                                                            subItem.href,
+                                                                        )
+                                                                            ? 'bg-[#0078d4] font-medium text-white shadow-sm'
+                                                                            : 'text-white/70 hover:bg-white/5 hover:text-white'
+                                                                    }`}
+                                                                />
+                                                            }
+                                                        >
+                                                            {subItem.title}
+                                                        </SidebarMenuSubButton>
+                                                    </SidebarMenuSubItem>
+                                                ),
+                                            )}
+                                        </SidebarMenuSub>
+                                    </CollapsibleContent>
+                                </Collapsible>
+                            </SidebarMenuItem>
+                        ))}
                 </SidebarMenu>
             </SidebarContent>
 

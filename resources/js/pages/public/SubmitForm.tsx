@@ -20,7 +20,7 @@ import {
     ComboboxItem,
     ComboboxList,
 } from '@/components/ui/combobox';
-import { Field, FieldLabel } from '@/components/ui/field';
+import { Field, FieldLabel, FieldDescription } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import PublicLayout from '@/pages/layouts/PublicLayout';
@@ -423,10 +423,13 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                             <Field>
                                                 <FieldLabel
                                                     htmlFor="input-field-off-coll"
-                                                    className="mb-2 font-medium text-slate-700"
+                                                    className="font-medium text-slate-700"
                                                 >
                                                     Office / College
                                                 </FieldLabel>
+                                                <FieldDescription>
+                                                    * N/A if not applicable
+                                                </FieldDescription>
                                                 <Input
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-off-coll"
@@ -456,10 +459,13 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                             <Field>
                                                 <FieldLabel
                                                     htmlFor="input-field-pos-des"
-                                                    className="mb-2 font-medium text-slate-700"
+                                                    className="font-medium text-slate-700"
                                                 >
                                                     Position / Designation
                                                 </FieldLabel>
+                                                <FieldDescription>
+                                                    * N/A if not applicable
+                                                </FieldDescription>
                                                 <Input
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-pos-des"

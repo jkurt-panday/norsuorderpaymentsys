@@ -20,6 +20,7 @@ class GoogleController extends Controller
             $target = match ($user->role) {
                 'admin' => '/admin/dashboard',
                 'staff' => '/staff/staffdashboard',
+                'cashier' => '/cashier/requests',
                 'client' => '/client/dashboard',
                 default => '/dashboard',
             };
@@ -86,6 +87,7 @@ class GoogleController extends Controller
         $target = match ($user->role) {
             'admin' => '/admin/dashboard',
             'staff' => '/staff/staffdashboard',
+            'cashier' => '/cashier/requests',
             'client' => '/client/dashboard',
             default => '/dashboard',
         };

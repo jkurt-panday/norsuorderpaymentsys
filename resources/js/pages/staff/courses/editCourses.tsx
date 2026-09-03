@@ -1,11 +1,11 @@
 import { useForm, Head, Link } from '@inertiajs/react';
+import { ArrowLeft, Save } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { FieldDescription } from '@/components/ui/field';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Save } from 'lucide-react';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 
 interface Courses {
     id: number;
@@ -19,7 +19,7 @@ interface CoursesEditProps {
 
 export default function CoursesEdit({ courses }: CoursesEditProps ) {
 
-    const { data, setData, put, processing, errors, reset } = useForm({
+    const { data, setData, put, processing, errors } = useForm({
         course_code: courses.course_code,
         course_desc: courses.course_desc,
     });
