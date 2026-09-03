@@ -101,10 +101,14 @@ function SearchableStudentSelect({
     students,
     value,
     onChange,
+    onClear,
+    onRemove,
 }: {
     students: StudentOption[];
     value: string | number;
     onChange: (id: string | number) => void;
+    onClear?: () => void;
+    onRemove?: (id: string | number) => void;
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState('');
@@ -147,7 +151,21 @@ function SearchableStudentSelect({
                         ? formatStudentLabel(selectedStudent)
                         : '-- Select / Search Student --'}
                 </span>
-                <ChevronsUpDown className="h-4 w-4 text-[#7FA6D6]" />
+                <div className="flex items-center gap-1">
+                    {selectedStudent && onClear && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onClear();
+                            }}
+                            className="rounded p-0.5 text-[#8AA8CC] hover:text-[#0B3D91]"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    )}
+                    <ChevronsUpDown className="h-4 w-4 text-[#7FA6D6]" />
+                </div>
             </button>
 
             {isOpen && (
@@ -198,9 +216,23 @@ function SearchableStudentSelect({
                                         }`}
                                     >
                                         <span>{formatStudentLabel(s)}</span>
-                                        {isSelected && (
-                                            <Check className="h-3.5 w-3.5 text-[#0F6FFF]" />
-                                        )}
+                                        <div className="flex items-center gap-2">
+                                            {isSelected && (
+                                                <Check className="h-3.5 w-3.5 text-[#0F6FFF]" />
+                                            )}
+                                            {onRemove && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onRemove(s.id);
+                                                    }}
+                                                    className="rounded p-0.5 text-[#8AA8CC] hover:text-[#0B3D91]"
+                                                >
+                                                    <X className="h-3.5 w-3.5" />
+                                                </button>
+                                            )}
+                                        </div>
                                     </button>
                                 );
                             })
@@ -221,6 +253,7 @@ export default function AddTransaction({
     authUserName,
 }: Props) {
     const [showNewStudent, setShowNewStudent] = useState(false);
+    const [availableStudents, setAvailableStudents] = useState<StudentOption[]>(students);
 
     const todayStr = new Date().toISOString().slice(0, 10);
     const currentYear = new Date().getFullYear();
@@ -291,6 +324,25 @@ export default function AddTransaction({
             school_year: sy,
             semester,
         }));
+    }
+
+    function removeStudent(id: string | number) {
+        router.delete(`/law-ledger/students/${id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setAvailableStudents((prev) =>
+                    prev.filter((s) => String(s.id) !== String(id)),
+                );
+
+                if (String(data.student_id) === String(id)) {
+                    setData((prev) => ({
+                        ...prev,
+                        student_id: '',
+                        course_id: '',
+                    }));
+                }
+            },
+        });
     }
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -490,27 +542,35 @@ export default function AddTransaction({
                                     </div>
                                 </div>
                             ) : (
-                                <SearchableStudentSelect
-                                    students={students}
-                                    value={data.student_id}
-                                    onChange={(id) => {
-                                        const selected = students.find(
-                                            (s) => String(s.id) === String(id),
-                                        );
+                            <SearchableStudentSelect
+                                students={availableStudents}
+                                value={data.student_id}
+                                onChange={(id) => {
+                                    const selected = availableStudents.find(
+                                        (s) => String(s.id) === String(id),
+                                    );
 
-                                        if (selected?.last_course_id) {
-                                            setData((prev) => ({
-                                                ...prev,
-                                                student_id: id,
-                                                course_id: String(
-                                                    selected.last_course_id,
-                                                ),
-                                            }));
-                                        } else {
-                                            setData('student_id', id);
-                                        }
-                                    }}
-                                />
+                                    if (selected?.last_course_id) {
+                                        setData((prev) => ({
+                                            ...prev,
+                                            student_id: id,
+                                            course_id: String(
+                                                selected.last_course_id,
+                                            ),
+                                        }));
+                                    } else {
+                                        setData('student_id', id);
+                                    }
+                                }}
+                                onClear={() => {
+                                    setData((prev) => ({
+                                        ...prev,
+                                        student_id: '',
+                                        course_id: '',
+                                    }));
+                                }}
+                                onRemove={removeStudent}
+                            />
                             )}
                             <FieldError
                                 message={

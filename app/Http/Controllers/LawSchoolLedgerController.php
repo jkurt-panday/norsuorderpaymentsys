@@ -301,6 +301,13 @@ class LawSchoolLedgerController extends Controller
         return redirect()->route('law-ledger.index')->with('success', 'Transaction deleted successfully.');
     }
 
+    public function destroyStudent(int $id): RedirectResponse
+    {
+        LawStudent::findOrFail($id)->delete();
+
+        return back()->with('success', 'Student deleted successfully.');
+    }
+
     public function import(Request $request): RedirectResponse
     {
         $request->validate([

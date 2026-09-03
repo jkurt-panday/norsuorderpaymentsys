@@ -1,8 +1,18 @@
 import { Head, useForm, router } from '@inertiajs/react';
 import { ArrowLeft, Trash2 } from 'lucide-react';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
     Card,
     CardContent,
@@ -82,6 +92,8 @@ export default function EditTransaction({
     academicTerms,
     filterOptions,
 }: EditTransactionProps) {
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
     const { data, setData, processing, errors } = useForm({
         student_id: String(record.student_id ?? ''),
         course_id: String(record.course_id ?? ''),
@@ -138,14 +150,11 @@ export default function EditTransaction({
     };
 
     const handleDelete = () => {
-        if (
-            !window.confirm(
-                `Delete this transaction for "${record.last_name}, ${record.first_name}"? This cannot be undone.`,
-            )
-        ) {
-            return;
-        }
+        setShowDeleteDialog(true);
+    };
 
+    const confirmDelete = () => {
+        setShowDeleteDialog(false);
         router.delete(`/law-ledger/${record.id}`);
     };
 
@@ -270,6 +279,23 @@ export default function EditTransaction({
                                     ))}
                                 </select>
                                 <FieldError message={errors.student_id} />
+                            </div>
+
+                            <div>
+                                <label className="text-sm text-[#334E68]">
+                                    Student ID
+                                </label>
+                                <Input
+                                    value={
+                                        selectedStudent?.student_number ?? ''
+                                    }
+                                    readOnly
+                                    className={
+                                        selectedStudent?.student_number
+                                            ? 'bg-[#F3F8FF]'
+                                            : 'bg-gray-50'
+                                    }
+                                />
                             </div>
 
                             <div>
@@ -528,6 +554,33 @@ export default function EditTransaction({
                         </form>
                     </CardContent>
                 </Card>
+
+                <AlertDialog
+                    open={showDeleteDialog}
+                    onOpenChange={setShowDeleteDialog}
+                >
+                    <AlertDialogContent size="sm">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>
+                                Delete Transaction
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Are you sure you want to delete this transaction
+                                for &quot;{record.last_name}, {record.first_name}
+                                &quot;? This action cannot be undone.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={confirmDelete}
+                                className="bg-red-600 text-white hover:bg-red-700"
+                            >
+                                Delete
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </div>
     );
