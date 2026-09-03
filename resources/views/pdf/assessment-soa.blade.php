@@ -93,7 +93,7 @@
         </tr>
     </table>
 
-    <table class="w-full border border-black border-collapse mt-1.5 text-[1rem]">
+    <table class="w-full border-b border-t border-black border-collapse mt-1.5 text-[1rem]">
         <thead>
             <tr class="border-b-2 border-black">
                 <th class="text-left px-1.5 py-1 w-[22%]">Date</th>
@@ -113,7 +113,7 @@
                         ? '- ' . number_format($amountValue, 2)
                         : number_format($amountValue, 2);
                 @endphp
-                <tr>
+                <tr class="border-b">
                     <td class="px-1.5 py-1">{{ $record['transactionDate'] ?? '—' }}</td>
                     <td class="px-1.5 py-1">{{ $record['referenceNo'] ?? '' }}</td>
                     <td class="px-1.5 py-1">{{ $record['particulars'] ?? '—' }}</td>
