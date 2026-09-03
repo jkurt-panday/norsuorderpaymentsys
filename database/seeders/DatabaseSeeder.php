@@ -8,7 +8,6 @@ use App\Models\PaymentDetailOption;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
-use App\Models\Membership;
 use App\Models\PaymentDetailOption;
 use App\Models\BankAccountInfo;
 use App\Models\UACS;
