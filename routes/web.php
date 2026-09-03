@@ -203,6 +203,7 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
         Route::get('/dashboard', [AssessmentController::class, 'dashboard'])->name('dashboard');
         Route::get('/edit/{assessment}', [AssessmentController::class, 'edit'])->name('edit');
         Route::get('/print_soa/{assessment}', [AssessmentController::class, 'print'])->name('print_soa');
+        Route::delete('/delete/{assessment}', [AssessmentController::class, 'destroy'])->name('delete_assessment');
     });
 });
 

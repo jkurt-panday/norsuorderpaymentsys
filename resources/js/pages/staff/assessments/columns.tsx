@@ -213,7 +213,7 @@ export const columns = columnHelper.columns([
                         <Link
                             as="button"
                             method="delete"
-                            href={`/staff/assessments/${assessment.id}`}
+                            href={`/staff/assessments/delete/${assessment.id}`}
                             className="flex h-8 w-8 items-center justify-center rounded-r-2xl bg-red-600 text-white transition-colors hover:bg-red-700"
                         >
                             <Trash2 className="h-4 w-4" />
