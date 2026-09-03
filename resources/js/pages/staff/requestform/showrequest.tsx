@@ -1982,7 +1982,7 @@ export default function ShowRequest() {
                                     </div>
                                 </div>
                                 <div className="p-6">
-                                    {isCashier && isEditingOr ? (
+                                    {(isCashier || isAdmin) && isEditingOr ? (
                                         <form onSubmit={handleOrSubmit}>
                                             <div className="space-y-4">
                                                 <FormField
