@@ -130,10 +130,6 @@ class FortifyServiceProvider extends ServiceProvider
         });
 
         Fortify::confirmPasswordView(function (Request $request) {
-            if ($redirect = $this->redirectIfAuthenticated($request)) {
-                return $redirect;
-            }
-
             return Inertia::render('auth/confirm-password');
         });
     }
