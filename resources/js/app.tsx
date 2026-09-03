@@ -13,6 +13,39 @@ import { flashToast } from '@/utils/flashToast';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
+interface FlashMessages {
+    success?: string;
+    error?: string;
+}
+
+const showFlashToasts = (flash: FlashMessages | undefined) => {
+    if (flash?.success) {
+        flashToast('success', flash.success);
+    }
+
+    if (flash?.error) {
+        flashToast('error', flash.error);
+    }
+};
+
+function FlashToastBridge({
+    initialFlash,
+}: {
+    initialFlash: FlashMessages | undefined;
+}) {
+    useEffect(() => {
+        showFlashToasts(initialFlash);
+
+        return router.on('navigate', (event) => {
+            showFlashToasts(
+                event.detail.page.props.flash as FlashMessages | undefined,
+            );
+        });
+    }, [initialFlash]);
+
+    return null;
+}
+
 // Radix (used by shadcn's Dialog/Select/Dropdown/etc) sets
 // `pointer-events: none` on <body> while a component is open, and removes
 // it on close. If an Inertia navigation happens before that cleanup runs
@@ -54,43 +87,15 @@ createInertiaApp({
         }
     },
     strictMode: true,
-    withApp(app) {
-        const FlashToastBridge = () => {
-            useEffect(() => {
-                const showFlash = () => {
-                    const page = (window as any).__inertia?.page;
-                    const flash = page?.props?.flash as
-                        { success?: string; error?: string } | undefined;
-
-                    if (!flash) {
-return;
-}
-
-                    if (flash.success) {
-flashToast('success', flash.success);
-}
-
-                    if (flash.error) {
-flashToast('error', flash.error);
-}
-                };
-
-                // Show any flash present on initial load
-                showFlash();
-
-                // Also show flashes after Inertia navigations
-                router.on('navigate', () => setTimeout(showFlash, 0));
-
-                // no cleanup required for router.on in this environment
-            }, []);
-
-            return null;
-        };
-
+    withApp(app, { page }) {
         return (
             <TooltipProvider delayDuration={0}>
                 <ConfirmProvider>
-                    <FlashToastBridge />
+                    <FlashToastBridge
+                        initialFlash={
+                            page.props.flash as FlashMessages | undefined
+                        }
+                    />
                     {app}
                     <Toaster />
                 </ConfirmProvider>

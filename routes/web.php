@@ -2,8 +2,9 @@
 
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AssessmentFormController;
-use App\Http\Controllers\BankAccountInfoController;
 use App\Http\Controllers\Auth\GoogleController;
+use App\Http\Controllers\BankAccountInfoController;
+use App\Http\Controllers\CashierRequestController;
 use App\Http\Controllers\Client\ClientController;
 use App\Http\Controllers\CoursesController;
 use App\Http\Controllers\FormInputController;
@@ -59,10 +60,12 @@ Route::middleware('auth')->group(function () {
 
     // Main Dashboard Redirect by Role
     Route::get('/dashboard', function (Request $request) {
-        if ($request->user()?->role === 'client') {
-            return redirect()->route('client.dashboard');
-        }
-        return redirect()->route('staff.dashboard');
+        return match ($request->user()?->role) {
+            'admin' => redirect()->route('admin.dashboard'),
+            'cashier' => redirect()->route('cashier.requests.index'),
+            'client' => redirect()->route('client.dashboard'),
+            default => redirect()->route('staff.dashboard'),
+        };
     })->name('dashboard');
 
     // ── Client Portal Routes ─────────────────────────────────────────────────
@@ -129,6 +132,17 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
 });
 
+Route::name('cashier.')->prefix('cashier')->middleware(['auth', 'cashier'])->group(function () {
+    Route::redirect('/', '/cashier/requests');
+
+    Route::name('requests.')->prefix('requests')->group(function () {
+        Route::get('/', [CashierRequestController::class, 'index'])->name('index');
+        Route::get('/{staffInput}', [CashierRequestController::class, 'show'])->name('show');
+        Route::put('/{staffInput}/payment', [CashierRequestController::class, 'updatePayment'])
+            ->name('payment.update');
+    });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Staff Routes (auth protected)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -152,7 +166,6 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
         Route::put('/{formInput}/details',   [StaffInputController::class, 'updateDetails'])->name('updateDetails');
         Route::get('/{staffInput}/edit',     [StaffInputController::class, 'edit'])->name('edit');
         Route::put('/{staffInput}',          [StaffInputController::class, 'update'])->name('update');
-        Route::put('/{staffInput}/or',       [StaffInputController::class, 'updateOr'])->name('updateOr');
     });
 
     // ── Master Data (Resource Routes) ───────────────────────────────────────

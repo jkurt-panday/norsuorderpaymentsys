@@ -7,19 +7,17 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class EnsureUserIsStaff
+class EnsureUserIsCashier
 {
     /**
-     * Handle an incoming request.
-     *
-     * @param  Closure(Request): (Response)  $next
+     * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
         abort_unless(
-            in_array($request->user()?->role, [UserRole::Staff->value, UserRole::Admin->value], true),
+            $request->user()?->role === UserRole::Cashier->value,
             Response::HTTP_FORBIDDEN,
-            'Staff privileges required.',
+            'Cashier privileges required.',
         );
 
         return $next($request);

@@ -1,5 +1,6 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
+import cashier from '@/routes/cashier';
 import staff from '@/routes/staff';
 import { flashToast } from '@/utils/flashToast';
 import {
@@ -182,9 +183,7 @@ const ReadOnlyRow = ({
     ) : (
         <p
             className={`min-w-0 flex-1 text-sm ${valueClass} ${
-                shouldTruncate
-                    ? 'truncate'
-                    : 'break-words whitespace-pre-wrap'
+                shouldTruncate ? 'truncate' : 'break-words whitespace-pre-wrap'
             }`}
             title={shouldTruncate ? stringValue : undefined}
         >
@@ -501,16 +500,20 @@ export default function ShowRequest() {
             return;
         }
 
-        router.put(staff.requests.update.url(formInput.staff_input.id), staffInputData, {
-            preserveScroll: true,
-            onSuccess: () => {
-                resetStaffInputForm();
-                setIsEditingStaffInput(false);
+        router.put(
+            staff.requests.update.url(formInput.staff_input.id),
+            staffInputData,
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    resetStaffInputForm();
+                    setIsEditingStaffInput(false);
+                },
+                onError: (errors) => {
+                    console.error('Staff input update errors:', errors);
+                },
             },
-            onError: (errors) => {
-                console.error('Staff input update errors:', errors);
-            },
-        });
+        );
     };
 
     const cancelStaffInputEdit = () => {
@@ -540,7 +543,7 @@ export default function ShowRequest() {
             return;
         }
 
-        putOr(staff.requests.updateOr.url(formInput.staff_input.id), {
+        putOr(cashier.requests.payment.update.url(formInput.staff_input.id), {
             preserveScroll: true,
             onSuccess: () => {
                 resetOrForm();
@@ -1118,6 +1121,8 @@ export default function ShowRequest() {
                                                 left-side request details card. */}
                                     {formInput.staff_input &&
                                         !isEditingStaffInput &&
+                                        formInput.staff_input.status !==
+                                            'paid' &&
                                         !isCashier && (
                                             <button
                                                 type="button"
@@ -1145,15 +1150,13 @@ export default function ShowRequest() {
                                                                           .id,
                                                                   )
                                                                 : '',
-                                                        ref_date:
-                                                            formInput
-                                                                .staff_input
-                                                                ?.ref_date
-                                                                ? formInput
-                                                                    .staff_input
-                                                                    .ref_date
-                                                                    .split('T')[0]
-                                                                : '',
+                                                        ref_date: formInput
+                                                            .staff_input
+                                                            ?.ref_date
+                                                            ? formInput.staff_input.ref_date.split(
+                                                                  'T',
+                                                              )[0]
+                                                            : '',
                                                         uacs_id: formInput
                                                             .staff_input?.uacs
                                                             ? String(
@@ -1175,15 +1178,13 @@ export default function ShowRequest() {
                                                             formInput
                                                                 .staff_input
                                                                 ?.or_no ?? '',
-                                                        or_date:
-                                                            formInput
-                                                                .staff_input
-                                                                ?.or_date
-                                                                ? formInput
-                                                                    .staff_input
-                                                                    .or_date
-                                                                    .split('T')[0]
-                                                                : '',
+                                                        or_date: formInput
+                                                            .staff_input
+                                                            ?.or_date
+                                                            ? formInput.staff_input.or_date.split(
+                                                                  'T',
+                                                              )[0]
+                                                            : '',
                                                     });
                                                     setIsEditingStaffInput(
                                                         true,
@@ -1445,9 +1446,6 @@ export default function ShowRequest() {
                                                         </option>
                                                         <option value="processed">
                                                             Processed
-                                                        </option>
-                                                        <option value="paid">
-                                                            Paid
                                                         </option>
                                                         <option value="cancelled">
                                                             Cancelled
@@ -1840,9 +1838,6 @@ export default function ShowRequest() {
                                                 <option value="processed">
                                                     Processed
                                                 </option>
-                                                <option value="paid">
-                                                    Paid
-                                                </option>
                                                 <option value="cancelled">
                                                     Cancelled
                                                 </option>
@@ -1954,9 +1949,16 @@ export default function ShowRequest() {
                                                 type="button"
                                                 onClick={() => {
                                                     setOrData({
-                                                        or_no: formInput.staff_input?.or_no ?? '',
-                                                        or_date: formInput.staff_input?.or_date
-                                                            ? formInput.staff_input.or_date.split('T')[0]
+                                                        or_no:
+                                                            formInput
+                                                                .staff_input
+                                                                ?.or_no ?? '',
+                                                        or_date: formInput
+                                                            .staff_input
+                                                            ?.or_date
+                                                            ? formInput.staff_input.or_date.split(
+                                                                  'T',
+                                                              )[0]
                                                             : '',
                                                     });
                                                     setIsEditingOr(true);
@@ -1975,7 +1977,9 @@ export default function ShowRequest() {
                                                 >
                                                     <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
                                                 </svg>
-                                                {formInput.staff_input?.or_no ? 'Edit OR' : 'Place OR Number'}
+                                                {formInput.staff_input?.or_no
+                                                    ? 'Edit OR'
+                                                    : 'Place OR Number'}
                                             </button>
                                         )}
                                     </div>
@@ -1998,7 +2002,10 @@ export default function ShowRequest() {
                                                         }`}
                                                         value={orData.or_no}
                                                         onChange={(e) =>
-                                                            setOrData('or_no', e.target.value)
+                                                            setOrData(
+                                                                'or_no',
+                                                                e.target.value,
+                                                            )
                                                         }
                                                         required
                                                     />
@@ -2017,7 +2024,10 @@ export default function ShowRequest() {
                                                         }`}
                                                         value={orData.or_date}
                                                         onChange={(e) =>
-                                                            setOrData('or_date', e.target.value)
+                                                            setOrData(
+                                                                'or_date',
+                                                                e.target.value,
+                                                            )
                                                         }
                                                         required
                                                     />
@@ -2032,7 +2042,9 @@ export default function ShowRequest() {
                                                     </button>
                                                     <button
                                                         type="submit"
-                                                        disabled={isSubmittingOr}
+                                                        disabled={
+                                                            isSubmittingOr
+                                                        }
                                                         className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-60"
                                                     >
                                                         <svg
@@ -2047,27 +2059,43 @@ export default function ShowRequest() {
                                                         >
                                                             <path d="M20 6 9 17l-5-5" />
                                                         </svg>
-                                                        {isSubmittingOr ? 'Saving...' : formInput.staff_input?.or_no ? 'Update OR' : 'Place OR Number'}
+                                                        {isSubmittingOr
+                                                            ? 'Saving...'
+                                                            : formInput
+                                                                    .staff_input
+                                                                    ?.or_no
+                                                              ? 'Update OR'
+                                                              : 'Place OR Number'}
                                                     </button>
                                                 </div>
                                             </div>
                                         </form>
                                     ) : (
                                         <div className="space-y-3">
-                                            <div className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${!isCashier ? 'opacity-60' : ''}`}>
+                                            <div
+                                                className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${!isCashier ? 'opacity-60' : ''}`}
+                                            >
                                                 <ReadOnlyRow
                                                     label="OR Number"
-                                                    value={formInput.staff_input?.or_no ?? 'N/A'}
+                                                    value={
+                                                        formInput.staff_input
+                                                            ?.or_no ?? 'N/A'
+                                                    }
                                                     valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${!isCashier ? 'opacity-60' : ''}`}>
+                                            <div
+                                                className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${!isCashier ? 'opacity-60' : ''}`}
+                                            >
                                                 <ReadOnlyRow
                                                     label="OR Date"
                                                     value={
-                                                        formInput.staff_input?.or_date
+                                                        formInput.staff_input
+                                                            ?.or_date
                                                             ? formatDateOnly(
-                                                                  formInput.staff_input.or_date,
+                                                                  formInput
+                                                                      .staff_input
+                                                                      .or_date,
                                                               )
                                                             : 'N/A'
                                                     }
@@ -2112,9 +2140,13 @@ export default function ShowRequest() {
                                                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                                                         <path d="M14 2v6h6" />
                                                     </svg>
-                                                    <TooltipProvider delayDuration={150}>
+                                                    <TooltipProvider
+                                                        delayDuration={150}
+                                                    >
                                                         <Tooltip>
-                                                            <TooltipTrigger asChild>
+                                                            <TooltipTrigger
+                                                                asChild
+                                                            >
                                                                 <a
                                                                     href={staff.documents.download.url(
                                                                         document.id,
@@ -2124,7 +2156,7 @@ export default function ShowRequest() {
                                                                     title={
                                                                         document.original_filename
                                                                     }
-                                                                    className="block min-w-0 max-w-[260px] truncate text-blue-600 hover:underline"
+                                                                    className="block max-w-[260px] min-w-0 truncate text-blue-600 hover:underline"
                                                                 >
                                                                     {
                                                                         document.original_filename

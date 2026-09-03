@@ -23,10 +23,11 @@ class EnsureUserIsAdmin
 
         $redirectTo = match ($request->user()->role) {
             'staff' => route('staff.dashboard'),
-            'cashier' => route('staff.requests.index'),
+            'cashier' => route('cashier.requests.index'),
             default => route('client.dashboard'),
         };
 
-        return redirect($redirectTo)->with('error', 'Unauthorized access. Admin privileges required.');
+        return redirect($redirectTo)
+            ->with('error', "You don't have permission to access that section.");
     }
 }
