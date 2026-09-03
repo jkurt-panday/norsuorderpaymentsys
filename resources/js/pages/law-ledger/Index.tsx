@@ -39,6 +39,7 @@ import {
 export interface LawLedgerRecord {
   id: string | number;
   studentId: string;
+  studentNumber: string;
   lastName: string;
   firstName: string;
   middleInitial: string;
@@ -637,7 +638,7 @@ return 90;
                   ) : (
                     rows.map((r) => (
                       <tr key={r.id} className="border-b border-[#EAF2FF] hover:bg-[#F3F8FF]">
-                        <td className="py-2 pr-4 pl-2 whitespace-nowrap text-[#334E68]">{r.studentId}</td>
+                        <td className="py-2 pr-4 pl-2 whitespace-nowrap text-[#334E68]">{r.studentNumber || r.studentId}</td>
                         <td className="py-2 pr-4 font-medium whitespace-nowrap text-[#0B3D91]">{r.name}</td>
                         <td className="py-2 pr-4 text-[#334E68]">{r.course}</td>
                         <td className="py-2 pr-4 text-[#334E68]">{r.schoolYear}</td>
