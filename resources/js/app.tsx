@@ -1,6 +1,5 @@
 import { createInertiaApp, router } from '@inertiajs/react';
-import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
-import { useEffect } from 'react';
+import { useEffect, type ComponentType } from 'react';
 import { ConfirmProvider } from '@/components/confirm-dialog';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -12,6 +11,7 @@ import SettingsLayout from '@/layouts/settings/layout';
 import { flashToast } from '@/utils/flashToast';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const pages = import.meta.glob<{ default: ComponentType }>('./pages/**/*.tsx');
 
 interface FlashMessages {
     success?: string;
@@ -58,11 +58,15 @@ router.on('navigate', () => {
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
-    resolve: (name) =>
-        resolvePageComponent(
-            `./pages/${name}.tsx`,
-            import.meta.glob('./pages/**/*.tsx'),
-        ),
+    resolve: async (name) => {
+        const loadPage = pages[`./pages/${name}.tsx`];
+
+        if (!loadPage) {
+            throw new Error(`Page not found: ${name}`);
+        }
+
+        return (await loadPage()).default;
+    },
     layout: (name) => {
         switch (true) {
             case name === 'welcome' ||

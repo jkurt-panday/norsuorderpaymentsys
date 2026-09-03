@@ -289,8 +289,6 @@ export default function RequestTable<T extends { id: number | string }>({
         pollInterval ?? 5000,
         {
             only: resourceKey ? [resourceKey] : undefined,
-            preserveScroll: true,
-            preserveState: true,
         },
         { autoStart: false },
     );
@@ -462,7 +460,9 @@ export default function RequestTable<T extends { id: number | string }>({
                                 <Select
                                     value={status || 'all'}
                                     onValueChange={(v) =>
-                                        onStatusChange(v === 'all' ? '' : v)
+                                        onStatusChange(
+                                            v === null || v === 'all' ? '' : v,
+                                        )
                                     }
                                 >
                                     <SelectTrigger className="h-10 w-full rounded-lg border-slate-200 bg-white shadow-sm transition-colors hover:bg-slate-50 focus:ring-2 focus:ring-blue-500/20">
@@ -490,9 +490,8 @@ export default function RequestTable<T extends { id: number | string }>({
                                         </SelectValue>
                                     </SelectTrigger>
                                     <SelectContent
-                                        position="popper"
                                         sideOffset={6}
-                                        className="min-w-[var(--radix-select-trigger-width)] rounded-lg border-slate-200 shadow-lg"
+                                        className="min-w-(--anchor-width) rounded-lg border-slate-200 shadow-lg"
                                     >
                                         <SelectItem
                                             value="all"

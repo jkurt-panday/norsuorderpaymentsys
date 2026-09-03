@@ -1437,7 +1437,7 @@ export default function ShowRequest() {
                                                         onChange={(e) =>
                                                             setStaffInputData(
                                                                 'status',
-                                                                e.target.value,
+                                                                e.target.value as StaffInput['status'],
                                                             )
                                                         }
                                                         required

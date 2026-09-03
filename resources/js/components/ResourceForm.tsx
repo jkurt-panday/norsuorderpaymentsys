@@ -1,4 +1,4 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, type InertiaLinkProps } from '@inertiajs/react';
 import { ArrowLeft, Save } from 'lucide-react';
 import React from 'react';
 import { toast } from 'sonner';
@@ -30,7 +30,7 @@ export interface ResourceFormProps {
     /** Page <title> and heading */
     title: string;
     /** href for the "Back" button (from a Wayfinder route function, e.g. index()) */
-    backHref: string | { url: string; method?: string };
+    backHref: NonNullable<InertiaLinkProps['href']>;
     /** Field definitions, in display order */
     fields: FieldDef[];
     /** Initial values, keyed by field name (empty strings for create, existing values for edit) */

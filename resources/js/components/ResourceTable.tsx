@@ -1,4 +1,10 @@
-import { Head, Link, router, usePoll } from '@inertiajs/react';
+import {
+    Head,
+    Link,
+    router,
+    usePoll,
+    type InertiaLinkProps,
+} from '@inertiajs/react';
 import {
     Plus,
     Pencil,
@@ -68,11 +74,11 @@ export interface ResourceTableProps<T extends { id: number }> {
     description?: string;
     icon?: LucideIcon;
     addLabel: string;
-    addHref: string | { url: string; method?: string };
+    addHref: NonNullable<InertiaLinkProps['href']>;
     columns: ColumnDef<T>[];
     resource: PaginatedData<T>;
     resourceKey?: string;
-    editHref: (row: T) => string | { url: string; method?: string };
+    editHref: (row: T) => NonNullable<InertiaLinkProps['href']>;
     deleteUrl: (id: number) => string;
     emptyIcon: LucideIcon;
     emptyMessage: string;
@@ -241,8 +247,6 @@ export default function ResourceTable<T extends { id: number }>({
         pollInterval ?? 15000,
         {
             only: resourceKey ? [resourceKey] : undefined,
-            preserveScroll: true,
-            preserveState: true,
         },
         { autoStart: false },
     );
