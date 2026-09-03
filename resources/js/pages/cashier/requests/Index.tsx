@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Search } from 'lucide-react';
-import { FormEvent, useState } from 'react';
+import type { FormEvent} from 'react';
+import { useState } from 'react';
 import cashier from '@/routes/cashier';
 
 interface FormInput {

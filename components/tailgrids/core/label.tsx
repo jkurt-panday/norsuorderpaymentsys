@@ -7,7 +7,7 @@ import {
 import type {LabelProps as AriaLabelProps} from "react-aria-components";
 import { cn } from "@/utils/cn";
 
-export interface LabelProps extends AriaLabelProps {}
+export type LabelProps = AriaLabelProps;
 
 export function Label({ className, ...props }: LabelProps) {
   return (

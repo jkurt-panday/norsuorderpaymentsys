@@ -1,7 +1,6 @@
 import { Link, usePage, router } from '@inertiajs/react';
-import { Home, FileText, ChevronRight, LogOut, User } from 'lucide-react';
+import { Home, FileText, ChevronRight, LogOut } from 'lucide-react';
 import React from 'react';
-import { Separator } from '@/components/ui/separator';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -13,6 +12,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Separator } from '@/components/ui/separator';
 import {
     Sidebar,
     SidebarContent,
@@ -43,6 +43,7 @@ function ClientSidebar() {
 
     const isActive = (href: string) => {
         const currentPath = url.split('?')[0];
+
         return currentPath === href || currentPath.startsWith(href + '/');
     };
 

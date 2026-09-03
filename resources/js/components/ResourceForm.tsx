@@ -1,4 +1,5 @@
-import { Head, Link, useForm, type InertiaLinkProps } from '@inertiajs/react';
+import { Head, Link, useForm  } from '@inertiajs/react';
+import type {InertiaLinkProps} from '@inertiajs/react';
 import { ArrowLeft, Save } from 'lucide-react';
 import React from 'react';
 import { toast } from 'sonner';
@@ -57,7 +58,6 @@ export default function ResourceForm({
     method,
     submitLabel,
     processingLabel,
-    successMessage,
 }: ResourceFormProps) {
     const { data, setData, post, put, processing, errors } =
         useForm<Record<string, string>>(initialData);

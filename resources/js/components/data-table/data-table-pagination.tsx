@@ -1,6 +1,6 @@
 'use client';
-import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
 
 interface DataTablePaginationProps {
     currentPage: number;
@@ -13,14 +13,29 @@ function getPageWindow(
     current: number,
     total: number,
 ): (number | 'ellipsis')[] {
-    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    if (total <= 7) {
+return Array.from({ length: total }, (_, i) => i + 1);
+}
+
     const pages: (number | 'ellipsis')[] = [1];
-    if (current > 3) pages.push('ellipsis');
+
+    if (current > 3) {
+pages.push('ellipsis');
+}
+
     const start = Math.max(2, current - 1);
     const end = Math.min(total - 1, current + 1);
-    for (let p = start; p <= end; p++) pages.push(p);
-    if (current < total - 2) pages.push('ellipsis');
+
+    for (let p = start; p <= end; p++) {
+pages.push(p);
+}
+
+    if (current < total - 2) {
+pages.push('ellipsis');
+}
+
     pages.push(total);
+
     return pages;
 }
 
@@ -33,9 +48,11 @@ export function DataTablePagination({
 
     function commitGoTo() {
         const parsed = Number(goToValue);
+
         if (Number.isInteger(parsed) && parsed >= 1 && parsed <= totalPages) {
             onPageChange(parsed);
         }
+
         setGoToValue('');
     }
 
@@ -92,7 +109,9 @@ export function DataTablePagination({
                     value={goToValue}
                     onChange={(e) => setGoToValue(e.target.value)}
                     onKeyDown={(e) => {
-                        if (e.key === 'Enter') commitGoTo();
+                        if (e.key === 'Enter') {
+commitGoTo();
+}
                     }}
                     placeholder="Go to"
                     aria-label="Go to page"

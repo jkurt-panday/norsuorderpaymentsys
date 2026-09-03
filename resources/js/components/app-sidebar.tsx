@@ -8,10 +8,10 @@ import {
     SidebarHeader,
     useSidebar,
 } from '@/components/ui/sidebar';
+import { logout } from '@/routes';
 import graduateLedger from '@/routes/graduate-ledger';
 import lawLedger from '@/routes/law-ledger';
 import staff from '@/routes/staff';
-import { logout } from '@/routes';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [

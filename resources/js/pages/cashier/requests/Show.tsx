@@ -1,6 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
-import { FormEvent } from 'react';
+import type { FormEvent } from 'react';
 import cashier from '@/routes/cashier';
 
 interface PaymentRequest {
@@ -158,7 +158,7 @@ export default function CashierRequestShow({
                                     onChange={(event) => {
                                         const filtered =
                                             event.target.value.replace(
-                                                /[^0-9\-\.\/\s]/g,
+                                                /[^0-9./\s-]/g,
                                                 '',
                                             );
                                         form.setData('or_no', filtered);

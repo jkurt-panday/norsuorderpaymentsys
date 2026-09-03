@@ -1,12 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
 import {
-    useTable,
-    type ColumnDef,
-    type RowData,
-    type SortingState,
+    useTable
+    
+    
+    
 } from '@tanstack/react-table';
+import type {ColumnDef, RowData, SortingState} from '@tanstack/react-table';
 import {
     ArrowUpDown,
     ArrowUp,
@@ -14,6 +14,7 @@ import {
     Search,
     RotateCw,
 } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 import {
     Table,
@@ -24,7 +25,8 @@ import {
     TableRow,
 } from '@/components/ui/table';
 
-import { features, type DataTableFeatures } from './data-table-features';
+import { features  } from './data-table-features';
+import type {DataTableFeatures} from './data-table-features';
 import { DataTablePagination } from './data-table-pagination';
 
 interface ClientDataTableProps<TData extends RowData> {
@@ -59,9 +61,12 @@ export function ClientDataTable<TData extends RowData>({
     };
 
     const filteredData = useMemo(() => {
-        if (!appliedSearch || searchableColumns.length === 0) return data;
+        if (!appliedSearch || searchableColumns.length === 0) {
+return data;
+}
 
         const needle = appliedSearch.toLowerCase();
+
         return data.filter((row) =>
             searchableColumns.some((col) =>
                 String(row[col] ?? '')
@@ -82,7 +87,6 @@ export function ClientDataTable<TData extends RowData>({
 
     const { pageIndex, pageSize } = pagination;
     const totalRows = filteredData.length;
-    const totalPages = table.getPageCount();
     const rangeStart = totalRows === 0 ? 0 : pageIndex * pageSize + 1;
     const rangeEnd = Math.min(totalRows, (pageIndex + 1) * pageSize);
 

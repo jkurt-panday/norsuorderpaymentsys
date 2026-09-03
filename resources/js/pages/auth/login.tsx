@@ -13,8 +13,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
-import { request as forgotPassword } from '@/routes/password';
 import { login } from '@/routes';
+import { request as forgotPassword } from '@/routes/password';
 
 export default function Login({
     status,
@@ -34,18 +34,6 @@ export default function Login({
     const [showPassword, setShowPassword] = useState(false);
     const [isDeactivatedOpen, setIsDeactivatedOpen] = useState(deactivated_account);
 
-    useEffect(() => {
-        if (deactivated_account) {
-            setIsDeactivatedOpen(true);
-        }
-    }, [deactivated_account]);
-
-    useEffect(() => {
-        if (errors.email && /deactivated/i.test(errors.email)) {
-            setIsDeactivatedOpen(true);
-        }
-    }, [errors.email]);
-
     // Automatically wipe password inputs clean if there is an auth error
     // Fix: Added 'reset' to the dependency array to satisfy ESLint rules
     useEffect(() => {
@@ -56,7 +44,16 @@ export default function Login({
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        post(login.url());
+        post(login.url(), {
+            onError: (validationErrors) => {
+                if (
+                    validationErrors.email &&
+                    /deactivated/i.test(validationErrors.email)
+                ) {
+                    setIsDeactivatedOpen(true);
+                }
+            },
+        });
     };
 
     return (

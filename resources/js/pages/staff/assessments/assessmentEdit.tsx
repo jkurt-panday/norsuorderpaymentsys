@@ -1,19 +1,3 @@
-import {
-    edit as editAssessment,
-    index as assessmentsIndex,
-} from '@/actions/App/Http/Controllers/AssessmentController';
-import { generatePdf as generateGraduatePdf } from '@/actions/App/Http/Controllers/GraduateLedgerController';
-import { generatePdf as generateLawPdf } from '@/actions/App/Http/Controllers/LawSchoolLedgerController';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Head, Link, router } from '@inertiajs/react';
 import {
     AlertCircle,
@@ -25,6 +9,20 @@ import {
     X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import {
+    edit as editAssessment,
+    index as assessmentsIndex,
+} from '@/actions/App/Http/Controllers/AssessmentController';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 
 interface Course {
     id: number;

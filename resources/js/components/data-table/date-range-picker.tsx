@@ -1,7 +1,7 @@
 'use client';
 
-import * as React from 'react';
 import { CalendarIcon } from 'lucide-react';
+import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -80,12 +80,18 @@ export function DateRangeFilter({
 }: DateRangeFilterProps) {
     const handleFromChange = (date: Date | undefined) => {
         onFromChange(date);
-        if (date && to) onApply?.({ from: date, to });
+
+        if (date && to) {
+onApply?.({ from: date, to });
+}
     };
 
     const handleToChange = (date: Date | undefined) => {
         onToChange(date);
-        if (from && date) onApply?.({ from, to: date });
+
+        if (from && date) {
+onApply?.({ from, to: date });
+}
     };
 
     return (
