@@ -551,19 +551,21 @@ export default function ResourceTable<T extends { id: number }>({
                         {filters}
                         {sortOptions && sortOptions.length > 0 && (
                             <Popover>
-                                <PopoverTrigger asChild>
-                                    <button
-                                        type="button"
-                                        className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border text-slate-500 transition-colors hover:bg-slate-50 ${
-                                            activeSortValue
-                                                ? 'border-blue-300 bg-blue-50 text-blue-600'
-                                                : 'border-slate-200 bg-white'
-                                        }`}
-                                        aria-label="Sort"
-                                        title="Sort"
-                                    >
-                                        <ArrowUpDown className="h-4 w-4" />
-                                    </button>
+                                <PopoverTrigger
+                                    render={
+                                        <button
+                                            type="button"
+                                            className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border text-slate-500 transition-colors hover:bg-slate-50 ${
+                                                activeSortValue
+                                                    ? 'border-blue-300 bg-blue-50 text-blue-600'
+                                                    : 'border-slate-200 bg-white'
+                                            }`}
+                                            aria-label="Sort"
+                                            title="Sort"
+                                        />
+                                    }
+                                >
+                                    <ArrowUpDown className="h-4 w-4" />
                                 </PopoverTrigger>
                                 <PopoverContent
                                     align="end"
@@ -830,14 +832,16 @@ export default function ResourceTable<T extends { id: number }>({
                                                 }
                                             }}
                                         >
-                                            <PopoverTrigger asChild>
-                                                <button
-                                                    type="button"
-                                                    className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
-                                                >
-                                                    Page {resource.current_page}{' '}
-                                                    of {resource.last_page}
-                                                </button>
+                                            <PopoverTrigger
+                                                render={
+                                                    <button
+                                                        type="button"
+                                                        className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+                                                    />
+                                                }
+                                            >
+                                                Page {resource.current_page} of{' '}
+                                                {resource.last_page}
                                             </PopoverTrigger>
                                             <PopoverContent
                                                 align="center"

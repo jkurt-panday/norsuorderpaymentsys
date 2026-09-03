@@ -7,6 +7,7 @@ import {
     ArrowUpDown,
     ArrowUp,
     ArrowDown,
+    ListFilter,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import * as React from 'react';
@@ -464,7 +465,7 @@ export default function RequestTable<T extends { id: number | string }>({
                                         onStatusChange(v === 'all' ? '' : v)
                                     }
                                 >
-                                    <SelectTrigger className="h-10 w-full rounded-lg">
+                                    <SelectTrigger className="h-10 w-full rounded-lg border-slate-200 bg-white shadow-sm transition-colors hover:bg-slate-50 focus:ring-2 focus:ring-blue-500/20">
                                         <SelectValue
                                             placeholder={statusPlaceholder}
                                         >
@@ -481,18 +482,36 @@ export default function RequestTable<T extends { id: number | string }>({
                                                     {selectedStatus.label}
                                                 </span>
                                             ) : (
-                                                statusPlaceholder
+                                                <span className="flex items-center gap-2 text-slate-500">
+                                                    <ListFilter className="h-3.5 w-3.5" />
+                                                    {statusPlaceholder}
+                                                </span>
                                             )}
                                         </SelectValue>
                                     </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">
-                                            {statusPlaceholder}
+                                    <SelectContent
+                                        position="popper"
+                                        sideOffset={6}
+                                        className="min-w-[var(--radix-select-trigger-width)] rounded-lg border-slate-200 shadow-lg"
+                                    >
+                                        <SelectItem
+                                            value="all"
+                                            className="cursor-pointer rounded-md"
+                                        >
+                                            <span className="flex items-center gap-2 text-slate-600">
+                                                <ListFilter className="h-3.5 w-3.5" />
+                                                {statusPlaceholder}
+                                            </span>
                                         </SelectItem>
+                                        <div className="my-1 h-px bg-slate-200" />
+                                        <div className="px-2 py-1.5 text-[10px] font-semibold tracking-wider text-slate-500 uppercase">
+                                            Filter by status
+                                        </div>
                                         {statusOptions.map((opt) => (
                                             <SelectItem
                                                 key={opt.value}
                                                 value={opt.value}
+                                                className="cursor-pointer rounded-md"
                                             >
                                                 <span className="flex items-center gap-2">
                                                     <span
@@ -783,14 +802,16 @@ export default function RequestTable<T extends { id: number | string }>({
                                                 }
                                             }}
                                         >
-                                            <PopoverTrigger asChild>
-                                                <button
-                                                    type="button"
-                                                    className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
-                                                >
-                                                    Page {resource.current_page}{' '}
-                                                    of {resource.last_page}
-                                                </button>
+                                            <PopoverTrigger
+                                                render={
+                                                    <button
+                                                        type="button"
+                                                        className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+                                                    />
+                                                }
+                                            >
+                                                Page {resource.current_page} of{' '}
+                                                {resource.last_page}
                                             </PopoverTrigger>
                                             <PopoverContent
                                                 align="center"

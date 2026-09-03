@@ -151,13 +151,18 @@ export default function CashierRequestShow({
                                 <input
                                     required
                                     maxLength={50}
+                                    inputMode="numeric"
+                                    pattern="[0-9\-\.\/\s]+"
+                                    title="Only numbers, dashes, slashes, dots and spaces are allowed"
                                     value={form.data.or_no}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'or_no',
-                                            event.target.value,
-                                        )
-                                    }
+                                    onChange={(event) => {
+                                        const filtered =
+                                            event.target.value.replace(
+                                                /[^0-9\-\.\/\s]/g,
+                                                '',
+                                            );
+                                        form.setData('or_no', filtered);
+                                    }}
                                     className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 />
                                 {form.errors.or_no && (

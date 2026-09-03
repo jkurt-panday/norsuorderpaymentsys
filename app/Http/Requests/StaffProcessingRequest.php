@@ -23,7 +23,9 @@ class StaffProcessingRequest extends FormRequest
             'purpose' => 'nullable|string|max:350',
             'ref_date' => ['required', 'date', 'date_format:Y-m-d', 'before_or_equal:today'],
             'uacs_id' => ['required', 'exists:uacs,id'],
-            'status' => ['required', Rule::in(['pending', 'processed', 'cancelled'])],
+            'status' => ['required', Rule::in(['pending', 'processed', 'paid', 'cancelled'])],
+            'or_no' => ['nullable', 'string', 'max:50', 'regex:/^[0-9\-\.\/\s]+$/'],
+            'or_date' => 'nullable|date|date_format:Y-m-d|before_or_equal:today',
         ];
     }
 
@@ -40,6 +42,7 @@ class StaffProcessingRequest extends FormRequest
             'uacs_id.exists' => 'Selected UACS is invalid.',
             'status.required' => 'Status is required.',
             'status.in' => 'Invalid status value.',
+            'or_no.regex' => 'OR number can only contain numbers, dashes, slashes, dots and spaces.',
         ];
     }
 }

@@ -266,12 +266,13 @@ const ManageRequests: React.FC = () => {
             onStatusChange={setStatus}
             statusOptions={[
                 { value: 'pending', label: 'Pending', color: 'orange' },
-                { value: 'approved', label: 'Approved', color: 'green' },
+                { value: 'processed', label: 'Processed', color: 'light-green' },
+                { value: 'paid', label: 'Paid', color: 'dark-green' },
                 { value: 'cancelled', label: 'Cancelled', color: 'red' },
                 {
                     value: 'unprocessed',
                     label: 'Unprocessed',
-                    color: 'bg-blue-500',
+                    color: 'grey',
                 },
             ]}
             dateFrom={dateFrom}

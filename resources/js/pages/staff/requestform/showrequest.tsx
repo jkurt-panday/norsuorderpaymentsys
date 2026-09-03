@@ -1995,18 +1995,26 @@ export default function ShowRequest() {
                                                 >
                                                     <input
                                                         type="text"
+                                                        inputMode="numeric"
+                                                        pattern="[0-9\-\.\/\s]+"
+                                                        title="Only numbers, dashes, slashes, dots and spaces are allowed"
                                                         className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
                                                             orErrors.or_no
                                                                 ? 'border-rose-400'
                                                                 : 'border-slate-200'
                                                         }`}
                                                         value={orData.or_no}
-                                                        onChange={(e) =>
+                                                        onChange={(e) => {
+                                                            const filtered =
+                                                                e.target.value.replace(
+                                                                    /[^0-9\-\.\/\s]/g,
+                                                                    '',
+                                                                );
                                                             setOrData(
                                                                 'or_no',
-                                                                e.target.value,
-                                                            )
-                                                        }
+                                                                filtered,
+                                                            );
+                                                        }}
                                                         required
                                                     />
                                                 </FormField>
@@ -2141,27 +2149,27 @@ export default function ShowRequest() {
                                                         <path d="M14 2v6h6" />
                                                     </svg>
                                                     <TooltipProvider
-                                                        delayDuration={150}
+                                                        delay={150}
                                                     >
                                                         <Tooltip>
                                                             <TooltipTrigger
-                                                                asChild
+                                                                render={
+                                                                    <a
+                                                                        href={staff.documents.download.url(
+                                                                            document.id,
+                                                                        )}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        title={
+                                                                            document.original_filename
+                                                                        }
+                                                                        className="block max-w-[260px] min-w-0 truncate text-blue-600 hover:underline"
+                                                                    />
+                                                                }
                                                             >
-                                                                <a
-                                                                    href={staff.documents.download.url(
-                                                                        document.id,
-                                                                    )}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    title={
-                                                                        document.original_filename
-                                                                    }
-                                                                    className="block max-w-[260px] min-w-0 truncate text-blue-600 hover:underline"
-                                                                >
-                                                                    {
-                                                                        document.original_filename
-                                                                    }
-                                                                </a>
+                                                                {
+                                                                    document.original_filename
+                                                                }
                                                             </TooltipTrigger>
                                                             <TooltipContent
                                                                 side="top"
@@ -2250,59 +2258,65 @@ export default function ShowRequest() {
             {formInput.staff_input && (
                 <div className="mx-auto mt-6 flex justify-end gap-2 sm:max-w-6xl">
                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <button
-                                type="button"
-                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                        <DropdownMenuTrigger
+                            render={
+                                <button
+                                    type="button"
+                                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                                />
+                            }
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="h-4 w-4"
                             >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    className="h-4 w-4"
-                                >
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
-                                    <circle cx="12" cy="12" r="3" />
-                                </svg>
-                                View OP
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    className="h-3.5 w-3.5"
-                                >
-                                    <path d="m6 9 6 6 6-6" />
-                                </svg>
-                            </button>
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+                                <circle cx="12" cy="12" r="3" />
+                            </svg>
+                            View OP
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="h-3.5 w-3.5"
+                            >
+                                <path d="m6 9 6 6 6-6" />
+                            </svg>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-44">
-                            <DropdownMenuItem asChild>
-                                <a
-                                    href={`${staff.requests.viewOp.url(formInput.id)}?layout=portrait`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="cursor-pointer"
-                                >
-                                    Portrait (3 Pages)
-                                </a>
+                            <DropdownMenuItem
+                                render={
+                                    <a
+                                        href={`${staff.requests.viewOp.url(formInput.id)}?layout=portrait`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="cursor-pointer"
+                                    />
+                                }
+                            >
+                                Portrait (3 Pages)
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                                <a
-                                    href={`${staff.requests.viewOp.url(formInput.id)}?layout=landscape`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="cursor-pointer"
-                                >
-                                    Landscape (1 Page)
-                                </a>
+                            <DropdownMenuItem
+                                render={
+                                    <a
+                                        href={`${staff.requests.viewOp.url(formInput.id)}?layout=landscape`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="cursor-pointer"
+                                    />
+                                }
+                            >
+                                Landscape (1 Page)
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>

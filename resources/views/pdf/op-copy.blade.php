@@ -66,7 +66,7 @@
 
 
         @php
-            $purposeBase = trim(($formInput->membership->member_desc ?? '') . ' - ' . '₱' . number_format($formInput->amount, 2) . ' - ' . ($formInput->staffInput->purpose ?? ''));
+            $purposeBase = trim(($formInput->staffInput->purpose ?? ''));
 
             // Wrap width scales inversely with font size (smaller font = more chars
             // fit per physical line). Base: 115 chars at 7.5px, extrapolated from there.

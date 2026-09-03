@@ -89,7 +89,7 @@ createInertiaApp({
     strictMode: true,
     withApp(app, { page }) {
         return (
-            <TooltipProvider delayDuration={0}>
+            <TooltipProvider delay={0}>
                 <ConfirmProvider>
                     <FlashToastBridge
                         initialFlash={
