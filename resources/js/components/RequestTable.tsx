@@ -802,6 +802,7 @@ export default function RequestTable<T extends { id: number | string }>({
                                                 }
                                             }}
                                         >
+<<<<<<< HEAD
                                             <PopoverTrigger
                                                 render={
                                                     <button
@@ -812,6 +813,17 @@ export default function RequestTable<T extends { id: number | string }>({
                                             >
                                                 Page {resource.current_page} of{' '}
                                                 {resource.last_page}
+=======
+                                            <PopoverTrigger asChild>
+                                                <span
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+                                                >
+                                                    Page {resource.current_page}{' '}
+                                                    of {resource.last_page}
+                                                </span>
+>>>>>>> f5701c87f22c935eb0964ba535e3805bd26f36be
                                             </PopoverTrigger>
                                             <PopoverContent
                                                 align="center"

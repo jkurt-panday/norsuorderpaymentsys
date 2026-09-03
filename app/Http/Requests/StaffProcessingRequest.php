@@ -25,7 +25,7 @@ class StaffProcessingRequest extends FormRequest
             'uacs_id' => ['required', 'exists:uacs,id'],
             'status' => ['required', Rule::in(['pending', 'processed', 'paid', 'cancelled'])],
             'or_no' => ['nullable', 'string', 'max:50', 'regex:/^[0-9\-\.\/\s]+$/'],
-            'or_date' => 'nullable|date|date_format:Y-m-d|before_or_equal:today',
+            'or_date' => 'nullable|date|date_format:Y-m-d',
         ];
     }
 
