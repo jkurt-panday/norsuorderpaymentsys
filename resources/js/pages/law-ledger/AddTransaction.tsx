@@ -303,7 +303,7 @@ export default function AddTransaction({
             ...formData,
             amount: finalAmount,
             transaction_date: finalDate,
-            tuition_per_unit_or_misc:
+            tuition_per_unit_or_fee_per_semester:
                 formData.tuition_per_unit_or_misc || '0.00',
         }));
 
