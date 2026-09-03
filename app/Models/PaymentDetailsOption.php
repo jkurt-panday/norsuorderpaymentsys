@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PaymentDetailsOption extends Model
 {
@@ -10,7 +11,8 @@ class PaymentDetailsOption extends Model
 
     protected $fillable = ['payment_desc'];
 
-    public function formInput()
+    /** @return HasOne<FormInput, $this> */
+    public function formInput(): HasOne
     {
         return $this->hasOne(FormInput::class);
     }

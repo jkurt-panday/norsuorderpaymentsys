@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class FormInput extends Model
 {
+    /** @use HasFactory<Factory<FormInput>> */
     use HasFactory;
 
     protected $appends = ['full_name'];
@@ -36,21 +38,25 @@ class FormInput extends Model
         'request_type' => 'string',
     ];
 
+    /** @return BelongsTo<Membership, $this> */
     public function membership(): BelongsTo
     {
         return $this->belongsTo(Membership::class);
     }
 
+    /** @return BelongsTo<PaymentDetailOption, $this> */
     public function paymentDetailOption(): BelongsTo
     {
         return $this->belongsTo(PaymentDetailOption::class, 'payment_detail_option_id');
     }
 
+    /** @return HasMany<SupportingDocument, $this> */
     public function supportingDocuments(): HasMany
     {
         return $this->hasMany(SupportingDocument::class);
     }
 
+    /** @return HasOne<StaffInput, $this> */
     public function staffInput(): HasOne
     {
         return $this->hasOne(StaffInput::class);

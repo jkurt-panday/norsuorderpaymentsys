@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Models\PaymentDetailOption;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -12,11 +14,15 @@ class PaymentDetailOptionRequest extends FormRequest
         return true;
     }
 
+    /** @return array<string, ValidationRule|array<mixed>|string> */
     public function rules(): array
     {
         // Route parameter is bound as 'paymentOption' (see web.php:
         // ->parameters(['payment-options' => 'paymentOption'])) — not 'payment_detail_option'.
-        $optionId = $this->route('paymentOption')?->id;
+        $option = $this->route('paymentOption');
+        $optionId = $option instanceof PaymentDetailOption
+            ? $option->getKey()
+            : (is_numeric($option) ? (int) $option : null);
 
         return [
             'payment_desc' => [

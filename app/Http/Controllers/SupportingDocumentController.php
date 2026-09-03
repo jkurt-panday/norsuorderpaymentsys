@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\StaffInput;
 use App\Models\SupportingDocument;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SupportingDocumentController extends Controller
 {
@@ -20,7 +23,7 @@ class SupportingDocumentController extends Controller
     /**
      * Display a listing of documents
      */
-    public function index()
+    public function index(): View
     {
         $documents = SupportingDocument::with('formInput')
             ->orderBy('created_at', 'desc')
@@ -32,7 +35,7 @@ class SupportingDocumentController extends Controller
     /**
      * Store a newly created document in storage and database.
      */
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
         // 1. Validate incoming file and related foreign key
         $request->validate([
@@ -79,7 +82,7 @@ class SupportingDocumentController extends Controller
     /**
      * Display (Stream/Download) the specified document
      */
-    public function show(SupportingDocument $supportingDocument)
+    public function show(SupportingDocument $supportingDocument): StreamedResponse
     {
         $relativePath = $this->folder.'/'.$supportingDocument->stored_filename;
 
@@ -98,7 +101,7 @@ class SupportingDocumentController extends Controller
     /**
      * Remove the specified document safely
      */
-    public function destroy(SupportingDocument $supportingDocument)
+    public function destroy(SupportingDocument $supportingDocument): RedirectResponse
     {
         try {
             DB::beginTransaction();
@@ -133,7 +136,7 @@ class SupportingDocumentController extends Controller
     /**
      * Download the specified document (Alias or Explicit Download)
      */
-    public function download(SupportingDocument $supportingDocument)
+    public function download(SupportingDocument $supportingDocument): StreamedResponse
     {
         // Re-routing download directly to our standardized storage-safe response wrapper
         return $this->show($supportingDocument);

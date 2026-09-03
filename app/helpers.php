@@ -1,6 +1,7 @@
 <?php
 
-if (!function_exists('wrapToLines')) {
+if (! function_exists('wrapToLines')) {
+    /** @return list<string> */
     function wrapToLines(string $text, int $charsPerLine = 60): array
     {
         if (trim($text) === '') {
@@ -8,6 +9,7 @@ if (!function_exists('wrapToLines')) {
         }
 
         $wrapped = wordwrap($text, $charsPerLine, "\n", true);
+
         return explode("\n", $wrapped);
     }
 }

@@ -38,7 +38,7 @@ class ActivityLogObserver
         // Special-case Order of Payment: "created" means it was processed/
         // accepted, so we surface it as a distinct "processed" event.
         if ($model instanceof StaffInput) {
-            $name = $model->formInput?->reference_number ?? ('#' . $model->getKey());
+            $name = $model->formInput->reference_number ?? ('#'.$model->getKey());
 
             if ($event === 'created') {
                 return [
@@ -46,13 +46,13 @@ class ActivityLogObserver
                     'label' => $name,
                     'action' => 'processed',
                     'verb' => 'processed',
-                    'extra' => ' (status: ' . ($model->status ?? 'pending') . ')',
+                    'extra' => ' (status: '.($model->status ?? 'pending').')',
                 ];
             }
 
             if ($event === 'updated') {
                 $statusNote = $model->wasChanged('status')
-                    ? ' (status changed to ' . ($model->status ?? 'unknown') . ')'
+                    ? ' (status changed to '.($model->status ?? 'unknown').')'
                     : '';
 
                 return [
@@ -74,7 +74,7 @@ class ActivityLogObserver
         }
 
         if ($model instanceof FormInput) {
-            $name = $model->reference_number ?? ('#' . $model->getKey());
+            $name = $model->reference_number ?? ('#'.$model->getKey());
             $map = [
                 'created' => ['action' => 'created', 'verb' => 'submitted'],
                 'updated' => ['action' => 'updated', 'verb' => 'updated'],
@@ -108,7 +108,7 @@ class ActivityLogObserver
         }
 
         if ($model instanceof Membership) {
-            $name = $model->member_code . ' - ' . $model->member_desc;
+            $name = $model->member_code.' - '.$model->member_desc;
             $map = [
                 'created' => ['action' => 'created', 'verb' => 'added'],
                 'updated' => ['action' => 'updated', 'verb' => 'updated'],
@@ -159,7 +159,7 @@ class ActivityLogObserver
         }
 
         if ($model instanceof Courses) {
-            $name = $model->course_code . ' - ' . $model->course_desc;
+            $name = $model->course_code.' - '.$model->course_desc;
             $map = [
                 'created' => ['action' => 'created', 'verb' => 'added'],
                 'updated' => ['action' => 'updated', 'verb' => 'updated'],
@@ -176,8 +176,8 @@ class ActivityLogObserver
         }
 
         if ($model instanceof GraduateLedger) {
-            $name = $model->student?->full_name
-                ?? ($model->reference_or_jev_number ?: ('#' . $model->getKey()));
+            $name = $model->student->full_name
+                ?? ($model->reference_or_jev_number ?: ('#'.$model->getKey()));
             $map = [
                 'created' => ['action' => 'created', 'verb' => 'added'],
                 'updated' => ['action' => 'updated', 'verb' => 'updated'],
@@ -194,8 +194,8 @@ class ActivityLogObserver
         }
 
         if ($model instanceof LawSchoolLedger) {
-            $name = trim(($model->last_name ?? '') . ', ' . ($model->first_name ?? ''))
-                ?: ('#' . $model->getKey());
+            $name = trim(($model->last_name ?? '').', '.($model->first_name ?? ''))
+                ?: ('#'.$model->getKey());
             $map = [
                 'created' => ['action' => 'created', 'verb' => 'added'],
                 'updated' => ['action' => 'updated', 'verb' => 'updated'],
@@ -212,7 +212,7 @@ class ActivityLogObserver
         }
 
         if ($model instanceof Student) {
-            $name = $model->full_name ?: ($model->student_number ?: ('#' . $model->getKey()));
+            $name = $model->full_name ?: ($model->student_number ?: ('#'.$model->getKey()));
             $map = [
                 'created' => ['action' => 'created', 'verb' => 'added'],
                 'updated' => ['action' => 'updated', 'verb' => 'updated'],
@@ -229,7 +229,7 @@ class ActivityLogObserver
         }
 
         if ($model instanceof Course) {
-            $name = $model->code . ' - ' . $model->title;
+            $name = $model->code.' - '.$model->title;
             $map = [
                 'created' => ['action' => 'created', 'verb' => 'added'],
                 'updated' => ['action' => 'updated', 'verb' => 'updated'],
@@ -246,8 +246,8 @@ class ActivityLogObserver
         }
 
         if ($model instanceof AcademicTerm) {
-            $name = trim($model->school_year . ' ' . $model->semester)
-                ?: ('#' . $model->getKey());
+            $name = trim($model->school_year.' '.$model->semester)
+                ?: ('#'.$model->getKey());
             $map = [
                 'created' => ['action' => 'created', 'verb' => 'added'],
                 'updated' => ['action' => 'updated', 'verb' => 'updated'],
@@ -264,7 +264,7 @@ class ActivityLogObserver
         }
 
         if ($model instanceof AssessmentForm) {
-            $name = $model->reference_number ?: ('#' . $model->getKey());
+            $name = $model->reference_number ?: ('#'.$model->getKey());
             $map = [
                 'created' => ['action' => 'created', 'verb' => 'submitted'],
                 'updated' => ['action' => 'updated', 'verb' => 'updated'],
@@ -281,7 +281,7 @@ class ActivityLogObserver
         }
 
         if ($model instanceof SupportingDocument) {
-            $name = $model->original_filename ?: ('#' . $model->getKey());
+            $name = $model->original_filename ?: ('#'.$model->getKey());
             $map = [
                 'created' => ['action' => 'created', 'verb' => 'uploaded'],
                 'updated' => ['action' => 'updated', 'verb' => 'updated'],
@@ -303,15 +303,15 @@ class ActivityLogObserver
             if ($event === 'created') {
                 $action = 'user.created';
                 $verb = 'provisioned';
-                $extra = ' (role: ' . ($model->role ?? 'unknown') . ')';
+                $extra = ' (role: '.($model->role ?? 'unknown').')';
             } elseif ($event === 'deleted') {
                 $action = 'user.deactivated';
                 $verb = 'deactivated';
-                $extra = ' (role: ' . ($model->role ?? 'unknown') . ')';
+                $extra = ' (role: '.($model->role ?? 'unknown').')';
             } elseif ($event === 'restored') {
                 $action = 'user.reactivated';
                 $verb = 'reactivated';
-                $extra = ' (role: ' . ($model->role ?? 'unknown') . ')';
+                $extra = ' (role: '.($model->role ?? 'unknown').')';
             } else {
                 $action = $event;
                 $verb = $event;
@@ -347,15 +347,15 @@ class ActivityLogObserver
         $changes = $event === 'deleted' ? [] : $this->changeList($model, $event);
 
         ActivityLog::create([
-            'actor_id' => $actor?->getAuthIdentifier(),
-            'actor_name' => $actor?->name,
-            'actor_role' => $actor?->role,
+            'actor_id' => $actor->getAuthIdentifier(),
+            'actor_name' => $actor->name,
+            'actor_role' => $actor->role,
             'action' => $descriptor['action'],
             'target_id' => $model instanceof User ? $model->getKey() : null,
             'subject_type' => get_class($model),
             'subject_id' => $model->getKey(),
-            'description' => $descriptor['type'] . ' ' . $descriptor['label']
-                . ' was ' . $descriptor['verb'] . $descriptor['extra'] . '.',
+            'description' => $descriptor['type'].' '.$descriptor['label']
+                .' was '.$descriptor['verb'].$descriptor['extra'].'.',
             'meta' => [
                 'subject_name' => $descriptor['label'],
                 'changes' => $changes,
@@ -425,12 +425,14 @@ class ActivityLogObserver
             return $value ? 'Yes' : 'No';
         }
 
-        if (is_array($value) || is_object($value)) {
-            return json_encode($value);
-        }
-
         if ($value instanceof \DateTimeInterface) {
             return $value->format('Y-m-d H:i');
+        }
+
+        if (is_array($value) || is_object($value)) {
+            $encoded = json_encode($value);
+
+            return $encoded === false ? null : $encoded;
         }
 
         return (string) $value;

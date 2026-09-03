@@ -12,17 +12,33 @@ use App\Models\LawSchoolLedger;
 use App\Models\LawStudent;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
+/**
+ * @phpstan-type WarningCounts array{
+ *     negative_blank_type: int,
+ *     negative_labeled_ar: int,
+ *     payment_missing_parentheses: int
+ * }
+ * @phpstan-type BalanceSummary array{totalCharges: float, totalPayments: float, outstandingBalance: float}
+ */
 class LawSchoolLedgerController extends Controller
 {
     /**
@@ -67,7 +83,9 @@ class LawSchoolLedgerController extends Controller
             ->selectRaw('UPPER(TRIM(status)) as status, COUNT(*) as count')
             ->groupBy('status')
             ->get()
-            ->mapWithKeys(fn ($item) => [ucfirst(strtolower($item->status)) => (int) $item->count()]);
+            ->mapWithKeys(fn (LawSchoolLedger $item): array => [
+                ucfirst(strtolower((string) $item->status)) => (int) $item->getAttribute('count'),
+            ]);
 
         // 2. Fetch paginated records
         $records = $query
@@ -76,7 +94,7 @@ class LawSchoolLedgerController extends Controller
             ->withQueryString();
 
         // Transform each row into the shape Index.tsx expects
-        $records->through(fn ($r) => $this->transformRecord($r));
+        $records->through(fn (LawSchoolLedger $r): array => $this->transformRecord($r));
 
         return Inertia::render('law-ledger/Index', [
             'records' => $records,
@@ -95,7 +113,7 @@ class LawSchoolLedgerController extends Controller
         ]);
     }
 
-    public function searchStudents(Request $request)
+    public function searchStudents(Request $request): JsonResponse
     {
         $search = trim((string) $request->query('q', ''));
         $limit = (int) $request->query('limit', 50);
@@ -114,17 +132,17 @@ class LawSchoolLedgerController extends Controller
                     ->orWhereRaw("LOWER(TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_initial, '')))) LIKE ?", ["%{$searchLower}%"]);
             })
             // Relevance sort: starts-with results float to top
-            ->orderByRaw(
-                'CASE WHEN LOWER(last_name) LIKE ? OR LOWER(first_name) LIKE ? THEN 0 ELSE 1 END',
-                [$prefix, $prefix]
-            );
+                ->orderByRaw(
+                    'CASE WHEN LOWER(last_name) LIKE ? OR LOWER(first_name) LIKE ? THEN 0 ELSE 1 END',
+                    [$prefix, $prefix]
+                );
         }
 
         $students = $query
             ->orderBy('last_name', 'asc')
             ->limit($limit)
             ->get(['last_name', 'first_name', 'middle_initial'])
-            ->map(function ($student) {
+            ->map(function (LawSchoolLedger $student): string {
                 return trim("$student->last_name, $student->first_name ".($student->middle_initial ? "$student->middle_initial" : ''));
             })
             ->unique()
@@ -137,7 +155,7 @@ class LawSchoolLedgerController extends Controller
     /**
      * Exports the filtered Law School Ledger records to an Excel file.
      */
-    public function export(Request $request)
+    public function export(Request $request): BinaryFileResponse
     {
         $query = $this->buildFilteredQuery($request);
 
@@ -155,7 +173,7 @@ class LawSchoolLedgerController extends Controller
             'students' => $this->studentList(),
             'courses' => $this->courseList(),
             'academicTerms' => $this->academicTermList(),
-            'authUserName' => auth()->user()?->name ?? '',
+            'authUserName' => optional(auth()->user())->name ?? '',
         ]);
     }
 
@@ -260,7 +278,7 @@ class LawSchoolLedgerController extends Controller
                 'input_by' => $record->input_by,
             ], $data);
 
-            $studentId = isset($data['student_id']) && $data['student_id'] !== null
+            $studentId = isset($data['student_id'])
                 ? (int) $data['student_id']
                 : null;
 
@@ -317,12 +335,20 @@ class LawSchoolLedgerController extends Controller
         ini_set('memory_limit', '1024M');
 
         $uploadedFile = $request->file('file');
-        $extension    = strtolower($uploadedFile->getClientOriginalExtension());
-        $path         = $uploadedFile->getRealPath();
-        $imported     = 0;
-        $skipped      = 0;
-        $warnings     = $this->emptyImportWarnings();
-        $now          = now();
+        if (! $uploadedFile instanceof UploadedFile) {
+            return back()->with('error', 'The uploaded ledger file is invalid.');
+        }
+
+        $extension = strtolower($uploadedFile->getClientOriginalExtension());
+        $path = $uploadedFile->getRealPath();
+        if ($path === false) {
+            return back()->with('error', 'Could not read the uploaded ledger file.');
+        }
+
+        $imported = 0;
+        $skipped = 0;
+        $warnings = $this->emptyImportWarnings();
+        $now = now();
 
         if ($extension === 'csv') {
             return $this->importCsv($path, $imported, $skipped, $warnings, $now);
@@ -337,18 +363,20 @@ class LawSchoolLedgerController extends Controller
      *         and bulk-resolve FK lookup maps.
      * Pass 2: stream again, map each row to normalized columns, chunk-insert 1000 at a time.
      *
-     * @param  array<string, int>  $warnings
+     * @param  WarningCounts  $warnings
+     *
+     * @param-out WarningCounts $warnings
      */
-    private function importCsv(string $path, int &$imported, int &$skipped, array &$warnings, $now): RedirectResponse
+    private function importCsv(string $path, int &$imported, int &$skipped, array &$warnings, CarbonInterface $now): RedirectResponse
     {
         // ── Pass 1: collect distinct courses + terms + students ───────────────
         $handle = fopen($path, 'r');
-        if (! $handle) {
+        if (! is_resource($handle)) {
             return redirect()->route('law-ledger.index')->with('error', 'Could not open CSV file.');
         }
 
         $headerRow = fgetcsv($handle);
-        $headers   = $headerRow ? array_map(fn ($h) => Str::slug((string) $h, '_'), $headerRow) : [];
+        $headers = $headerRow ? array_map(fn ($h) => Str::slug((string) $h, '_'), $headerRow) : [];
 
         $distinctCourses = [];
         $distinctTerms = [];
@@ -397,8 +425,12 @@ class LawSchoolLedgerController extends Controller
 
         // ── Pass 2: stream again, map rows, chunk-insert ───────────────────────
         $handle = fopen($path, 'r');
+        if (! is_resource($handle)) {
+            return redirect()->route('law-ledger.index')->with('error', 'Could not reopen CSV file.');
+        }
+
         $headerRow = fgetcsv($handle);
-        $headers   = $headerRow ? array_map(fn ($h) => Str::slug((string) $h, '_'), $headerRow) : [];
+        $headers = $headerRow ? array_map(fn ($h) => Str::slug((string) $h, '_'), $headerRow) : [];
 
         $insertData = [];
 
@@ -443,18 +475,20 @@ class LawSchoolLedgerController extends Controller
      * Two-pass memory-efficient Excel importer (xlsx/xls) using PhpSpreadsheet.
      * Same pattern as importCsv() but reads from the in-memory sheet.
      *
-     * @param  array<string, int>  $warnings
+     * @param  WarningCounts  $warnings
+     *
+     * @param-out WarningCounts $warnings
      */
-    private function importExcel(string $path, int &$imported, int &$skipped, array &$warnings, $now): RedirectResponse
+    private function importExcel(string $path, int &$imported, int &$skipped, array &$warnings, CarbonInterface $now): RedirectResponse
     {
         $reader = IOFactory::createReaderForFile($path);
         $reader->setReadDataOnly(false);
 
         $spreadsheet = $reader->load($path);
-        $sheet       = $spreadsheet->getActiveSheet();
-        $highestRow  = $sheet->getHighestRow();
-        $highestCol  = $sheet->getHighestColumn();
-        $highestColIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($highestCol);
+        $sheet = $spreadsheet->getActiveSheet();
+        $highestRow = $sheet->getHighestRow();
+        $highestCol = $sheet->getHighestColumn();
+        $highestColIndex = Coordinate::columnIndexFromString($highestCol);
 
         if ($highestRow <= 1) {
             $spreadsheet->disconnectWorksheets();
@@ -466,8 +500,8 @@ class LawSchoolLedgerController extends Controller
 
         $headerRow = [];
         for ($c = 1; $c <= $highestColIndex; $c++) {
-            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c);
-            $headerRow[] = Str::slug((string) $sheet->getCell($colLetter . '1')->getValue(), '_');
+            $colLetter = Coordinate::stringFromColumnIndex($c);
+            $headerRow[] = Str::slug((string) $sheet->getCell($colLetter.'1')->getValue(), '_');
         }
 
         // ── Pass 1: collect distinct values (rows 2..highestRow) ───────────────
@@ -476,13 +510,13 @@ class LawSchoolLedgerController extends Controller
         $distinctStudents = [];
 
         for ($r = 2; $r <= $highestRow; $r++) {
-            $code = trim((string) $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($this->headerIndex($headerRow, ['course', 'program'])) . $r)->getValue());
+            $code = trim((string) $sheet->getCell(Coordinate::stringFromColumnIndex($this->headerIndex($headerRow, ['course', 'program'])).$r)->getValue());
             if ($code !== '') {
                 $distinctCourses[$code] = true;
             }
 
-            $sy = trim((string) $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($this->headerIndex($headerRow, ['school_year', 'academic_year', 'sy'])) . $r)->getValue());
-            $semRaw = trim((string) $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($this->headerIndex($headerRow, ['semester_or_summer', 'semester_summer', 'semester', 'term'])) . $r)->getValue());
+            $sy = trim((string) $sheet->getCell(Coordinate::stringFromColumnIndex($this->headerIndex($headerRow, ['school_year', 'academic_year', 'sy'])).$r)->getValue());
+            $semRaw = trim((string) $sheet->getCell(Coordinate::stringFromColumnIndex($this->headerIndex($headerRow, ['semester_or_summer', 'semester_summer', 'semester', 'term'])).$r)->getValue());
             if ($sy !== '' && $semRaw !== '') {
                 $sem = LawAcademicTerm::normalizeSemester($semRaw);
                 $distinctTerms["{$sy}|||{$sem}"] = ['school_year' => $sy, 'semester' => $sem];
@@ -491,9 +525,9 @@ class LawSchoolLedgerController extends Controller
             $lastIdx = $this->headerIndex($headerRow, ['last_name']);
             $firstIdx = $this->headerIndex($headerRow, ['first_name']);
             $miIdx = $this->headerIndex($headerRow, ['middle_initial']);
-            $last = $lastIdx ? trim((string) $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($lastIdx) . $r)->getValue()) : '';
-            $first = $firstIdx ? trim((string) $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($firstIdx) . $r)->getValue()) : '';
-            $mi = $miIdx ? trim((string) $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($miIdx) . $r)->getValue()) : '';
+            $last = $lastIdx ? trim((string) $sheet->getCell(Coordinate::stringFromColumnIndex($lastIdx).$r)->getValue()) : '';
+            $first = $firstIdx ? trim((string) $sheet->getCell(Coordinate::stringFromColumnIndex($firstIdx).$r)->getValue()) : '';
+            $mi = $miIdx ? trim((string) $sheet->getCell(Coordinate::stringFromColumnIndex($miIdx).$r)->getValue()) : '';
             if ($last !== '' && $first !== '') {
                 $distinctStudents["{$last}|||{$first}|||{$mi}"] = true;
             }
@@ -512,9 +546,9 @@ class LawSchoolLedgerController extends Controller
         for ($r = 2; $r <= $highestRow; $r++) {
             $rowData = [];
             for ($c = 1; $c <= $highestColIndex; $c++) {
-                $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c);
-                $key           = $headerRow[$c - 1] ?? 'column_'.($c - 1);
-                $cell          = $sheet->getCell($colLetter . $r);
+                $colLetter = Coordinate::stringFromColumnIndex($c);
+                $key = $headerRow[$c - 1] ?? 'column_'.($c - 1);
+                $cell = $sheet->getCell($colLetter.$r);
                 $rowData[$key] = $cell->isFormula()
                     ? ($key === 'amount' ? $cell->getCalculatedValue() : null)
                     : $cell->getValue();
@@ -583,7 +617,7 @@ class LawSchoolLedgerController extends Controller
         array $distinctCourses,
         array $distinctTerms,
         array $distinctStudents,
-        $now,
+        CarbonInterface $now,
     ): array {
         // Courses
         $courseMap = LawCourse::pluck('id', 'code')->toArray();
@@ -734,12 +768,13 @@ class LawSchoolLedgerController extends Controller
         ];
 
         if ($selectedStudent) {
-            $studentRecords = $this->queryStudentByName($selectedStudent)
+            $rawStudentRecords = $this->queryStudentByName($selectedStudent)
                 ->orderBy('id', 'asc')
-                ->get()
-                ->map(fn ($r) => $this->transformRecord($r));
+                ->get();
 
-            $balanceSummary = $this->calculateStudentBalance($studentRecords);
+            $balanceSummary = $this->calculateStudentBalanceNormalized($rawStudentRecords);
+            $studentRecords = $rawStudentRecords
+                ->map(fn ($r) => $this->transformRecord($r));
         }
 
         return Inertia::render('law-ledger/PrintSelect', [
@@ -754,7 +789,7 @@ class LawSchoolLedgerController extends Controller
     /**
      * Generates and streams the PDF statement.
      */
-    public function generatePdf(Request $request)
+    public function generatePdf(Request $request): HttpResponse
     {
         set_time_limit(300);
 
@@ -791,11 +826,12 @@ class LawSchoolLedgerController extends Controller
             $studentName = trim("{$student->last_name}, {$student->first_name} ".($student->middle_initial ?: ''));
         }
 
-        $summary = $this->calculateStudentBalance($records);
+        $summary = $this->calculateStudentBalanceNormalized($records);
 
         $logoPath = public_path('norsu.png');
-        $logoDataUri = file_exists($logoPath)
-            ? 'data:image/png;base64,'.base64_encode(file_get_contents($logoPath))
+        $logoContents = file_exists($logoPath) ? file_get_contents($logoPath) : false;
+        $logoDataUri = is_string($logoContents)
+            ? 'data:image/png;base64,'.base64_encode($logoContents)
             : null;
 
         $pdf = Pdf::loadView('pdf.law-student-ledger-statement', [
@@ -816,9 +852,14 @@ class LawSchoolLedgerController extends Controller
     /**
      * Maps Excel/CSV rows flexibly to DB columns, tailored for Law School Ledger Excel format.
      *
-     * @param  array<string, int>  $warnings
+     * @param  array<string, mixed>  $row
+     * @param  WarningCounts  $warnings
+     *
+     * @param-out WarningCounts $warnings
+     *
+     * @return array<string, mixed>|null
      */
-    private function mapImportRow(array $row, array &$warnings = []): ?array
+    private function mapImportRow(array $row, array &$warnings): ?array
     {
         $normalized = [];
 
@@ -878,7 +919,7 @@ class LawSchoolLedgerController extends Controller
             ?? 'AR';
 
         // ── Import warning detection ─────────────────────────────────────────
-        $normalizedType = strtoupper(trim($arOrPayment));
+        $normalizedType = strtoupper(trim((string) $arOrPayment));
 
         // Warning: negative amount with blank or unknown type
         if ($amount < 0 && ($normalizedType === '' || $normalizedType === 'AR')) {
@@ -904,6 +945,8 @@ class LawSchoolLedgerController extends Controller
         if ($remarks !== null && str_starts_with($remarks, '=')) {
             $remarks = null;
         }
+
+        $rawStatus = Arr::get($normalized, 'status');
 
         return [
             'last_name' => $nameParts['last_name'],
@@ -931,7 +974,7 @@ class LawSchoolLedgerController extends Controller
             'tuition_per_unit_or_fee_per_semester' => $tuition,
             'ar_or_payment' => $arOrPayment,
             'amount' => $amount,
-            'status' => $this->determineStatus($amount, Arr::get($normalized, 'status')),
+            'status' => $this->determineStatus($amount, is_string($rawStatus) ? $rawStatus : null),
             'remarks' => $remarks,
             'input_by' => Arr::get($normalized, 'input_by'),
         ];
@@ -941,6 +984,7 @@ class LawSchoolLedgerController extends Controller
      * Builds the Law School Ledger query with the filters shared by the index
      * and export methods.
      */
+    /** @return Builder<LawSchoolLedger> */
     private function buildFilteredQuery(Request $request): Builder
     {
         $schoolYear = $request->input('school_year');
@@ -957,7 +1001,7 @@ class LawSchoolLedgerController extends Controller
                 // PostgreSQL's LIKE is case-sensitive, so "Juan" won't match "juan"
                 // unless the search value is also lowercased. This mirrors the
                 // pattern used in searchStudents() and StaffInputController::index().
-                $search = strtolower($search);
+                $search = strtolower((string) $search);
                 $query->where(function ($query) use ($search) {
                     $query->whereRaw('LOWER(first_name) LIKE ?', ["%{$search}%"])
                         ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$search}%"])
@@ -975,7 +1019,7 @@ class LawSchoolLedgerController extends Controller
                 // Match every stored variant that maps to the selected semester label
                 // (e.g. "1st Sem" also matches "First Semester").
                 $query->where(function ($query) use ($semester) {
-                    foreach ($this->semesterAliases($semester) as $alias) {
+                    foreach ($this->semesterAliases((string) $semester) as $alias) {
                         $query->orWhereRaw('UPPER(TRIM(semester_or_summer)) = ?', [strtoupper($alias)]);
                     }
                 });
@@ -986,10 +1030,10 @@ class LawSchoolLedgerController extends Controller
             ->when($status, function ($query, $status) {
                 // Trim + case-insensitive match so "DROP" also finds rows stored as
                 // " DROP" (the dropdown shows the deduplicated modal label).
-                $query->whereRaw('UPPER(TRIM(status)) = ?', [strtoupper(trim($status))]);
+                $query->whereRaw('UPPER(TRIM(status)) = ?', [strtoupper(trim((string) $status))]);
             })
             ->when($type, function ($query, $type) {
-                $query->whereRaw('UPPER(TRIM(ar_or_payment)) = ?', [strtoupper(trim($type))]);
+                $query->whereRaw('UPPER(TRIM(ar_or_payment)) = ?', [strtoupper(trim((string) $type))]);
             })
             ->when($dateFrom, function ($query, $dateFrom) {
                 $query->whereDate('transaction_date', '>=', $dateFrom);
@@ -999,7 +1043,8 @@ class LawSchoolLedgerController extends Controller
             });
     }
 
-    private function queryStudentByName(string $studentName)
+    /** @return Builder<LawSchoolLedger> */
+    private function queryStudentByName(string $studentName): Builder
     {
         $cleanName = trim((string) str_replace(['−', '–', '—'], '-', $studentName));
 
@@ -1010,6 +1055,7 @@ class LawSchoolLedgerController extends Controller
         });
     }
 
+    /** @return array{last_name: string, first_name: string, middle_initial: string|null}|null */
     private function parseStudentName(string $name): ?array
     {
         $name = trim((string) str_replace(['−', '–', '—'], '-', $name));
@@ -1019,9 +1065,12 @@ class LawSchoolLedgerController extends Controller
             $rest = trim($rest);
 
             // If there's a middle initial as the last single character / word
-            $parts = preg_split('/\s+/', $rest) ?? [];
+            $parts = preg_split('/\s+/', $rest);
+            if ($parts === false) {
+                $parts = [];
+            }
             if (count($parts) > 1) {
-                $lastPart = end($parts);
+                $lastPart = $parts[array_key_last($parts)];
                 if (strlen($lastPart) <= 2) { // Single letter or letter with dot like "A" or "A."
                     $middleInitial = array_pop($parts);
                     $firstName = implode(' ', $parts);
@@ -1044,7 +1093,7 @@ class LawSchoolLedgerController extends Controller
         return null;
     }
 
-    private function normalizeDate($value): ?string
+    private function normalizeDate(mixed $value): ?string
     {
         if (blank($value)) {
             return null;
@@ -1058,7 +1107,7 @@ class LawSchoolLedgerController extends Controller
             $num = (float) $value;
             if ($num > 10000 && $num < 100000) {
                 try {
-                    return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($num)->format('Y-m-d');
+                    return Date::excelToDateTimeObject($num)->format('Y-m-d');
                 } catch (\Exception $e) {
                 }
             }
@@ -1077,7 +1126,7 @@ class LawSchoolLedgerController extends Controller
         }
     }
 
-    private function determineStatus($amount, ?string $rawStatus): string
+    private function determineStatus(float $amount, ?string $rawStatus): string
     {
         if ($rawStatus) {
             return $rawStatus;
@@ -1086,6 +1135,7 @@ class LawSchoolLedgerController extends Controller
         return $amount > 0 ? 'Pending' : 'Paid';
     }
 
+    /** @return array<string, mixed> */
     private function transformRecord(LawSchoolLedger $r): array
     {
         return [
@@ -1118,40 +1168,57 @@ class LawSchoolLedgerController extends Controller
     /**
      * List of students for the form picker.
      * Returns [{id, student_number, last_name, first_name, middle_name, last_course_id}].
+     *
+     * @return list<array{id: int, student_number: string|null, last_name: string, first_name: string, middle_name: string|null, last_course_id: null}>
      */
     private function studentList(): array
     {
-        return LawStudent::orderBy('last_name')
+        return array_values(LawStudent::orderBy('last_name')
             ->get(['id', 'student_number', 'last_name', 'first_name', 'middle_name'])
-            ->map(fn ($s) => [
-                'id' => $s->id,
+            ->map(fn (LawStudent $s): array => [
+                'id' => (int) $s->id,
                 'student_number' => $s->student_number,
                 'last_name' => $s->last_name,
                 'first_name' => $s->first_name,
                 'middle_name' => $s->middle_name,
                 'last_course_id' => null,
             ])
-            ->toArray();
+            ->all());
     }
 
     /**
      * List of courses for the form picker.
      * Returns [{id, code}].
+     *
+     * @return list<array{id: int, code: string}>
      */
     private function courseList(): array
     {
-        return LawCourse::orderBy('code')->get(['id', 'code'])->toArray();
+        return array_values(LawCourse::orderBy('code')
+            ->get(['id', 'code'])
+            ->map(fn (LawCourse $course): array => [
+                'id' => (int) $course->id,
+                'code' => $course->code,
+            ])
+            ->all());
     }
 
     /**
      * List of academic terms for the form picker.
+     *
+     * @return list<array{id: int, school_year: string, semester: string}>
      */
     private function academicTermList(): array
     {
-        return LawAcademicTerm::orderBy('school_year', 'desc')
+        return array_values(LawAcademicTerm::orderBy('school_year', 'desc')
             ->orderBy('sort_order')
             ->get(['id', 'school_year', 'semester'])
-            ->toArray();
+            ->map(fn (LawAcademicTerm $term): array => [
+                'id' => (int) $term->id,
+                'school_year' => $term->school_year,
+                'semester' => $term->semester,
+            ])
+            ->all());
     }
 
     /**
@@ -1206,6 +1273,11 @@ class LawSchoolLedgerController extends Controller
      */
     private function buildLedgerRow(array $data, ?int $studentId, ?int $academicTermId): array
     {
+        $courseCode = null;
+        if (isset($data['course_id']) && is_numeric($data['course_id'])) {
+            $courseCode = LawCourse::query()->find((int) $data['course_id'])?->code;
+        }
+
         $attributes = [
             'student_id_fk' => $studentId,
             'course_id' => $data['course_id'] ?? null,
@@ -1214,7 +1286,7 @@ class LawSchoolLedgerController extends Controller
             'first_name' => $data['first_name'] ?? null,
             'middle_initial' => $this->normalizeMiddleInitial($data['middle_initial'] ?? null),
             'middle_name' => $data['middle_name'] ?? null,
-            'course' => $data['course'] ?? LawCourse::find($data['course_id'] ?? null)?->code,
+            'course' => $data['course'] ?? $courseCode,
             'school_year' => $data['school_year'] ?? null,
             'semester_or_summer' => $data['semester_or_summer']
                 ?? ($data['semester'] ?? null),
@@ -1224,12 +1296,13 @@ class LawSchoolLedgerController extends Controller
             'particulars' => $data['particulars'] ?? 'Tuition',
             'tuition_per_unit_or_fee_per_semester' => $data['tuition_per_unit_or_fee_per_semester'] ?? '0.00',
             'ar_or_payment' => $data['ar_or_payment'] ?? 'AR',
+            'entry_type' => $data['entry_type'] ?? 'ar',
             'amount' => $data['amount'] ?? null,
             'remarks' => $data['remarks'] ?? null,
             'input_by' => $data['input_by'] ?? null,
         ];
 
-        $entryType = $attributes['entry_type'] ?? ($data['entry_type'] ?? 'ar');
+        $entryType = $attributes['entry_type'];
 
         // Auto-compute amount when AR and no amount supplied (mirrors Graduate behavior)
         if ($entryType === 'ar' && blank($attributes['amount'])) {
@@ -1264,8 +1337,8 @@ class LawSchoolLedgerController extends Controller
             'middle_initial' => $middleInitial,
             'middle_name' => $r->middle_name,
             'course' => $r->course,
-            'school_year' => $r->lawAcademicTerm?->school_year ?? ($r->school_year ?? ''),
-            'semester' => $r->lawAcademicTerm?->semester ?? $this->normalizeSemester((string) ($r->semester_or_summer ?? '')),
+            'school_year' => optional($r->lawAcademicTerm)->school_year ?? ($r->school_year ?? ''),
+            'semester' => optional($r->lawAcademicTerm)->semester ?? $this->normalizeSemester((string) ($r->semester_or_summer ?? '')),
             'semester_or_summer' => $r->semester_or_summer,
             'entry_type' => $r->entry_type ?? 'ar',
             'units' => $r->units,
@@ -1317,7 +1390,7 @@ class LawSchoolLedgerController extends Controller
      * Clamps an amount value to the PostgreSQL decimal(10,2) max (99,999,999.99)
      * and strips any stray formula prefixes. Mirrors Graduate::cleanAmount().
      */
-    private function cleanAmount($rawAmount): float
+    private function cleanAmount(mixed $rawAmount): float
     {
         $str = trim((string) ($rawAmount ?? ''));
 
@@ -1343,10 +1416,10 @@ class LawSchoolLedgerController extends Controller
      * the `entry_type` column (positive magnitudes) so callers do not need to know
      * whether payments were stored with a sign.
      *
-     * @param  \Illuminate\Support\Collection<int, LawSchoolLedger>|\Illuminate\Database\Eloquent\Collection<int, LawSchoolLedger>|array<int, LawSchoolLedger>  $records
-     * @return array<string, float>
+     * @param  iterable<LawSchoolLedger>  $records
+     * @return BalanceSummary
      */
-    private function calculateStudentBalanceNormalized($records): array
+    private function calculateStudentBalanceNormalized(iterable $records): array
     {
         $totalCharges = 0.0;
         $totalPayments = 0.0;
@@ -1378,14 +1451,14 @@ class LawSchoolLedgerController extends Controller
     }
 
     /**
-     * @deprecated Use calculateStudentBalanceNormalized() instead.
-     * Kept for backwards compatibility with any callers passing pre-transformed arrays.
+     * @return array{
+     *     courses: list<string>,
+     *     schoolYears: list<string>,
+     *     semesters: list<string>,
+     *     statuses: list<string>,
+     *     types: list<string>
+     * }
      */
-    private function calculateStudentBalance($records): array
-    {
-        return $this->calculateStudentBalanceNormalized($records);
-    }
-
     private function getFilterOptions(): array
     {
         $currentYear = (int) date('Y');
@@ -1394,34 +1467,41 @@ class LawSchoolLedgerController extends Controller
             $defaultSchoolYears[] = $i.'-'.($i + 1);
         }
 
-        $schoolYears = LawSchoolLedger::distinct()
+        $schoolYears = array_values(LawSchoolLedger::distinct()
             ->orderBy('school_year', 'desc')
             ->pluck('school_year')
-            ->filter()
+            ->filter(fn (mixed $value): bool => is_string($value) && $value !== '')
+            ->map(fn (mixed $value): string => (string) $value)
             ->values()
-            ->all();
+            ->all());
 
         if (empty($schoolYears)) {
             $schoolYears = $defaultSchoolYears;
         }
 
         return [
-            'courses' => LawSchoolLedger::distinct()->orderBy('course')->pluck('course')->filter()->values()->all(),
+            'courses' => array_values(LawSchoolLedger::distinct()
+                ->orderBy('course')
+                ->pluck('course')
+                ->filter(fn (mixed $value): bool => is_string($value) && $value !== '')
+                ->map(fn (mixed $value): string => (string) $value)
+                ->values()
+                ->all()),
             'schoolYears' => $schoolYears,
             // Normalize semester labels to a canonical set ("1st Sem", "2nd Sem",
             // "Summer") so equivalent values such as "First Semester" do not appear
             // as separate dropdown options. The canonical labels are always offered
             // even when no records exist yet for that term (e.g. Summer).
-            'semesters' => collect(['1st Sem', '2nd Sem', 'Summer'])
+            'semesters' => array_values(collect(['1st Sem', '2nd Sem', 'Summer'])
                 ->merge(
                     collect($this->deduplicatedOptions('semester_or_summer'))
-                        ->map(fn ($value) => $this->normalizeSemester($value))
+                        ->map(fn (string $value): string => $this->normalizeSemester($value))
                 )
                 ->filter()
                 ->unique()
                 ->sort()
                 ->values()
-                ->all(),
+                ->all()),
             // Deduplicate status options case-insensitively (ignoring whitespace) so
             // variants like " DROP" and "DROP" collapse into a single "DROP" option.
             'statuses' => $this->deduplicatedOptions('status'),
@@ -1434,23 +1514,38 @@ class LawSchoolLedgerController extends Controller
      * and ignoring surrounding whitespace. The most frequent stored variant is used
      * as the display label.
      */
+    /**
+     * @param  'ar_or_payment'|'semester_or_summer'|'status'  $column
+     * @return list<string>
+     */
     private function deduplicatedOptions(string $column): array
     {
-        return collect(
-            LawSchoolLedger::query()
-                ->selectRaw("{$column} as value, UPPER(TRIM({$column})) as option_key, COUNT(*) as option_count")
-                ->whereNotNull($column)
-                ->where($column, '!=', '')
-                ->groupBy('value', 'option_key')
-                ->get()
-        )
+        $select = match ($column) {
+            'ar_or_payment' => 'ar_or_payment as value, UPPER(TRIM(ar_or_payment)) as option_key, COUNT(*) as option_count',
+            'semester_or_summer' => 'semester_or_summer as value, UPPER(TRIM(semester_or_summer)) as option_key, COUNT(*) as option_count',
+            'status' => 'status as value, UPPER(TRIM(status)) as option_key, COUNT(*) as option_count',
+        };
+
+        return array_values(LawSchoolLedger::query()
+            ->selectRaw($select)
+            ->whereNotNull($column)
+            ->where($column, '!=', '')
+            ->groupBy('value', 'option_key')
+            ->get()
             ->groupBy('option_key')
-            ->map(function ($variants) {
-                return $variants->sortByDesc('option_count')->first()->value;
+            ->map(function (Collection $variants): string {
+                $variant = $variants
+                    ->sortByDesc(fn (LawSchoolLedger $record): int => (int) $record->getAttribute('option_count'))
+                    ->first();
+
+                return $variant instanceof LawSchoolLedger
+                    ? (string) $variant->getAttribute('value')
+                    : '';
             })
+            ->filter(fn (string $value): bool => $value !== '')
             ->sort()
             ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -1473,6 +1568,7 @@ class LawSchoolLedgerController extends Controller
      * Returns the stored-value aliases that belong to a canonical semester label,
      * used so the semester filter matches every equivalent stored variant.
      */
+    /** @return list<string> */
     private function semesterAliases(string $semester): array
     {
         return match ($this->normalizeSemester($semester)) {
@@ -1486,10 +1582,12 @@ class LawSchoolLedgerController extends Controller
     // ─── Import Warning Constants ─────────────────────────────────────────────
 
     const WARNING_NEGATIVE_BLANK_TYPE = 'negative_blank_type';
+
     const WARNING_NEGATIVE_LABELED_AR = 'negative_labeled_ar';
+
     const WARNING_PAYMENT_MISSING_PARENTHESES = 'payment_missing_parentheses';
 
-    /** @return array<string, int> */
+    /** @return WarningCounts */
     private function emptyImportWarnings(): array
     {
         return [
@@ -1499,7 +1597,7 @@ class LawSchoolLedgerController extends Controller
         ];
     }
 
-    /** @param  array<string, int>  $warnings */
+    /** @param  WarningCounts  $warnings */
     private function importSummary(int $imported, int $skipped, array $warnings): string
     {
         $summary = "Import complete: {$imported} records imported, {$skipped} blank rows skipped.";
