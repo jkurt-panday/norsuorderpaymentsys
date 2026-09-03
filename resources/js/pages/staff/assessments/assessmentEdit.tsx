@@ -218,7 +218,7 @@ export default function AssessmentEdit({
 
                         <section>
                             <h2 className="mb-3 text-sm font-bold tracking-wider text-slate-500 uppercase">
-                                Course & Academic Information
+                                Course & Academic Information Requested
                             </h2>
                             <div className="grid grid-cols-1 gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4 sm:grid-cols-2 md:grid-cols-3">
                                 <Detail
