@@ -551,7 +551,6 @@ export default function ResourceTable<T extends { id: number }>({
                         {filters}
                         {sortOptions && sortOptions.length > 0 && (
                             <Popover>
-<<<<<<< HEAD
                                 <PopoverTrigger
                                     render={
                                         <button
@@ -567,22 +566,6 @@ export default function ResourceTable<T extends { id: number }>({
                                     }
                                 >
                                     <ArrowUpDown className="h-4 w-4" />
-=======
-                                <PopoverTrigger asChild>
-                                    <span
-                                        role="button"
-                                        tabIndex={0}
-                                        className={`inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border text-slate-500 transition-colors hover:bg-slate-50 ${
-                                            activeSortValue
-                                                ? 'border-blue-300 bg-blue-50 text-blue-600'
-                                                : 'border-slate-200 bg-white'
-                                        }`}
-                                        aria-label="Sort"
-                                        title="Sort"
-                                    >
-                                        <ArrowUpDown className="h-4 w-4" />
-                                    </span>
->>>>>>> f5701c87f22c935eb0964ba535e3805bd26f36be
                                 </PopoverTrigger>
                                 <PopoverContent
                                     align="end"
@@ -849,7 +832,6 @@ export default function ResourceTable<T extends { id: number }>({
                                                 }
                                             }}
                                         >
-<<<<<<< HEAD
                                             <PopoverTrigger
                                                 render={
                                                     <button
@@ -861,18 +843,6 @@ export default function ResourceTable<T extends { id: number }>({
                                                 Page {resource.current_page} of{' '}
                                                 {resource.last_page}
                                             </PopoverTrigger>
-=======
-                                        <PopoverTrigger asChild>
-                                            <span
-                                                role="button"
-                                                tabIndex={0}
-                                                className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
-                                            >
-                                                Page {resource.current_page}{' '}
-                                                of {resource.last_page}
-                                            </span>
-                                        </PopoverTrigger>
->>>>>>> f5701c87f22c935eb0964ba535e3805bd26f36be
                                             <PopoverContent
                                                 align="center"
                                                 className="w-48 space-y-2 p-2"
