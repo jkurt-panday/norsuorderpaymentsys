@@ -151,10 +151,17 @@ class LawSchoolLedgerController extends Controller
      */
     public function create(): Response
     {
+        $statuses = $this->deduplicatedOptions('status');
+
+        if ($statuses === []) {
+            $statuses = ['Pending', 'Paid'];
+        }
+
         return Inertia::render('law-ledger/AddTransaction', [
             'students' => $this->studentList(),
             'courses' => $this->courseList(),
             'academicTerms' => $this->academicTermList(),
+            'statuses' => $statuses,
             'authUserName' => auth()->user()?->name ?? '',
         ]);
     }

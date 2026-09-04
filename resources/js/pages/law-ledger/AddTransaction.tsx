@@ -70,6 +70,7 @@ interface Props {
     students: StudentOption[];
     courses: CourseOption[];
     academicTerms: AcademicTermOption[];
+    statuses: string[];
     authUserName: string;
 }
 
@@ -250,6 +251,7 @@ export default function AddTransaction({
     students,
     courses,
     academicTerms,
+    statuses,
     authUserName,
 }: Props) {
     const [showNewStudent, setShowNewStudent] = useState(false);
@@ -278,6 +280,7 @@ export default function AddTransaction({
         particulars: string;
         tuition_per_unit_or_misc: string;
         amount: string;
+        status: string;
         remarks: string;
         input_by: string;
     }>({
@@ -294,6 +297,7 @@ export default function AddTransaction({
         particulars: 'Tuition',
         tuition_per_unit_or_misc: '',
         amount: '',
+        status: 'Pending',
         remarks: '',
         input_by: authUserName,
     });
@@ -667,6 +671,26 @@ export default function AddTransaction({
                                 {entryTypeOptions.map((opt) => (
                                     <option key={opt.value} value={opt.value}>
                                         {opt.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* ── Status ─────────────────────────────────────── */}
+                        <div>
+                            <label className="text-sm text-[#334E68]">
+                                Status
+                            </label>
+                            <select
+                                value={data.status}
+                                onChange={(e) =>
+                                    setData('status', e.target.value)
+                                }
+                                className={selectClass}
+                            >
+                                {statuses.map((status) => (
+                                    <option key={status} value={status}>
+                                        {status}
                                     </option>
                                 ))}
                             </select>
