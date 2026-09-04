@@ -2,7 +2,8 @@
 
 use App\Models\AuthorizedOfficial;
 
-if (!function_exists('wrapToLines')) {
+if (! function_exists('wrapToLines')) {
+    /** @return list<string> */
     function wrapToLines(string $text, int $charsPerLine = 60): array
     {
         if (trim($text) === '') {
