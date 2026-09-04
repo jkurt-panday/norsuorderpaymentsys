@@ -2,24 +2,29 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Student extends Model
 {
+    /** @use HasFactory<Factory<Student>> */
     use HasFactory;
 
     protected $table = 'graduate_student';
 
     protected $fillable = [
         'student_number',
+        'email',
         'last_name',
         'first_name',
         'middle_name',
         'raw_name_from_csv',
     ];
 
-    public function graduateLedgers()
+    /** @return HasMany<GraduateLedger, $this> */
+    public function graduateLedgers(): HasMany
     {
         return $this->hasMany(GraduateLedger::class);
     }
@@ -42,15 +47,18 @@ class Student extends Model
      */
     public function balance(): float
     {
-        return (float) $this->graduateLedgers()
+        $balance = $this->graduateLedgers()
             ->selectRaw("SUM(CASE WHEN entry_type = 'ar' THEN amount WHEN entry_type IN ('payment','adjustment') THEN -amount ELSE 0 END) as bal")
-            ->value('bal') ?? 0.0;
+            ->value('bal');
+
+        return $balance === null ? 0.0 : (float) $balance;
     }
 
     /**
      * Attempt to parse a raw "LAST, FIRST M." string into name components.
      * Returns an array with keys: last_name, first_name, middle_name.
      */
+    /** @return array{last_name: string, first_name: string, middle_name: string|null} */
     public static function parseRawName(string $rawName): array
     {
         $rawName = trim($rawName);
@@ -61,6 +69,15 @@ class Student extends Model
             $rest = trim($rest);
 
             $parts = preg_split('/\s+/', $rest);
+
+            if ($parts === false || $parts === []) {
+                return [
+                    'last_name' => trim($last),
+                    'first_name' => '',
+                    'middle_name' => null,
+                ];
+            }
+
             $count = count($parts);
 
             if ($count === 1) {

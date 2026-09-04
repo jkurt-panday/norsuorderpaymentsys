@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -18,9 +19,10 @@ use Inertia\Response;
  * since those genuinely differ per resource (different validation rules,
  * different "is this still in use" checks before delete, etc.).
  */
+/** @template TModel of Model */
 abstract class BaseResourceController extends Controller
 {
-    /** Fully-qualified Eloquent model class, e.g. Membership::class */
+    /** @var class-string<TModel> Fully-qualified Eloquent model class. */
     protected string $model;
 
     /**
@@ -28,6 +30,7 @@ abstract class BaseResourceController extends Controller
      * `where(...)->orWhere(...)` LIKE match across all of them.
      * e.g. ['member_code', 'member_desc']
      */
+    /** @var list<string> */
     protected array $searchableColumns = [];
 
     /**
@@ -35,6 +38,7 @@ abstract class BaseResourceController extends Controller
      * Account's "sort by bank name, then account name" default ordering.
      * [ ['column' => 'account_name', 'direction' => 'asc'] ]
      */
+    /** @var list<array{column: string, direction?: 'asc'|'desc'}> */
     protected array $secondaryOrderBy = [];
 
     /** Inertia view path for the index page, e.g. 'staff/memberships/membership' */
@@ -48,12 +52,14 @@ abstract class BaseResourceController extends Controller
     protected string $resourceKey;
 
     /** Relations to eager-load before querying, e.g. ['formInputs'] */
+    /** @var list<string> */
     protected array $with = [];
 
     protected int $perPage = 10;
 
     protected string $orderBy = 'id';
 
+    /** @var 'asc'|'desc' */
     protected string $orderDirection = 'asc';
 
     /**
@@ -63,6 +69,7 @@ abstract class BaseResourceController extends Controller
      * straight into orderBy() from user input.
      * e.g. ['member_code', 'member_desc', 'created_at']
      */
+    /** @var list<string> */
     protected array $sortableColumns = [];
 
     /**
@@ -73,6 +80,7 @@ abstract class BaseResourceController extends Controller
      * request. Like $sortableColumns, this is an allowlist — only keys
      * declared here are ever applied.
      */
+    /** @var array<string, string> */
     protected array $filterableColumns = [];
 
     /**
@@ -85,19 +93,20 @@ abstract class BaseResourceController extends Controller
      */
     public function index(Request $request): Response
     {
-        $query = $this->model::query();
+        $query = $this->newModel()->newQuery();
 
         if (! empty($this->with)) {
             $query->with($this->with);
         }
 
-        if ($search = $request->query('search')) {
+        $search = $request->query('search');
+        if (is_string($search) && $search !== '') {
             $columns = $this->searchableColumns;
             $searchLower = strtolower($search);
 
             $query->where(function (Builder $q) use ($columns, $searchLower) {
                 foreach ($columns as $column) {
-                    $q->orWhereRaw("LOWER({$column}) LIKE ?", ["%{$searchLower}%"]);
+                    $q->orWhere($column, 'ilike', "%{$searchLower}%");
                 }
             });
         }
@@ -118,7 +127,7 @@ abstract class BaseResourceController extends Controller
         $orderDirection = $this->orderDirection;
 
         $requestedSort = $request->query('sort');
-        if ($requestedSort && in_array($requestedSort, $this->sortableColumns, true)) {
+        if (is_string($requestedSort) && in_array($requestedSort, $this->sortableColumns, true)) {
             $orderBy = $requestedSort;
             $orderDirection = $request->query('direction') === 'desc' ? 'desc' : 'asc';
         }
@@ -163,6 +172,10 @@ abstract class BaseResourceController extends Controller
      * (e.g. a status filter, a date range, scoping to the current user).
      * Default: no-op, returns the query unchanged.
      */
+    /**
+     * @param  Builder<Model>  $query
+     * @return Builder<Model>
+     */
     protected function modifyIndexQuery(Builder $query, Request $request): Builder
     {
         return $query;
@@ -173,8 +186,17 @@ abstract class BaseResourceController extends Controller
      * the resource + flash (e.g. dropdown options for a create form on the
      * same page). Default: none.
      */
+    /** @return array<string, mixed> */
     protected function extraIndexProps(Request $request): array
     {
         return [];
+    }
+
+    /** @return TModel */
+    private function newModel(): Model
+    {
+        $model = $this->model;
+
+        return new $model;
     }
 }

@@ -10,6 +10,36 @@ use App\Models\Student;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
+/**
+ * @phpstan-type Candidate array{
+ *     key: string,
+ *     name: string,
+ *     studentId: string|null,
+ *     firstName: string|null,
+ *     middleName: string|null,
+ *     lastName: string|null,
+ *     pdfQueryKey: 'student'|'student_id',
+ *     pdfQueryValue: string,
+ *     modelId: int|null
+ * }
+ * @phpstan-type PublicCandidate array{
+ *     key: string,
+ *     name: string,
+ *     studentId: string|null,
+ *     pdfQueryKey: 'student'|'student_id',
+ *     pdfQueryValue: string
+ * }
+ * @phpstan-type Summary array{
+ *     totalCharges: float,
+ *     totalPayments: float,
+ *     outstandingBalance: float
+ * }
+ * @phpstan-type Match array{
+ *     status: 'manual'|'matched'|'ambiguous'|'missing',
+ *     selected: Candidate|null,
+ *     candidates: list<Candidate>
+ * }
+ */
 class LedgerMatchingService
 {
     /** @return array<string, mixed> */
@@ -37,17 +67,7 @@ class LedgerMatchingService
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->get(['id', 'student_number', 'last_name', 'first_name', 'middle_name'])
-            ->map(fn (Student $student) => [
-                'key' => 'graduate:'.$student->id,
-                'name' => $student->full_name,
-                'studentId' => $student->student_number,
-                'firstName' => $student->first_name,
-                'middleName' => $student->middle_name,
-                'lastName' => $student->last_name,
-                'pdfQueryKey' => 'student_id',
-                'pdfQueryValue' => (string) $student->id,
-                'modelId' => $student->id,
-            ]);
+            ->map(fn (Student $student): array => $this->graduateCandidate($student));
 
         $match = $this->resolveCandidate($students, $assessment, $manualSelection);
         $selected = $match['selected'];
@@ -90,23 +110,10 @@ class LedgerMatchingService
             ->values();
 
         $groupedRecords = $termRecords->groupBy(fn (LawSchoolLedger $record) => $this->lawCandidateKey($record));
-        $students = $groupedRecords->map(function (Collection $records, string $key) {
-            /** @var LawSchoolLedger $student */
-            $student = $records->first();
-            $name = $this->lawStudentName($student);
-
-            return [
-                'key' => $key,
-                'name' => $name,
-                'studentId' => $student->student_id,
-                'firstName' => $student->first_name,
-                'middleName' => $student->middle_initial,
-                'lastName' => $student->last_name,
-                'pdfQueryKey' => filled($student->student_id) ? 'student_id' : 'student',
-                'pdfQueryValue' => filled($student->student_id) ? (string) $student->student_id : $name,
-                'modelId' => null,
-            ];
-        })->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values();
+        $students = $groupedRecords
+            ->map(fn (Collection $records, string $key): array => $this->lawCandidate($records, $key))
+            ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values();
 
         $match = $this->resolveCandidate($students, $assessment, $manualSelection);
         $selected = $match['selected'];
@@ -122,9 +129,47 @@ class LedgerMatchingService
         );
     }
 
+    /** @return Candidate */
+    private function graduateCandidate(Student $student): array
+    {
+        return [
+            'key' => 'graduate:'.$student->id,
+            'name' => $student->full_name,
+            'studentId' => $student->student_number,
+            'firstName' => $student->first_name,
+            'middleName' => $student->middle_name,
+            'lastName' => $student->last_name,
+            'pdfQueryKey' => 'student_id',
+            'pdfQueryValue' => (string) $student->id,
+            'modelId' => $student->id,
+        ];
+    }
+
     /**
-     * @param  Collection<int, array<string, mixed>>  $candidates
-     * @return array{status: string, selected: ?array, candidates: Collection}
+     * @param  Collection<int, LawSchoolLedger>  $records
+     * @return Candidate
+     */
+    private function lawCandidate(Collection $records, string $key): array
+    {
+        $student = $records->firstOrFail();
+        $name = $this->lawStudentName($student);
+
+        return [
+            'key' => $key,
+            'name' => $name,
+            'studentId' => $student->student_id,
+            'firstName' => $student->first_name,
+            'middleName' => $student->middle_initial,
+            'lastName' => $student->last_name,
+            'pdfQueryKey' => filled($student->student_id) ? 'student_id' : 'student',
+            'pdfQueryValue' => filled($student->student_id) ? (string) $student->student_id : $name,
+            'modelId' => null,
+        ];
+    }
+
+    /**
+     * @param  Collection<int, covariant Candidate>  $candidates
+     * @return Match
      */
     private function resolveCandidate(Collection $candidates, AssessmentForm $assessment, ?string $manualSelection): array
     {
@@ -132,7 +177,7 @@ class LedgerMatchingService
             $manualCandidate = $candidates->firstWhere('key', $manualSelection);
 
             if ($manualCandidate) {
-                return ['status' => 'manual', 'selected' => $manualCandidate, 'candidates' => collect()];
+                return ['status' => 'manual', 'selected' => $manualCandidate, 'candidates' => []];
             }
         }
 
@@ -142,11 +187,11 @@ class LedgerMatchingService
             ) === $this->normalizeIdentifier($assessment->student_id));
 
             if ($idMatches->count() === 1) {
-                return ['status' => 'matched', 'selected' => $idMatches->first(), 'candidates' => collect()];
+                return ['status' => 'matched', 'selected' => $idMatches->first(), 'candidates' => []];
             }
 
             if ($idMatches->count() > 1) {
-                return ['status' => 'ambiguous', 'selected' => null, 'candidates' => $idMatches->values()];
+                return ['status' => 'ambiguous', 'selected' => null, 'candidates' => array_values($idMatches->all())];
             }
         }
 
@@ -164,20 +209,20 @@ class LedgerMatchingService
         });
 
         if ($nameMatches->count() === 1) {
-            return ['status' => 'matched', 'selected' => $nameMatches->first(), 'candidates' => collect()];
+            return ['status' => 'matched', 'selected' => $nameMatches->first(), 'candidates' => []];
         }
 
         return [
             'status' => $nameMatches->isEmpty() ? 'missing' : 'ambiguous',
             'selected' => null,
-            'candidates' => ($nameMatches->isEmpty() ? $candidates : $nameMatches)->values(),
+            'candidates' => array_values(($nameMatches->isEmpty() ? $candidates : $nameMatches)->all()),
         ];
     }
 
     /**
-     * @param  array{status: string, selected: ?array, candidates: Collection}  $match
+     * @param  Match  $match
      * @param  Collection<int, array<string, mixed>>  $records
-     * @param  array{totalCharges: float, totalPayments: float, outstandingBalance: float}  $summary
+     * @param  Summary  $summary
      * @return array<string, mixed>
      */
     private function statementPayload(
@@ -188,11 +233,13 @@ class LedgerMatchingService
         Collection $records,
         array $summary,
     ): array {
+        $selected = $match['selected'];
+
         return [
             'source' => $source,
             'matchStatus' => $match['status'],
-            'selectedStudent' => $this->publicCandidate($match['selected']),
-            'candidates' => $match['candidates']->map(fn (array $candidate) => $this->publicCandidate($candidate))->values(),
+            'selectedStudent' => $selected === null ? null : $this->publicCandidate($selected),
+            'candidates' => array_map($this->publicCandidate(...), $match['candidates']),
             'records' => $records->values(),
             'summary' => $summary,
             'schoolYear' => $assessment->sy_last_attended,
@@ -215,13 +262,12 @@ class LedgerMatchingService
         ];
     }
 
-    /** @param array<string, mixed>|null $candidate */
-    private function publicCandidate(?array $candidate): ?array
+    /**
+     * @param  Candidate  $candidate
+     * @return PublicCandidate
+     */
+    private function publicCandidate(array $candidate): array
     {
-        if (! $candidate) {
-            return null;
-        }
-
         return [
             'key' => $candidate['key'],
             'name' => $candidate['name'],
@@ -236,7 +282,7 @@ class LedgerMatchingService
     {
         return [
             'id' => $record->id,
-            'name' => $record->student?->full_name ?? '',
+            'name' => $record->student->full_name ?? '',
             'course' => $record->course?->code,
             'units' => $record->units,
             'schoolYear' => $record->academicTerm?->school_year,
@@ -271,7 +317,10 @@ class LedgerMatchingService
         ];
     }
 
-    /** @param Collection<int, GraduateLedger> $records */
+    /**
+     * @param  Collection<int, GraduateLedger>  $records
+     * @return Summary
+     */
     private function graduateSummary(Collection $records): array
     {
         $charges = (float) $records->where('entry_type', 'ar')->sum(fn (GraduateLedger $record) => abs((float) $record->amount));
@@ -281,7 +330,10 @@ class LedgerMatchingService
         return $this->summary($charges, $payments);
     }
 
-    /** @param Collection<int, LawSchoolLedger> $records */
+    /**
+     * @param  Collection<int, LawSchoolLedger>  $records
+     * @return Summary
+     */
     private function lawSummary(Collection $records): array
     {
         $charges = 0.0;
@@ -298,6 +350,7 @@ class LedgerMatchingService
         return $this->summary($charges, $payments);
     }
 
+    /** @return Summary */
     private function summary(float $charges, float $payments): array
     {
         return [
@@ -307,6 +360,7 @@ class LedgerMatchingService
         ];
     }
 
+    /** @return Summary */
     private function emptySummary(): array
     {
         return $this->summary(0, 0);

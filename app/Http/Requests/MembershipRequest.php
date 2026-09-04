@@ -2,7 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Membership;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class MembershipRequest extends FormRequest
 {
@@ -11,17 +14,20 @@ class MembershipRequest extends FormRequest
         return true; // Implement authorization as needed
     }
 
+    /** @return array<string, ValidationRule|array<mixed>|string> */
     public function rules(): array
     {
-        $isUpdate = $this->isMethod('PUT') || $this->isMethod('PATCH');
-        $membershipId = $this->route('membership') ? $this->route('membership')->id : null;
+        $membership = $this->route('membership');
+        $membershipId = $membership instanceof Membership
+            ? $membership->getKey()
+            : (is_numeric($membership) ? (int) $membership : null);
 
         return [
             'member_code' => [
                 'required',
                 'string',
                 'max:50',
-                $isUpdate ? "unique:memberships,member_code,{$membershipId}" : 'unique:memberships,member_code',
+                Rule::unique('memberships', 'member_code')->ignore($membershipId),
             ],
             'member_desc' => ['required', 'string', 'max:255'],
         ];

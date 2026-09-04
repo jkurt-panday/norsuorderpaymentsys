@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Actions\Fortify\ResetUserPassword;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
@@ -12,10 +14,9 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
-use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
-use App\Models\User;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -33,7 +34,8 @@ class FortifyServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->app->singleton(LoginResponseContract::class, function () {
-            return new class implements LoginResponseContract {
+            return new class implements LoginResponseContract
+            {
                 public function toResponse($request)
                 {
                     $user = auth()->user();
@@ -128,10 +130,6 @@ class FortifyServiceProvider extends ServiceProvider
         });
 
         Fortify::confirmPasswordView(function (Request $request) {
-            if ($redirect = $this->redirectIfAuthenticated($request)) {
-                return $redirect;
-            }
-
             return Inertia::render('auth/confirm-password');
         });
     }
@@ -139,7 +137,7 @@ class FortifyServiceProvider extends ServiceProvider
     /**
      * Redirect an already-authenticated user to their role-based dashboard.
      */
-    private function redirectIfAuthenticated(Request $request)
+    private function redirectIfAuthenticated(Request $request): ?RedirectResponse
     {
         $user = $request->user();
         if (! $user) {

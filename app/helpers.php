@@ -10,6 +10,7 @@ if (!function_exists('wrapToLines')) {
         }
 
         $wrapped = wordwrap($text, $charsPerLine, "\n", true);
+
         return explode("\n", $wrapped);
     }
 }

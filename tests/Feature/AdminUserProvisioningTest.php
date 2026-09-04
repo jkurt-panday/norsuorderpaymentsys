@@ -12,16 +12,17 @@ class AdminUserProvisioningTest extends TestCase
 
     public function test_staff_cannot_provision_users(): void
     {
-        $staff = User::factory()->create(['role' => 'staff']);
+        $staff = User::factory()->staff()->create();
 
         $this->actingAs($staff)
             ->post(route('admin.users.store'), $this->validPayload())
-            ->assertForbidden();
+            ->assertRedirect(route('staff.dashboard'))
+            ->assertSessionHas('error', "You don't have permission to access that section.");
     }
 
     public function test_admin_can_provision_a_staff_and_an_audit_entry_is_created(): void
     {
-        $admin = User::factory()->create(['role' => 'admin']);
+        $admin = User::factory()->admin()->create();
 
         $this->actingAs($admin)
             ->post(route('admin.users.store'), $this->validPayload())
@@ -38,7 +39,7 @@ class AdminUserProvisioningTest extends TestCase
 
     public function test_invalid_roles_are_rejected(): void
     {
-        $admin = User::factory()->create(['role' => 'admin']);
+        $admin = User::factory()->admin()->create();
 
         $this->actingAs($admin)
             ->from(route('dashboard'))

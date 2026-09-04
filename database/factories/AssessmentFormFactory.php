@@ -11,10 +11,9 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class AssessmentFormFactory extends Factory
 {
-
-    // at the top of the factory class
+    /** @var list<int>|null */
     protected static ?array $courseIds = null;
-    
+
     /**
      * Define the model's default state.
      *
@@ -22,10 +21,12 @@ class AssessmentFormFactory extends Factory
      */
     public function definition(): array
     {
-        static::$courseIds ??= Courses::pluck('id')->all();
+        static::$courseIds ??= array_values(
+            Courses::query()->pluck('id')->map(fn (mixed $id): int => (int) $id)->all()
+        );
 
         $createdAt = $this->faker->dateTimeBetween(now()->startOfMonth(), now()->endOfMonth());
-        
+
         return [
             'reference_number' => sprintf('%s-%s-AF-%s', now()->format('Y'), now()->format('m'), $this->faker->unique()->numerify('###')),
             'email' => $this->faker->unique()->safeEmail(),

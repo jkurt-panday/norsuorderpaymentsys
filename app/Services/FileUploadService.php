@@ -7,6 +7,7 @@ use App\Models\SupportingDocument;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FileUploadService
 {
@@ -14,6 +15,7 @@ class FileUploadService
 
     protected string $directory = 'supporting-documents';
 
+    /** @var list<string> */
     protected array $allowedTypes = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'svg'];
 
     protected int $maxFileSize = 10240; // 10MB in KB
@@ -58,6 +60,9 @@ class FileUploadService
 
     /**
      * Upload multiple documents
+     *
+     * @param  array<int, mixed>  $files
+     * @return list<SupportingDocument>
      */
     public function uploadDocuments(array $files, FormInput $formInput): array
     {

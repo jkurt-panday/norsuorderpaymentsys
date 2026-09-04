@@ -10,10 +10,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class GoogleController extends Controller
 {
-    public function redirect(Request $request)
+    public function redirect(Request $request): RedirectResponse
     {
         if (Auth::check()) {
             $user = Auth::user();
@@ -35,7 +36,7 @@ class GoogleController extends Controller
         return Socialite::driver('google')->redirect();
     }
 
-    public function callback()
+    public function callback(): RedirectResponse
     {
         $googleUser = Socialite::driver('google')->user();
 
@@ -69,13 +70,13 @@ class GoogleController extends Controller
                 UserProfile::updateOrCreate(
                     ['user_id' => $user->id],
                     [
-                        'firstname_or_office'     => $formInput->firstname_or_office,
-                        'middlename_or_project'   => $formInput->middlename_or_project,
-                        'lastname_or_agency'      => $formInput->lastname_or_agency,
-                        'contact_num'             => $formInput->contact_num,
-                        'office_or_college'       => $formInput->office_or_college,
+                        'firstname_or_office' => $formInput->firstname_or_office,
+                        'middlename_or_project' => $formInput->middlename_or_project,
+                        'lastname_or_agency' => $formInput->lastname_or_agency,
+                        'contact_num' => $formInput->contact_num,
+                        'office_or_college' => $formInput->office_or_college,
                         'position_or_designation' => $formInput->position_or_designation,
-                        'address'                 => $formInput->address,
+                        'address' => $formInput->address,
                     ]
                 );
             }

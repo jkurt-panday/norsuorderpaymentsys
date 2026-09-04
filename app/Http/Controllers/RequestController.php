@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\FormInput;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class RequestController extends Controller
@@ -10,7 +11,7 @@ class RequestController extends Controller
     /**
      * API endpoint for live table updates
      */
-    public function apiIndex(Request $request)
+    public function apiIndex(Request $request): JsonResponse
     {
         $query = FormInput::with('staffInput', 'membership');
 

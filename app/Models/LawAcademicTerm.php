@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LawAcademicTerm extends Model
 {
+    /** @use HasFactory<Factory<LawAcademicTerm>> */
     use HasFactory;
 
     protected $table = 'law_academic_term';
@@ -22,7 +25,8 @@ class LawAcademicTerm extends Model
         'sort_order' => 'integer',
     ];
 
-    public function lawSchoolLedgers()
+    /** @return HasMany<LawSchoolLedger, $this> */
+    public function lawSchoolLedgers(): HasMany
     {
         return $this->hasMany(LawSchoolLedger::class);
     }
@@ -39,6 +43,7 @@ class LawAcademicTerm extends Model
         if (str_contains($lower, 'summer') || str_contains($lower, 'intersession')) {
             return 'Summer';
         }
+
         return 'First Semester';
     }
 
@@ -49,8 +54,8 @@ class LawAcademicTerm extends Model
     {
         return match ($semester) {
             'Second Semester' => 2,
-            'Summer'          => 3,
-            default           => 1,
+            'Summer' => 3,
+            default => 1,
         };
     }
 }
