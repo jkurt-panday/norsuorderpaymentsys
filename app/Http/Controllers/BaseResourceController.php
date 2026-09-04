@@ -103,6 +103,7 @@ abstract class BaseResourceController extends Controller
         if (is_string($search) && $search !== '') {
             $columns = $this->searchableColumns;
             $searchLower = strtolower($search);
+
             $query->where(function (Builder $q) use ($columns, $searchLower) {
                 foreach ($columns as $column) {
                     $q->orWhere($column, 'ilike', "%{$searchLower}%");

@@ -396,6 +396,10 @@ class StaffInputController extends Controller
      */
     public function updateDetails(Request $request, FormInput $formInput): RedirectResponse
     {
+        if ($formInput->staffInput && $formInput->staffInput->status === 'paid') {
+            abort(422, 'Paid requests can no longer be changed by Accounting.');
+        }
+
         $validated = $request->validate([
             'firstname_or_office' => 'required|string|max:100',
             'middlename_or_project' => 'nullable|string|max:100',

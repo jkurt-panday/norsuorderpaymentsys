@@ -1,7 +1,8 @@
 <?php
 
-if (! function_exists('wrapToLines')) {
-    /** @return list<string> */
+use App\Models\AuthorizedOfficial;
+
+if (!function_exists('wrapToLines')) {
     function wrapToLines(string $text, int $charsPerLine = 60): array
     {
         if (trim($text) === '') {
@@ -90,5 +91,16 @@ if (! function_exists('integerToWords')) {
         }
 
         return trim($words);
+    }
+}
+
+if (! function_exists('activeAuthorizedOfficial')) {
+    /**
+     * The currently-designated signatory for generated PDFs (the active
+     * authorized official). Returns null when none has been configured yet.
+     */
+    function activeAuthorizedOfficial(): ?AuthorizedOfficial
+    {
+        return AuthorizedOfficial::current();
     }
 }

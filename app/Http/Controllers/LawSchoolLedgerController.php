@@ -169,11 +169,18 @@ class LawSchoolLedgerController extends Controller
      */
     public function create(): Response
     {
+        $statuses = $this->deduplicatedOptions('status');
+
+        if ($statuses === []) {
+            $statuses = ['Pending', 'Paid'];
+        }
+
         return Inertia::render('law-ledger/AddTransaction', [
             'students' => $this->studentList(),
             'courses' => $this->courseList(),
             'academicTerms' => $this->academicTermList(),
-            'authUserName' => optional(auth()->user())->name ?? '',
+            'statuses' => $statuses,
+            'authUserName' => auth()->user()?->name ?? '',
         ]);
     }
 
@@ -317,6 +324,13 @@ class LawSchoolLedgerController extends Controller
         LawSchoolLedger::findOrFail($id)->delete();
 
         return redirect()->route('law-ledger.index')->with('success', 'Transaction deleted successfully.');
+    }
+
+    public function destroyStudent(int $id): RedirectResponse
+    {
+        LawStudent::findOrFail($id)->delete();
+
+        return back()->with('success', 'Student deleted successfully.');
     }
 
     public function import(Request $request): RedirectResponse

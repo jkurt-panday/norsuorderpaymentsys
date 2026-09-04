@@ -1,7 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Search } from 'lucide-react';
-import type { FormEvent} from 'react';
-import { useState } from 'react';
+import { Inbox } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import RequestTable, { StatusBadge } from '@/components/RequestTable';
+import type { ColumnDef, PaginatedData } from '@/components/RequestTable';
 import cashier from '@/routes/cashier';
 
 interface FormInput {
@@ -18,33 +19,31 @@ interface PaymentRequest {
     status: 'processed' | 'paid';
     or_no: string | null;
     or_date: string | null;
+    created_at: string;
     form_input: FormInput;
 }
 
-interface PaginationLink {
-    url: string | null;
-    label: string;
-    active: boolean;
+interface Filters {
+    search: string;
+    status: string;
+    date_from: string;
+    date_to: string;
 }
 
 interface Props {
-    requests: {
-        data: PaymentRequest[];
-        links: PaginationLink[];
-        from: number | null;
-        to: number | null;
-        total: number;
-    };
-    filters: {
-        search: string;
-        status: 'processed' | 'paid';
-    };
+    requests: PaginatedData<PaymentRequest>;
+    filters: Filters;
 }
 
 const money = new Intl.NumberFormat('en-PH', {
     style: 'currency',
     currency: 'PHP',
 });
+
+const STATUS_TO_COLOR: Record<string, string> = {
+    processed: 'orange',
+    paid: 'dark-green',
+};
 
 function fullName(formInput: FormInput) {
     return [
@@ -56,193 +55,185 @@ function fullName(formInput: FormInput) {
         .join(' ');
 }
 
-export default function CashierRequestsIndex({ requests, filters }: Props) {
-    const [search, setSearch] = useState(filters.search);
-    const [status, setStatus] = useState(filters.status);
+const CashierRequestsIndex: React.FC<Props> = ({ requests, filters }) => {
+    const [search, setSearch] = useState(filters.search || '');
+    const [status, setStatus] = useState(filters.status || '');
+    const [dateFrom, setDateFrom] = useState(filters.date_from || '');
+    const [dateTo, setDateTo] = useState(filters.date_to || '');
 
-    const filter = (event: FormEvent) => {
-        event.preventDefault();
+    const applyFilters = useCallback(() => {
         router.get(
             cashier.requests.index.url(),
-            { search: search || undefined, status },
-            { preserveState: true, replace: true },
+            {
+                search: search || undefined,
+                status: status || undefined,
+                date_from: dateFrom || undefined,
+                date_to: dateTo || undefined,
+            },
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
+    }, [search, status, dateFrom, dateTo]);
+
+    const handleSubmit = (event: React.FormEvent) => {
+        event.preventDefault();
+        applyFilters();
+    };
+
+    const handleReset = () => {
+        setSearch('');
+        setStatus('');
+        setDateFrom('');
+        setDateTo('');
+        router.get(
+            cashier.requests.index.url(),
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+            },
         );
     };
+
+    const handlePageChange = (url: string) => {
+        router.get(url, {}, { preserveState: true, preserveScroll: true });
+    };
+
+    const columns: ColumnDef<PaymentRequest>[] = [
+        {
+            header: 'Reference #',
+            sortable: 'reference_number',
+            width: '170px',
+            render: (row) => (
+                <Link
+                    href={cashier.requests.show.url(row.id)}
+                    className="block truncate font-semibold text-blue-600 hover:underline"
+                >
+                    {row.form_input.reference_number}
+                </Link>
+            ),
+        },
+        {
+            header: 'Payer',
+            sortable: 'firstname_or_office',
+            width: '220px',
+            render: (row) => (
+                <div className="min-w-0">
+                    <div className="text-slate-900">
+                        {fullName(row.form_input)}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                        {row.form_input.email}
+                    </div>
+                </div>
+            ),
+        },
+        {
+            header: 'Amount',
+            sortable: 'amount',
+            width: '110px',
+            align: 'right',
+            className: 'tabular-nums',
+            render: (row) => money.format(Number(row.form_input.amount)),
+        },
+        {
+            header: 'Status',
+            sortable: 'status',
+            width: '120px',
+            render: (row) => (
+                <StatusBadge
+                    label={row.status === 'paid' ? 'Paid' : 'Ready'}
+                    color={STATUS_TO_COLOR[row.status]}
+                />
+            ),
+        },
+        {
+            header: 'OR number',
+            sortable: 'or_no',
+            width: '150px',
+            render: (row) => row.or_no ?? '—',
+        },
+        {
+            header: 'Date recorded',
+            sortable: 'created_at',
+            width: '180px',
+            className: 'whitespace-nowrap text-slate-600',
+            render: (row) =>
+                new Date(row.created_at ?? row.or_date ?? '').toLocaleString(
+                    'en-US',
+                    {
+                        timeZone: 'Asia/Manila',
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                    },
+                ),
+        },
+    ];
+
+    const renderActions = (row: PaymentRequest) => (
+        <div className="inline-flex overflow-hidden rounded-md shadow-sm">
+            <Link
+                href={cashier.requests.show.url(row.id)}
+                title={row.status === 'paid' ? 'View' : 'Record payment'}
+                className="flex h-8 w-8 items-center justify-center bg-cyan-400 text-white transition-colors hover:bg-cyan-500"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-3.5 w-3.5"
+                >
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+                    <circle cx="12" cy="12" r="3" />
+                </svg>
+            </Link>
+        </div>
+    );
 
     return (
         <>
             <Head title="Cashier Requests" />
 
-            <div className="mx-auto max-w-7xl space-y-6">
-                <div>
-                    <h1 className="text-2xl font-semibold text-slate-900">
-                        Payment Requests
-                    </h1>
-                    <p className="mt-1 text-sm text-slate-600">
-                        Record the official receipt for requests processed by
-                        Accounting.
-                    </p>
-                </div>
-
-                <form
-                    onSubmit={filter}
-                    className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row"
-                >
-                    <div className="relative min-w-0 flex-1">
-                        <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                        <input
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Reference, payer, email, or OR number"
-                            className="w-full rounded-lg border border-slate-300 py-2 pr-3 pl-9 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                        />
-                    </div>
-                    <select
-                        value={status}
-                        onChange={(event) =>
-                            setStatus(
-                                event.target.value as 'processed' | 'paid',
-                            )
-                        }
-                        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
-                    >
-                        <option value="processed">Ready for payment</option>
-                        <option value="paid">Paid</option>
-                    </select>
-                    <button
-                        type="submit"
-                        className="rounded-lg bg-blue-700 px-5 py-2 text-sm font-medium text-white hover:bg-blue-800"
-                    >
-                        Filter
-                    </button>
-                </form>
-
-                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-slate-50 text-xs tracking-wide text-slate-600 uppercase">
-                                <tr>
-                                    <th className="px-5 py-3">Reference</th>
-                                    <th className="px-5 py-3">Payer</th>
-                                    <th className="px-5 py-3">Amount</th>
-                                    <th className="px-5 py-3">Status</th>
-                                    <th className="px-5 py-3">OR number</th>
-                                    <th className="px-5 py-3 text-right">
-                                        Action
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {requests.data.map((paymentRequest) => (
-                                    <tr key={paymentRequest.id}>
-                                        <td className="px-5 py-4 font-medium text-slate-900">
-                                            {
-                                                paymentRequest.form_input
-                                                    .reference_number
-                                            }
-                                        </td>
-                                        <td className="px-5 py-4">
-                                            <div className="text-slate-900">
-                                                {fullName(
-                                                    paymentRequest.form_input,
-                                                )}
-                                            </div>
-                                            <div className="text-xs text-slate-500">
-                                                {
-                                                    paymentRequest.form_input
-                                                        .email
-                                                }
-                                            </div>
-                                        </td>
-                                        <td className="px-5 py-4 tabular-nums">
-                                            {money.format(
-                                                Number(
-                                                    paymentRequest.form_input
-                                                        .amount,
-                                                ),
-                                            )}
-                                        </td>
-                                        <td className="px-5 py-4">
-                                            <span
-                                                className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                                                    paymentRequest.status ===
-                                                    'paid'
-                                                        ? 'bg-emerald-100 text-emerald-800'
-                                                        : 'bg-amber-100 text-amber-800'
-                                                }`}
-                                            >
-                                                {paymentRequest.status ===
-                                                'paid'
-                                                    ? 'Paid'
-                                                    : 'Ready'}
-                                            </span>
-                                        </td>
-                                        <td className="px-5 py-4 text-slate-700">
-                                            {paymentRequest.or_no ?? '—'}
-                                        </td>
-                                        <td className="px-5 py-4 text-right">
-                                            <Link
-                                                href={cashier.requests.show.url(
-                                                    paymentRequest.id,
-                                                )}
-                                                className="font-medium text-blue-700 hover:underline"
-                                            >
-                                                {paymentRequest.status ===
-                                                'paid'
-                                                    ? 'View'
-                                                    : 'Record payment'}
-                                            </Link>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {requests.data.length === 0 && (
-                                    <tr>
-                                        <td
-                                            colSpan={6}
-                                            className="px-5 py-12 text-center text-slate-500"
-                                        >
-                                            No matching payment requests.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-                        <span>
-                            {requests.total === 0
-                                ? 'No results'
-                                : `Showing ${requests.from}–${requests.to} of ${requests.total}`}
-                        </span>
-                        <div className="flex flex-wrap gap-1">
-                            {requests.links.map((link, index) => (
-                                <button
-                                    key={`${link.label}-${index}`}
-                                    type="button"
-                                    disabled={!link.url}
-                                    onClick={() =>
-                                        link.url &&
-                                        router.get(
-                                            link.url,
-                                            {},
-                                            { preserveState: true },
-                                        )
-                                    }
-                                    dangerouslySetInnerHTML={{
-                                        __html: link.label,
-                                    }}
-                                    className={`rounded-md border px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-40 ${
-                                        link.active
-                                            ? 'border-blue-700 bg-blue-700 text-white'
-                                            : 'border-slate-300 bg-white hover:bg-slate-50'
-                                    }`}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <RequestTable<PaymentRequest>
+                title="Payment Requests"
+                columns={columns}
+                resource={requests}
+                resourceKey="requests"
+                pollInterval={15000}
+                renderActions={renderActions}
+                actionsWidth="56px"
+                emptyIcon={Inbox}
+                emptyMessage="No matching payment requests."
+                onPageChange={handlePageChange}
+                search={search}
+                onSearchChange={setSearch}
+                searchPlaceholder="Reference, payer, email, or OR number"
+                status={status}
+                onStatusChange={setStatus}
+                statusOptions={[
+                    {
+                        value: 'processed',
+                        label: 'Ready for payment',
+                        color: 'orange',
+                    },
+                    { value: 'paid', label: 'Paid', color: 'dark-green' },
+                ]}
+                statusPlaceholder="All Status"
+                dateFrom={dateFrom}
+                onDateFromChange={setDateFrom}
+                dateTo={dateTo}
+                onDateToChange={setDateTo}
+                onFilterSubmit={handleSubmit}
+                onFilterReset={handleReset}
+            />
         </>
     );
-}
+};
+
+export default CashierRequestsIndex;
