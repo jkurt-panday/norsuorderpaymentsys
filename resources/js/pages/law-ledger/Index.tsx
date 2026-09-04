@@ -15,6 +15,17 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import React, { useState } from 'react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -177,6 +188,8 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [importSuccess, setImportSuccess] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<LawLedgerRecord | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleImportFile = (file: File | null, inputEl: HTMLInputElement) => {
     if (!file || isImporting) {
@@ -275,6 +288,21 @@ return 90;
       currentParams.set('page', String(pageNum));
       router.get(`/law-ledger?${currentParams.toString()}`, {}, { preserveState: true, preserveScroll: true });
     }
+  };
+
+  const confirmDelete = () => {
+    if (!deleteTarget || isDeleting) {
+      return;
+    }
+
+    setIsDeleting(true);
+    router.delete(`/law-ledger/${deleteTarget.id}`, {
+      preserveScroll: true,
+      onFinish: () => {
+        setIsDeleting(false);
+        setDeleteTarget(null);
+      },
+    });
   };
 
   const totalStudents = stats?.totalStudents ?? 0;
@@ -674,12 +702,8 @@ return 90;
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
                           <button
-                            onClick={() =>
-                              handleDelete(
-                                r.id,
-                                r.name,
-                              )
-                            }
+                            type="button"
+                            onClick={() => setDeleteTarget(r)}
                             className="inline-flex items-center justify-center rounded p-1.5 text-red-500 transition-colors hover:bg-red-50"
                             title="Delete"
                           >
@@ -840,12 +864,80 @@ return 90;
         </div>
       )}
 
+      <AlertDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) {
+            setDeleteTarget(null);
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-md gap-0 overflow-hidden border border-[#CFE3FF] bg-white p-0 shadow-xl sm:max-w-md">
+          <AlertDialogHeader className="gap-3 p-5 sm:place-items-start sm:text-left">
+            <AlertDialogMedia className="mb-0 size-11 rounded-full bg-red-50 text-red-600">
+              <AlertTriangle className="size-5" />
+            </AlertDialogMedia>
+            <AlertDialogTitle className="text-lg font-semibold text-[#0B3D91]">
+              Delete transaction?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-[#5C7A9E]">
+              This will permanently remove the selected ledger entry. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {deleteTarget && (
+            <div className="mx-5 mb-5 rounded-lg border border-[#EAF2FF] bg-[#F8FBFF] p-3">
+              <p className="text-sm font-semibold text-[#0B3D91]">{deleteTarget.name}</p>
+              <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-[#5C7A9E]">
+                <div>
+                  <span className="block text-[11px] uppercase tracking-wide text-[#8AA8CC]">Type</span>
+                  <span className="font-medium text-[#334E68]">{deleteTarget.arOrPayment || '—'}</span>
+                </div>
+                <div>
+                  <span className="block text-[11px] uppercase tracking-wide text-[#8AA8CC]">Amount</span>
+                  <span className="font-medium text-[#334E68]">{currency(deleteTarget.amount)}</span>
+                </div>
+                <div>
+                  <span className="block text-[11px] uppercase tracking-wide text-[#8AA8CC]">Date</span>
+                  <span className="font-medium text-[#334E68]">{formatTransactionDate(deleteTarget.transactionDate)}</span>
+                </div>
+                <div>
+                  <span className="block text-[11px] uppercase tracking-wide text-[#8AA8CC]">Reference</span>
+                  <span className="font-medium text-[#334E68]">{deleteTarget.referenceNo || '—'}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <AlertDialogFooter className="mx-0 mb-0 rounded-none border-[#EAF2FF] bg-[#F8FBFF] px-5 py-4">
+            <AlertDialogCancel
+              disabled={isDeleting}
+              className="border-[#CFE3FF] text-[#0B3D91] hover:bg-white"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={isDeleting}
+              onClick={confirmDelete}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4" />
+                  Delete Transaction
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       </div>
   );
-}
-
-function handleDelete(id: string | number, name: string) {
-  if (confirm(`Delete transaction for ${name}?`)) {
-    router.delete(`/law-ledger/${id}`);
-  }
 }

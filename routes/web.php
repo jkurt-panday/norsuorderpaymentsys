@@ -96,6 +96,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/pdf',             [LawSchoolLedgerController::class, 'generatePdf'])->name('pdf');
         Route::get('/export',          [LawSchoolLedgerController::class, 'export'])->name('export');
         Route::get('/students/search', [LawSchoolLedgerController::class, 'searchStudents'])->name('students.search');
+        Route::delete('/students/{id}', [LawSchoolLedgerController::class, 'destroyStudent'])->name('students.destroy');
         Route::get('/add',             [LawSchoolLedgerController::class, 'create'])->name('create');
         Route::get('/new-transaction', [LawSchoolLedgerController::class, 'create']);
         Route::post('/',               [LawSchoolLedgerController::class, 'store'])->name('store');
