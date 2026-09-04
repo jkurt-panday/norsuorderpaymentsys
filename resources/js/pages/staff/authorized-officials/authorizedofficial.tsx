@@ -48,12 +48,16 @@ export default function AuthorizedOfficialIndex({
     }, [flash]);
 
     const handleSetActive = (id: number) => {
-        router.put(setActive(id).url, {}, {
-            preserveScroll: true,
-            onError: () => {
-                toast.error('Failed to set this official as active.');
+        router.put(
+            setActive(id).url,
+            {},
+            {
+                preserveScroll: true,
+                onError: () => {
+                    toast.error('Failed to set this official as active.');
+                },
             },
-        });
+        );
     };
 
     const columns: ColumnDef<AuthorizedOfficialRecord>[] = [
@@ -84,7 +88,7 @@ export default function AuthorizedOfficialIndex({
             className: 'text-center',
             render: (row) =>
                 row.is_active ? (
-                    <span className="inline-flex items-center justify-center rounded-full px-2.5 py-1 text-xs font-medium bg-emerald-100 text-emerald-800">
+                    <span className="inline-flex items-center justify-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800">
                         Current
                     </span>
                 ) : (
