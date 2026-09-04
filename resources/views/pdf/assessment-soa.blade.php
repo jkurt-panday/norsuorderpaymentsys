@@ -187,6 +187,10 @@
         </tr>
     </table>
 
+    <div class="mt-8 text-center italic text-xs text-gray-500">
+        Generated: {{ now('Asia/Manila')->format('Y-m-d h:i A') }} &bull; This is a computer-generated statement.
+    </div>
+
     {{-- <pre>{{ json_encode(get_defined_vars(), JSON_PRETTY_PRINT) }}</pre> --}}
     <pre>&nbsp;</pre>
 </body>
