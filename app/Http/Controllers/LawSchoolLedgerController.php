@@ -180,7 +180,7 @@ class LawSchoolLedgerController extends Controller
             'courses' => $this->courseList(),
             'academicTerms' => $this->academicTermList(),
             'statuses' => $statuses,
-            'authUserName' => auth()->user()?->name ?? '',
+            'authUserName' => optional(auth()->user())->name ?? '',
         ]);
     }
 
