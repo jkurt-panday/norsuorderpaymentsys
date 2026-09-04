@@ -10,6 +10,7 @@ import {
     Scale,
     GraduationCap,
     Logs,
+    Shield,
     School,
     FileSearchIcon,
     ChevronRight,
@@ -68,6 +69,7 @@ const staffNavItems: SidebarItem[] = [
     },
     { title: 'Memberships', href: '/staff/memberships', icon: Users },
     { title: 'UACS', href: '/staff/uacs', icon: Logs },
+    { title: 'Authorized Officials', href: '/staff/authorized-officials', icon: Shield },
     { title: 'Course', href: '/staff/courses', icon: School },
     { title: 'Activity Log', href: '/staff/activity-log', icon: Activity },
 ];

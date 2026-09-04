@@ -265,18 +265,7 @@
                         </table>
 
                         {{-- Signature block --}}
-                        <table class="op-table" style="margin-bottom:2px;">
-                            <tr>
-                                <td style="text-align:right;">
-                                    <p style="margin:8px 0 1px;">(SGD)</p>
-                                    <p style="margin:13px 0 1px; text-decoration:underline; font-weight:bold;">
-                                        MAURICE ANAVER B. DORDADO, CPA
-                                    </p>
-                                    <p style="margin:0;">Head of Accounting/Division/Unit</p>
-                                    <p style="margin:0;">Authorized Official</p>
-                                </td>
-                            </tr>
-                        </table>
+                        @include('components.authorized-official-signature')
 
                         @php
                             $orNo = $formInput->staffInput?->or_no ?? '';
