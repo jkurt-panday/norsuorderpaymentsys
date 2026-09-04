@@ -42,6 +42,10 @@ const mainNavItems: NavItem[] = [
         separatorBefore: true,
     },
     {
+        title: 'Authorized Officials',
+        href: staff.authorizedOfficials.index(),
+    },
+    {
         title: 'Law Ledger',
         href: lawLedger.index(),
     },

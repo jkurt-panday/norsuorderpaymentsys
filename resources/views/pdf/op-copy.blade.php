@@ -159,21 +159,22 @@
         </tr>
     </table>
 
-    {{-- Signature block — deliberately UNCHANGED. This is a symmetric
-         50/50 page split (blank left, signature block right), not a
-         content-driven pairing, so a fixed width is exactly right. --}}
+    @php
+        $official = activeAuthorizedOfficial();
+        $signatoryName = $official?->name ?? 'MAURICE ANAVER B. DORDADO, CPA';
+        $signatoryPosition = $official?->position ?? 'Head of Accounting/Division/Unit';
+    @endphp
+
+    {{-- Signature block — dynamically sourced from the managed Authorized Officials record. --}}
     <table width="100%" style="border-collapse:collapse; margin-bottom:6px;">
         <tr>
             <td style="width:50%;"></td>
             <td style="width:50%; text-align:center;">
                 <p style="margin:0 0 3px;">(SGD)</p>
-                {{-- TODO: replace with the actual signed-in staff user's name
-                     once request processing tracks who approved it. Hardcoded
-                     for now to match the current authorized signatory. --}}
                 <p style="margin:0 0 2px; text-decoration:underline; font-weight:bold;">
-                    MAURICE ANAVER B. DORDADO, CPA
+                    {{ $signatoryName }}
                 </p>
-                <p style="margin:0 0 1px;">Head of Accounting/Division/Unit</p>
+                <p style="margin:0 0 1px;">{{ $signatoryPosition }}</p>
                 <p style="margin:0;">Authorized Official</p>
             </td>
         </tr>

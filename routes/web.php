@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AssessmentFormController;
 use App\Http\Controllers\Auth\GoogleController;
+use App\Http\Controllers\AuthorizedOfficialController;
 use App\Http\Controllers\BankAccountInfoController;
 use App\Http\Controllers\CashierRequestController;
 use App\Http\Controllers\Client\ClientController;
@@ -185,6 +186,13 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
     Route::resource('uacs', UACSController::class)
         ->except(['show'])
         ->parameters(['uacs' => 'uacs']);
+
+    Route::resource('authorized-officials', AuthorizedOfficialController::class)
+        ->except(['show'])
+        ->parameters(['authorized-officials' => 'authorizedOfficial']);
+
+    Route::put('/authorized-officials/{authorizedOfficial}/set-active', [AuthorizedOfficialController::class, 'setActive'])
+        ->name('authorized-officials.set-active');
 
     // ── Supporting Documents ─────────────────────────────────────────────────
     Route::name('documents.')->prefix('documents')->group(function () {

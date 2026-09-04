@@ -33,6 +33,11 @@
         // user fetch
         $user = $preparedBy ?? '—';
 
+        // Authorized Official for the signature block (fallback to defaults).
+        $official = activeAuthorizedOfficial();
+        $signatoryName = $official?->name ?? 'Maurice Anaver B. Dordado, CPA';
+        $signatoryPosition = $official?->position ?? 'Head of Accounting/Division/Unit';
+
         // No "address" field exists anywhere in this payload or on AssessmentForm as loaded —
         // left out of the layout below. Add it back in if you have a real source for it.
         // $studentName = $selectedStudent['name']
@@ -163,11 +168,11 @@
                 </div>
     
                 <div class="font-bold mt-6">
-                    Maurice Anaver B. Dordado, CPA
+                    {{ $signatoryName }}
                 </div>
 
                 <div class="mt-1">
-                    Head of Accounting/Division/Unit
+                    {{ $signatoryPosition }}
                 </div>
     
                 <div class="">
