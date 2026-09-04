@@ -2,15 +2,16 @@
 <html>
     <head>
         @php
-            $studentName = $selectedStudent['name']
-                ?? trim(($assessment->last_name ?? '') . ', ' . ($assessment->first_name ?? '') . ' ' . ($assessment->middle_name)) ?: '—';
+            $studentName = $ledgerStatement['selectedStudent']['name'];
+            //$studentName = $selectedStudent['name']
+              //  ?? trim(($assessment->last_name ?? '') . ', ' . ($assessment->first_name ?? '') . ' ' . ($assessment->middle_name)) ?: '—';
         @endphp
         
         <meta charset="utf-8">
         <title>Statement of Account - {{ $studentName }}</title>
         @vite(['resources/css/app.css'])
     </head>
-<body class="text-[11px] text-gray-900 font-sans">
+<body class="text-[11px] w-full min-w-[800px] text-gray-900 font-sans">
 
     @php
         // Base64-embed the header image so it renders regardless of PDF engine.
@@ -187,5 +188,6 @@
     </table>
 
     {{-- <pre>{{ json_encode(get_defined_vars(), JSON_PRETTY_PRINT) }}</pre> --}}
+    <pre>&nbsp;</pre>
 </body>
 </html>
