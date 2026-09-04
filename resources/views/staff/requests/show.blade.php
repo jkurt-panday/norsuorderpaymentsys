@@ -13,7 +13,7 @@
             <a href="{{ route('staff.requests.process', $formInput) }}" class="btn btn-primary">
                 <i class="fas fa-check me-1"></i>Process Request
             </a>
-        @else
+        @elseif($formInput->staffInput->status !== 'paid')
             <a href="{{ route('staff.requests.edit', $formInput->staffInput) }}" class="btn btn-warning">
                 <i class="fas fa-edit me-1"></i>Edit Processing
             </a>
