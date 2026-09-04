@@ -917,7 +917,6 @@ return 90;
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              variant="destructive"
               disabled={isDeleting}
               onClick={confirmDelete}
               className="bg-red-600 text-white hover:bg-red-700"
