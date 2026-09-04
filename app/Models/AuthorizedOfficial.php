@@ -3,11 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class AuthorizedOfficial extends Model
 {
+    /** @use HasFactory<Factory<AuthorizedOfficial>> */
     use HasFactory;
 
     protected $table = 'authorized_officials';
@@ -23,6 +25,10 @@ class AuthorizedOfficial extends Model
         'is_active' => 'boolean',
     ];
 
+    /**
+     * @param  Builder<AuthorizedOfficial>  $query
+     * @return Builder<AuthorizedOfficial>
+     */
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);

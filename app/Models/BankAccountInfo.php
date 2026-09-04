@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BankAccountInfo extends Model
 {
+    /** @use HasFactory<Factory<BankAccountInfo>> */
     use HasFactory;
 
     protected $table = 'bankaccount_infos';
@@ -19,6 +21,7 @@ class BankAccountInfo extends Model
         'fund_cluster',
     ];
 
+    /** @return HasMany<StaffInput, $this> */
     public function staffInputs(): HasMany
     {
         return $this->hasMany(StaffInput::class, 'fundcluster_id');

@@ -3,12 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Courses;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response as InertiaResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Http\RedirectResponse;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class CoursesController extends Controller
 {
@@ -18,7 +18,7 @@ class CoursesController extends Controller
     public function index(Request $request): InertiaResponse
     {
         $courses = Courses::query()->orderBy('course_code')->get();
-        
+
         return Inertia::render('staff/courses/coursesIndex', [
             'courses' => $courses,
         ]);
@@ -38,15 +38,15 @@ class CoursesController extends Controller
     public function store(Request $request): RedirectResponse
     {
         // 1. Validate the input fields
-        $validated = $request->validate ([
+        $validated = $request->validate([
             'course_code' => ['required', 'string', 'max:20', 'unique:courses,course_code'],
             'course_desc' => ['required', 'string', 'max:255'],
         ], [
             'course_code.required' => 'Please enter a course code.',
-            'course_code.unique'   => 'This course code already exists.',
-            'course_code.max'      => 'Course code must not exceed 20 characters.',
+            'course_code.unique' => 'This course code already exists.',
+            'course_code.max' => 'Course code must not exceed 20 characters.',
             'course_desc.required' => 'Please enter a course description or full name.',
-            'course_desc.max'      => 'Course description must not exceed 255 characters.',
+            'course_desc.max' => 'Course description must not exceed 255 characters.',
         ]);
 
         try {
@@ -66,7 +66,7 @@ class CoursesController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
 
-            Log::error('Failed to create course: ' . $e->getMessage());
+            Log::error('Failed to create course: '.$e->getMessage());
 
             return redirect()->back()
                 ->withInput()
@@ -77,7 +77,7 @@ class CoursesController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Courses $courses)
+    public function show(Courses $courses): void
     {
         //
     }
@@ -88,7 +88,7 @@ class CoursesController extends Controller
     public function edit(Courses $courses): InertiaResponse
     {
         return Inertia::render('staff/courses/editCourses', [
-            'courses' => $courses
+            'courses' => $courses,
         ]);
     }
 
@@ -100,14 +100,14 @@ class CoursesController extends Controller
         // 1. Validate the input fields
         $validated = $request->validate([
             // Ignore current course ID when checking unique constraint
-            'course_code' => ['required', 'string', 'max:20', 'unique:courses,course_code,' . $courses->id],
+            'course_code' => ['required', 'string', 'max:20', 'unique:courses,course_code,'.$courses->id],
             'course_desc' => ['required', 'string', 'max:255'],
         ], [
             'course_code.required' => 'Please enter a course code.',
-            'course_code.unique'   => 'This course code already exists.',
-            'course_code.max'      => 'Course code must not exceed 20 characters.',
+            'course_code.unique' => 'This course code already exists.',
+            'course_code.max' => 'Course code must not exceed 20 characters.',
             'course_desc.required' => 'Please enter a course description.',
-            'course_desc.max'      => 'Course description must not exceed 255 characters.',
+            'course_desc.max' => 'Course description must not exceed 255 characters.',
         ]);
 
         try {
@@ -126,7 +126,7 @@ class CoursesController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
 
-            Log::error('Failed to update course ID ' . $courses->id . ': ' . $e->getMessage());
+            Log::error('Failed to update course ID '.$courses->id.': '.$e->getMessage());
 
             return redirect()->back()
                 ->withInput()
@@ -147,11 +147,11 @@ class CoursesController extends Controller
             DB::commit();
 
             return redirect()->route('staff.courses.index')->with('success', 'Course deleted successfully.');
-            
+
         } catch (\Throwable $e) {
             DB::rollBack();
 
-            Log::error('Failed to delete course ID ' . $courses->id . ': ' . $e->getMessage());
+            Log::error('Failed to delete course ID '.$courses->id.': '.$e->getMessage());
 
             return redirect()->back()
                 ->withInput()

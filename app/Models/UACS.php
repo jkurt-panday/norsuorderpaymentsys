@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,6 +11,7 @@ class UACS extends Model
 {
     protected $table = 'uacs';
 
+    /** @use HasFactory<Factory<UACS>> */
     use HasFactory;
 
     protected $fillable = [
@@ -17,6 +19,7 @@ class UACS extends Model
         'object_code',
     ];
 
+    /** @return HasMany<StaffInput, $this> */
     public function staffInputs(): HasMany
     {
         return $this->hasMany(StaffInput::class, 'uacs_id');

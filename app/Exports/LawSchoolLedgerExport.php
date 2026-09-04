@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Models\LawSchoolLedger;
 use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
@@ -10,10 +11,12 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 
 class LawSchoolLedgerExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapping
 {
+    /** @param Builder<LawSchoolLedger> $query */
     public function __construct(
         private readonly Builder $query
     ) {}
 
+    /** @return Builder<LawSchoolLedger> */
     public function query(): Builder
     {
         return $this->query->latest('id');

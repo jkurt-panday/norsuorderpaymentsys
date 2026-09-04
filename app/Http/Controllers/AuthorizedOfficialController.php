@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\AuthorizedOfficialRequest;
 use App\Models\AuthorizedOfficial;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use Inertia\Response;
 
+/** @extends BaseResourceController<AuthorizedOfficial> */
 class AuthorizedOfficialController extends BaseResourceController
 {
     // ---- Config consumed by BaseResourceController::index() ----
@@ -30,7 +33,7 @@ class AuthorizedOfficialController extends BaseResourceController
 
     protected array $filterableColumns = [];
 
-    public function create()
+    public function create(): Response
     {
         return Inertia::render('staff/authorized-officials/createauthorizedofficial', [
             'flash' => [
@@ -40,7 +43,7 @@ class AuthorizedOfficialController extends BaseResourceController
         ]);
     }
 
-    public function store(AuthorizedOfficialRequest $request)
+    public function store(AuthorizedOfficialRequest $request): RedirectResponse
     {
         try {
             DB::beginTransaction();
@@ -66,7 +69,7 @@ class AuthorizedOfficialController extends BaseResourceController
         }
     }
 
-    public function edit(AuthorizedOfficial $authorizedOfficial)
+    public function edit(AuthorizedOfficial $authorizedOfficial): Response
     {
         return Inertia::render('staff/authorized-officials/editauthorizedofficial', [
             'authorizedOfficial' => $authorizedOfficial,
@@ -77,7 +80,7 @@ class AuthorizedOfficialController extends BaseResourceController
         ]);
     }
 
-    public function update(AuthorizedOfficialRequest $request, AuthorizedOfficial $authorizedOfficial)
+    public function update(AuthorizedOfficialRequest $request, AuthorizedOfficial $authorizedOfficial): RedirectResponse
     {
         try {
             DB::beginTransaction();
@@ -100,7 +103,7 @@ class AuthorizedOfficialController extends BaseResourceController
         }
     }
 
-    public function destroy(AuthorizedOfficial $authorizedOfficial)
+    public function destroy(AuthorizedOfficial $authorizedOfficial): RedirectResponse
     {
         if ($authorizedOfficial->is_active) {
             return back()->with('error', 'Cannot delete the currently active authorized official. Set another one as the current signatory first.');
@@ -123,7 +126,7 @@ class AuthorizedOfficialController extends BaseResourceController
         }
     }
 
-    public function setActive(AuthorizedOfficial $authorizedOfficial)
+    public function setActive(AuthorizedOfficial $authorizedOfficial): RedirectResponse
     {
         if ($authorizedOfficial->is_active) {
             return back()->with('success', 'This official is already the current signatory.');

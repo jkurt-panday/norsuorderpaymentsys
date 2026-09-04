@@ -17,6 +17,14 @@ return new class extends Migration
             $table->date('or_date')->nullable()->after('or_no');
         });
 
+        if (DB::connection()->getDriverName() !== 'pgsql') {
+            Schema::table('staff_inputs', function (Blueprint $table) {
+                $table->string('status')->default('pending')->change();
+            });
+
+            return;
+        }
+
         DB::statement("ALTER TABLE staff_inputs DROP CONSTRAINT IF EXISTS staff_inputs_status_check");
         DB::statement("ALTER TABLE staff_inputs ALTER COLUMN status DROP DEFAULT");
         DB::statement("ALTER TABLE staff_inputs ALTER COLUMN status TYPE VARCHAR(255)");
@@ -29,8 +37,14 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("ALTER TABLE staff_inputs DROP CONSTRAINT IF EXISTS staff_inputs_status_check");
-        DB::statement("ALTER TABLE staff_inputs ALTER COLUMN status DROP DEFAULT");
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE staff_inputs DROP CONSTRAINT IF EXISTS staff_inputs_status_check");
+            DB::statement("ALTER TABLE staff_inputs ALTER COLUMN status DROP DEFAULT");
+        } else {
+            Schema::table('staff_inputs', function (Blueprint $table) {
+                $table->enum('status', ['pending', 'approved', 'cancelled'])->default('pending')->change();
+            });
+        }
 
         Schema::table('staff_inputs', function (Blueprint $table) {
             $table->dropColumn(['or_no', 'or_date']);

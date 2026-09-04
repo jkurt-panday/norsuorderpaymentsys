@@ -2,31 +2,31 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AssessmentForm;
-use Illuminate\Http\Request;
-// use Illuminate\Support\Facades\Redirect as FacadeRedirect;
-use Illuminate\Http\RedirectResponse;
-use Inertia\Inertia;
-use App\Models\Courses;
-use Inertia\Response as InertiaResponse;
 use App\Http\Requests\AssessmentFormInfoRequest;
-use Illuminate\Support\Facades\DB;
-use App\Services\ReferenceNumberService;
+use App\Models\AssessmentForm;
+// use Illuminate\Support\Facades\Redirect as FacadeRedirect;
+use App\Models\Courses;
 use App\Services\ReceiptPDFService;
+use App\Services\ReferenceNumberService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
+use Spatie\LaravelPdf\PdfBuilder;
 
 class AssessmentFormController extends Controller
 {
-
-    // constructor dependency injection 
+    // constructor dependency injection
     public function __construct(
         protected ReferenceNumberService $assessment_ref_num,
         protected ReceiptPDFService $receiptPdfService
     ) {}
-    
+
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(): void
     {
         //
     }
@@ -37,9 +37,9 @@ class AssessmentFormController extends Controller
     public function create(): InertiaResponse
     {
         $courses = Courses::query()->orderBy('course_desc')->get();
-        
+
         return Inertia::render('public/AssessmentForm', [
-            'courses' => $courses
+            'courses' => $courses,
         ]);
     }
 
@@ -50,8 +50,7 @@ class AssessmentFormController extends Controller
     {
         $validated = $request->validated();
 
-        try 
-        {
+        try {
             DB::beginTransaction();
 
             $reference_number = $this->assessment_ref_num->assess_ref_gen();
@@ -59,19 +58,19 @@ class AssessmentFormController extends Controller
             // 1. Create the assessment record
             $assessment = AssessmentForm::query()->create([
                 'reference_number' => $reference_number,
-                'email'            => $validated['email'],
-                'contact_num'      => $validated['contact_num'],
-                'first_name'       => $validated['first_name'],
-                'middle_name'      => $validated['middle_name'] ?? null,
-                'last_name'        => $validated['last_name'],
-                'student_id'       => $validated['student_id'],
-                'course_id'        => $validated['course_id'], // Or 'course_id' if renamed
-                'address'          => $validated['address'],
-                'enrolled_under'   => $validated['enrolled_under'],
+                'email' => $validated['email'],
+                'contact_num' => $validated['contact_num'],
+                'first_name' => $validated['first_name'],
+                'middle_name' => $validated['middle_name'] ?? null,
+                'last_name' => $validated['last_name'],
+                'student_id' => $validated['student_id'],
+                'course_id' => $validated['course_id'], // Or 'course_id' if renamed
+                'address' => $validated['address'],
+                'enrolled_under' => $validated['enrolled_under'],
                 'sy_last_attended' => $validated['sy_last_attended'],
-                'semester'         => $validated['semester'],
+                'semester' => $validated['semester'],
             ]);
-    
+
             DB::commit();
 
             // dd($assessment);
@@ -86,7 +85,7 @@ class AssessmentFormController extends Controller
             return redirect()->route('public.complete', [
                 'assessmentForm' => $assessment->reference_number,
             ]);
-            
+
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -94,7 +93,7 @@ class AssessmentFormController extends Controller
                 'message' => $e->getMessage(),
                 // 'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return back()->withInput()->with('error', 'Faild to submit request.'.$e->getMessage());
         }
     }
@@ -105,12 +104,12 @@ class AssessmentFormController extends Controller
         if (session('success_reference_number') !== $reference_number) {
             abort(404);
         }
-        
+
         $assessmentForm = AssessmentForm::query()->where('reference_number', $reference_number)->firstOrFail();
         $assessmentForm->load(['course']);
 
         // dd($assessmentform);
-        
+
         return Inertia::render('public/AssessmentSuccess', [
             // 'reference_number' => $assessmentform->reference_number,
             'assessmentForm' => $assessmentForm,        // this format must be followed for the props
@@ -118,9 +117,9 @@ class AssessmentFormController extends Controller
     }
 
     /**
-    * Stream the PDF receipt in the browser window.
-    */
-    public function print(AssessmentForm $assessmentForm)
+     * Stream the PDF receipt in the browser window.
+     */
+    public function print(AssessmentForm $assessmentForm): PdfBuilder
     {
         // $assessmentForm = AssessmentForm::query()
         //     ->where('reference_number', $referenceNumber)
@@ -134,9 +133,9 @@ class AssessmentFormController extends Controller
     }
 
     /**
-    * Download the PDF receipt file.
-    */
-    public function downloadReceipt(AssessmentForm $assessmentForm)
+     * Download the PDF receipt file.
+     */
+    public function downloadReceipt(AssessmentForm $assessmentForm): PdfBuilder
     {
         return $this->receiptPdfService
             ->assessmentPrint($assessmentForm)
@@ -146,7 +145,7 @@ class AssessmentFormController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(AssessmentForm $assessmentForm)
+    public function show(AssessmentForm $assessmentForm): void
     {
         //
     }
@@ -154,7 +153,7 @@ class AssessmentFormController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(AssessmentForm $assessmentForm)
+    public function edit(AssessmentForm $assessmentForm): void
     {
         //
     }
@@ -162,7 +161,7 @@ class AssessmentFormController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, AssessmentForm $assessmentForm)
+    public function update(Request $request, AssessmentForm $assessmentForm): void
     {
         //
     }
@@ -170,7 +169,7 @@ class AssessmentFormController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(AssessmentForm $assessmentForm)
+    public function destroy(AssessmentForm $assessmentForm): void
     {
         //
     }

@@ -16,7 +16,7 @@ class GraduateLedgerImportTest extends TestCase
 
     public function test_user_can_import_excel_transactions_into_the_ledger(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->staff()->create();
 
         $file = tempnam(sys_get_temp_dir(), 'ledger-import').'.xlsx';
         $spreadsheet = new Spreadsheet;
@@ -38,10 +38,10 @@ class GraduateLedgerImportTest extends TestCase
         $student = Student::where('raw_name_from_csv', 'Juan Dela Cruz')->first();
         $this->assertNotNull($student);
         $this->assertDatabaseHas('graduate_ledgers', [
-            'student_id'              => $student->id,
-            'entry_type'              => 'ar',
+            'student_id' => $student->id,
+            'entry_type' => 'ar',
             'reference_or_jev_number' => 'OR-001',
-            'amount'                  => '1350.00',
+            'amount' => '1350.00',
         ]);
 
         unlink($file);
@@ -49,7 +49,7 @@ class GraduateLedgerImportTest extends TestCase
 
     public function test_import_uses_amount_signs_reports_formatting_warnings_and_ignores_other_sheets(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->staff()->create();
 
         $file = tempnam(sys_get_temp_dir(), 'ledger-import-rules').'.xlsx';
         $spreadsheet = new Spreadsheet;
