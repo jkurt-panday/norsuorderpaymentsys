@@ -496,7 +496,11 @@ return '';
                                                   : role === 'client'
                                                     ? '/client/dashboard'
                                                     : null;
-                                        if (!homeHref) return null;
+
+                                        if (!homeHref) {
+return null;
+}
+
                                         return (
                                             <Button
                                                 variant="outline"
