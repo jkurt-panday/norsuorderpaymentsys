@@ -626,7 +626,8 @@ export default function ShowRequest() {
                                 <h3 className="text-base font-semibold text-slate-900">
                                     Personal / Office Information
                                 </h3>
-                                {!isEditingDetails && (
+                                {!isEditingDetails &&
+                                    formInput.staff_input?.status !== 'paid' && (
                                     <button
                                         type="button"
                                         onClick={() => {

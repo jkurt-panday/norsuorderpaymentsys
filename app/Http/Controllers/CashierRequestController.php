@@ -16,15 +16,23 @@ class CashierRequestController extends Controller
     public function index(Request $request): Response
     {
         $requestedStatus = $request->string('status')->toString();
+        // An empty/absent (or "All") status means "no single-status filter" —
+        // i.e. show both 'processed' and 'paid' (the cashier's two scopes),
+        // mirroring the StaffInputController "All Status" behaviour. Only an
+        // explicit 'processed'/'paid' narrows the result set.
         $status = in_array($requestedStatus, ['processed', 'paid'], true)
             ? $requestedStatus
-            : 'processed';
+            : '';
         $search = trim($request->string('search')->toString());
+        $dateFrom = (string) $request->query('date_from', '');
+        $dateTo = (string) $request->query('date_to', '');
 
-        $requests = StaffInput::query()
+        $query = StaffInput::query()
             ->with(['formInput.membership', 'formInput.paymentDetailOption'])
             ->whereIn('status', ['processed', 'paid'])
-            ->where('status', $status)
+            ->when($status !== '', function (Builder $query) use ($status): void {
+                $query->where('status', $status);
+            })
             ->when($search !== '', function (Builder $query) use ($search): void {
                 $like = '%'.mb_strtolower($search).'%';
 
@@ -37,14 +45,49 @@ class CashierRequestController extends Controller
                                 ->orWhereRaw('LOWER(lastname_or_agency) LIKE ?', [$like]);
                         });
                 });
-            })
-            ->latest()
-            ->paginate(10)
-            ->withQueryString();
+            });
+
+        // Date range — qualified to avoid ambiguity if a form_inputs join is
+        // applied below for sortable columns.
+        if ($dateFrom !== '') {
+            $query->where('staff_inputs.created_at', '>=', $dateFrom.' 00:00:00');
+        }
+        if ($dateTo !== '') {
+            $query->where('staff_inputs.created_at', '<=', $dateTo.' 23:59:59');
+        }
+
+        // Sorting — only allowlisted columns are accepted, and form_inputs
+        // columns are joined in (1:1 belongsTo) so the sort targets the right
+        // table without leaking arbitrary columns from the query string.
+        $sortableFormColumns = ['reference_number', 'firstname_or_office', 'email', 'amount'];
+        $sortableStaffColumns = ['status', 'or_no', 'or_date', 'created_at'];
+        $sortableColumns = [...$sortableFormColumns, ...$sortableStaffColumns];
+
+        $sort = $request->query('sort');
+        $direction = $request->query('direction') === 'desc' ? 'desc' : 'asc';
+
+        if ($sort && in_array($sort, $sortableColumns, true)) {
+            if (in_array($sort, $sortableFormColumns, true)) {
+                $query->join('form_inputs', 'form_inputs.id', '=', 'staff_inputs.form_input_id')
+                    ->select('staff_inputs.*')
+                    ->orderBy($sort, $direction);
+            } else {
+                $query->orderBy('staff_inputs.'.$sort, $direction);
+            }
+        } else {
+            $query->latest();
+        }
+
+        $requests = $query->paginate(10)->withQueryString();
 
         return Inertia::render('cashier/requests/Index', [
             'requests' => $requests,
-            'filters' => ['search' => $search, 'status' => $status],
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+            ],
         ]);
     }
 
