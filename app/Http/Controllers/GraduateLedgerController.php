@@ -11,7 +11,9 @@ use App\Models\Course;
 use App\Models\GraduateLedger;
 use App\Models\Student;
 use App\Services\GraduateLedgerImportClassifier;
-use Barryvdh\DomPDF\Facade\Pdf;
+// use Barryvdh\DomPDF\Facade\Pdf;
+use Spatie\LaravelPdf\Facades\Pdf;
+use Spatie\LaravelPdf\PdfBuilder;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -622,7 +624,7 @@ class GraduateLedgerController extends Controller
     /**
      * Generates and streams the PDF statement.
      */
-    public function generatePdf(Request $request): HttpResponse
+    public function generatePdf(Request $request): PdfBuilder
     {
         $validated = $request->validate([
             'student_id' => ['required', 'integer', 'exists:graduate_student,id'],
@@ -656,20 +658,21 @@ class GraduateLedgerController extends Controller
         $studentName = $student->full_name;
         $records = $rawRecords->map(fn ($r) => (object) $this->transformRecord($r));
 
-        $pdf = Pdf::loadView('pdf.student-ledger-statement', [
+        $pdf = Pdf::view('pdf.student-ledger-statement', [
             'studentName' => $studentName,
             'records' => $records,
             'summary' => $summary,
             'generatedAt' => now()->format('Y-m-d'),
-        ])
-            ->setPaper('a4', 'portrait')
-            ->setOption('defaultFont', 'DejaVu Sans')
-            ->setOption('isHtml5ParserEnabled', true)
-            ->setOption('isRemoteEnabled', true);
+        ])->format('a4');
+            // ->setPaper('a4', 'portrait')
+            // ->setOption('defaultFont', 'DejaVu Sans')
+            // ->setOption('isHtml5ParserEnabled', true)
+            // ->setOption('isRemoteEnabled', true);
 
         $filename = 'Statement_of_Account_'.str_replace(['/', '\\', ' '], '_', $studentName).'.pdf';
 
-        return $pdf->stream($filename);
+        // return $pdf->stream($filename);
+        return $pdf;
     }
 
     // ─── Private Helpers ──────────────────────────────────────────────────────
