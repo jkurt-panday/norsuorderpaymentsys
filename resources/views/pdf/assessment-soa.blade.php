@@ -31,6 +31,10 @@
         $schoolYear = $ledgerStatement['schoolYear'] ?? '—';
         $semester   = $ledgerStatement['semester'] ?? '—';
 
+        // authorized official
+        $authorizedOfficial = $authOfficial['name'] ?? '—';
+        $authorizedOfficialCourse = $authOfficial['course'] ?? '—';
+
         // user fetch
         $user = $preparedBy ?? '—';
 
@@ -169,7 +173,7 @@
                 </div>
     
                 <div class="font-bold mt-6">
-                    {{ $signatoryName }}
+                    {{ $authorizedOfficial }}, {{ $authorizedOfficialCourse }}
                 </div>
 
                 <div class="mt-1">

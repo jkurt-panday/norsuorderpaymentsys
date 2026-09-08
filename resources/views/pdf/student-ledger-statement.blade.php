@@ -85,6 +85,7 @@
             $user = $preparedBy ?? '—';
             $official = activeAuthorizedOfficial();
             $signatoryName = $official?->name ?? 'Maurice Anaver B. Dordado, CPA';
+            $authofficialcourse = $official?->course ?? 'CPA';
             $signatoryPosition = $official?->position ?? 'Head of Accounting/Division/Unit';
         @endphp
 
@@ -93,6 +94,8 @@
         @vite(['resources/css/app.css'])
     </head>
 <body class="text-[11px] w-full min-w-[800px] text-gray-900 font-sans">
+
+    <pre>{{ json_encode(get_defined_vars(), JSON_PRETTY_PRINT) }}</pre>
 
     @if($headerImageBase64)
         <div class="flex justify-center mb-2">
@@ -209,7 +212,7 @@
                 </div>
     
                 <div class="font-bold mt-6">
-                    {{ $signatoryName }}
+                    {{ $signatoryName }}, {{ $authofficialcourse }}
                 </div>
 
                 <div class="mt-1">
