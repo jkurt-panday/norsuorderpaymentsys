@@ -95,7 +95,7 @@
     </head>
 <body class="text-[11px] w-full min-w-[800px] text-gray-900 font-sans">
 
-    <pre>{{ json_encode(get_defined_vars(), JSON_PRETTY_PRINT) }}</pre>
+    {{-- <pre>{{ json_encode(get_defined_vars(), JSON_PRETTY_PRINT) }}</pre> --}}
 
     @if($headerImageBase64)
         <div class="flex justify-center mb-2">
