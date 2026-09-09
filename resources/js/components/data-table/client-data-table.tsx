@@ -184,7 +184,7 @@ return data;
                                     (i % 2 === 0
                                         ? 'bg-white'
                                         : 'bg-slate-50/60') +
-                                    ' border-b border-slate-100 transition-colors last:border-0 hover:bg-blue-50/40'
+                                    ' border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-200'
                                 }
                             >
                                 {row.getVisibleCells().map((cell) => (
