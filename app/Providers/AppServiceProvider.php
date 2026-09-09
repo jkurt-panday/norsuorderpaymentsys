@@ -20,7 +20,6 @@ use App\Models\BankAccountInfo;
 use App\Models\Course;
 use App\Models\Courses;
 use App\Models\FormInput;
-use App\Models\GraduateLedger;
 use App\Models\LawSchoolLedger;
 use App\Models\Membership;
 use App\Models\PaymentDetailOption;
