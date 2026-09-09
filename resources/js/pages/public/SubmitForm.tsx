@@ -794,7 +794,6 @@ export default function SubmitForm({ memberships, paymentOptions, courses = [], 
                                                 )}
                                             </Field>
                                         </div>
-                                        <Separator className="bg-blue-100" />
                                     </div>
                                 )}
                                 
