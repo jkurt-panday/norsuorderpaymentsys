@@ -767,16 +767,15 @@ export default function RequestTable<T extends { id: number | string }>({
                                                 }
                                             }}
                                         >
-                                            <PopoverTrigger
-                                                render={
-                                                    <button
-                                                        type="button"
-                                                        className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
-                                                    />
-                                                }
-                                            >
-                                                Page {resource.current_page} of{' '}
-                                                {resource.last_page}
+                                            <PopoverTrigger>
+                                                <span
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+                                                >
+                                                    Page {resource.current_page}{' '}
+                                                    of {resource.last_page}
+                                                </span>
                                             </PopoverTrigger>
                                             <PopoverContent
                                                 align="center"

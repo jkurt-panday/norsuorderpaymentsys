@@ -188,6 +188,7 @@ export default function PrintSelect({
 
         filteredRecords.forEach((r) => {
             const amount = absAmount(r.amount);
+
             if (r.arOrPayment === 'AR') {
                 totalCharges += amount;
             } else {

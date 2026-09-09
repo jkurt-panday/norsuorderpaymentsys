@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('course_code')->unique();
             $table->string('course_desc');
+            $table->enum('course_college', ['Graduate School', 'School of Law']);
             $table->timestamps();
         });
     }

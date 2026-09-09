@@ -186,11 +186,11 @@ export default function AssessmentEdit({
                 <Card className="rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
                     <CardContent className="space-y-6 p-4 sm:p-6">
                         <section>
-                            <h2 className="mb-3 text-sm font-bold tracking-wider text-slate-500 uppercase">
+                            <h2 className="mb-3 text-sm font-bold tracking-wider text-blue-500 uppercase">
                                 Student Information
                             </h2>
                             <div className="grid grid-cols-1 gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4 sm:grid-cols-2 md:grid-cols-3">
-                                <Detail label="Full Name" value={fullName} />
+                                <Detail label="Full Name" value={fullName} className=''/>
                                 <Detail
                                     label="Email"
                                     value={assessment.email}
@@ -217,8 +217,8 @@ export default function AssessmentEdit({
                         </section>
 
                         <section>
-                            <h2 className="mb-3 text-sm font-bold tracking-wider text-slate-500 uppercase">
-                                Course & Academic Information
+                            <h2 className="mb-3 text-sm font-bold tracking-wider text-blue-500 uppercase">
+                                Course & Academic Information Requested
                             </h2>
                             <div className="grid grid-cols-1 gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4 sm:grid-cols-2 md:grid-cols-3">
                                 <Detail
@@ -495,10 +495,10 @@ function Detail({
 }) {
     return (
         <div className={className}>
-            <span className="text-xs font-semibold text-slate-400">
+            <span className="text-x font-semibold text-slate-400">
                 {label}
             </span>
-            <p className="text-sm font-medium text-slate-900">{value || '—'}</p>
+            <p className="text-lg font-medium text-slate-900">{value || '—'}</p>
         </div>
     );
 }

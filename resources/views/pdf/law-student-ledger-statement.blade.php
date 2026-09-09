@@ -1,322 +1,211 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Statement of Account - {{ $studentName }}</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'DejaVu Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 8pt;
-            color: #1a1a1a;
-            margin: 10px 12px;
-            background: #fff;
-        }
+<html>
+    <head>
+        @php
+            // ── Variable & Logic Extraction (Retained from snippet) ──
+            $normalizeText = static fn ($value) => str_replace(['−', '–', '—'], '-', (string) ($value ?? ''));
+            $firstRecord   = $records->first();
+            $cleanAmount   = static fn ($val) => abs((float) preg_replace('/[^\d.]/', '', (string) ($val ?? 0)));
 
-        .receipt-header {
-            text-align: center;
-            border-bottom: 1px dashed #999;
-            padding-bottom: 6px;
-            margin-bottom: 8px;
-        }
-        .receipt-header .logo-wrap {
-            margin-bottom: 4px;
-        }
-        .header-logo {
-            display: block;
-            margin: 0 auto;
-            width: 50px;
-            height: 50px;
-            object-fit: contain;
-        }
-        .receipt-header h1 {
-            font-size: 12pt;
-            color: #0B3D91;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin: 0;
-        }
-        .receipt-header .sub {
-            font-size: 7pt;
-            color: #666;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-        .receipt-header .divider {
-            border-top: 1px dotted #ccc;
-            margin: 4px 0;
-        }
-
-        .meta-grid {
-            display: table;
-            width: 100%;
-            margin-bottom: 6px;
-            font-size: 7.5pt;
-        }
-        .meta-row {
-            display: table-row;
-        }
-        .meta-cell {
-            display: table-cell;
-            padding: 1px 0;
-        }
-        .meta-cell.label {
-            color: #555;
-            width: 18%;
-        }
-        .meta-cell.value {
-            font-weight: 600;
-            width: 32%;
-        }
-        .meta-cell.right {
-            text-align: right;
-        }
-
-        .ledger-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 7pt;
-            margin-top: 4px;
-        }
-        .ledger-table th {
-            background-color: #f0f4f8;
-            color: #0B3D91;
-            font-size: 6.5pt;
-            text-transform: uppercase;
-            border: 1px solid #dde4ec;
-            padding: 3px 4px;
-            letter-spacing: 0.5px;
-        }
-        .ledger-table td {
-            border: 1px solid #e8edf3;
-            padding: 3px 4px;
-        }
-        .ledger-table .text-right { text-align: right; }
-        .ledger-table .text-center { text-align: center; }
-
-        .ledger-table tbody tr:nth-child(even) {
-            background-color: #fafcfe;
-        }
-
-        .ledger-table tbody tr.payment-row {
-            background-color: #fff8f8;
-        }
-        .ledger-table tbody tr.payment-row:nth-child(even) {
-            background-color: #fff5f5;
-        }
-
-        .summary-container {
-            margin-top: 10px;
-            border-top: 1px dashed #999;
-            padding-top: 8px;
-        }
-        .summary-grid {
-            display: table;
-            width: 100%;
-            font-size: 7.5pt;
-        }
-        .summary-row {
-            display: table-row;
-        }
-        .summary-cell {
-            display: table-cell;
-            padding: 1px 0;
-        }
-        .summary-cell.label {
-            color: #555;
-            width: 70%;
-        }
-        .summary-cell.value {
-            text-align: right;
-            font-weight: 500;
-            width: 30%;
-        }
-        .summary-row.total .summary-cell {
-            border-top: 2px solid #0B3D91;
-            padding-top: 4px;
-            font-weight: 700;
-            font-size: 9pt;
-            color: #0B3D91;
-        }
-
-        .footer {
-            margin-top: 12px;
-            font-size: 6pt;
-            color: #aaa;
-            text-align: center;
-            border-top: 1px dotted #ddd;
-            padding-top: 4px;
-        }
-
-        .clear { clear: both; }
-        .text-muted { color: #888; }
-        .text-success { color: #2e7d32; }
-        .text-danger { color: #c62828; }
-        .text-bold { font-weight: 700; }
-        .text-negative { color: #c62828; }
-        .text-positive { color: #2e7d32; }
-
-        @media print {
-            body { margin: 8px; }
-            .ledger-table th { background-color: #e8edf3 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .ledger-table tbody tr:nth-child(even) { background-color: #f5f7fa !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .ledger-table tbody tr.payment-row { background-color: #fff8f8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .ledger-table tbody tr.payment-row:nth-child(even) { background-color: #fff5f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        }
-    </style>
-</head>
-<body>
-
-    @php
-        $normalizeText = static fn ($value) => str_replace(['−', '–', '—'], '-', (string) ($value ?? ''));
-        $firstRecord = $records->first();
-        $cleanAmount = static fn ($val) => abs((float) preg_replace('/[^\d.]/', '', (string) ($val ?? 0)));
-
-        // Universal helper: read a property regardless of object/array shape
-        // (Eloquent model or transformed array).
-        $getProp = static function ($obj, array $keys) {
-            if (!$obj) {
+            // Universal property extractor
+            $getProp = static function ($obj, array $keys) {
+                if (!$obj) return null;
+                foreach ($keys as $key) {
+                    if (is_object($obj) && isset($obj->{$key}) && $obj->{$key} !== '') {
+                        return $obj->{$key};
+                    }
+                    if (is_array($obj) && isset($obj[$key]) && $obj[$key] !== '') {
+                        return $obj[$key];
+                    }
+                }
                 return null;
-            }
-            foreach ($keys as $key) {
-                if (is_object($obj) && isset($obj->{$key}) && $obj->{$key} !== '') {
-                    return $obj->{$key};
+            };
+
+            $courseCode    = $firstRecord ? ($getProp($firstRecord, ['course', 'course_code', 'code']) ?? '—') : '—';
+            $schoolYear    = $firstRecord ? ($getProp($firstRecord, ['schoolYear', 'school_year']) ?? '—') : '—';
+            $semesterLabel = $firstRecord ? ($getProp($firstRecord, ['semesterOrSummer', 'semester_or_summer', 'semester']) ?? '—') : '—';
+            $units         = $firstRecord ? ($getProp($firstRecord, ['units']) ?? '—') : '—';
+            $studentId     = $assessment['student_id'] ?? ($getProp($firstRecord, ['student_id', 'studentNo']) ?? '—');
+            $formNumber    = $assessment->reference_number ?? ($assessment->id ?? '—');
+            $studentName   = $studentName ?? (is_object($student ?? null) ? ($student->full_name ?? ($student->name ?? '—')) : '—');
+
+            // Payment determination logic
+            $isPayment = static function ($record) use ($getProp) {
+                $rawType = strtoupper(trim((string) ($getProp($record, ['arOrPayment', 'ar_or_payment', 'arPayment', 'entry_type']) ?? '')));
+                return in_array($rawType, ['PAYMENT', 'P', 'PAYMENR', 'SETTLED', 'ADJUSTMENT', 'ADJ']);
+            };
+
+            // Amount formatting logic
+            $formatAmount = static function ($record) use ($cleanAmount, $isPayment, $getProp) {
+                $amount = $cleanAmount($getProp($record, ['amount']) ?? 0);
+
+                if ($isPayment($record)) {
+                    return '- ' . number_format($amount, 2);
                 }
-                if (is_array($obj) && isset($obj[$key]) && $obj[$key] !== '') {
-                    return $obj[$key];
-                }
-            }
-            return null;
-        };
 
-        $courseCode = $firstRecord ? ($getProp($firstRecord, ['course', 'course_code', 'code']) ?? 'N/A') : 'N/A';
-        $schoolYear = $firstRecord ? ($getProp($firstRecord, ['schoolYear', 'school_year']) ?? 'N/A') : 'N/A';
-        $semesterLabel = $firstRecord ? ($getProp($firstRecord, ['semesterOrSummer', 'semester_or_summer', 'semester']) ?? 'N/A') : 'N/A';
-        $units = $firstRecord ? ($getProp($firstRecord, ['units']) ?? 'N/A') : 'N/A';
+                return number_format($amount, 2);
+            };
 
-        $isPayment = static function ($record) use ($getProp) {
-            $rawType = strtoupper(trim((string) ($getProp($record, ['arOrPayment', 'ar_or_payment']) ?? '')));
-            return in_array($rawType, ['PAYMENT', 'P', 'PAYMENR', 'SETTLED', 'ADJUSTMENT', 'ADJ']);
-        };
+            // Header image processing
+            $headerImagePath = resource_path('views/pdf/norsu header.png');
+            $headerImageBase64 = file_exists($headerImagePath)
+                ? base64_encode(file_get_contents($headerImagePath))
+                : ($logoDataUri ?? null);
 
-        $formatAmount = static function ($record) use ($cleanAmount, $isPayment, $getProp) {
-            $amount = $cleanAmount($getProp($record, ['amount']) ?? 0);
+            // Signatory & user metadata
+            $user = $preparedBy ?? '—';
+            $official = activeAuthorizedOfficial();
+            $signatoryName = $official?->name ?? 'Maurice Anaver B. Dordado, CPA';
+            $authofficialcourse = $official?->course ?? 'CPA';
+            $signatoryPosition = $official?->position ?? 'Head of Accounting/Division/Unit';
+        @endphp
 
-            if ($isPayment($record)) {
-                return '-₱' . number_format($amount, 2);
-            }
+        <meta charset="utf-8">
+        <title>Statement of Account - {{ $studentName }}</title>
+        @vite(['resources/css/app.css'])
+    </head>
+<body class="text-[11px] w-full min-w-[800px] text-gray-900 font-sans">
 
-            return '₱' . number_format($amount, 2);
-        };
+    {{-- <pre>{{ json_encode(get_defined_vars(), JSON_PRETTY_PRINT) }}</pre> --}}
 
-        $getAmountClass = static fn ($record) => $isPayment($record) ? 'text-negative' : 'text-positive';
-    @endphp
-
-    <div class="receipt-header">
-        @if($logoDataUri)
-        <div class="logo-wrap">
-            <img class="header-logo" src="{{ $logoDataUri }}" alt="NORSU Logo">
+    @if($headerImageBase64)
+        <div class="flex justify-center mb-2">
+            <img
+                class="w-full max-w-[605px]"
+                src="{{ str_starts_with($headerImageBase64, 'data:') ? $headerImageBase64 : 'data:image/png;base64,' . $headerImageBase64 }}"
+                alt="NORSU Header"
+            >
         </div>
-        @endif
-        <h1>NORSU Law School Office</h1>
-        <div class="sub">Official Student Statement of Account</div>
-        <div class="divider"></div>
-    </div>
+    @endif
 
-    <div class="meta-grid">
-        <div class="meta-row">
-            <span class="meta-cell label">Student:</span>
-            <span class="meta-cell value">{{ $normalizeText($studentName) }}</span>
-            <span class="meta-cell label">Date Issued:</span>
-            <span class="meta-cell value right">{{ $generatedAt }}</span>
-        </div>
-        <div class="meta-row">
-            <span class="meta-cell label">Course:</span>
-            <span class="meta-cell value">{{ $normalizeText($courseCode) }}</span>
-            <span class="meta-cell label">Status:</span>
-            <span class="meta-cell value right {{ $summary['outstandingBalance'] <= 0 ? 'text-success' : 'text-danger' }}">
-                {{ $summary['outstandingBalance'] <= 0 ? '✓ SETTLED' : 'OUTSTANDING' }}
-            </span>
-        </div>
-        <div class="meta-row">
-            <span class="meta-cell label">School Year:</span>
-            <span class="meta-cell value">{{ $normalizeText($schoolYear) }}</span>
-            <span class="meta-cell label">Units:</span>
-            <span class="meta-cell value right">{{ $normalizeText($units) }}</span>
-        </div>
-        @if($semesterLabel !== 'N/A')
-        <div class="meta-row">
-            <span class="meta-cell label">Semester:</span>
-            <span class="meta-cell value">{{ $normalizeText($semesterLabel) }}</span>
-            <span class="meta-cell label"></span>
-            <span class="meta-cell value right"></span>
-        </div>
-        @endif
-    </div>
+    <h1 class="text-center font-bold text-2xl my-4">Statement of Account</h1>
 
-    <table class="ledger-table">
+    <!-- Meta Information Block -->
+    <table class="w-full mb-3 text-[16px]">
+        <tr>
+            <td class="font-bold w-28 align-top py-0.5">Name:</td>
+            <td class="italic align-top py-0.5">{{ $normalizeText($studentName) }}</td>
+            <td class="font-bold w-45 align-top py-0.5">Assessment Form No:</td>
+            <td class="italic align-top py-0.5">{{ $formNumber }}</td>
+        </tr>
+        <tr>
+            <td class="font-bold align-top py-0.5">Student ID:</td>
+            <td class="italic align-top py-0.5">{{ $studentId }}</td>
+            <td class="font-bold align-top py-0.5">Semester:</td>
+            <td class="italic align-top py-0.5">{{ $normalizeText($semesterLabel) }}</td>
+        </tr>
+        <tr>
+            <td class="font-bold align-top py-0.5">Course:</td>
+            <td class="italic align-top py-0.5">{{ $normalizeText($courseCode) }}</td>
+            <td class="font-bold align-top py-0.5">School Year:</td>
+            <td class="italic align-top py-0.5">{{ $normalizeText($schoolYear) }}</td>
+        </tr>
+        <tr>
+            <td class="font-bold align-top py-0.5">Units:</td>
+            <td class="italic align-top py-0.5">{{ $normalizeText($units) }}</td>
+            <td></td>
+            <td></td>
+        </tr>
+    </table>
+
+    <!-- Ledger Table Layout -->
+    <table class="w-full border-b border-t border-black border-collapse mt-1.5 text-[1rem]">
         <thead>
-            <tr>
-                <th width="11%">Date</th>
-                <th width="14%">Ref #</th>
-                <th width="28%">Particulars</th>
-                <th width="14%" class="text-right">Rate</th>
-                <th width="10%" class="text-center">Type</th>
-                <th width="13%" class="text-right">Amount</th>
+            <tr class="border-b-2 border-black">
+                <th class="text-left px-1.5 py-1 w-[22%]">Date</th>
+                <th class="text-left px-1.5 py-1 w-[14%]">Ref #</th>
+                <th class="text-left px-1.5 py-1 w-[24%]">Particulars</th>
+                <th class="text-left px-1.5 py-1 w-[16%]">Type</th>
+                <th class="text-right px-1.5 py-1 w-[24%]">Amount</th>
             </tr>
         </thead>
         <tbody>
-            @if($records->isNotEmpty())
-                @foreach($records as $r)
-                    @php
-                        $txDate = $getProp($r, ['transactionDate', 'transaction_date']);
-                        $refNo  = $getProp($r, ['referenceNo', 'reference_jev_or_number']) ?? '-';
-                        $part   = $getProp($r, ['particulars']) ?? '-';
-                        $rate   = $getProp($r, ['tuitionPerUnitOrFeePerSemester', 'tuition_per_unit_or_fee_per_semester']) ?? 0;
-                    @endphp
-                    <tr class="{{ $isPayment($r) ? 'payment-row' : '' }}">
-                        <td>{{ $normalizeText($txDate ? \Carbon\Carbon::parse($txDate)->format('m/d/Y') : '-') }}</td>
-                        <td>{{ $normalizeText($refNo) }}</td>
-                        <td>{{ \Str::limit($normalizeText($part), 35) }}</td>
-                        <td class="text-right">₱{{ number_format($cleanAmount($rate), 2) }}</td>
-                        <td class="text-center">
-                            {{ $isPayment($r) ? 'PAY' : 'AR' }}
-                        </td>
-                        <td class="text-right {{ $getAmountClass($r) }}">
-                            {{ $formatAmount($r) }}
-                        </td>
-                    </tr>
-                @endforeach
-            @else
-                <tr>
-                    <td colspan="6" class="text-center text-muted" style="padding: 8px 0;">No transactions on record.</td>
+            @forelse($records as $r)
+                @php
+                    $txDate = $getProp($r, ['transactionDate', 'transaction_date']);
+                    $refNo  = $getProp($r, ['referenceNo', 'reference_jev_or_number']) ?? '';
+                    $part   = $getProp($r, ['particulars']) ?? '—';
+                    $type   = $isPayment($r) ? 'Payment' : ($getProp($r, ['type', 'entry_type', 'arOrPayment']) ?? 'Charge');
+                @endphp
+                <tr class="border-b">
+                    <td class="px-1.5 py-1">{{ $normalizeText($txDate ? \Carbon\Carbon::parse($txDate)->format('m/d/Y') : '—') }}</td>
+                    <td class="px-1.5 py-1">{{ $normalizeText($refNo) }}</td>
+                    <td class="px-1.5 py-1">{{ $normalizeText($part) }}</td>
+                    <td class="px-1.5 py-1">{{ $type }}</td>
+                    <td class="text-right px-1.5 py-1">{{ $formatAmount($r) }}</td>
                 </tr>
-            @endif
+            @empty
+                <tr>
+                    <td colspan="5" class="italic text-gray-500 px-1.5 py-3">No matching ledger records found.</td>
+                </tr>
+            @endforelse
+
+            <tr class="border-t-2 border-black font-bold">
+                <td colspan="3"></td>
+                <td class="text-right px-1.5 py-1.5">Outstanding Balance</td>
+                <td class="text-right px-1.5 py-1.5">{{ number_format($summary['outstandingBalance'] ?? 0, 2) }}</td>
+            </tr>
         </tbody>
     </table>
 
-    <div class="summary-container">
-        <div class="summary-grid">
-            <div class="summary-row">
-                <span class="summary-cell label">Total Assessments:</span>
-                <span class="summary-cell value text-positive">₱{{ number_format($summary['totalCharges'], 2) }}</span>
-            </div>
-            <div class="summary-row">
-                <span class="summary-cell label">Total Payments / Credits:</span>
-                <span class="summary-cell value text-negative">-₱{{ number_format($summary['totalPayments'], 2) }}</span>
-            </div>
-            <div class="summary-row total">
-                <span class="summary-cell label">OUTSTANDING BALANCE:</span>
-                <span class="summary-cell value {{ $summary['outstandingBalance'] <= 0 ? 'text-success' : 'text-danger' }}">
-                    ₱{{ number_format($summary['outstandingBalance'], 2) }}
-                </span>
-            </div>
-        </div>
+    <!-- Dual Signatory Section -->
+    <table class="w-full mt-20 text-lg">
+        <tr>
+            <td class="w-1/2 align-top px-2.5">
+                Prepared By
+    
+                <div class="text-center mt-10">
+                    (SGD)
+                </div>
+    
+                <div class="font-bold mt-6">
+                    {{ $user }}
+                </div>
+    
+                <div class="mt-1">
+                    Accounting Staff
+                </div>
+
+                <div class="">
+                    &nbsp;
+                </div>
+    
+                <div class="mt-3.5">
+                    Date: {{ now('Asia/Manila')->format('n/j/Y') }}
+                </div>
+            </td>
+    
+            <td class="w-1/2 align-top px-2.5">
+                Certified Correct
+    
+                <div class="text-center mt-10">
+                    (SGD)
+                </div>
+    
+                <div class="font-bold mt-6">
+                    {{ $signatoryName }}, {{ $authofficialcourse }}
+                </div>
+
+                <div class="mt-1">
+                    {{ $signatoryPosition }}
+                </div>
+    
+                <div class="">
+                    Authorized Official
+                </div>
+    
+                <div class="mt-3.5">
+                    Date: {{ now('Asia/Manila')->format('n/j/Y') }}
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Generated By Footer Tag (Asia/Manila Time) -->
+    <div class="mt-8 text-center italic text-xs text-gray-500">
+        Generated: {{ now('Asia/Manila')->format('Y-m-d h:i A') }} &bull; This is a computer-generated statement. No signature required.
     </div>
 
-    <div class="footer">
-        <span>Generated: {{ now()->timezone('Asia/Manila')->format('Y-m-d h:i A') }} &bull; This is a computer-generated statement. No signature required.</span>
-    </div>
-
+    <pre>&nbsp;</pre>
 </body>
 </html>

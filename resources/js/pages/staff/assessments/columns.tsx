@@ -2,7 +2,7 @@
 
 import { Link } from '@inertiajs/react';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Eye } from 'lucide-react';
 import type {DataTableFeatures} from '@/components/data-table/data-table-features';
 import { Badge } from '@/components/ui/badge';
 import {

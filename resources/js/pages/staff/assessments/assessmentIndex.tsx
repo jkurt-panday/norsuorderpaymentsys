@@ -1,9 +1,9 @@
 import { Head } from '@inertiajs/react';
-import { ServerDataTable } from '@/components/data-table/server-data-table';
-import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { AssessmentFilters } from './assessment-filters';
 import { columns  } from './columns';
 import type {AssessmentType} from './columns';
+import { ServerDataTable } from '@/components/data-table/server-data-table';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 
 type AssessmentProps = {
     assessments: {
