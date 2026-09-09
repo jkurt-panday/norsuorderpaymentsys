@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\GraduateLedger;
+use App\Observers\GraduateLedgerObserver;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +20,6 @@ use App\Models\BankAccountInfo;
 use App\Models\Course;
 use App\Models\Courses;
 use App\Models\FormInput;
-use App\Models\GraduateLedger;
 use App\Models\LawSchoolLedger;
 use App\Models\Membership;
 use App\Models\PaymentDetailOption;
@@ -46,6 +47,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        GraduateLedger::observe(GraduateLedgerObserver::class);
+
         $this->configureDefaults();
 
         // Centralized audit trail: log all CRUD on staff/admin-managed

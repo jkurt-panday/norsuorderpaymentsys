@@ -1,4 +1,4 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import {
     CheckCircle,
     Mail,
@@ -11,9 +11,7 @@ import {
     Hash,
     Home,
 } from 'lucide-react';
-import React, { useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -23,7 +21,6 @@ import {
     CardFooter,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import PublicLayout from '@/pages/layouts/PublicLayout';
 
 interface Courses {
     id: number | string;
@@ -49,7 +46,7 @@ interface AssessmentForm {
 }
 
 interface Props {
-    assessmentForm: AssessmentForm; // must be the same format as the one being sent
+    assessmentForm: AssessmentForm;     // must be the same format as the one being sent
 }
 
 export default function AssessmentSuccess({ assessmentForm }: Props) {
@@ -68,10 +65,13 @@ export default function AssessmentSuccess({ assessmentForm }: Props) {
 
     const formatContactNumber = (contactNum: string) => {
         if (!contactNum) {
-            return '';
-        }
-
-        return contactNum.replace(/^(\d{4})(\d{3})(\d{4})$/, '$1 $2 $3');
+return '';
+}
+    
+        return contactNum.replace(
+            /^(\d{4})(\d{3})(\d{4})$/,
+            '$1 $2 $3',
+        );
     };
 
     const getEnrolledUnderBadgeClass = (enrolled_under: string) => {
@@ -190,9 +190,7 @@ export default function AssessmentSuccess({ assessmentForm }: Props) {
                                                     Contact Number
                                                 </p>
                                                 <p className="text-base font-semibold break-all text-slate-900 sm:text-xl">
-                                                    {formatContactNumber(
-                                                        assessmentForm.contact_num,
-                                                    )}
+                                                    {formatContactNumber(assessmentForm.contact_num)}
                                                 </p>
                                             </div>
                                         </div>
@@ -207,7 +205,7 @@ export default function AssessmentSuccess({ assessmentForm }: Props) {
                                         <IdCard className="h-5 w-5 shrink-0 text-blue-700 sm:h-6 sm:w-6" />
                                         Identity Details
                                     </h3>
-
+                                
                                     <div className="grid grid-cols-1 gap-x-10 gap-y-4 sm:gap-y-6 md:grid-cols-2">
                                         {/* Full Name */}
                                         <div className="col-span-full">
@@ -230,7 +228,7 @@ export default function AssessmentSuccess({ assessmentForm }: Props) {
                                         {/* Student id */}
                                         <div className="col-span-full flex items-start gap-2">
                                             <Hash className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
-
+                                
                                             <div className="min-w-0 flex-1">
                                                 <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase sm:text-sm">
                                                     Student ID
@@ -240,11 +238,11 @@ export default function AssessmentSuccess({ assessmentForm }: Props) {
                                                 </p>
                                             </div>
                                         </div>
-
+                                
                                         {/* Address */}
                                         <div className="col-span-full flex items-start gap-2">
                                             <MapPin className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
-
+                                
                                             <div className="min-w-0 flex-1">
                                                 <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase sm:text-sm">
                                                     Address
@@ -254,55 +252,52 @@ export default function AssessmentSuccess({ assessmentForm }: Props) {
                                                 </p>
                                             </div>
                                         </div>
-
+                                
                                         {/* Course */}
                                         <div className="col-span-full md:col-span-1">
                                             <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase sm:text-sm">
                                                 Course
                                             </p>
                                             <p className="text-base font-semibold wrap-break-word text-slate-900 sm:text-xl">
-                                                {assessmentForm.course
-                                                    ?.course_desc || ''}
+                                                {assessmentForm.course?.course_desc || ''}
                                             </p>
                                         </div>
                                     </div>
                                 </div>
-
+                                
                                 <Separator />
-
+                                
                                 {/* Assessment Details */}
                                 <div>
                                     <h3 className="mb-4 flex items-center gap-2 text-xl font-semibold text-blue-900 sm:mb-6 sm:gap-3 sm:text-2xl">
                                         <Receipt className="h-5 w-5 shrink-0 text-blue-700 sm:h-6 sm:w-6" />
                                         Assessment Details
                                     </h3>
-
+                                
                                     <div className="grid grid-cols-1 gap-x-10 gap-y-4 sm:gap-y-6 md:grid-cols-3">
                                         {/* Enrolled Under */}
                                         <div>
                                             <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase sm:text-sm">
                                                 Enrolled Under:
                                             </p>
-
+                                
                                             <div className="pt-1">
                                                 <Badge
                                                     className={`rounded-full px-3 py-4 text-sm font-semibold shadow-sm sm:px-4 sm:py-4 sm:text-lg ${getEnrolledUnderBadgeClass(
                                                         assessmentForm.enrolled_under,
                                                     )}`}
                                                 >
-                                                    {
-                                                        assessmentForm.enrolled_under
-                                                    }
+                                                    {assessmentForm.enrolled_under}
                                                 </Badge>
                                             </div>
                                         </div>
-
+                                
                                         {/* Semester */}
                                         <div>
                                             <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase sm:text-sm">
                                                 Semester
                                             </p>
-
+                                
                                             <div className="pt-1">
                                                 <Badge
                                                     className={`rounded-full px-3 py-4 text-sm font-semibold shadow-sm sm:px-4 sm:py-4 sm:text-lg ${getSemesterBadgeClass(
@@ -319,22 +314,20 @@ export default function AssessmentSuccess({ assessmentForm }: Props) {
                                             <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase sm:text-sm">
                                                 Semester
                                             </p>
-
+                                
                                             <div className="pt-1">
                                                 <Badge
-                                                    className={`rounded-full border border-slate-500 bg-slate-100 px-3 px-4 py-4 text-sm font-semibold text-slate-700 shadow-sm sm:px-4 sm:py-4 sm:text-lg`}
+                                                    className={`rounded-full py-4 text-sm font-semibold shadow-sm sm:px-4 sm:py-4 sm:text-lg bg-slate-100 text-slate-700 border border-slate-500 px-4`}
                                                 >
-                                                    {
-                                                        assessmentForm.sy_last_attended
-                                                    }
+                                                    {assessmentForm.sy_last_attended}
                                                 </Badge>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-
+                                
                                 <Separator />
-
+                                
                                 {/* Submission Details */}
                                 <div className="text-center leading-7 text-slate-600">
                                     <p className="-mt-2 mb-1 text-xs tracking-wide text-slate-500 sm:-mt-4 sm:text-sm">
@@ -362,24 +355,23 @@ export default function AssessmentSuccess({ assessmentForm }: Props) {
                                         Print Receipt
                                     </Button>
                                     {(() => {
-                                        const role = (
-                                            auth?.user as
-                                                { role?: string } | undefined
-                                        )?.role;
+                                        const role = (auth?.user as { role?: string } | undefined)?.role;
                                         const homeHref =
                                             role === 'admin'
                                                 ? '/admin/dashboard'
-                                                : role === 'staff' ||
-                                                    role === 'cashier'
+                                                : role === 'staff' || role === 'cashier'
                                                   ? '/staff/staffdashboard'
                                                   : role === 'client'
                                                     ? '/client/dashboard'
                                                     : null;
-                                        if (!homeHref) return null;
+
+                                        if (!homeHref) {
+return null;
+}
+
                                         return (
                                             <Button
                                                 variant="outline"
-                                                asChild
                                                 className="h-11 w-full rounded-xl border-slate-200 px-6 text-sm font-semibold text-slate-700 transition-all duration-200 hover:bg-slate-50 sm:h-12 sm:w-auto sm:px-8 sm:text-base"
                                             >
                                                 <Link

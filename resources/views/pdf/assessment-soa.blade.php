@@ -2,15 +2,16 @@
 <html>
     <head>
         @php
-            $studentName = $selectedStudent['name']
-                ?? trim(($assessment->last_name ?? '') . ', ' . ($assessment->first_name ?? '') . ' ' . ($assessment->middle_name)) ?: '—';
+            $studentName = $ledgerStatement['selectedStudent']['name'];
+            //$studentName = $selectedStudent['name']
+              //  ?? trim(($assessment->last_name ?? '') . ', ' . ($assessment->first_name ?? '') . ' ' . ($assessment->middle_name)) ?: '—';
         @endphp
         
         <meta charset="utf-8">
         <title>Statement of Account - {{ $studentName }}</title>
         @vite(['resources/css/app.css'])
     </head>
-<body class="text-[11px] text-gray-900 font-sans">
+<body class="text-[11px] w-full min-w-[800px] text-gray-900 font-sans">
 
     @php
         // Base64-embed the header image so it renders regardless of PDF engine.
@@ -29,6 +30,10 @@
         ];
         $schoolYear = $ledgerStatement['schoolYear'] ?? '—';
         $semester   = $ledgerStatement['semester'] ?? '—';
+
+        // authorized official
+        $authorizedOfficial = $authOfficial['name'] ?? '—';
+        $authorizedOfficialCourse = $authOfficial['course'] ?? '—';
 
         // user fetch
         $user = $preparedBy ?? '—';
@@ -93,7 +98,7 @@
         </tr>
     </table>
 
-    <table class="w-full border border-black border-collapse mt-1.5 text-[1rem]">
+    <table class="w-full border-b border-t border-black border-collapse mt-1.5 text-[1rem]">
         <thead>
             <tr class="border-b-2 border-black">
                 <th class="text-left px-1.5 py-1 w-[22%]">Date</th>
@@ -113,7 +118,7 @@
                         ? '- ' . number_format($amountValue, 2)
                         : number_format($amountValue, 2);
                 @endphp
-                <tr>
+                <tr class="border-b">
                     <td class="px-1.5 py-1">{{ $record['transactionDate'] ?? '—' }}</td>
                     <td class="px-1.5 py-1">{{ $record['referenceNo'] ?? '' }}</td>
                     <td class="px-1.5 py-1">{{ $record['particulars'] ?? '—' }}</td>
@@ -168,7 +173,7 @@
                 </div>
     
                 <div class="font-bold mt-6">
-                    {{ $signatoryName }}
+                    {{ $authorizedOfficial }}, {{ $authorizedOfficialCourse }}
                 </div>
 
                 <div class="mt-1">
@@ -186,6 +191,11 @@
         </tr>
     </table>
 
+    <div class="mt-8 text-center italic text-xs text-gray-500">
+        Generated: {{ now('Asia/Manila')->format('Y-m-d h:i A') }} &bull; This is a computer-generated statement.
+    </div>
+
     {{-- <pre>{{ json_encode(get_defined_vars(), JSON_PRETTY_PRINT) }}</pre> --}}
+    <pre>&nbsp;</pre>
 </body>
 </html>

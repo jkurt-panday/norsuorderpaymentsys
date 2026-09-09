@@ -9,6 +9,7 @@ export type CourseType = {
     id: number;
     course_code: string;
     course_desc: string;
+    course_college: string;
     created_at: string;
     updated_at: string;
 };
@@ -37,6 +38,10 @@ export const columns = columnHelper.columns([
 
     columnHelper.accessor('course_desc', {
         header: 'COURSE DESCRIPTION',
+    }),
+
+    columnHelper.accessor('course_college', {
+        header: 'COLLEGE',
     }),
 
     columnHelper.display({

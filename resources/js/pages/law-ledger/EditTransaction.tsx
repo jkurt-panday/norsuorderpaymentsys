@@ -1,8 +1,6 @@
 import { Head, useForm, router } from '@inertiajs/react';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -13,6 +11,8 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,

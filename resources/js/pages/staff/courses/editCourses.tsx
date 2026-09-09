@@ -3,6 +3,7 @@ import { ArrowLeft, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { FieldDescription } from '@/components/ui/field';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -11,6 +12,7 @@ interface Courses {
     id: number;
     course_code: string;
     course_desc: string;
+    course_college: string;
 }
 
 interface CoursesEditProps {
@@ -22,6 +24,7 @@ export default function CoursesEdit({ courses }: CoursesEditProps ) {
     const { data, setData, put, processing, errors } = useForm({
         course_code: courses.course_code,
         course_desc: courses.course_desc,
+        course_college: courses.course_college ?? '',
     });
 
     const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
@@ -106,6 +109,62 @@ export default function CoursesEdit({ courses }: CoursesEditProps ) {
                                 {errors.course_desc && (
                                     <p className="text-sm text-red-500">
                                         {errors.course_desc}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Course College (Radio Group) */}
+                            <div className="flex flex-col gap-3 md:col-span-2">
+                                <Label className="text-sm font-medium text-slate-800">
+                                    College / Unit
+                                    <span className="text-red-400">*</span>
+                                </Label>
+
+                                <RadioGroup
+                                    value={data.course_college}
+                                    onValueChange={(val) =>
+                                        setData('course_college', val)
+                                    }
+                                    className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                                >
+                                    <label
+                                        htmlFor="college-graduate-school"
+                                        className={`flex cursor-pointer items-center gap-3 rounded-md border p-3.5 transition-colors ${
+                                            data.course_college === 'Graduate School'
+                                                ? 'border-slate-800 bg-slate-50'
+                                                : 'border-slate-300 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        <RadioGroupItem
+                                            value="Graduate School"
+                                            id="college-graduate-school"
+                                        />
+                                        <span className="text-sm font-medium text-slate-800">
+                                            Graduate School
+                                        </span>
+                                    </label>
+
+                                    <label
+                                        htmlFor="college-school-of-law"
+                                        className={`flex cursor-pointer items-center gap-3 rounded-md border p-3.5 transition-colors ${
+                                            data.course_college === 'School of Law'
+                                                ? 'border-slate-800 bg-slate-50'
+                                                : 'border-slate-300 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        <RadioGroupItem
+                                            value="School of Law"
+                                            id="college-school-of-law"
+                                        />
+                                        <span className="text-sm font-medium text-slate-800">
+                                            School of Law
+                                        </span>
+                                    </label>
+                                </RadioGroup>
+
+                                {errors.course_college && (
+                                    <p className="text-sm text-red-500">
+                                        {errors.course_college}
                                     </p>
                                 )}
                             </div>

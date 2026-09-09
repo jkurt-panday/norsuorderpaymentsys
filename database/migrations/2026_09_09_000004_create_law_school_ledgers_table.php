@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('grad_ledger_entries', function (Blueprint $table) {
+        Schema::create('law_school_ledgers', function (Blueprint $table) {
             $table->id();
             $table->foreignId('student_id')->constrained()->restrictOnDelete();
             $table->foreignId('academic_term_id')->constrained()->restrictOnDelete();
@@ -32,6 +32,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('grad_ledger_entries');
+        Schema::dropIfExists('law_school_ledgers');
     }
 };

@@ -1,6 +1,7 @@
 import { useForm, Head, Link } from '@inertiajs/react';
 import { ArrowLeft, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
     Card,
     CardContent,
@@ -17,6 +18,7 @@ export default function CreateCourses() {
     const { data, setData, post, processing, errors } = useForm({
         course_code: '',
         course_desc: '',
+        course_college: '',
     });
 
     const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
@@ -63,7 +65,7 @@ export default function CreateCourses() {
                                 </Label>
                     
                                 <Input
-                                    className="rounded-md border-slate-500 focus-visible:ring-slate-500/40"
+                                    className="rounded-md border-slate-500 focus-visible:ring-slate-500/40 py-6"
                                     placeholder="ex. BSComSci"
                                     value={data.course_code}
                                     onChange={(e) =>
@@ -90,7 +92,7 @@ export default function CreateCourses() {
                                 </Label>
                     
                                 <Input
-                                    className="rounded-md border-slate-500 focus-visible:ring-slate-500/40"
+                                    className="rounded-md border-slate-500 focus-visible:ring-slate-500/40 py-6"
                                     placeholder="ex. BoS in Computer Science"
                                     value={data.course_desc}
                                     onChange={(e) =>
@@ -101,6 +103,62 @@ export default function CreateCourses() {
                                 {errors.course_desc && (
                                     <p className="text-sm text-red-500">
                                         {errors.course_desc}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Course College (Radio Group) */}
+                            <div className="flex flex-col gap-3 md:col-span-2">
+                                <Label className="text-sm font-medium text-slate-800">
+                                    College
+                                    <span className="text-red-400">*</span>
+                                </Label>
+
+                                <RadioGroup
+                                    value={data.course_college}
+                                    onValueChange={(val) =>
+                                        setData('course_college', val)
+                                    }
+                                    className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                                >
+                                    <label
+                                        htmlFor="college-graduate-school"
+                                        className={`flex cursor-pointer items-center gap-3 rounded-md border p-3.5 transition-colors ${
+                                            data.course_college === 'Graduate School'
+                                                ? 'border-slate-800 bg-slate-50'
+                                                : 'border-slate-300 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        <RadioGroupItem
+                                            value="Graduate School"
+                                            id="college-graduate-school"
+                                        />
+                                        <span className="text-sm font-medium text-slate-800">
+                                            Graduate School
+                                        </span>
+                                    </label>
+
+                                    <label
+                                        htmlFor="college-school-of-law"
+                                        className={`flex cursor-pointer items-center gap-3 rounded-md border p-3.5 transition-colors ${
+                                            data.course_college === 'School of Law'
+                                                ? 'border-slate-800 bg-slate-50'
+                                                : 'border-slate-300 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        <RadioGroupItem
+                                            value="School of Law"
+                                            id="college-school-of-law"
+                                        />
+                                        <span className="text-sm font-medium text-slate-800">
+                                            School of Law
+                                        </span>
+                                    </label>
+                                </RadioGroup>
+
+                                {errors.course_college && (
+                                    <p className="text-sm text-red-500">
+                                        {errors.course_college}
                                     </p>
                                 )}
                             </div>

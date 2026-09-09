@@ -1,4 +1,6 @@
 import { Bar, BarChart, CartesianGrid, Rectangle, XAxis, YAxis } from "recharts"
+import { buildChartConfig,  PALETTE } from "./types"
+import type {ChartSeries} from "./types";
 import {
   Card,
   CardContent,
@@ -13,8 +15,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { buildChartConfig,  PALETTE } from "./types"
-import type {ChartSeries} from "./types";
 
 interface BarChartCardProps {
   title: string

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AssessmentForm;
 use App\Models\FormInput;
+use App\Models\AuthorizedOfficial;
 use Illuminate\Http\Request;
 use Spatie\LaravelPdf\Facades\Pdf;
 use Spatie\LaravelPdf\PdfBuilder;
@@ -49,10 +50,15 @@ class ReceiptPDFService
             $validated['ledger_student'] ?? null,
         );
 
+        $authOfficial = AuthorizedOfficial::query()
+            ->where('is_active', true)
+            ->first();
+
         return Pdf::view('pdf.assessment-soa', [
             'assessment' => $assessment,
             'ledgerStatement' => $ledgerStatement,
             'preparedBy' => $request->user()->name ?? '—',
+            'authOfficial' => $authOfficial
         ])->format('a4');
     }
 }

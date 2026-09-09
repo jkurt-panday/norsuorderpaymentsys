@@ -1,5 +1,9 @@
 import { Link, Head } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
+
+// table
+import { columns  } from './columns';
+import type {CourseType} from './columns';
 import { Button } from '@/components/base/buttons/button';
 import { ClientDataTable } from '@/components/data-table/client-data-table';
 import {
@@ -7,10 +11,6 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-
-// table
-import { columns  } from './columns';
-import type {CourseType} from './columns';
 
 // for client side search
 type CoursesProps = {

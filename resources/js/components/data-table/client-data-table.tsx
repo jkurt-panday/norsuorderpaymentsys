@@ -16,6 +16,10 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
+
+import { features  } from './data-table-features';
+import type {DataTableFeatures} from './data-table-features';
+import { DataTablePagination } from './data-table-pagination';
 import {
     Table,
     TableBody,
@@ -24,10 +28,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-
-import { features  } from './data-table-features';
-import type {DataTableFeatures} from './data-table-features';
-import { DataTablePagination } from './data-table-pagination';
 
 interface ClientDataTableProps<TData extends RowData> {
     columns: ColumnDef<DataTableFeatures, TData>[];
@@ -184,7 +184,7 @@ return data;
                                     (i % 2 === 0
                                         ? 'bg-white'
                                         : 'bg-slate-50/60') +
-                                    ' border-b border-slate-100 transition-colors last:border-0 hover:bg-blue-50/40'
+                                    ' border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-200'
                                 }
                             >
                                 {row.getVisibleCells().map((cell) => (
