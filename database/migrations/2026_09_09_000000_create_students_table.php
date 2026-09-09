@@ -10,15 +10,13 @@ return new class extends Migration
     {
         Schema::create('students', function (Blueprint $table) {
             $table->id();
-            $table->string('student_number', 50)->unique();
-            $table->string('first_name', 100);
-            $table->string('middle_name', 100)->nullable();
-            $table->string('last_name', 100);
-            $table->string('email')->nullable()->index();
-            $table->string('contact_num', 30)->nullable();
+            $table->string('student_number', 50)->nullable()->unique();
+            $table->string('first_name');
+            $table->string('middle_name')->nullable();
+            $table->string('last_name');
+            $table->string('email')->nullable();
+            $table->string('contact_num', 11)->nullable();
             $table->timestamps();
-
-            $table->index(['last_name', 'first_name']);
         });
     }
 
