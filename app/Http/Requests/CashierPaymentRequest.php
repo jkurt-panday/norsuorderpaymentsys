@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\UserRole;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class CashierPaymentRequest extends FormRequest
@@ -12,7 +13,7 @@ class CashierPaymentRequest extends FormRequest
         return $this->user()?->role === UserRole::Cashier->value;
     }
 
-    /** @return array<string, string> */
+    /** @return array<string, ValidationRule|array<mixed>|string> */
     public function rules(): array
     {
         return [

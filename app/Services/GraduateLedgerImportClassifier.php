@@ -11,7 +11,10 @@ final class GraduateLedgerImportClassifier
     public const WARNING_PAYMENT_MISSING_PARENTHESES = 'payment_missing_parentheses';
 
     /**
-     * @return array{entry_type: 'ar'|'payment'|'adjustment', warning: string|null}
+     * @return array{
+     *     entry_type: 'ar'|'payment'|'adjustment',
+     *     warning: 'negative_blank_type'|'negative_labeled_ar'|'payment_missing_parentheses'|null
+     * }
      */
     public function classify(?string $rawType, mixed $rawAmount): array
     {

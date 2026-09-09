@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StaffInput extends Model
 {
+    /** @use HasFactory<Factory<StaffInput>> */
     use HasFactory;
 
     protected $fillable = [
@@ -30,21 +32,25 @@ class StaffInput extends Model
 
     public const STATUSES = ['pending', 'processed', 'paid', 'cancelled'];
 
+    /** @return BelongsTo<FormInput, $this> */
     public function formInput(): BelongsTo
     {
         return $this->belongsTo(FormInput::class);
     }
 
+    /** @return BelongsTo<BankAccountInfo, $this> */
     public function bankAccount(): BelongsTo
     {
         return $this->belongsTo(BankAccountInfo::class, 'fundcluster_id');
     }
 
+    /** @return BelongsTo<SupportingDocument, $this> */
     public function referenceDocument(): BelongsTo
     {
         return $this->belongsTo(SupportingDocument::class, 'ref_document_id');
     }
 
+    /** @return BelongsTo<UACS, $this> */
     public function uacs(): BelongsTo
     {
         return $this->belongsTo(UACS::class, 'uacs_id');

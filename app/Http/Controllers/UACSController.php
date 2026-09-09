@@ -5,16 +5,21 @@ namespace App\Http\Controllers;
 use App\Http\Requests\UacsRequest;
 use App\Models\UACS;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use Inertia\Response;
 
+/** @extends BaseResourceController<UACS> */
 class UACSController extends BaseResourceController
 {
     // ---- Config consumed by BaseResourceController::index() ----
     protected string $model = UACS::class;
 
+    /** @var list<string> */
     protected array $searchableColumns = ['object_code', 'account_title'];
 
     protected string $indexView = 'staff/uacs/uacs';
@@ -25,29 +30,29 @@ class UACSController extends BaseResourceController
 
     protected string $orderBy = 'object_code';
 
+    /** @var 'asc'|'desc' */
     protected string $orderDirection = 'asc';
 
+    /** @var list<string> */
     protected array $sortableColumns = ['id', 'object_code', 'account_title', 'created_at'];
 
-    protected array $filterableColumns = [];
-
+    /**
+     * @param  Builder<Model>  $query
+     * @return Builder<Model>
+     */
     protected function modifyIndexQuery(Builder $query, Request $request): Builder
     {
-        $table = (new $this->model)->getTable();
-
         return $query
             ->select('*')
-            ->selectRaw(
-                "(SELECT COUNT(*) FROM {$table} AS t2 WHERE t2.id <= {$table}.id) as display_number"
-            );
+            ->selectRaw('(SELECT COUNT(*) FROM uacs AS t2 WHERE t2.id <= uacs.id) as display_number');
     }
 
-    public function create()
+    public function create(): Response
     {
         return Inertia::render('staff/uacs/createuacs');
     }
 
-    public function store(UacsRequest $request)
+    public function store(UacsRequest $request): RedirectResponse
     {
         try {
             DB::beginTransaction();
@@ -71,7 +76,7 @@ class UACSController extends BaseResourceController
         }
     }
 
-    public function edit(UACS $uacs)
+    public function edit(UACS $uacs): Response
     {
         return Inertia::render('staff/uacs/edituacs', [
             'uacs' => $uacs,
@@ -82,7 +87,7 @@ class UACSController extends BaseResourceController
         ]);
     }
 
-    public function update(UacsRequest $request, UACS $uacs)
+    public function update(UacsRequest $request, UACS $uacs): RedirectResponse
     {
         try {
             DB::beginTransaction();
@@ -104,7 +109,7 @@ class UACSController extends BaseResourceController
         }
     }
 
-    public function destroy(UACS $uacs)
+    public function destroy(UACS $uacs): RedirectResponse
     {
         if ($uacs->staffInputs()->exists()) {
             return back()->with('error', 'Cannot delete UACS that has associated staff inputs.');

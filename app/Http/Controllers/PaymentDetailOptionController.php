@@ -5,11 +5,15 @@ namespace App\Http\Controllers;
 use App\Http\Requests\PaymentDetailOptionRequest;
 use App\Models\PaymentDetailOption;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use Inertia\Response;
 
+/** @extends BaseResourceController<PaymentDetailOption> */
 class PaymentDetailOptionController extends BaseResourceController
 {
     /**
@@ -17,6 +21,7 @@ class PaymentDetailOptionController extends BaseResourceController
      */
     protected string $model = PaymentDetailOption::class;
 
+    /** @var list<string> */
     protected array $searchableColumns = ['payment_desc'];
 
     protected string $indexView = 'staff/payment-options/payment';
@@ -25,11 +30,11 @@ class PaymentDetailOptionController extends BaseResourceController
 
     protected string $orderBy = 'id';
 
+    /** @var 'asc'|'desc' */
     protected string $orderDirection = 'asc';
 
+    /** @var list<string> */
     protected array $sortableColumns = ['id', 'payment_desc', 'created_at'];
-
-    protected array $filterableColumns = [];
 
     /**
      * Adds a `display_number` column via ROW_NUMBER() — a permanent number
@@ -61,21 +66,21 @@ class PaymentDetailOptionController extends BaseResourceController
      * itself (which previously broke: its `: Response` return type has to
      * be matched exactly on any override, which the earlier attempt missed).
      */
+    /**
+     * @param  Builder<Model>  $query
+     * @return Builder<Model>
+     */
     protected function modifyIndexQuery(Builder $query, Request $request): Builder
     {
-        $table = (new $this->model)->getTable();
-
         return $query
             ->select('*')
-            ->selectRaw(
-                "(SELECT COUNT(*) FROM {$table} AS t2 WHERE t2.id <= {$table}.id) as display_number"
-            );
+            ->selectRaw('(SELECT COUNT(*) FROM payment_detail_options AS t2 WHERE t2.id <= payment_detail_options.id) as display_number');
     }
 
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(): Response
     {
         return Inertia::render('staff/payment-options/createpayment');
     }
@@ -83,7 +88,7 @@ class PaymentDetailOptionController extends BaseResourceController
     /**
      * Store a newly created resource in storage.
      */
-    public function store(PaymentDetailOptionRequest $request)
+    public function store(PaymentDetailOptionRequest $request): RedirectResponse
     {
         try {
             DB::beginTransaction();
@@ -113,7 +118,7 @@ class PaymentDetailOptionController extends BaseResourceController
      * Note: Variable renamed to $paymentOption to match Laravel's
      * automatic Route-Model Binding expectations for the 'payment-options' resource.
      */
-    public function edit(PaymentDetailOption $paymentOption)
+    public function edit(PaymentDetailOption $paymentOption): Response
     {
         return Inertia::render('staff/payment-options/editpayment', [
             'paymentOption' => $paymentOption,
@@ -127,7 +132,7 @@ class PaymentDetailOptionController extends BaseResourceController
     /**
      * Update the specified resource in storage.
      */
-    public function update(PaymentDetailOptionRequest $request, PaymentDetailOption $paymentOption)
+    public function update(PaymentDetailOptionRequest $request, PaymentDetailOption $paymentOption): RedirectResponse
     {
         try {
             DB::beginTransaction();
@@ -155,7 +160,7 @@ class PaymentDetailOptionController extends BaseResourceController
     /**
      * Remove the specified resource from storage safely.
      */
-    public function destroy(PaymentDetailOption $paymentOption)
+    public function destroy(PaymentDetailOption $paymentOption): RedirectResponse
     {
         if ($paymentOption->formInputs()->exists()) {
             return back()->with('error', 'Cannot delete payment option that has associated form inputs.');

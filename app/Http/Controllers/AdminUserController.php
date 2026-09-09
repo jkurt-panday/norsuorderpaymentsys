@@ -5,19 +5,21 @@ namespace App\Http\Controllers;
 use App\Enums\UserRole;
 use App\Models\ActivityLog;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class AdminUserController extends Controller
 {
     /**
      * Admin Dashboard - shows stats and recent activity
      */
-    public function dashboard(Request $request)
+    public function dashboard(Request $request): Response
     {
         $staffCount = User::where('role', 'staff')->count();
         $adminCount = User::where('role', 'admin')->count();
@@ -26,7 +28,7 @@ class AdminUserController extends Controller
         $recentActivity = ActivityLog::latest()
             ->take(10)
             ->get()
-            ->map(fn ($log) => [
+            ->map(fn (ActivityLog $log) => [
                 'id' => $log->id,
                 'action' => $log->action,
                 'event' => $log->eventCategory(),
@@ -50,7 +52,7 @@ class AdminUserController extends Controller
     /**
      * Display a listing of users with search, filter, and pagination.
      */
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
         $search = (string) $request->query('search', '');
         $role = (string) $request->query('role', '');
@@ -62,7 +64,7 @@ class AdminUserController extends Controller
         $query = User::query()->withTrashed();
 
         if ($search !== '') {
-            $like = '%' . strtolower($search) . '%';
+            $like = '%'.strtolower($search).'%';
             $query->where(function ($q) use ($like) {
                 $q->whereRaw('LOWER(name) LIKE ?', [$like])
                     ->orWhereRaw('LOWER(email) LIKE ?', [$like]);
@@ -134,7 +136,7 @@ class AdminUserController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,'.$user->id],
             'password' => ['nullable', 'string', Password::defaults()],
             'role' => ['required', Rule::enum(UserRole::class)],
         ]);
@@ -143,7 +145,7 @@ class AdminUserController extends Controller
         $user->email = $validated['email'];
         $user->role = $validated['role'];
 
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
         }
 
@@ -197,7 +199,7 @@ class AdminUserController extends Controller
     /**
      * Display the admin activity log.
      */
-    public function activityLog(Request $request)
+    public function activityLog(Request $request): Response
     {
         [$activityLogs, $activityFilters] = $this->buildActivityLogs($request);
 
@@ -210,7 +212,10 @@ class AdminUserController extends Controller
     /**
      * Build the searchable/paginated activity log query.
      *
-     * @return array{0: \Illuminate\Contracts\Pagination\LengthAwarePaginator, 1: array{activity_search: string, activity_action: string}}
+     * @return array{
+     *     0: LengthAwarePaginator<int, covariant array<string, mixed>>,
+     *     1: array{activity_search: string, activity_action: string, sort: string, direction: string, date_from: string, date_to: string}
+     * }
      */
     protected function buildActivityLogs(Request $request): array
     {
@@ -226,7 +231,7 @@ class AdminUserController extends Controller
         $activityQuery = ActivityLog::query();
 
         if ($activitySearch !== '') {
-            $like = '%' . strtolower($activitySearch) . '%';
+            $like = '%'.strtolower($activitySearch).'%';
             $activityQuery->where(function ($q) use ($like) {
                 $q->whereRaw('LOWER(description) LIKE ?', [$like])
                     ->orWhereRaw('LOWER(actor_name) LIKE ?', [$like])
@@ -278,17 +283,23 @@ class AdminUserController extends Controller
         $activityLogs = $activityQuery
             ->paginate(10)
             ->withQueryString()
-            ->through(fn (ActivityLog $log) => [
-                'id' => $log->id,
-                'action' => $log->action,
-                'event' => $log->eventCategory(),
-                'description' => $log->description,
-                'actor_name' => $log->actor_name,
-                'actor_role' => $log->actor_role,
-                'type' => $log->subjectTypeLabel(),
-                'created_at' => $log->created_at->toISOString(),
-                'changes' => $log->meta['changes'] ?? [],
-            ]);
+            ->through(function (ActivityLog $log): array {
+                $meta = $log->meta;
+
+                return [
+                    'id' => $log->id,
+                    'action' => $log->action,
+                    'event' => $log->eventCategory(),
+                    'description' => $log->description,
+                    'actor_name' => $log->actor_name,
+                    'actor_role' => $log->actor_role,
+                    'type' => $log->subjectTypeLabel(),
+                    'created_at' => $log->created_at->toISOString(),
+                    'changes' => is_array($meta) && isset($meta['changes']) && is_array($meta['changes'])
+                        ? $meta['changes']
+                        : [],
+                ];
+            });
 
         $activityFilters = [
             'activity_search' => $activitySearch,

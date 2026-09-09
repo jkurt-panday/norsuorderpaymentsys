@@ -2,7 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Models\UACS;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UacsRequest extends FormRequest
 {
@@ -11,10 +14,13 @@ class UacsRequest extends FormRequest
         return true;
     }
 
+    /** @return array<string, ValidationRule|array<mixed>|string> */
     public function rules(): array
     {
-        $isUpdate = $this->isMethod('PUT') || $this->isMethod('PATCH');
-        $uacsId = $this->route('uacs') ? $this->route('uacs')->id : null;
+        $uacs = $this->route('uacs');
+        $uacsId = $uacs instanceof UACS
+            ? $uacs->getKey()
+            : (is_numeric($uacs) ? (int) $uacs : null);
 
         return [
             'account_title' => ['required', 'string', 'max:255'],
@@ -22,7 +28,7 @@ class UacsRequest extends FormRequest
                 'required',
                 'string',
                 'max:50',
-                $isUpdate ? "unique:uacs,object_code,{$uacsId}" : 'unique:uacs,object_code',
+                Rule::unique('uacs', 'object_code')->ignore($uacsId),
             ],
         ];
     }

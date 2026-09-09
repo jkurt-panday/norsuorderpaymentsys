@@ -6,9 +6,9 @@ use App\Models\BankAccountInfo;
 use App\Models\Membership;
 use App\Models\PaymentDetailOption;
 use App\Models\User;
+use App\Models\YearSequence;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
-use App\Models\YearSequence;
 
 class DatabaseSeeder extends Seeder
 {
@@ -17,8 +17,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $adminPassword = env('ADMIN_SEED_PASSWORD', Str::random(16));
-        $staffPassword = env('STAFF_SEED_PASSWORD', Str::random(16));
+        $configuredAdminPassword = config('seeding.admin_password');
+        $configuredStaffPassword = config('seeding.staff_password');
+        $adminPassword = is_string($configuredAdminPassword) && $configuredAdminPassword !== ''
+            ? $configuredAdminPassword
+            : Str::random(16);
+        $staffPassword = is_string($configuredStaffPassword) && $configuredStaffPassword !== ''
+            ? $configuredStaffPassword
+            : Str::random(16);
 
         // 3. Create the System Administrator
         User::updateOrCreate(
@@ -35,9 +41,9 @@ class DatabaseSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'staff@norsu.edu.ph'],
             [
-                'name'     => 'Lead Staff',
+                'name' => 'Lead Staff',
                 'password' => $staffPassword,
-                'role'     => 'staff',
+                'role' => 'staff',
             ]
         );
         $this->command->info('Successfully seeded: Staff User (staff@norsu.edu.ph)');
@@ -141,7 +147,7 @@ class DatabaseSeeder extends Seeder
         //         'course_desc' => 'BoS in Law Studies',
         //     ],
         // ];
-       
+
         // foreach ($courses as $option) {
         //     Courses::updateOrCreate(
         //         ['course_code' => $option['course_code']],
@@ -158,7 +164,7 @@ class DatabaseSeeder extends Seeder
             [
                 'month' => 8,
                 'op_number' => 4224,
-                'assessment_number' => 0
+                'assessment_number' => 0,
             ]
         );
 

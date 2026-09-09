@@ -5,16 +5,21 @@ namespace App\Http\Controllers;
 use App\Http\Requests\MembershipRequest;
 use App\Models\Membership;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use Inertia\Response;
 
+/** @extends BaseResourceController<Membership> */
 class MembershipController extends BaseResourceController
 {
     // ---- Config consumed by BaseResourceController::index() ----
     protected string $model = Membership::class;
 
+    /** @var list<string> */
     protected array $searchableColumns = ['member_code', 'member_desc'];
 
     protected string $indexView = 'staff/memberships/membership';
@@ -25,16 +30,16 @@ class MembershipController extends BaseResourceController
 
     protected string $orderBy = 'id';
 
+    /** @var 'asc'|'desc' */
     protected string $orderDirection = 'asc';
 
     // Allowlist: only these columns can be sorted on via ?sort=...
+    /** @var list<string> */
     protected array $sortableColumns = ['id', 'member_code', 'member_desc', 'created_at'];
 
     // Membership has no obvious status/type field to filter on today —
     // leave empty. Add entries here (e.g. ['type' => 'member_type']) if
     // one gets added later.
-    protected array $filterableColumns = [];
-
     // index() is now inherited from BaseResourceController — no need to
     // redeclare it here. Everything below is unchanged from before.
 
@@ -45,21 +50,21 @@ class MembershipController extends BaseResourceController
      * what keeps each row's number permanent/stable even when sorting
      * newest, oldest, A–Z, etc.
      */
+    /**
+     * @param  Builder<Model>  $query
+     * @return Builder<Model>
+     */
     protected function modifyIndexQuery(Builder $query, Request $request): Builder
     {
-        $table = (new $this->model)->getTable();
-
         return $query
             ->select('*')
-            ->selectRaw(
-                "(SELECT COUNT(*) FROM {$table} AS t2 WHERE t2.id <= {$table}.id) as display_number"
-            );
+            ->selectRaw('(SELECT COUNT(*) FROM memberships AS t2 WHERE t2.id <= memberships.id) as display_number');
     }
 
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(): Response
     {
         return Inertia::render('staff/memberships/createmembership');
     }
@@ -67,7 +72,7 @@ class MembershipController extends BaseResourceController
     /**
      * Store a newly created resource in storage.
      */
-    public function store(MembershipRequest $request)
+    public function store(MembershipRequest $request): RedirectResponse
     {
         try {
             DB::beginTransaction();
@@ -94,7 +99,7 @@ class MembershipController extends BaseResourceController
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Membership $membership)
+    public function edit(Membership $membership): Response
     {
         return Inertia::render('staff/memberships/editmembership', [
             'membership' => $membership,
@@ -108,7 +113,7 @@ class MembershipController extends BaseResourceController
     /**
      * Update the specified resource in storage.
      */
-    public function update(MembershipRequest $request, Membership $membership)
+    public function update(MembershipRequest $request, Membership $membership): RedirectResponse
     {
         try {
             DB::beginTransaction();
@@ -133,7 +138,7 @@ class MembershipController extends BaseResourceController
     /**
      * Remove the specified resource from storage safely.
      */
-    public function destroy(Membership $membership)
+    public function destroy(Membership $membership): RedirectResponse
     {
         // Safety check first — read-only, no transaction needed.
         if ($membership->formInputs()->exists()) {

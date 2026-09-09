@@ -4,17 +4,16 @@ namespace App\Services;
 
 use App\Models\AssessmentForm;
 use App\Models\FormInput;
+use Illuminate\Http\Request;
 use Spatie\LaravelPdf\Facades\Pdf;
 use Spatie\LaravelPdf\PdfBuilder;
-use App\Services\LedgerMatchingService; // adjust to wherever this actually lives
-use Illuminate\Http\Request;
 
 class ReceiptPDFService
 {
     public function __construct(
         private readonly LedgerMatchingService $ledgerMatcher,
     ) {}
-    
+
     public function orderOfPaymentPrint(FormInput $formInput): PdfBuilder
     {
         $formInput->load([
@@ -22,7 +21,7 @@ class ReceiptPDFService
             'paymentDetailOption',
             'supportingDocuments',
         ]);
-    
+
         return Pdf::view('pdf.success-receipt', [
             'formInput' => $formInput,
         ])->format('a4');
@@ -51,9 +50,9 @@ class ReceiptPDFService
         );
 
         return Pdf::view('pdf.assessment-soa', [
-            'assessment'  => $assessment,
+            'assessment' => $assessment,
             'ledgerStatement' => $ledgerStatement,
-            'preparedBy'    => $request->user()?->name ?? '—'
+            'preparedBy' => $request->user()->name ?? '—',
         ])->format('a4');
     }
 }

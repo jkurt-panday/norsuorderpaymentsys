@@ -2,13 +2,16 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Auth;
 
+/** @property array<string, mixed>|null $meta */
 class ActivityLog extends Model
 {
+    /** @use HasFactory<Factory<ActivityLog>> */
     use HasFactory;
 
     protected $table = 'activity_log';
@@ -71,11 +74,13 @@ class ActivityLog extends Model
         };
     }
 
+    /** @return BelongsTo<User, $this> */
     public function actor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'actor_id');
     }
 
+    /** @return BelongsTo<User, $this> */
     public function target(): BelongsTo
     {
         return $this->belongsTo(User::class, 'target_id');

@@ -5,11 +5,15 @@ namespace App\Http\Controllers;
 use App\Http\Requests\BankAccountInfoRequest;
 use App\Models\BankAccountInfo;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use Inertia\Response;
 
+/** @extends BaseResourceController<BankAccountInfo> */
 class BankAccountInfoController extends BaseResourceController
 {
     /**
@@ -17,6 +21,7 @@ class BankAccountInfoController extends BaseResourceController
      */
     protected string $model = BankAccountInfo::class;
 
+    /** @var list<string> */
     protected array $searchableColumns = ['bank_name', 'account_name'];
 
     protected string $indexView = 'staff/bankaccounts/bankaccount';
@@ -25,8 +30,10 @@ class BankAccountInfoController extends BaseResourceController
 
     protected string $orderBy = 'id';
 
+    /** @var 'asc'|'desc' */
     protected string $orderDirection = 'asc';
 
+    /** @var list<array{column: string, direction?: 'asc'|'desc'}> */
     protected array $secondaryOrderBy = [
         ['column' => 'account_name', 'direction' => 'asc'],
     ];
@@ -36,25 +43,24 @@ class BankAccountInfoController extends BaseResourceController
     // is what actually lets those two new ones take effect. Without a key
     // being present here, BaseResourceController silently ignores a
     // requested ?sort= for it and falls back to the default order.
+    /** @var list<string> */
     protected array $sortableColumns = ['id', 'bank_name', 'account_name', 'fund_cluster', 'account_num', 'created_at'];
-
-    protected array $filterableColumns = [];
 
     /**
      * Show create form
      */
+    /**
+     * @param  Builder<Model>  $query
+     * @return Builder<Model>
+     */
     protected function modifyIndexQuery(Builder $query, Request $request): Builder
     {
-        $table = (new $this->model)->getTable();
-
         return $query
             ->select('*')
-            ->selectRaw(
-                "(SELECT COUNT(*) FROM {$table} AS t2 WHERE t2.id <= {$table}.id) as display_number"
-            );
+            ->selectRaw('(SELECT COUNT(*) FROM bankaccount_infos AS t2 WHERE t2.id <= bankaccount_infos.id) as display_number');
     }
 
-    public function create()
+    public function create(): Response
     {
         return Inertia::render('staff/bankaccounts/createbankaccount');
     }
@@ -62,7 +68,7 @@ class BankAccountInfoController extends BaseResourceController
     /**
      * Store a new bank account
      */
-    public function store(BankAccountInfoRequest $request)
+    public function store(BankAccountInfoRequest $request): RedirectResponse
     {
         try {
             DB::beginTransaction();
@@ -92,7 +98,7 @@ class BankAccountInfoController extends BaseResourceController
      * Note: Renamed variable to $bankAccount to align perfectly with
      * Laravel's Route-Model Binding standard pattern.
      */
-    public function edit(BankAccountInfo $bankAccount)
+    public function edit(BankAccountInfo $bankAccount): Response
     {
         return Inertia::render('staff/bankaccounts/editbankaccount', compact('bankAccount'));
     }
@@ -100,7 +106,7 @@ class BankAccountInfoController extends BaseResourceController
     /**
      * Update bank account details
      */
-    public function update(BankAccountInfoRequest $request, BankAccountInfo $bankAccount)
+    public function update(BankAccountInfoRequest $request, BankAccountInfo $bankAccount): RedirectResponse
     {
         try {
             DB::beginTransaction();
@@ -125,7 +131,7 @@ class BankAccountInfoController extends BaseResourceController
     /**
      * Delete a bank account safely
      */
-    public function destroy(BankAccountInfo $bankAccount)
+    public function destroy(BankAccountInfo $bankAccount): RedirectResponse
     {
         try {
             DB::beginTransaction();

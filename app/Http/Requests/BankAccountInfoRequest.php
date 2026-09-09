@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Models\BankAccountInfo;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -12,11 +14,15 @@ class BankAccountInfoRequest extends FormRequest
         return true;
     }
 
+    /** @return array<string, ValidationRule|array<mixed>|string> */
     public function rules(): array
     {
         // Route parameter is bound as 'bankAccount' (see web.php:
         // ->parameters(['bank-accounts' => 'bankAccount'])) — not 'bank_account_info'.
-        $accountId = $this->route('bankAccount')?->id;
+        $account = $this->route('bankAccount');
+        $accountId = $account instanceof BankAccountInfo
+            ? $account->getKey()
+            : (is_numeric($account) ? (int) $account : null);
 
         return [
             'account_name' => ['required', 'string', 'max:255'],

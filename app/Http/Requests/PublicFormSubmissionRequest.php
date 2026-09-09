@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -12,40 +13,41 @@ class PublicFormSubmissionRequest extends FormRequest
         return true; // Public form, anyone can submit
     }
 
+    /** @return array<string, ValidationRule|array<mixed>|string> */
     public function rules(): array
     {
-        // 
+        //
         return [
-                // Personal/Office Information
-                'email' => ['required', 'email', 'max:255'],
-                // 'purpose' => ['nullable', 'string'],
-                'contact_num' => ['required', 'string', 'max:11', 'regex:/^[0-9+\-\s()]+$/'],
-                'firstname_or_office' => ['required', 'string', 'max:255'],
-                'middlename_or_project' => ['nullable', 'string', 'max:255'],
-                'lastname_or_agency' => ['required', 'string', 'max:255'],
-                'office_or_college' => ['required', 'string', 'max:255'],
-                'position_or_designation' => ['required', 'string', 'max:255'],
-                'address' => ['required', 'string'],
-        
-                // Payment Information
-                'amount' => ['required', 'numeric', 'min:0.01'],
-                'request_type' => [
-                    'required',
-                    Rule::in(['New Request', 'Re-issue Request']),
-                ],
-        
-                // Foreign Keys
-                'membership_id' => ['required', 'exists:memberships,id'],
-                'payment_detail_option_id' => ['required', 'exists:payment_detail_options,id'],
-        
-                // File Uploads (Optional)
-                'documents' => ['nullable', 'array', 'max:5'],
-                'documents.*' => [
-                    'file',
-                    'mimes:pdf,jpg,jpeg,png,webp,svg',
-                    'max:10240', // 10 MB per file
-                ],
-            ];
+            // Personal/Office Information
+            'email' => ['required', 'email', 'max:255'],
+            // 'purpose' => ['nullable', 'string'],
+            'contact_num' => ['required', 'string', 'max:11', 'regex:/^[0-9+\-\s()]+$/'],
+            'firstname_or_office' => ['required', 'string', 'max:255'],
+            'middlename_or_project' => ['nullable', 'string', 'max:255'],
+            'lastname_or_agency' => ['required', 'string', 'max:255'],
+            'office_or_college' => ['required', 'string', 'max:255'],
+            'position_or_designation' => ['required', 'string', 'max:255'],
+            'address' => ['required', 'string'],
+
+            // Payment Information
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'request_type' => [
+                'required',
+                Rule::in(['New Request', 'Re-issue Request']),
+            ],
+
+            // Foreign Keys
+            'membership_id' => ['required', 'exists:memberships,id'],
+            'payment_detail_option_id' => ['required', 'exists:payment_detail_options,id'],
+
+            // File Uploads (Optional)
+            'documents' => ['nullable', 'array', 'max:5'],
+            'documents.*' => [
+                'file',
+                'mimes:pdf,jpg,jpeg,png,webp,svg',
+                'max:10240', // 10 MB per file
+            ],
+        ];
     }
 
     public function messages(): array
@@ -117,7 +119,7 @@ class PublicFormSubmissionRequest extends FormRequest
 //         'max:10240', // 10MB max per file
 //     ],
 // ];
-// 
+//
 // previous messages
 //  // return [
 //     'email.required' => 'Email address is required.',

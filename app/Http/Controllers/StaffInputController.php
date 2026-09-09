@@ -7,28 +7,31 @@ use App\Mail\OrderOfPaymentMail;
 use App\Models\ActivityLog;
 use App\Models\BankAccountInfo;
 use App\Models\FormInput;
-use App\Models\Membership;
 use App\Models\PaymentDetailOption;
 use App\Models\StaffInput;
 use App\Models\UACS;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
-use Barryvdh\DomPDF\Facade\Pdf;
-
+use Inertia\Response;
 
 class StaffInputController extends Controller
 {
     private const OP_COPY_LABELS = [
-    "Payor's Copy",
-    "Cash Unit's Copy",
-    "Accounting Unit's Copy",
+        "Payor's Copy",
+        "Cash Unit's Copy",
+        "Accounting Unit's Copy",
     ];
+
     /**
      * Display the staff dashboard.
      */
-    public function dashboard(Request $request)
+    public function dashboard(Request $request): Response
     {
         $startDate = now()->subDays(29)->startOfDay();
         $statusCounts = StaffInput::query()
@@ -123,7 +126,7 @@ class StaffInputController extends Controller
      * trail of every create/update/delete across the staff-managed entities
      * (logged via ActivityLogObserver), showing who did it and what changed.
      */
-    public function activityLog(Request $request)
+    public function activityLog(Request $request): Response
     {
         [$activityLogs, $activityFilters] = $this->buildActivityLogs($request);
 
@@ -137,7 +140,10 @@ class StaffInputController extends Controller
      * Build the searchable/paginated activity log query shared by the
      * dashboard feed and the dedicated Activity Log page.
      *
-     * @return array{0: \Illuminate\Contracts\Pagination\LengthAwarePaginator, 1: array{activity_search: string, activity_action: string}}
+     * @return array{
+     *     0: LengthAwarePaginator<int, covariant array<string, mixed>>,
+     *     1: array{activity_search: string, activity_action: string, sort: string, direction: string, date_from: string, date_to: string}
+     * }
      */
     protected function buildActivityLogs(Request $request): array
     {
@@ -153,7 +159,7 @@ class StaffInputController extends Controller
         $activityQuery = ActivityLog::query();
 
         if ($activitySearch !== '') {
-            $like = '%' . strtolower($activitySearch) . '%';
+            $like = '%'.strtolower($activitySearch).'%';
             $activityQuery->where(function ($q) use ($like) {
                 $q->whereRaw('LOWER(description) LIKE ?', [$like])
                     ->orWhereRaw('LOWER(actor_name) LIKE ?', [$like])
@@ -207,17 +213,23 @@ class StaffInputController extends Controller
         $activityLogs = $activityQuery
             ->paginate(10)
             ->withQueryString()
-            ->through(fn (ActivityLog $log) => [
-                'id' => $log->id,
-                'action' => $log->action,
-                'event' => $log->eventCategory(),
-                'description' => $log->description,
-                'actor_name' => $log->actor_name,
-                'actor_role' => $log->actor_role,
-                'type' => $log->subjectTypeLabel(),
-                'created_at' => $log->created_at->toISOString(),
-                'changes' => $log->meta['changes'] ?? [],
-            ]);
+            ->through(function (ActivityLog $log): array {
+                $meta = $log->meta;
+
+                return [
+                    'id' => $log->id,
+                    'action' => $log->action,
+                    'event' => $log->eventCategory(),
+                    'description' => $log->description,
+                    'actor_name' => $log->actor_name,
+                    'actor_role' => $log->actor_role,
+                    'type' => $log->subjectTypeLabel(),
+                    'created_at' => $log->created_at->toISOString(),
+                    'changes' => is_array($meta) && isset($meta['changes']) && is_array($meta['changes'])
+                        ? $meta['changes']
+                        : [],
+                ];
+            });
 
         $activityFilters = [
             'activity_search' => $activitySearch,
@@ -234,7 +246,7 @@ class StaffInputController extends Controller
     /**
      * Display list of requests for staff processing
      */
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
         $query = FormInput::with(['membership', 'staffInput']);
 
@@ -307,12 +319,12 @@ class StaffInputController extends Controller
         return Inertia::render('staff/requestform/request', compact('formInputs', 'filters'));
     }
 
-    public function store(StaffProcessingRequest $request)
+    public function store(StaffProcessingRequest $request): RedirectResponse
     {
         try {
             DB::beginTransaction();
 
-            $formInput = FormInput::findOrFail($request->form_input_id);
+            $formInput = FormInput::query()->findOrFail($request->integer('form_input_id'));
 
             if ($formInput->staffInput()->exists()) {
                 throw new \Exception('This request has already been processed.');
@@ -341,7 +353,7 @@ class StaffInputController extends Controller
         }
     }
 
-    public function update(StaffProcessingRequest $request, StaffInput $staffInput)
+    public function update(StaffProcessingRequest $request, StaffInput $staffInput): RedirectResponse
     {
         abort_if($staffInput->status === 'paid', 422, 'Paid requests can no longer be changed by Accounting.');
 
@@ -382,7 +394,7 @@ class StaffInputController extends Controller
      * Available regardless of processing status, since these fields belong
      * to the original submission, not to staff processing.
      */
-    public function updateDetails(Request $request, FormInput $formInput)
+    public function updateDetails(Request $request, FormInput $formInput): RedirectResponse
     {
         if ($formInput->staffInput && $formInput->staffInput->status === 'paid') {
             abort(422, 'Paid requests can no longer be changed by Accounting.');
@@ -427,7 +439,7 @@ class StaffInputController extends Controller
             }
 
             unset($validated['purpose']);
-            
+
             $formInput->update($validated);
 
             DB::commit();
@@ -446,7 +458,7 @@ class StaffInputController extends Controller
     /**
      * Display staff processing details
      */
-    public function show(FormInput $formInput)
+    public function show(FormInput $formInput): Response
     {
         $formInput->load([
             'membership',
@@ -470,7 +482,7 @@ class StaffInputController extends Controller
         ]);
     }
 
-    public function viewOp(FormInput $formInput, Request $request)
+    public function viewOp(FormInput $formInput, Request $request): HttpResponse
     {
         $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument']);
 
@@ -484,39 +496,40 @@ class StaffInputController extends Controller
 
         return $pdf->stream("OP-{$formInput->reference_number}.pdf");
     }
-public function emailOp(FormInput $formInput, Request $request)
-{
-    if (! $formInput->staffInput) {
-        abort(404);
+
+    public function emailOp(FormInput $formInput, Request $request): RedirectResponse
+    {
+        if (! $formInput->staffInput) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'subject' => 'nullable|string|max:255',
+            'recipient_name' => 'nullable|string|max:255',
+            'note' => 'nullable|string|max:2000',
+        ]);
+
+        $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument']);
+
+        $copyLabels = self::OP_COPY_LABELS;
+
+        $portraitPdf = Pdf::loadView('pdf.op-a6', compact('formInput', 'copyLabels'))
+            ->setPaper('a5', 'portrait');
+
+        $landscapePdf = Pdf::loadView('pdf.op-landscape', compact('formInput', 'copyLabels'))
+            ->setPaper('legal', 'landscape');
+
+        \Mail::to($formInput->email)->send(
+            new OrderOfPaymentMail(
+                $formInput,
+                $portraitPdf->output(),
+                $landscapePdf->output(),
+                $validated['subject'] ?? null,
+                $validated['recipient_name'] ?? null,
+                $validated['note'] ?? null,
+            )
+        );
+
+        return back()->with('success', 'Order of Payment emailed successfully.');
     }
-
-    $validated = $request->validate([
-        'subject' => 'nullable|string|max:255',
-        'recipient_name' => 'nullable|string|max:255',
-        'note' => 'nullable|string|max:2000',
-    ]);
-
-    $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument']);
-
-    $copyLabels = self::OP_COPY_LABELS;
-
-    $portraitPdf = Pdf::loadView('pdf.op-a6', compact('formInput', 'copyLabels'))
-        ->setPaper('a5', 'portrait');
-
-    $landscapePdf = Pdf::loadView('pdf.op-landscape', compact('formInput', 'copyLabels'))
-        ->setPaper('legal', 'landscape');
-
-    \Mail::to($formInput->email)->send(
-        new OrderOfPaymentMail(
-            $formInput,
-            $portraitPdf->output(),
-            $landscapePdf->output(),
-            $validated['subject'] ?? null,
-            $validated['recipient_name'] ?? null,
-            $validated['note'] ?? null,
-        )
-    );
-
-    return back()->with('success', 'Order of Payment emailed successfully.');
-}
 }

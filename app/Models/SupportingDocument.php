@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SupportingDocument extends Model
 {
+    /** @use HasFactory<Factory<SupportingDocument>> */
     use HasFactory;
 
     protected $fillable = [
@@ -27,11 +29,13 @@ class SupportingDocument extends Model
         'uploaded_at' => 'datetime',
     ];
 
+    /** @return BelongsTo<FormInput, $this> */
     public function formInput(): BelongsTo
     {
         return $this->belongsTo(FormInput::class);
     }
 
+    /** @return HasMany<StaffInput, $this> */
     public function staffInputs(): HasMany
     {
         return $this->hasMany(StaffInput::class, 'ref_document_id');

@@ -13,16 +13,30 @@ use App\Models\Student;
 use App\Services\GraduateLedgerImportClassifier;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
+/**
+ * @phpstan-type WarningCounts array{
+ *     negative_blank_type: int,
+ *     negative_labeled_ar: int,
+ *     payment_missing_parentheses: int
+ * }
+ * @phpstan-type BalanceSummary array{totalCharges: float, totalPayments: float, outstandingBalance: float}
+ */
 class GraduateLedgerController extends Controller
 {
     public function __construct(
@@ -78,7 +92,7 @@ class GraduateLedgerController extends Controller
     /**
      * Exports filtered records to an Excel file (.xlsx).
      */
-    public function export(Request $request)
+    public function export(Request $request): BinaryFileResponse
     {
         set_time_limit(0);
         ini_set('memory_limit', '512M');
@@ -92,7 +106,8 @@ class GraduateLedgerController extends Controller
     /**
      * Builds the filtered Eloquent query based on request parameters.
      */
-    private function buildFilteredQuery(Request $request)
+    /** @return Builder<GraduateLedger> */
+    private function buildFilteredQuery(Request $request): Builder
     {
         $schoolYear = $request->input('school_year');
         $semester = $request->input('semester');
@@ -166,7 +181,7 @@ class GraduateLedgerController extends Controller
             'students' => $this->studentList(),
             'courses' => $this->courseList(),
             'academicTerms' => $this->academicTermList(),
-            'authUserName' => auth()->user()?->name ?? '',
+            'authUserName' => optional(auth()->user())->name ?? '',
         ]);
     }
 
@@ -223,7 +238,7 @@ class GraduateLedgerController extends Controller
             'students' => $this->studentList(),
             'courses' => $this->courseList(),
             'academicTerms' => $this->academicTermList(),
-            'authUserName' => auth()->user()?->name ?? '',
+            'authUserName' => optional(auth()->user())->name ?? '',
         ]);
     }
 
@@ -335,6 +350,10 @@ class GraduateLedgerController extends Controller
         ini_set('memory_limit', '1024M');
 
         $uploadedFile = $request->file('file');
+        if (! $uploadedFile instanceof UploadedFile) {
+            return back()->with('error', 'The uploaded ledger file is invalid.');
+        }
+
         $extension = strtolower($uploadedFile->getClientOriginalExtension());
         $imported = 0;
         $skipped = 0;
@@ -342,7 +361,12 @@ class GraduateLedgerController extends Controller
         $now = now();
 
         if ($extension === 'csv') {
-            return $this->importCsv($uploadedFile->getRealPath(), $imported, $skipped, $warnings, $now);
+            $path = $uploadedFile->getRealPath();
+            if ($path === false) {
+                return back()->with('error', 'Could not read the uploaded CSV file.');
+            }
+
+            return $this->importCsv($path, $imported, $skipped, $warnings, $now);
         }
 
         return $this->importExcel($uploadedFile, $imported, $skipped, $warnings, $now);
@@ -353,13 +377,15 @@ class GraduateLedgerController extends Controller
      * Pass 1: stream once to collect distinct students/courses/terms, then bulk-resolve lookup maps.
      * Pass 2: stream again row-by-row, map to FK IDs, bulk insert in chunks.
      *
-     * @param  array<string, int>  $warnings
+     * @param  WarningCounts  $warnings
+     *
+     * @param-out WarningCounts $warnings
      */
-    private function importCsv(string $path, int &$imported, int &$skipped, array &$warnings, $now): RedirectResponse
+    private function importCsv(string $path, int &$imported, int &$skipped, array &$warnings, CarbonInterface $now): RedirectResponse
     {
         // Pass 1: collect distinct values without holding rows in memory
         $handle = fopen($path, 'r');
-        if (! $handle) {
+        if (! is_resource($handle)) {
             return redirect()->route('graduate-ledger.index')
                 ->with('error', 'Could not open the uploaded CSV file.');
         }
@@ -393,6 +419,11 @@ class GraduateLedgerController extends Controller
 
         // Pass 2: stream rows again, map to insert array, chunk-insert
         $handle = fopen($path, 'r');
+        if (! is_resource($handle)) {
+            return redirect()->route('graduate-ledger.index')
+                ->with('error', 'Could not reopen the uploaded CSV file.');
+        }
+
         fgetcsv($handle); // skip header
 
         $insertData = [];
@@ -436,11 +467,18 @@ class GraduateLedgerController extends Controller
     /**
      * Memory-efficient Excel importer (xlsx/xls) using PhpSpreadsheet DataOnly Reader.
      *
-     * @param  array<string, int>  $warnings
+     * @param  WarningCounts  $warnings
+     *
+     * @param-out WarningCounts $warnings
      */
-    private function importExcel($uploadedFile, int &$imported, int &$skipped, array &$warnings, $now): RedirectResponse
+    private function importExcel(UploadedFile $uploadedFile, int &$imported, int &$skipped, array &$warnings, CarbonInterface $now): RedirectResponse
     {
         $path = $uploadedFile->getRealPath();
+        if ($path === false) {
+            return redirect()->route('graduate-ledger.index')
+                ->with('error', 'Could not read the uploaded Excel file.');
+        }
+
         $reader = IOFactory::createReaderForFile($path);
         $reader->setReadDataOnly(false); // must be false to evaluate =J*F formulas in col L
 
@@ -584,7 +622,7 @@ class GraduateLedgerController extends Controller
     /**
      * Generates and streams the PDF statement.
      */
-    public function generatePdf(Request $request)
+    public function generatePdf(Request $request): HttpResponse
     {
         $validated = $request->validate([
             'student_id' => ['required', 'integer', 'exists:graduate_student,id'],
@@ -592,7 +630,7 @@ class GraduateLedgerController extends Controller
             'semester' => ['nullable', 'in:First Semester,Second Semester,Summer'],
         ]);
         $studentId = (int) $validated['student_id'];
-        $student = Student::findOrFail($studentId);
+        $student = Student::query()->findOrFail($studentId);
 
         $rawRecords = GraduateLedger::query()
             ->with(['student', 'course', 'academicTerm'])
@@ -640,12 +678,13 @@ class GraduateLedgerController extends Controller
      * Transforms a GraduateLedger row to the frontend LedgerRecord shape.
      * Index.tsx consumes this shape.
      */
+    /** @return array<string, mixed> */
     private function transformRecord(GraduateLedger $r): array
     {
-        $name = $r->student?->full_name ?? '';
-        $courseCode = $r->course?->code ?? '';
-        $schoolYear = $r->academicTerm?->school_year ?? '';
-        $semester = $r->academicTerm?->semester ?? '';
+        $name = $r->student->full_name ?? '';
+        $courseCode = $r->course->code ?? '';
+        $schoolYear = $r->academicTerm->school_year ?? '';
+        $semester = $r->academicTerm->semester ?? '';
         $arPayment = $this->entryTypeToLabel($r->entry_type);
 
         return [
@@ -669,6 +708,7 @@ class GraduateLedgerController extends Controller
     /**
      * Returns the record shape expected by the Add/Edit form (ID-based fields).
      */
+    /** @return array<string, mixed> */
     private function recordForForm(GraduateLedger $r): array
     {
         return [
@@ -676,8 +716,8 @@ class GraduateLedgerController extends Controller
             'student_id' => $r->student_id,
             'course_id' => $r->course_id,
             'academic_term_id' => $r->academic_term_id,
-            'school_year' => $r->academicTerm?->school_year ?? '',
-            'semester' => $r->academicTerm?->semester ?? 'First Semester',
+            'school_year' => $r->academicTerm->school_year ?? '',
+            'semester' => $r->academicTerm->semester ?? 'First Semester',
             'entry_type' => $r->entry_type ?? 'ar',
             'units' => $r->units,
             'transaction_date' => $r->transaction_date ? (string) $r->transaction_date : '',
@@ -694,6 +734,7 @@ class GraduateLedgerController extends Controller
      * List of students for the form picker.
      * Returns [{id, student_number, last_name, first_name, middle_name}].
      */
+    /** @return list<array{id: int, student_number: string|null, last_name: string, first_name: string, middle_name: string|null, last_course_id: int|null}> */
     private function studentList(): array
     {
         $latestCourses = DB::table('graduate_ledgers')
@@ -704,51 +745,69 @@ class GraduateLedgerController extends Controller
             ->pluck('last_course_id', 'student_id')
             ->toArray();
 
-        return Student::orderBy('last_name')
+        return array_values(Student::orderBy('last_name')
             ->get(['id', 'student_number', 'last_name', 'first_name', 'middle_name'])
-            ->map(fn ($s) => [
+            ->map(fn (Student $s): array => [
                 'id' => $s->id,
                 'student_number' => $s->student_number,
                 'last_name' => $s->last_name,
                 'first_name' => $s->first_name,
                 'middle_name' => $s->middle_name,
-                'last_course_id' => $latestCourses[$s->id] ?? null,
+                'last_course_id' => isset($latestCourses[$s->id]) ? (int) $latestCourses[$s->id] : null,
             ])
-            ->toArray();
+            ->all());
     }
 
     /**
      * List of courses for the form picker.
      * Returns [{id, code}].
      */
+    /** @return list<array{id: int, code: string}> */
     private function courseList(): array
     {
-        return Course::orderBy('code')->get(['id', 'code'])->toArray();
+        return array_values(Course::orderBy('code')
+            ->get(['id', 'code'])
+            ->map(fn (Course $course): array => ['id' => $course->id, 'code' => $course->code])
+            ->all());
     }
 
     /**
      * List of academic terms for the form picker.
      */
+    /** @return list<array{id: int, school_year: string, semester: string}> */
     private function academicTermList(): array
     {
-        return AcademicTerm::orderBy('school_year', 'desc')
+        return array_values(AcademicTerm::orderBy('school_year', 'desc')
             ->orderBy('sort_order')
             ->get(['id', 'school_year', 'semester'])
-            ->toArray();
+            ->map(fn (AcademicTerm $term): array => [
+                'id' => $term->id,
+                'school_year' => $term->school_year,
+                'semester' => $term->semester,
+            ])
+            ->all());
     }
 
     /**
      * Pre-build student/course/term lookup maps from pre-collected distinct value arrays.
      * Accepts the already-collected distinct names/codes/terms to avoid re-iterating raw rows.
      */
+    /**
+     * @param  array<string, true>  $distinctStudents
+     * @param  array<string, true>  $distinctCourses
+     * @param  array<string, array{school_year: string, semester: string}>  $distinctTerms
+     * @return array{array<string, int>, array<string, int>, array<string, int>}
+     */
     private function buildImportLookupMaps(
         array $distinctStudents,
         array $distinctCourses,
         array $distinctTerms,
-        $now
+        CarbonInterface $now
     ): array {
         // 1. Bulk resolve students (2 queries total instead of N+1)
-        $studentMap = Student::pluck('id', 'raw_name_from_csv')->toArray();
+        $studentMap = Student::query()->pluck('id', 'raw_name_from_csv')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->all();
         $newStudents = [];
         foreach (array_keys($distinctStudents) as $rawName) {
             if (! isset($studentMap[$rawName])) {
@@ -764,11 +823,15 @@ class GraduateLedgerController extends Controller
             foreach (array_chunk($newStudents, 500) as $chunk) {
                 Student::insert($chunk);
             }
-            $studentMap = Student::pluck('id', 'raw_name_from_csv')->toArray();
+            $studentMap = Student::query()->pluck('id', 'raw_name_from_csv')
+                ->map(fn (mixed $id): int => (int) $id)
+                ->all();
         }
 
         // 2. Bulk resolve courses (2 queries total instead of N+1)
-        $courseMap = Course::pluck('id', 'code')->toArray();
+        $courseMap = Course::query()->pluck('id', 'code')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->all();
         $newCourses = [];
         foreach (array_keys($distinctCourses) as $code) {
             if (! isset($courseMap[$code])) {
@@ -784,7 +847,9 @@ class GraduateLedgerController extends Controller
             foreach (array_chunk($newCourses, 500) as $chunk) {
                 Course::insert($chunk);
             }
-            $courseMap = Course::pluck('id', 'code')->toArray();
+            $courseMap = Course::query()->pluck('id', 'code')
+                ->map(fn (mixed $id): int => (int) $id)
+                ->all();
         }
 
         // 3. Bulk resolve terms (2 queries total instead of N+1)
@@ -820,6 +885,16 @@ class GraduateLedgerController extends Controller
 
     /**
      * Maps a positional row to normalized (FK-based) DB columns.
+     *
+     * @param  array<int, mixed>  $row
+     * @param  array<string, int>  $studentMap
+     * @param  array<string, int>  $courseMap
+     * @param  array<string, int>  $termMap
+     * @param  WarningCounts  $warnings
+     *
+     * @param-out WarningCounts $warnings
+     *
+     * @return array<string, mixed>|null
      */
     private function mapImportRowNormalized(
         array $row,
@@ -827,8 +902,7 @@ class GraduateLedgerController extends Controller
         array $courseMap,
         array $termMap,
         array &$warnings,
-    ): ?array
-    {
+    ): ?array {
         $rawName = trim(str_replace(['−', '–', '—'], '-', (string) ($row[0] ?? '')));
         if ($rawName === '' || in_array(strtolower($rawName), ['student name', 'student', 'ff', 'name'])) {
             return null;
@@ -867,6 +941,7 @@ class GraduateLedgerController extends Controller
         ];
     }
 
+    /** @return array{courses: list<string>, schoolYears: list<string>, semesters: list<string>} */
     private function getFilterOptions(): array
     {
         $currentYear = (int) date('Y');
@@ -879,19 +954,20 @@ class GraduateLedgerController extends Controller
             ->orderBy('school_year', 'desc')
             ->pluck('school_year')
             ->filter()
+            ->map(fn (mixed $year): string => (string) $year)
             ->values()
             ->all();
 
         return [
-            'courses' => Course::orderBy('code')->pluck('code')->filter()->values()->all(),
-            'schoolYears' => $schoolYears ?: $defaultSchoolYears,
+            'courses' => array_values(Course::orderBy('code')->pluck('code')->filter()->map(fn (mixed $code): string => (string) $code)->all()),
+            'schoolYears' => array_values($schoolYears ?: $defaultSchoolYears),
             'semesters' => ['First Semester', 'Second Semester', 'Summer'],
         ];
     }
 
     // ─── Small utilities ──────────────────────────────────────────────────────
 
-    /** @return array<string, int> */
+    /** @return WarningCounts */
     private function emptyImportWarnings(): array
     {
         return [
@@ -901,7 +977,7 @@ class GraduateLedgerController extends Controller
         ];
     }
 
-    /** @param  array<string, int>  $warnings */
+    /** @param  WarningCounts  $warnings */
     private function importSummary(int $imported, int $skipped, array $warnings): string
     {
         $summary = "Import complete: {$imported} records imported, {$skipped} blank rows skipped.";
@@ -927,7 +1003,7 @@ class GraduateLedgerController extends Controller
             : $summary.' Warnings: '.implode('; ', $details).'.';
     }
 
-    private function normalizeDate($value): ?string
+    private function normalizeDate(mixed $value): ?string
     {
         if (blank($value)) {
             return null;
@@ -990,7 +1066,7 @@ class GraduateLedgerController extends Controller
         return false;
     }
 
-    private function cleanRemarks($val): ?string
+    private function cleanRemarks(mixed $val): ?string
     {
         $str = trim((string) ($val ?? ''));
         if (str_starts_with($str, '=')) {
@@ -1000,7 +1076,7 @@ class GraduateLedgerController extends Controller
         return $str !== '' ? $str : null;
     }
 
-    private function cleanAmount($rawAmount): float
+    private function cleanAmount(mixed $rawAmount): float
     {
         $str = trim((string) ($rawAmount ?? ''));
 
@@ -1019,10 +1095,14 @@ class GraduateLedgerController extends Controller
         return abs($cleaned);
     }
 
-    private function calculateStudentBalanceNormalized($records): array
+    /**
+     * @param  Collection<int, GraduateLedger>  $records
+     * @return BalanceSummary
+     */
+    private function calculateStudentBalanceNormalized(Collection $records): array
     {
-        $totalCharges = 0;
-        $totalPayments = 0;
+        $totalCharges = 0.0;
+        $totalPayments = 0.0;
 
         foreach ($records as $record) {
             $cleanAmount = $this->cleanAmount($record->amount);
