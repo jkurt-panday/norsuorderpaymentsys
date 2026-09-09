@@ -1,8 +1,5 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
-import cashier from '@/routes/cashier';
-import staff from '@/routes/staff';
-import { flashToast } from '@/utils/flashToast';
 import {
     Dialog,
     DialogContent,
@@ -11,6 +8,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -19,12 +22,9 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import cashier from '@/routes/cashier';
+import staff from '@/routes/staff';
+import { flashToast } from '@/utils/flashToast';
 
 interface Membership {
     member_code: string;
@@ -399,12 +399,6 @@ export default function ShowRequest() {
     // Toggles the inline edit form for OR fields (cashier only).
     const [isEditingOr, setIsEditingOr] = useState(false);
 
-    useEffect(() => {
-        if (formInput.staff_input) {
-            setIsProcessing(false);
-        }
-    }, [formInput.staff_input]);
-
     // Basic flash handling — swap in your toast lib here if you have one
     // (e.g. sonner's toast.success / toast.error) instead of console.log.
     useEffect(() => {
@@ -469,7 +463,6 @@ export default function ShowRequest() {
     const {
         data: staffInputData,
         setData: setStaffInputData,
-        put: putStaffInput,
         processing: isSubmittingStaffInput,
         errors: staffInputErrors,
         reset: resetStaffInputForm,
@@ -577,7 +570,6 @@ export default function ShowRequest() {
         or_no: '',
         or_date: '',
     });
-    const [isOpDropdownOpen, setIsOpDropdownOpen] = useState(false);
     const handleProcessSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         postProcess(staff.requests.store.url(), {
@@ -2007,7 +1999,7 @@ export default function ShowRequest() {
                                                         onChange={(e) => {
                                                             const filtered =
                                                                 e.target.value.replace(
-                                                                    /[^0-9\-\.\/\s]/g,
+                                                                    /[^0-9./\s-]/g,
                                                                     '',
                                                                 );
                                                             setOrData(

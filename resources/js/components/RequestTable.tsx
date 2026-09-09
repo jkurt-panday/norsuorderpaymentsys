@@ -98,42 +98,6 @@ export interface StatusOption {
     color?: keyof typeof STATUS_COLORS | string;
 }
 
-const ReadOnlyRow = ({
-    label,
-    value,
-    valueClass = 'text-slate-900',
-}: {
-    label: string;
-    value: string;
-    valueClass?: string;
-}) => (
-    <div className="flex items-start gap-6 border-b border-slate-100 py-3 last:border-0">
-        <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
-            {label}
-        </label>
-        <input
-            type="text"
-            value={value}
-            disabled
-            className={`flex-1 border-0 bg-transparent p-0 text-sm ${valueClass} outline-none disabled:opacity-100`}
-        />
-    </div>
-);
-
-const ReadOnlyStat = ({ label, value }: { label: string; value: string }) => (
-    <div>
-        <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
-            {label}
-        </label>
-        <input
-            type="text"
-            value={value}
-            disabled
-            className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
-        />
-    </div>
-);
-
 const resolveStatusColor = (color?: string) =>
     (color && STATUS_COLORS[color as keyof typeof STATUS_COLORS]) ||
     color ||
@@ -278,9 +242,11 @@ export default function RequestTable<T extends { id: number | string }>({
 
         prevSignatures.current = nextSignatures;
 
+        const timers = highlightTimers.current;
+
         return () => {
-            highlightTimers.current.forEach((t) => clearTimeout(t));
-            highlightTimers.current.clear();
+            timers.forEach((t) => clearTimeout(t));
+            timers.clear();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [rows]);

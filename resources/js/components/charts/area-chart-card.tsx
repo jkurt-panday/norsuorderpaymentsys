@@ -1,4 +1,3 @@
-import { TrendingDown, TrendingUp } from "lucide-react"
 import { useId } from "react"
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { buildChartConfig  } from "./types"

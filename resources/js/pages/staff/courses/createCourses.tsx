@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 
 export default function CreateCourses() {
     // form
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors } = useForm({
         course_code: '',
         course_desc: '',
     });

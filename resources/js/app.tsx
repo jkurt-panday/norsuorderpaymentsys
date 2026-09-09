@@ -1,5 +1,6 @@
 import { createInertiaApp, router } from '@inertiajs/react';
-import { useEffect, type ComponentType } from 'react';
+import { useEffect  } from 'react';
+import type {ComponentType} from 'react';
 import { ConfirmProvider } from '@/components/confirm-dialog';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';

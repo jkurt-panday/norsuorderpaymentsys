@@ -9,9 +9,7 @@ import {
 } from '@tanstack/react-table';
 import type {ColumnDef, RowData, SortingState} from '@tanstack/react-table';
 import { Search } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
-import { features  } from './data-table-features';
-import type {DataTableFeatures} from './data-table-features';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -22,6 +20,8 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { features  } from './data-table-features';
+import type {DataTableFeatures} from './data-table-features';
 
 interface DataTableProps<TData extends RowData> {
     columns: ColumnDef<DataTableFeatures, TData>[];
@@ -87,6 +87,8 @@ export function DataTable<TData extends RowData>({
         manualSorting: mode === 'server',
         manualFiltering: mode === 'server',
         manualPagination: mode === 'server',
+        onSortingChange: handleSortingChange,
+        state: { sorting },
     });
 
     return (

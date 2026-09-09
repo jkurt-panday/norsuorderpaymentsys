@@ -87,7 +87,6 @@ return data;
 
     const { pageIndex, pageSize } = pagination;
     const totalRows = filteredData.length;
-    const totalPages = table.getPageCount();
     const rangeStart = totalRows === 0 ? 0 : pageIndex * pageSize + 1;
     const rangeEnd = Math.min(totalRows, (pageIndex + 1) * pageSize);
 

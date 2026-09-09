@@ -1,5 +1,5 @@
 import { Link, usePage, router } from '@inertiajs/react';
-import { Home, FileText, ChevronRight, LogOut, User } from 'lucide-react';
+import { Home, FileText, ChevronRight, LogOut } from 'lucide-react';
 import React from 'react';
 import {
     AlertDialog,

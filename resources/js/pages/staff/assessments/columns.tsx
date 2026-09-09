@@ -89,7 +89,7 @@ export const columns = columnHelper.columns([
 
             return (
                 <div className="text-center text-slate-700">
-                    {first_name} {middle_name} {last_name}
+                    {first_name} {middleInitial} {last_name}
                 </div>
             );
         },

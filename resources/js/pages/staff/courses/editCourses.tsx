@@ -19,7 +19,7 @@ interface CoursesEditProps {
 
 export default function CoursesEdit({ courses }: CoursesEditProps ) {
 
-    const { data, setData, put, processing, errors, reset } = useForm({
+    const { data, setData, put, processing, errors } = useForm({
         course_code: courses.course_code,
         course_desc: courses.course_desc,
     });

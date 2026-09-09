@@ -13,8 +13,6 @@ import {
     edit as editAssessment,
     index as assessmentsIndex,
 } from '@/actions/App/Http/Controllers/AssessmentController';
-import { generatePdf as generateGraduatePdf } from '@/actions/App/Http/Controllers/GraduateLedgerController';
-import { generatePdf as generateLawPdf } from '@/actions/App/Http/Controllers/LawSchoolLedgerController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {

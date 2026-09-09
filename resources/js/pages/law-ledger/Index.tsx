@@ -13,7 +13,6 @@ import {
   Filter,
   Loader2,
   CheckCircle2,
-  Download,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +35,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { Separator } from '@/components/ui/separator';
 
 export interface LawLedgerRecord {
   id: string | number;

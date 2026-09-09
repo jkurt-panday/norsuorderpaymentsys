@@ -1,5 +1,5 @@
 import { Head, usePage } from '@inertiajs/react';
-import { Users, Shield, User, BarChart3 } from 'lucide-react';
+import { Users, Shield, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AdminLayout from '@/layouts/admin/layout';
 

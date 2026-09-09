@@ -158,7 +158,7 @@ export default function CashierRequestShow({
                                     onChange={(event) => {
                                         const filtered =
                                             event.target.value.replace(
-                                                /[^0-9\-\.\/\s]/g,
+                                                /[^0-9./\s-]/g,
                                                 '',
                                             );
                                         form.setData('or_no', filtered);

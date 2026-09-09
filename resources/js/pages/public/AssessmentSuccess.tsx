@@ -1,10 +1,6 @@
-import PublicLayout from '@/pages/layouts/PublicLayout';
-import React, { useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Link, usePage } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import {
     CheckCircle,
-    FileText,
     Mail,
     Phone,
     MapPin,

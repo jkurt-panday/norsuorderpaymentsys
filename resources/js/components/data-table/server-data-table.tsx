@@ -18,11 +18,6 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
-
-import { features  } from './data-table-features';
-import type {DataTableFeatures} from './data-table-features';
-import { DataTablePagination } from './data-table-pagination';
-import { DateRangeFilter } from './date-range-picker';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -39,6 +34,11 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+
+import { features  } from './data-table-features';
+import type {DataTableFeatures} from './data-table-features';
+import { DataTablePagination } from './data-table-pagination';
+import { DateRangeFilter } from './date-range-picker';
 
 interface ServerFilters {
     search: string;
