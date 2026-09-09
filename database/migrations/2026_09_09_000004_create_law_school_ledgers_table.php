@@ -17,7 +17,7 @@ return new class extends Migration
             $table->decimal('rate', 12, 2)->nullable();
             $table->string('entry_type', 30)->index('new_law_ledger_entry_type_idx');
             $table->decimal('amount', 12, 2);
-            $table->date('transaction_date')->index('new_law_ledger_transaction_date_idx');
+            $table->date('transaction_date')->nullable()->index('new_law_ledger_transaction_date_idx');
             $table->string('reference_number', 100)->nullable()->index('new_law_ledger_reference_number_idx');
             $table->string('particulars');
             $table->text('remarks')->nullable();
