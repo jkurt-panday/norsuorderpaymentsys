@@ -2080,7 +2080,9 @@ export default function ShowRequest() {
                                         </form>
                                         ) : (
                                         <div className="space-y-3">
-                                            <div className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${!isCashier && !isAdmin ? 'opacity-60' : ''}`}>
+                                            <div
+                                                className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${!isCashier && !isAdmin ? 'opacity-60' : ''}`}
+                                            >
                                                 <ReadOnlyRow
                                                     label="OR Number"
                                                     value={
@@ -2090,7 +2092,9 @@ export default function ShowRequest() {
                                                     valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${!isCashier && !isAdmin ? 'opacity-60' : ''}`}>
+                                            <div
+                                                className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${!isCashier && !isAdmin ? 'opacity-60' : ''}`}
+                                            >
                                                 <ReadOnlyRow
                                                     label="OR Date"
                                                     value={
