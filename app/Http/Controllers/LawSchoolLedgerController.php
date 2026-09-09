@@ -1299,16 +1299,10 @@ class LawSchoolLedgerController extends Controller
      */
     private function buildLedgerRow(array $data, ?int $studentId, ?int $academicTermId): array
     {
-<<<<<<< HEAD
-        $middleInitialSource = $data['middle_initial']
-            ?? $data['middle_name']
-            ?? (is_array($data['new_student'] ?? null) ? ($data['new_student']['middle_name'] ?? null) : null);
-=======
         $courseCode = null;
         if (isset($data['course_id']) && is_numeric($data['course_id'])) {
             $courseCode = LawCourse::query()->find((int) $data['course_id'])?->code;
         }
->>>>>>> 7a2cbb8 (fix3)
 
         $attributes = [
             'student_id_fk' => $studentId,
