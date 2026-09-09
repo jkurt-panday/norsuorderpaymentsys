@@ -6,10 +6,10 @@ use App\Exports\LawSchoolLedgerExport;
 use App\Http\Requests\StoreLawSchoolLedgerRequest;
 use App\Http\Requests\UpdateLawSchoolLedgerRequest;
 use App\Models\ActivityLog;
-use App\Models\LawAcademicTerm;
-use App\Models\LawCourse;
+use App\Models\AcademicTerm as LawAcademicTerm;
+use App\Models\Course as LawCourse;
 use App\Models\LawSchoolLedger;
-use App\Models\LawStudent;
+use App\Models\Student as LawStudent;
 // use Barryvdh\DomPDF\Facade\Pdf;
 use Spatie\LaravelPdf\Facades\Pdf;
 use Spatie\LaravelPdf\PdfBuilder;
@@ -53,30 +53,21 @@ class LawSchoolLedgerController extends Controller
         $query = $this->buildFilteredQuery($request);
 
         // 1. Calculate overall metrics using a cloned query BEFORE pagination
-        $totalStudents = DB::query()
-            ->fromSub(
-                (clone $query)
-                    ->whereNotNull('last_name')
-                    ->where('last_name', '!=', '')
-                    ->select(['last_name', 'first_name', 'middle_initial'])
-                    ->distinct(),
-                'students'
-            )
-            ->count();
+        $totalStudents = (clone $query)->distinct('student_id')->count('student_id');
 
         // Payments/credits are stored as negative amounts, so compare the transaction
         // type case-insensitively and accumulate payment magnitudes (positive) to keep
         // the overview figures readable. Adjustments are treated as credits.
         $totalAssessments = (float) (clone $query)
-            ->whereRaw("UPPER(TRIM(ar_or_payment)) IN ('AR', 'ASSESSMENT')")
+            ->where('entry_type', 'ar')
             ->sum('amount');
 
         $totalPayments = (float) (clone $query)
-            ->whereRaw("UPPER(TRIM(ar_or_payment)) IN ('PAYMENT', 'P')")
+            ->where('entry_type', 'payment')
             ->sum(DB::raw('ABS(amount)'));
 
         $totalAdjustments = (float) (clone $query)
-            ->whereRaw("UPPER(TRIM(ar_or_payment)) IN ('ADJUSTMENT', 'ADJ')")
+            ->where('entry_type', 'adjustment')
             ->sum(DB::raw('ABS(amount)'));
 
         $outstandingBalance = $totalAssessments - $totalPayments - $totalAdjustments;
@@ -120,9 +111,7 @@ class LawSchoolLedgerController extends Controller
         $search = trim((string) $request->query('q', ''));
         $limit = (int) $request->query('limit', 50);
 
-        $query = LawSchoolLedger::query()
-            ->whereNotNull('last_name')
-            ->where('last_name', '!=', '');
+        $query = LawStudent::query()->whereHas('lawSchoolLedgers');
 
         if ($search !== '') {
             $searchLower = strtolower($search);
@@ -130,8 +119,8 @@ class LawSchoolLedgerController extends Controller
             $query->where(function ($q) use ($searchLower) {
                 $q->whereRaw('LOWER(last_name) LIKE ?', ["%{$searchLower}%"])
                     ->orWhereRaw('LOWER(first_name) LIKE ?', ["%{$searchLower}%"])
-                    ->orWhereRaw('LOWER(middle_initial) LIKE ?', ["%{$searchLower}%"])
-                    ->orWhereRaw("LOWER(TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_initial, '')))) LIKE ?", ["%{$searchLower}%"]);
+                    ->orWhereRaw('LOWER(middle_name) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw("LOWER(TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_name, '')))) LIKE ?", ["%{$searchLower}%"]);
             })
             // Relevance sort: starts-with results float to top
                 ->orderByRaw(
@@ -143,9 +132,9 @@ class LawSchoolLedgerController extends Controller
         $students = $query
             ->orderBy('last_name', 'asc')
             ->limit($limit)
-            ->get(['last_name', 'first_name', 'middle_initial'])
-            ->map(function (LawSchoolLedger $student): string {
-                return trim("$student->last_name, $student->first_name ".($student->middle_initial ? "$student->middle_initial" : ''));
+            ->get(['last_name', 'first_name', 'middle_name'])
+            ->map(function (LawStudent $student): string {
+                return trim("$student->last_name, $student->first_name ".($student->middle_name ? substr($student->middle_name, 0, 1) : ''));
             })
             ->unique()
             ->values()
@@ -203,7 +192,6 @@ class LawSchoolLedgerController extends Controller
                     'last_name' => $newStudent['last_name'],
                     'first_name' => $newStudent['first_name'],
                     'middle_name' => $newStudent['middle_name'] ?? null,
-                    'raw_name_from_csv' => "{$newStudent['last_name']}, {$newStudent['first_name']}",
                 ];
 
                 $student = filled($studentAttributes['student_number'])
@@ -639,13 +627,14 @@ class LawSchoolLedgerController extends Controller
         CarbonInterface $now,
     ): array {
         // Courses
-        $courseMap = LawCourse::pluck('id', 'code')->toArray();
+        $courseMap = LawCourse::where('course_college', 'School of Law')->pluck('id', 'course_code')->toArray();
         $newCourses = [];
         foreach (array_keys($distinctCourses) as $code) {
             if (! isset($courseMap[$code])) {
                 $newCourses[] = [
-                    'code' => $code,
-                    'title' => null,
+                    'course_code' => $code,
+                    'course_desc' => $code,
+                    'course_college' => 'School of Law',
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
@@ -655,7 +644,7 @@ class LawSchoolLedgerController extends Controller
             foreach (array_chunk($newCourses, 500) as $chunk) {
                 LawCourse::insert($chunk);
             }
-            $courseMap = LawCourse::pluck('id', 'code')->toArray();
+            $courseMap = LawCourse::where('course_college', 'School of Law')->pluck('id', 'course_code')->toArray();
         }
 
         // Academic terms
@@ -669,9 +658,7 @@ class LawSchoolLedgerController extends Controller
             if (! isset($termMap[$key])) {
                 $newTerms[] = [
                     'school_year' => $pair['school_year'],
-                    'semester_short' => $this->semesterShort($pair['semester']),
                     'semester' => $pair['semester'],
-                    'sort_order' => LawAcademicTerm::sortOrder($pair['semester']),
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
@@ -699,7 +686,6 @@ class LawSchoolLedgerController extends Controller
                     'last_name' => $last,
                     'first_name' => $first,
                     'middle_name' => $mi !== '' ? $mi : null,
-                    'raw_name_from_csv' => "{$last}, {$first}",
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
@@ -752,11 +738,33 @@ class LawSchoolLedgerController extends Controller
         if ($last !== '' && $first !== '') {
             $key = "{$last}|||{$first}|||{$mi}";
             if (isset($studentMap[$key])) {
-                $data['student_id_fk'] = $studentMap[$key];
+                $data['student_id'] = $studentMap[$key];
             }
         }
 
-        return $data;
+        $entryType = match (strtoupper(trim((string) ($data['ar_or_payment'] ?? 'AR')))) {
+            'AR', 'ASSESSMENT' => 'ar',
+            'ADJ', 'ADJUSTMENT' => 'adjustment',
+            default => 'payment',
+        };
+
+        return [
+            'student_id' => $data['student_id'] ?? null,
+            'course_id' => $data['course_id'] ?? null,
+            'academic_term_id' => $data['academic_term_id'] ?? null,
+            'units' => $data['units'] ?? null,
+            'rate' => $data['tuition_per_unit_or_fee_per_semester'] ?? 0,
+            'entry_type' => $entryType,
+            'amount' => abs((float) ($data['amount'] ?? 0)),
+            'transaction_date' => $data['transaction_date'] ?? now()->toDateString(),
+            'reference_number' => $data['reference_jev_or_number'] ?? null,
+            'particulars' => $data['particulars'] ?? 'Tuition',
+            'remarks' => $data['remarks'] ?? null,
+            'status' => $data['status'] ?? 'posted',
+            'input_by' => auth()->id(),
+            'created_at' => $data['created_at'] ?? now(),
+            'updated_at' => $data['updated_at'] ?? now(),
+        ];
     }
 
     /**
@@ -764,14 +772,12 @@ class LawSchoolLedgerController extends Controller
      */
     public function printSelect(Request $request): Response
     {
-        $students = LawSchoolLedger::query()
-            ->whereNotNull('last_name')
-            ->where('last_name', '!=', '')
-            ->distinct()
+        $students = LawStudent::query()
+            ->whereHas('lawSchoolLedgers')
             ->orderBy('last_name', 'asc')
-            ->get(['last_name', 'first_name', 'middle_initial'])
+            ->get(['id', 'last_name', 'first_name', 'middle_name'])
             ->map(function ($student) {
-                return trim("$student->last_name, $student->first_name ".($student->middle_initial ? "$student->middle_initial" : ''));
+                return trim("$student->last_name, $student->first_name ".($student->middle_name ? substr($student->middle_name, 0, 1) : ''));
             })
             ->unique()
             ->values()
@@ -814,20 +820,23 @@ class LawSchoolLedgerController extends Controller
 
         $validated = $request->validate([
             'student' => ['required_without:student_id', 'string'],
-            'student_id' => ['required_without:student', 'string'],
+            'student_id' => ['required_without:student', 'integer', 'exists:students,id'],
             'school_year' => ['nullable', 'string', 'max:20'],
             'semester' => ['nullable', 'in:First Semester,Second Semester,Summer'],
         ]);
 
         $studentName = str_replace(['−', '–', '—'], '-', (string) ($validated['student'] ?? $validated['student_id']));
         $recordsQuery = isset($validated['student_id'])
-            ? LawSchoolLedger::query()->where('student_id_fk', $validated['student_id'])
+            ? LawSchoolLedger::query()->where('student_id', $validated['student_id'])
             : $this->queryStudentByName($studentName);
 
         $records = $recordsQuery
             ->when(
                 $validated['school_year'] ?? null,
-                fn ($query, $schoolYear) => $query->where('school_year', $schoolYear),
+                fn ($query, $schoolYear) => $query->whereHas(
+                    'lawAcademicTerm',
+                    fn ($termQuery) => $termQuery->where('school_year', $schoolYear),
+                ),
             )
             ->orderBy('id', 'asc')
             ->get()
@@ -1018,7 +1027,7 @@ class LawSchoolLedgerController extends Controller
         $dateTo = $request->input('date_to');
 
         return LawSchoolLedger::query()
-            ->with('lawStudent')
+            ->with(['lawStudent', 'lawCourse', 'lawAcademicTerm'])
             ->when($request->input('search'), function ($query, $search) {
                 // Lowercase the search term to match the LOWER() applied to columns.
                 // PostgreSQL's LIKE is case-sensitive, so "Juan" won't match "juan"
@@ -1026,29 +1035,26 @@ class LawSchoolLedgerController extends Controller
                 // pattern used in searchStudents() and StaffInputController::index().
                 $search = strtolower((string) $search);
                 $query->where(function ($query) use ($search) {
-                    $query->whereRaw('LOWER(first_name) LIKE ?', ["%{$search}%"])
-                        ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$search}%"])
-                        ->orWhereRaw('LOWER(middle_initial) LIKE ?', ["%{$search}%"])
-                        ->orWhereRaw('LOWER(student_id) LIKE ?', ["%{$search}%"])
-                        ->orWhereRaw('LOWER(reference_jev_or_number) LIKE ?', ["%{$search}%"])
-                        ->orWhereRaw('LOWER(particulars) LIKE ?', ["%{$search}%"])
-                        ->orWhereRaw("LOWER(TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_initial, '')))) LIKE ?", ["%{$search}%"]);
+                    $query->whereHas('lawStudent', function ($studentQuery) use ($search) {
+                        $studentQuery->whereRaw('LOWER(first_name) LIKE ?', ["%{$search}%"])
+                            ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$search}%"])
+                            ->orWhereRaw('LOWER(middle_name) LIKE ?', ["%{$search}%"])
+                            ->orWhereRaw('LOWER(student_number) LIKE ?', ["%{$search}%"]);
+                    })->orWhereRaw('LOWER(reference_number) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(particulars) LIKE ?', ["%{$search}%"]);
                 });
             })
             ->when($schoolYear, function ($query, $schoolYear) {
-                $query->where('school_year', $schoolYear);
+                $query->whereHas('lawAcademicTerm', fn ($termQuery) => $termQuery->where('school_year', $schoolYear));
             })
             ->when($semester, function ($query, $semester) {
                 // Match every stored variant that maps to the selected semester label
                 // (e.g. "1st Sem" also matches "First Semester").
-                $query->where(function ($query) use ($semester) {
-                    foreach ($this->semesterAliases((string) $semester) as $alias) {
-                        $query->orWhereRaw('UPPER(TRIM(semester_or_summer)) = ?', [strtoupper($alias)]);
-                    }
-                });
+                $query->whereHas('lawAcademicTerm', fn ($termQuery) => $termQuery
+                    ->where('semester', LawAcademicTerm::normalizeSemester((string) $semester)));
             })
             ->when($course, function ($query, $course) {
-                $query->where('course', $course);
+                $query->whereHas('lawCourse', fn ($courseQuery) => $courseQuery->where('course_code', $course));
             })
             ->when($status, function ($query, $status) {
                 // Trim + case-insensitive match so "DROP" also finds rows stored as
@@ -1056,7 +1062,12 @@ class LawSchoolLedgerController extends Controller
                 $query->whereRaw('UPPER(TRIM(status)) = ?', [strtoupper(trim((string) $status))]);
             })
             ->when($type, function ($query, $type) {
-                $query->whereRaw('UPPER(TRIM(ar_or_payment)) = ?', [strtoupper(trim((string) $type))]);
+                $normalizedType = match (strtoupper(trim((string) $type))) {
+                    'AR', 'ASSESSMENT' => 'ar',
+                    'ADJ', 'ADJUSTMENT' => 'adjustment',
+                    default => 'payment',
+                };
+                $query->where('entry_type', $normalizedType);
             })
             ->when($dateFrom, function ($query, $dateFrom) {
                 $query->whereDate('transaction_date', '>=', $dateFrom);
@@ -1072,9 +1083,9 @@ class LawSchoolLedgerController extends Controller
         $cleanName = trim((string) str_replace(['−', '–', '—'], '-', $studentName));
 
         return LawSchoolLedger::query()
-            ->with('lawStudent')
-            ->where(function ($q) use ($cleanName) {
-                $q->whereRaw("TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_initial, ''))) = ?", [$cleanName])
+            ->with(['lawStudent', 'lawCourse', 'lawAcademicTerm'])
+            ->whereHas('lawStudent', function ($q) use ($cleanName) {
+                $q->whereRaw("TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_name, ''))) = ?", [$cleanName])
                     ->orWhereRaw("TRIM(CONCAT(last_name, ', ', first_name)) = ?", [$cleanName])
                     ->orWhere('last_name', 'like', "%{$cleanName}%");
             });
@@ -1171,7 +1182,7 @@ class LawSchoolLedgerController extends Controller
             'firstName' => $r->first_name,
             'middleInitial' => $this->normalizeMiddleInitial($r->middle_initial),
             'name' => optional($r->lawStudent)->full_name ?? trim("$r->last_name, $r->first_name ".($r->middle_initial ? "$r->middle_initial" : '')),
-            'course' => $r->course,
+            'course' => $r->lawCourse?->code,
             'schoolYear' => $r->school_year,
             'semesterOrSummer' => $r->semester_or_summer,
             'units' => (float) $r->units,
@@ -1220,8 +1231,8 @@ class LawSchoolLedgerController extends Controller
      */
     private function courseList(): array
     {
-        return array_values(LawCourse::orderBy('code')
-            ->get(['id', 'code'])
+        return array_values(LawCourse::where('course_college', 'School of Law')->orderBy('course_code')
+            ->get(['id', 'course_code'])
             ->map(fn (LawCourse $course): array => [
                 'id' => (int) $course->id,
                 'code' => $course->code,
@@ -1237,7 +1248,7 @@ class LawSchoolLedgerController extends Controller
     private function academicTermList(): array
     {
         return array_values(LawAcademicTerm::orderBy('school_year', 'desc')
-            ->orderBy('sort_order')
+            ->orderByRaw("CASE semester WHEN 'First Semester' THEN 1 WHEN 'Second Semester' THEN 2 ELSE 3 END")
             ->get(['id', 'school_year', 'semester'])
             ->map(fn (LawAcademicTerm $term): array => [
                 'id' => (int) $term->id,
@@ -1265,16 +1276,10 @@ class LawSchoolLedgerController extends Controller
 
         $semester = LawAcademicTerm::normalizeSemester((string) $data['semester']);
 
-        $term = LawAcademicTerm::firstOrCreate(
-            [
-                'school_year' => $data['school_year'],
-                'semester_short' => $this->semesterShort($semester),
-            ],
-            [
-                'semester' => $semester,
-                'sort_order' => LawAcademicTerm::sortOrder($semester),
-            ]
-        );
+        $term = LawAcademicTerm::firstOrCreate([
+            'school_year' => $data['school_year'],
+            'semester' => $semester,
+        ]);
 
         return $term->id;
     }
@@ -1299,30 +1304,16 @@ class LawSchoolLedgerController extends Controller
      */
     private function buildLedgerRow(array $data, ?int $studentId, ?int $academicTermId): array
     {
-        $courseCode = null;
-        if (isset($data['course_id']) && is_numeric($data['course_id'])) {
-            $courseCode = LawCourse::query()->find((int) $data['course_id'])?->code;
-        }
-
         $attributes = [
-            'student_id_fk' => $studentId,
+            'student_id' => $studentId,
             'course_id' => $data['course_id'] ?? null,
             'academic_term_id' => $academicTermId,
-            'last_name' => $data['last_name'] ?? null,
-            'first_name' => $data['first_name'] ?? null,
-            'middle_initial' => $this->normalizeMiddleInitial($middleInitialSource),
-            'middle_name' => $data['middle_name'] ?? null,
-            'course' => $data['course'] ?? $courseCode,
-            'school_year' => $data['school_year'] ?? null,
-            'semester_or_summer' => $data['semester_or_summer']
-                ?? ($data['semester'] ?? null),
             'units' => $data['units'] ?? null,
             'transaction_date' => $data['transaction_date'] ?? null,
-            'reference_jev_or_number' => $data['reference_jev_or_number'] ?? null,
+            'reference_number' => $data['reference_number'] ?? null,
             'particulars' => $data['particulars'] ?? 'Tuition',
-            'tuition_per_unit_or_fee_per_semester' => $data['tuition_per_unit_or_fee_per_semester'] ?? '0.00',
+            'rate' => $data['rate'] ?? '0.00',
             'entry_type' => $data['entry_type'] ?? 'ar',
-            'ar_or_payment' => $data['ar_or_payment'] ?? 'AR',
             'amount' => $data['amount'] ?? null,
             'remarks' => $data['remarks'] ?? null,
             'status' => $data['status'] ?? 'Active',
@@ -1334,7 +1325,7 @@ class LawSchoolLedgerController extends Controller
         // Auto-compute amount when AR and no amount supplied (mirrors Graduate behavior)
         if ($entryType === 'ar' && blank($attributes['amount'])) {
             $attributes['amount'] = round(
-                (float) ($attributes['units'] ?? 0) * (float) $attributes['tuition_per_unit_or_fee_per_semester'],
+                (float) ($attributes['units'] ?? 0) * (float) $attributes['rate'],
                 2,
             );
         }
@@ -1363,7 +1354,7 @@ class LawSchoolLedgerController extends Controller
             'first_name' => $r->first_name,
             'middle_initial' => $middleInitial,
             'middle_name' => $r->middle_name,
-            'course' => $r->course,
+            'course' => $r->lawCourse?->code,
             'school_year' => optional($r->lawAcademicTerm)->school_year ?? ($r->school_year ?? ''),
             'semester' => optional($r->lawAcademicTerm)->semester ?? $this->normalizeSemester((string) ($r->semester_or_summer ?? '')),
             'semester_or_summer' => $r->semester_or_summer,
@@ -1494,7 +1485,7 @@ class LawSchoolLedgerController extends Controller
             $defaultSchoolYears[] = $i.'-'.($i + 1);
         }
 
-        $schoolYears = array_values(LawSchoolLedger::distinct()
+        $schoolYears = array_values(LawAcademicTerm::distinct()
             ->orderBy('school_year', 'desc')
             ->pluck('school_year')
             ->filter(fn (mixed $value): bool => is_string($value) && $value !== '')
@@ -1507,9 +1498,9 @@ class LawSchoolLedgerController extends Controller
         }
 
         return [
-            'courses' => array_values(LawSchoolLedger::distinct()
-                ->orderBy('course')
-                ->pluck('course')
+            'courses' => array_values(LawCourse::where('course_college', 'School of Law')
+                ->orderBy('course_code')
+                ->pluck('course_code')
                 ->filter(fn (mixed $value): bool => is_string($value) && $value !== '')
                 ->map(fn (mixed $value): string => (string) $value)
                 ->values()
@@ -1532,7 +1523,8 @@ class LawSchoolLedgerController extends Controller
             // Deduplicate status options case-insensitively (ignoring whitespace) so
             // variants like " DROP" and "DROP" collapse into a single "DROP" option.
             'statuses' => $this->deduplicatedOptions('status'),
-            'types' => $this->deduplicatedOptions('ar_or_payment'),
+            'types' => LawSchoolLedger::query()->distinct()->pluck('entry_type')
+                ->map(fn (string $type): string => $this->entryTypeToLabel($type))->values()->all(),
         ];
     }
 
@@ -1547,10 +1539,18 @@ class LawSchoolLedgerController extends Controller
      */
     private function deduplicatedOptions(string $column): array
     {
+        if ($column === 'semester_or_summer') {
+            return LawAcademicTerm::query()->distinct()->pluck('semester')->filter()->values()->all();
+        }
+
+        if ($column === 'ar_or_payment') {
+            return LawSchoolLedger::query()->distinct()->pluck('entry_type')
+                ->map(fn (string $type): string => $this->entryTypeToLabel($type))->values()->all();
+        }
+
         $select = match ($column) {
-            'ar_or_payment' => 'ar_or_payment as value, UPPER(TRIM(ar_or_payment)) as option_key, COUNT(*) as option_count',
-            'semester_or_summer' => 'semester_or_summer as value, UPPER(TRIM(semester_or_summer)) as option_key, COUNT(*) as option_count',
             'status' => 'status as value, UPPER(TRIM(status)) as option_key, COUNT(*) as option_count',
+            default => throw new \InvalidArgumentException("Unsupported option column: {$column}"),
         };
 
         return array_values(LawSchoolLedger::query()

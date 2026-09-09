@@ -17,6 +17,10 @@ class StoreGraduateLedgerRequest extends FormRequest
     {
         $this->merge([
             'tuition_per_unit_or_misc' => $this->input('tuition_per_unit_or_misc') ?: '0.00',
+            'rate' => $this->input('rate') ?? $this->input('tuition_per_unit_or_misc') ?? '0.00',
+            'reference_number' => $this->input('reference_number') ?? $this->input('reference_or_jev_number'),
+            'input_by' => $this->user()?->id,
+            'status' => $this->input('status', 'posted'),
         ]);
     }
 
@@ -26,7 +30,7 @@ class StoreGraduateLedgerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'student_id' => ['nullable', 'required_without:new_student', 'exists:graduate_student,id'],
+            'student_id' => ['nullable', 'required_without:new_student', 'exists:students,id'],
             'new_student' => ['nullable', 'array'],
             'new_student.student_number' => [
                 'nullable',
@@ -37,8 +41,8 @@ class StoreGraduateLedgerRequest extends FormRequest
             'new_student.last_name' => ['required_with:new_student', 'string', 'max:255'],
             'new_student.first_name' => ['required_with:new_student', 'string', 'max:255'],
             'new_student.middle_name' => ['nullable', 'string', 'max:255'],
-            'course_id' => ['nullable', 'exists:graduate_course,id'],
-            'academic_term_id' => ['nullable', 'exists:graduate_academic_term,id'],
+            'course_id' => ['required', Rule::exists('courses', 'id')->where('course_college', 'Graduate School')],
+            'academic_term_id' => ['nullable', 'exists:academic_terms,id'],
             'school_year' => ['required_without:academic_term_id', 'nullable', 'regex:/^\d{4}-\d{4}$/', 'max:20'],
             'semester' => [
                 'required_without:academic_term_id',
@@ -49,8 +53,10 @@ class StoreGraduateLedgerRequest extends FormRequest
             'units' => ['nullable', 'integer', 'min:0'],
             'transaction_date' => ['required', 'date'],
             'reference_or_jev_number' => ['nullable', 'string', 'max:255'],
+            'reference_number' => ['nullable', 'string', 'max:100'],
             'particulars' => ['nullable', 'string', 'max:255'],
             'tuition_per_unit_or_misc' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:99999999.99'],
+            'rate' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
             'amount' => [
                 'nullable',
                 'required_unless:entry_type,ar',
@@ -60,7 +66,8 @@ class StoreGraduateLedgerRequest extends FormRequest
                 'max:99999999.99',
             ],
             'remarks' => ['nullable', 'string', 'max:255'],
-            'input_by' => ['nullable', 'string', 'max:255'],
+            'input_by' => ['nullable', 'integer', 'exists:users,id'],
+            'status' => ['required', 'string', 'max:30'],
         ];
     }
 

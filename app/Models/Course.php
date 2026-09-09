@@ -12,17 +12,26 @@ class Course extends Model
     /** @use HasFactory<Factory<Course>> */
     use HasFactory;
 
-    protected $table = 'graduate_course';
-
     protected $fillable = [
-        'code',
-        'title',
+        'course_code',
+        'course_desc',
+        'course_college',
     ];
 
     /** @return HasMany<GraduateLedger, $this> */
     public function graduateLedgers(): HasMany
     {
         return $this->hasMany(GraduateLedger::class);
+    }
+
+    public function getCodeAttribute(): string
+    {
+        return (string) $this->course_code;
+    }
+
+    public function getTitleAttribute(): ?string
+    {
+        return $this->course_desc;
     }
 
     /**

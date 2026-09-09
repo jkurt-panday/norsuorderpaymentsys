@@ -12,16 +12,9 @@ class AcademicTerm extends Model
     /** @use HasFactory<Factory<AcademicTerm>> */
     use HasFactory;
 
-    protected $table = 'graduate_academic_term';
-
     protected $fillable = [
         'school_year',
         'semester',
-        'sort_order',
-    ];
-
-    protected $casts = [
-        'sort_order' => 'integer',
     ];
 
     /** @return HasMany<GraduateLedger, $this> */

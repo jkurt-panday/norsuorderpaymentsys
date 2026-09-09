@@ -12,21 +12,25 @@ class Student extends Model
     /** @use HasFactory<Factory<Student>> */
     use HasFactory;
 
-    protected $table = 'graduate_student';
-
     protected $fillable = [
         'student_number',
         'email',
         'last_name',
         'first_name',
         'middle_name',
-        'raw_name_from_csv',
+        'contact_num',
     ];
 
     /** @return HasMany<GraduateLedger, $this> */
     public function graduateLedgers(): HasMany
     {
         return $this->hasMany(GraduateLedger::class);
+    }
+
+    /** @return HasMany<LawSchoolLedger, $this> */
+    public function lawSchoolLedgers(): HasMany
+    {
+        return $this->hasMany(LawSchoolLedger::class);
     }
 
     /**
