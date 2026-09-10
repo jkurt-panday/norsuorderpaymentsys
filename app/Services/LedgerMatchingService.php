@@ -98,15 +98,13 @@ class LedgerMatchingService
     {
         $semester = AcademicTerm::normalizeSemester($assessment->semester);
         $termRecords = LawSchoolLedger::query()
-            ->where('school_year', $assessment->sy_last_attended)
-            ->orderBy('last_name')
-            ->orderBy('first_name')
+            ->with(['student', 'course', 'academicTerm'])
+            ->whereHas('academicTerm', fn ($query) => $query
+                ->where('school_year', $assessment->sy_last_attended)
+                ->where('semester', $semester))
             ->orderBy('transaction_date')
             ->orderBy('id')
             ->get()
-            ->filter(fn (LawSchoolLedger $record) => AcademicTerm::normalizeSemester(
-                (string) $record->semester_or_summer,
-            ) === $semester)
             ->values();
 
         $groupedRecords = $termRecords->groupBy(fn (LawSchoolLedger $record) => $this->lawCandidateKey($record));
@@ -157,13 +155,13 @@ class LedgerMatchingService
         return [
             'key' => $key,
             'name' => $name,
-            'studentId' => $student->student_id,
+            'studentId' => $student->student?->student_number,
             'firstName' => $student->first_name,
             'middleName' => $student->middle_initial,
             'lastName' => $student->last_name,
-            'pdfQueryKey' => filled($student->student_id) ? 'student_id' : 'student',
-            'pdfQueryValue' => filled($student->student_id) ? (string) $student->student_id : $name,
-            'modelId' => null,
+            'pdfQueryKey' => 'student_id',
+            'pdfQueryValue' => (string) $student->student_id,
+            'modelId' => $student->student_id,
         ];
     }
 
@@ -306,7 +304,7 @@ class LedgerMatchingService
         return [
             'id' => $record->id,
             'name' => $this->lawStudentName($record),
-            'course' => $record->course,
+            'course' => $record->course?->code,
             'schoolYear' => $record->school_year,
             'semester' => AcademicTerm::normalizeSemester((string) $record->semester_or_summer),
             'transactionDate' => $record->transaction_date?->format('Y-m-d'),
@@ -368,17 +366,7 @@ class LedgerMatchingService
 
     private function lawCandidateKey(LawSchoolLedger $record): string
     {
-        if (filled($record->student_id)) {
-            return 'law-id:'.$this->normalizeIdentifier($record->student_id);
-        }
-
-        $identity = implode('|', [
-            $this->normalizeName($record->last_name),
-            $this->normalizeName($record->first_name),
-            $this->normalizeName($record->middle_initial),
-        ]);
-
-        return 'law-name:'.hash('sha256', $identity);
+        return 'law:'.$record->student_id;
     }
 
     private function lawStudentName(LawSchoolLedger $record): string

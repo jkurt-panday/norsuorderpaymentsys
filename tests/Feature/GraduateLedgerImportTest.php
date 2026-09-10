@@ -23,7 +23,7 @@ class GraduateLedgerImportTest extends TestCase
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->fromArray([
             ['student_name', 'course', 'school_year', 'semester_short', 'semester', 'units', 'transaction_date', 'reference_or_jev_number', 'particulars', 'tuition_per_unit_or_misc', 'ar_payment', 'amount', 'remarks', 'input_by'],
-            ['Juan Dela Cruz', 'MS-MATH', '2025-2026', '1st Sem.', 'First Semester', 9, '2026-07-22', 'OR-001', 'Tuition', '150.00', 'AR', '1350.00', 'Imported', 'Admin'],
+            ['Cruz, Juan Dela', 'MS-MATH', '2025-2026', '1st Sem.', 'First Semester', 9, '2026-07-22', 'OR-001', 'Tuition', '150.00', 'AR', '1350.00', 'Imported', 'Admin'],
         ], null, 'A1');
 
         $writer = new Xlsx($spreadsheet);
@@ -35,12 +35,15 @@ class GraduateLedgerImportTest extends TestCase
 
         $response->assertRedirect('/graduate-ledger');
 
-        $student = Student::where('raw_name_from_csv', 'Juan Dela Cruz')->first();
+        $student = Student::query()
+            ->where('last_name', 'Cruz')
+            ->where('first_name', 'Juan Dela')
+            ->first();
         $this->assertNotNull($student);
         $this->assertDatabaseHas('graduate_ledgers', [
             'student_id' => $student->id,
             'entry_type' => 'ar',
-            'reference_or_jev_number' => 'OR-001',
+            'reference_number' => 'OR-001',
             'amount' => '1350.00',
         ]);
 
@@ -84,12 +87,13 @@ class GraduateLedgerImportTest extends TestCase
                     && str_contains($message, '1 positive amount(s) labeled PAYMENT');
             });
 
-        $this->assertDatabaseHas('graduate_ledgers', ['reference_or_jev_number' => 'NEG-BLANK', 'entry_type' => 'payment', 'amount' => '100.00']);
-        $this->assertDatabaseHas('graduate_ledgers', ['reference_or_jev_number' => 'NEG-AR', 'entry_type' => 'payment', 'amount' => '200.00']);
-        $this->assertDatabaseHas('graduate_ledgers', ['reference_or_jev_number' => 'POS-PAY', 'entry_type' => 'payment', 'amount' => '300.00']);
-        $this->assertDatabaseHas('graduate_ledgers', ['reference_or_jev_number' => 'POS-AR', 'entry_type' => 'ar', 'amount' => '400.00']);
-        $this->assertDatabaseMissing('graduate_ledgers', ['reference_or_jev_number' => 'IGNORED']);
+        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'NEG-BLANK', 'entry_type' => 'payment', 'amount' => '100.00']);
+        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'NEG-AR', 'entry_type' => 'payment', 'amount' => '200.00']);
+        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'POS-PAY', 'entry_type' => 'payment', 'amount' => '300.00']);
+        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'POS-AR', 'entry_type' => 'ar', 'amount' => '400.00']);
+        $this->assertDatabaseMissing('graduate_ledgers', ['reference_number' => 'IGNORED']);
 
         unlink($file);
     }
+
 }

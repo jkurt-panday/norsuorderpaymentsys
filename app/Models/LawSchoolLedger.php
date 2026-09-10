@@ -14,23 +14,14 @@ class LawSchoolLedger extends Model
 
     protected $fillable = [
         'student_id',
-        'student_id_fk',
         'course_id',
         'academic_term_id',
         'entry_type',
-        'last_name',
-        'first_name',
-        'middle_initial',
-        'middle_name',
-        'course',
-        'school_year',
-        'semester_or_summer',
         'units',
         'transaction_date',
-        'reference_jev_or_number',
+        'reference_number',
         'particulars',
-        'tuition_per_unit_or_fee_per_semester',
-        'ar_or_payment',
+        'rate',
         'amount',
         'remarks',
         'status',
@@ -39,28 +30,58 @@ class LawSchoolLedger extends Model
 
     protected $casts = [
         'units' => 'decimal:2',
-        'tuition_per_unit_or_fee_per_semester' => 'decimal:2',
+        'rate' => 'decimal:2',
         'amount' => 'decimal:2',
         'transaction_date' => 'date:Y-m-d',
     ];
 
     // ─── Relationships ────────────────────────────────────────────────────────
 
-    /** @return BelongsTo<LawStudent, $this> */
+    /** @return BelongsTo<Student, $this> */
+    public function student(): BelongsTo
+    {
+        return $this->belongsTo(Student::class);
+    }
+
+    /** @return BelongsTo<Course, $this> */
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class);
+    }
+
+    /** @return BelongsTo<AcademicTerm, $this> */
+    public function academicTerm(): BelongsTo
+    {
+        return $this->belongsTo(AcademicTerm::class);
+    }
+
     public function lawStudent(): BelongsTo
     {
-        return $this->belongsTo(LawStudent::class, 'student_id_fk');
+        return $this->student();
     }
 
-    /** @return BelongsTo<LawCourse, $this> */
     public function lawCourse(): BelongsTo
     {
-        return $this->belongsTo(LawCourse::class, 'course_id');
+        return $this->course();
     }
 
-    /** @return BelongsTo<LawAcademicTerm, $this> */
     public function lawAcademicTerm(): BelongsTo
     {
-        return $this->belongsTo(LawAcademicTerm::class, 'academic_term_id');
+        return $this->academicTerm();
     }
+
+    public function getStudentIdFkAttribute(): int
+    {
+        return (int) $this->student_id;
+    }
+
+    public function getLastNameAttribute(): ?string { return $this->student?->last_name; }
+    public function getFirstNameAttribute(): ?string { return $this->student?->first_name; }
+    public function getMiddleNameAttribute(): ?string { return $this->student?->middle_name; }
+    public function getMiddleInitialAttribute(): ?string { return $this->student?->middle_name ? substr($this->student->middle_name, 0, 1) : null; }
+    public function getSchoolYearAttribute(): ?string { return $this->academicTerm?->school_year; }
+    public function getSemesterOrSummerAttribute(): ?string { return $this->academicTerm?->semester; }
+    public function getReferenceJevOrNumberAttribute(): ?string { return $this->reference_number; }
+    public function getTuitionPerUnitOrFeePerSemesterAttribute(): mixed { return $this->rate; }
+    public function getArOrPaymentAttribute(): string { return $this->entry_type === 'ar' ? 'AR' : ucfirst((string) $this->entry_type); }
 }

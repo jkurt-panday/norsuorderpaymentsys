@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Models\LawStudent;
+use App\Models\Student;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -21,6 +21,9 @@ class StoreLawSchoolLedgerRequest extends FormRequest
             'tuition_per_unit_or_fee_per_semester' => $this->input('tuition_per_unit_or_fee_per_semester')
                 ?? $this->input('tuition_per_unit_or_misc')
                 ?? '0.00',
+            'rate' => $this->input('rate') ?? $this->input('tuition_per_unit_or_fee_per_semester') ?? $this->input('tuition_per_unit_or_misc') ?? '0.00',
+            'reference_number' => $this->input('reference_number') ?? $this->input('reference_jev_or_number') ?? $this->input('reference_or_jev_number'),
+            'input_by' => $this->user()?->id,
         ]);
     }
 
@@ -30,19 +33,19 @@ class StoreLawSchoolLedgerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'student_id' => ['nullable', 'required_without:new_student', 'exists:law_student,id'],
+            'student_id' => ['nullable', 'required_without:new_student', 'exists:students,id'],
             'new_student' => ['nullable', 'array'],
             'new_student.student_number' => [
                 'nullable',
                 'string',
                 'max:50',
-                Rule::unique(LawStudent::class, 'student_number'),
+                Rule::unique(Student::class, 'student_number'),
             ],
             'new_student.last_name' => ['required_with:new_student', 'string', 'max:255'],
             'new_student.first_name' => ['required_with:new_student', 'string', 'max:255'],
             'new_student.middle_name' => ['nullable', 'string', 'max:255'],
-            'course_id' => ['nullable', 'exists:law_course,id'],
-            'academic_term_id' => ['nullable', 'exists:law_academic_term,id'],
+            'course_id' => ['required', Rule::exists('courses', 'id')->where('course_college', 'School of Law')],
+            'academic_term_id' => ['nullable', 'exists:academic_terms,id'],
             'school_year' => ['required_without:academic_term_id', 'nullable', 'regex:/^\d{4}-\d{4}$/', 'max:20'],
             'semester' => [
                 'required_without:academic_term_id',
@@ -59,8 +62,10 @@ class StoreLawSchoolLedgerRequest extends FormRequest
             'units' => ['nullable', 'numeric', 'min:0'],
             'transaction_date' => ['required', 'date'],
             'reference_jev_or_number' => ['nullable', 'string', 'max:255'],
+            'reference_number' => ['nullable', 'string', 'max:100'],
             'particulars' => ['nullable', 'string', 'max:255'],
             'tuition_per_unit_or_fee_per_semester' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:99999999.99'],
+            'rate' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
             'ar_or_payment' => ['nullable', 'string', 'max:50'],
             'amount' => [
                 'nullable',
@@ -72,7 +77,7 @@ class StoreLawSchoolLedgerRequest extends FormRequest
             ],
             'status' => ['nullable', 'string', 'max:50'],
             'remarks' => ['nullable', 'string', 'max:255'],
-            'input_by' => ['nullable', 'string', 'max:255'],
+            'input_by' => ['nullable', 'integer', 'exists:users,id'],
         ];
     }
 

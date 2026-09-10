@@ -128,12 +128,11 @@ class GraduateLedgerController extends Controller
                 $q->whereHas('student', fn ($sq) => $sq
                     ->whereRaw('LOWER(last_name) LIKE ?', [$term])
                     ->orWhereRaw('LOWER(first_name) LIKE ?', [$term])
-                    ->orWhereRaw('LOWER(raw_name_from_csv) LIKE ?', [$term])
                     ->orWhereRaw("LOWER(CONCAT(last_name, ', ', first_name)) LIKE ?", [$term])
                     ->orWhereRaw("LOWER(CONCAT(first_name, ' ', last_name)) LIKE ?", [$term]))
                     ->orWhereHas('course', fn ($sq) => $sq
-                        ->whereRaw('LOWER(code) LIKE ?', [$term]))
-                    ->orWhereRaw('LOWER(reference_or_jev_number) LIKE ?', [$term]);
+                        ->whereRaw('LOWER(course_code) LIKE ?', [$term]))
+                    ->orWhereRaw('LOWER(reference_number) LIKE ?', [$term]);
             });
         }
 
@@ -146,7 +145,7 @@ class GraduateLedgerController extends Controller
         }
 
         if ($course) {
-            $query->whereHas('course', fn ($q) => $q->where('code', $course));
+            $query->whereHas('course', fn ($q) => $q->where('course_code', $course));
         }
 
         $query
@@ -159,7 +158,7 @@ class GraduateLedgerController extends Controller
             // Join graduate_student so we can ORDER BY its columns
             $query->orderByRaw(
                 'CASE WHEN EXISTS (
-                    SELECT 1 FROM graduate_student gs
+                    SELECT 1 FROM students gs
                     WHERE gs.id = graduate_ledgers.student_id
                     AND (LOWER(gs.last_name) LIKE ? OR LOWER(gs.first_name) LIKE ?)
                 ) THEN 0 ELSE 1 END',
@@ -204,7 +203,6 @@ class GraduateLedgerController extends Controller
                     'last_name' => $newStudent['last_name'],
                     'first_name' => $newStudent['first_name'],
                     'middle_name' => $newStudent['middle_name'] ?? null,
-                    'raw_name_from_csv' => "{$newStudent['last_name']}, {$newStudent['first_name']}",
                 ];
 
                 $student = filled($studentAttributes['student_number'])
@@ -277,7 +275,7 @@ class GraduateLedgerController extends Controller
                 'school_year' => $data['school_year'],
                 'semester' => $data['semester'],
             ],
-            ['sort_order' => AcademicTerm::sortOrder($data['semester'])]
+            []
         );
 
         return $term->id;
@@ -294,9 +292,9 @@ class GraduateLedgerController extends Controller
             'entry_type',
             'units',
             'transaction_date',
-            'reference_or_jev_number',
+            'reference_number',
             'particulars',
-            'tuition_per_unit_or_misc',
+            'rate',
             'amount',
             'remarks',
             'input_by',
@@ -304,11 +302,14 @@ class GraduateLedgerController extends Controller
 
         $attributes['student_id'] = $studentId;
         $attributes['academic_term_id'] = $academicTermId;
-        $attributes['tuition_per_unit_or_misc'] = $data['tuition_per_unit_or_misc'] ?? '0.00';
+        $attributes['rate'] = $data['rate'] ?? '0.00';
+        $attributes['particulars'] = $data['particulars'] ?? 'Tuition';
+        $attributes['status'] = $data['status'] ?? 'posted';
+        $attributes['input_by'] = $data['input_by'] ?? auth()->id();
 
         if ($data['entry_type'] === 'ar' && empty($data['amount'])) {
             $attributes['amount'] = round(
-                (float) ($data['units'] ?? 0) * (float) $attributes['tuition_per_unit_or_misc'],
+                (float) ($data['units'] ?? 0) * (float) $attributes['rate'],
                 2,
             );
         }
@@ -598,7 +599,11 @@ class GraduateLedgerController extends Controller
         // Fallback: if a name string was passed instead, resolve to ID
         if (! $selectedStudentId && $request->input('student')) {
             $raw = $request->input('student');
-            $selectedStudentId = Student::where('raw_name_from_csv', $raw)->value('id');
+            $parsed = Student::parseRawName($raw);
+            $selectedStudentId = Student::query()
+                ->where('last_name', $parsed['last_name'])
+                ->where('first_name', $parsed['first_name'])
+                ->value('id');
         }
 
         $studentRecords = collect();
@@ -627,7 +632,7 @@ class GraduateLedgerController extends Controller
     public function generatePdf(Request $request): PdfBuilder
     {
         $validated = $request->validate([
-            'student_id' => ['required', 'integer', 'exists:graduate_student,id'],
+            'student_id' => ['required', 'integer', 'exists:students,id'],
             'school_year' => ['nullable', 'string', 'max:20'],
             'semester' => ['nullable', 'in:First Semester,Second Semester,Summer'],
         ]);
@@ -740,7 +745,7 @@ class GraduateLedgerController extends Controller
     /** @return list<array{id: int, student_number: string|null, last_name: string, first_name: string, middle_name: string|null, last_course_id: int|null}> */
     private function studentList(): array
     {
-        $latestCourses = DB::table('graduate_ledgers')
+        $latestCourses = DB::table((new GraduateLedger)->getTable())
             ->select('student_id', DB::raw('MAX(course_id) as last_course_id'))
             ->whereNotNull('student_id')
             ->whereNotNull('course_id')
@@ -768,8 +773,8 @@ class GraduateLedgerController extends Controller
     /** @return list<array{id: int, code: string}> */
     private function courseList(): array
     {
-        return array_values(Course::orderBy('code')
-            ->get(['id', 'code'])
+        return array_values(Course::where('course_college', 'Graduate School')->orderBy('course_code')
+            ->get(['id', 'course_code'])
             ->map(fn (Course $course): array => ['id' => $course->id, 'code' => $course->code])
             ->all());
     }
@@ -781,7 +786,7 @@ class GraduateLedgerController extends Controller
     private function academicTermList(): array
     {
         return array_values(AcademicTerm::orderBy('school_year', 'desc')
-            ->orderBy('sort_order')
+            ->orderByRaw("CASE semester WHEN 'First Semester' THEN 1 WHEN 'Second Semester' THEN 2 ELSE 3 END")
             ->get(['id', 'school_year', 'semester'])
             ->map(fn (AcademicTerm $term): array => [
                 'id' => $term->id,
@@ -808,15 +813,19 @@ class GraduateLedgerController extends Controller
         CarbonInterface $now
     ): array {
         // 1. Bulk resolve students (2 queries total instead of N+1)
-        $studentMap = Student::query()->pluck('id', 'raw_name_from_csv')
-            ->map(fn (mixed $id): int => (int) $id)
-            ->all();
+        $studentsByName = Student::query()->get(['id', 'last_name', 'first_name', 'middle_name'])
+            ->mapWithKeys(fn (Student $student): array => [
+                $this->studentImportKey($student->last_name, $student->first_name, $student->middle_name) => (int) $student->id,
+            ])->all();
+        $studentMap = [];
         $newStudents = [];
         foreach (array_keys($distinctStudents) as $rawName) {
-            if (! isset($studentMap[$rawName])) {
-                $parsed = Student::parseRawName($rawName);
+            $parsed = Student::parseRawName($rawName);
+            $identityKey = $this->studentImportKey($parsed['last_name'], $parsed['first_name'], $parsed['middle_name']);
+            if (isset($studentsByName[$identityKey])) {
+                $studentMap[$rawName] = $studentsByName[$identityKey];
+            } else {
                 $newStudents[] = array_merge($parsed, [
-                    'raw_name_from_csv' => $rawName,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);
@@ -826,21 +835,30 @@ class GraduateLedgerController extends Controller
             foreach (array_chunk($newStudents, 500) as $chunk) {
                 Student::insert($chunk);
             }
-            $studentMap = Student::query()->pluck('id', 'raw_name_from_csv')
-                ->map(fn (mixed $id): int => (int) $id)
-                ->all();
+            $studentsByName = Student::query()->get(['id', 'last_name', 'first_name', 'middle_name'])
+                ->mapWithKeys(fn (Student $student): array => [
+                    $this->studentImportKey($student->last_name, $student->first_name, $student->middle_name) => (int) $student->id,
+                ])->all();
+            foreach (array_keys($distinctStudents) as $rawName) {
+                $parsed = Student::parseRawName($rawName);
+                $identityKey = $this->studentImportKey($parsed['last_name'], $parsed['first_name'], $parsed['middle_name']);
+                if (isset($studentsByName[$identityKey])) {
+                    $studentMap[$rawName] = $studentsByName[$identityKey];
+                }
+            }
         }
 
         // 2. Bulk resolve courses (2 queries total instead of N+1)
-        $courseMap = Course::query()->pluck('id', 'code')
+        $courseMap = Course::query()->where('course_college', 'Graduate School')->pluck('id', 'course_code')
             ->map(fn (mixed $id): int => (int) $id)
             ->all();
         $newCourses = [];
         foreach (array_keys($distinctCourses) as $code) {
             if (! isset($courseMap[$code])) {
                 $newCourses[] = [
-                    'code' => $code,
-                    'title' => null,
+                    'course_code' => $code,
+                    'course_desc' => $code,
+                    'course_college' => 'Graduate School',
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
@@ -850,7 +868,7 @@ class GraduateLedgerController extends Controller
             foreach (array_chunk($newCourses, 500) as $chunk) {
                 Course::insert($chunk);
             }
-            $courseMap = Course::query()->pluck('id', 'code')
+            $courseMap = Course::query()->where('course_college', 'Graduate School')->pluck('id', 'course_code')
                 ->map(fn (mixed $id): int => (int) $id)
                 ->all();
         }
@@ -868,7 +886,6 @@ class GraduateLedgerController extends Controller
                 $newTerms[] = [
                     'school_year' => $pair['school_year'],
                     'semester' => $pair['semester'],
-                    'sort_order' => AcademicTerm::sortOrder($pair['semester']),
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
@@ -926,22 +943,40 @@ class GraduateLedgerController extends Controller
             $warnings[$classification['warning']]++;
         }
 
+        $studentId = $studentMap[$rawName] ?? null;
+        $courseId = $code !== '' ? ($courseMap[$code] ?? null) : null;
+        $academicTermId = ($sy !== '' && $sem !== '' && $this->isValidSemester($sem))
+            ? ($termMap["{$sy}|||{$sem}"] ?? null)
+            : null;
+
+        if ($studentId === null || $courseId === null || $academicTermId === null) {
+            return null;
+        }
+
         return [
-            'student_id' => $studentMap[$rawName] ?? null,
-            'course_id' => $code !== '' ? ($courseMap[$code] ?? null) : null,
-            'academic_term_id' => ($sy !== '' && $sem !== '' && $this->isValidSemester($sem))
-                ? ($termMap["{$sy}|||{$sem}"] ?? null)
-                : null,
+            'student_id' => $studentId,
+            'course_id' => $courseId,
+            'academic_term_id' => $academicTermId,
             'units' => is_numeric($row[5] ?? null) ? (float) $row[5] : null,
             'transaction_date' => $this->normalizeDate($row[6] ?? null),
-            'reference_or_jev_number' => trim((string) ($row[7] ?? '')),
+            'reference_number' => trim((string) ($row[7] ?? '')),
             'particulars' => trim((string) ($row[8] ?? '')),
-            'tuition_per_unit_or_misc' => $this->cleanAmount($rawTuition),
+            'rate' => $this->cleanAmount($rawTuition),
             'entry_type' => $classification['entry_type'],
             'amount' => $this->cleanAmount($rawAmount),
             'remarks' => $this->cleanRemarks($row[12] ?? null),
-            'input_by' => trim((string) ($row[13] ?? '')),
+            'status' => 'posted',
+            'input_by' => auth()->id(),
         ];
+    }
+
+    private function studentImportKey(?string $lastName, ?string $firstName, ?string $middleName): string
+    {
+        return strtolower(preg_replace('/[^a-z0-9]+/i', '', implode('|', [
+            $lastName,
+            $firstName,
+            $middleName,
+        ])) ?? '');
     }
 
     /** @return array{courses: list<string>, schoolYears: list<string>, semesters: list<string>} */
@@ -962,7 +997,7 @@ class GraduateLedgerController extends Controller
             ->all();
 
         return [
-            'courses' => array_values(Course::orderBy('code')->pluck('code')->filter()->map(fn (mixed $code): string => (string) $code)->all()),
+            'courses' => array_values(Course::where('course_college', 'Graduate School')->orderBy('course_code')->pluck('course_code')->filter()->map(fn (mixed $code): string => (string) $code)->all()),
             'schoolYears' => array_values($schoolYears ?: $defaultSchoolYears),
             'semesters' => ['First Semester', 'Second Semester', 'Summer'],
         ];

@@ -20,20 +20,31 @@ class GraduateLedger extends Model
 
         'units',
         'transaction_date',
-        'reference_or_jev_number',
+        'reference_number',
         'particulars',
-        'tuition_per_unit_or_misc',
+        'rate',
         'amount',
         'remarks',
         'input_by',
+        'status',
     ];
 
     protected $casts = [
         'units' => 'integer',
-        'tuition_per_unit_or_misc' => 'decimal:2',
+        'rate' => 'decimal:2',
         'amount' => 'decimal:2',
         'transaction_date' => 'date:Y-m-d',
     ];
+
+    public function getReferenceOrJevNumberAttribute(): ?string
+    {
+        return $this->reference_number;
+    }
+
+    public function getTuitionPerUnitOrMiscAttribute(): mixed
+    {
+        return $this->rate;
+    }
 
     // ─── Relationships ────────────────────────────────────────────────────────
 

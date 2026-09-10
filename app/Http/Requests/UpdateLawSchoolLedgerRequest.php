@@ -20,6 +20,9 @@ class UpdateLawSchoolLedgerRequest extends FormRequest
             'tuition_per_unit_or_fee_per_semester' => $this->input('tuition_per_unit_or_fee_per_semester')
                 ?? $this->input('tuition_per_unit_or_misc')
                 ?? '0.00',
+            'rate' => $this->input('rate') ?? $this->input('tuition_per_unit_or_fee_per_semester') ?? $this->input('tuition_per_unit_or_misc') ?? '0.00',
+            'reference_number' => $this->input('reference_number') ?? $this->input('reference_jev_or_number') ?? $this->input('reference_or_jev_number'),
+            'input_by' => $this->user()?->id,
         ]);
     }
 
@@ -29,9 +32,9 @@ class UpdateLawSchoolLedgerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'student_id' => ['nullable', 'exists:law_student,id'],
-            'course_id' => ['nullable', 'exists:law_course,id'],
-            'academic_term_id' => ['nullable', 'exists:law_academic_term,id'],
+            'student_id' => ['required', 'exists:students,id'],
+            'course_id' => ['required', Rule::exists('courses', 'id')->where('course_college', 'School of Law')],
+            'academic_term_id' => ['nullable', 'exists:academic_terms,id'],
             'school_year' => ['required_without:academic_term_id', 'nullable', 'regex:/^\d{4}-\d{4}$/', 'max:20'],
             'semester' => [
                 'required_without:academic_term_id',
@@ -48,8 +51,10 @@ class UpdateLawSchoolLedgerRequest extends FormRequest
             'units' => ['nullable', 'numeric', 'min:0'],
             'transaction_date' => ['required', 'date'],
             'reference_jev_or_number' => ['nullable', 'string', 'max:255'],
+            'reference_number' => ['nullable', 'string', 'max:100'],
             'particulars' => ['nullable', 'string', 'max:255'],
             'tuition_per_unit_or_fee_per_semester' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:99999999.99'],
+            'rate' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
             'ar_or_payment' => ['nullable', 'string', 'max:50'],
             'amount' => [
                 'nullable',
@@ -61,7 +66,7 @@ class UpdateLawSchoolLedgerRequest extends FormRequest
             ],
             'status' => ['nullable', 'string', 'max:50'],
             'remarks' => ['nullable', 'string', 'max:255'],
-            'input_by' => ['nullable', 'string', 'max:255'],
+            'input_by' => ['nullable', 'integer', 'exists:users,id'],
         ];
     }
 }

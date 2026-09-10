@@ -16,6 +16,10 @@ class UpdateGraduateLedgerRequest extends FormRequest
     {
         $this->merge([
             'tuition_per_unit_or_misc' => $this->input('tuition_per_unit_or_misc') ?: '0.00',
+            'rate' => $this->input('rate') ?? $this->input('tuition_per_unit_or_misc') ?? '0.00',
+            'reference_number' => $this->input('reference_number') ?? $this->input('reference_or_jev_number'),
+            'input_by' => $this->user()?->id,
+            'status' => $this->input('status', 'posted'),
         ]);
     }
 
@@ -25,9 +29,9 @@ class UpdateGraduateLedgerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'student_id' => ['required', 'exists:graduate_student,id'],
-            'course_id' => ['nullable', 'exists:graduate_course,id'],
-            'academic_term_id' => ['nullable', 'exists:graduate_academic_term,id'],
+            'student_id' => ['required', 'exists:students,id'],
+            'course_id' => ['required', Rule::exists('courses', 'id')->where('course_college', 'Graduate School')],
+            'academic_term_id' => ['nullable', 'exists:academic_terms,id'],
             'school_year' => ['required_without:academic_term_id', 'nullable', 'regex:/^\d{4}-\d{4}$/', 'max:20'],
             'semester' => [
                 'required_without:academic_term_id',
@@ -38,8 +42,10 @@ class UpdateGraduateLedgerRequest extends FormRequest
             'units' => ['nullable', 'integer', 'min:0'],
             'transaction_date' => ['required', 'date'],
             'reference_or_jev_number' => ['nullable', 'string', 'max:255'],
+            'reference_number' => ['nullable', 'string', 'max:100'],
             'particulars' => ['nullable', 'string', 'max:255'],
             'tuition_per_unit_or_misc' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:99999999.99'],
+            'rate' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
             'amount' => [
                 'nullable',
                 'required_unless:entry_type,ar',
@@ -49,7 +55,8 @@ class UpdateGraduateLedgerRequest extends FormRequest
                 'max:99999999.99',
             ],
             'remarks' => ['nullable', 'string', 'max:255'],
-            'input_by' => ['nullable', 'string', 'max:255'],
+            'input_by' => ['nullable', 'integer', 'exists:users,id'],
+            'status' => ['required', 'string', 'max:30'],
         ];
     }
 }

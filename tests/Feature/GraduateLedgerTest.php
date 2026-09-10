@@ -22,13 +22,11 @@ class GraduateLedgerTest extends TestCase
             'last_name' => 'Dela Cruz',
             'first_name' => 'Juan',
             'middle_name' => 'Santos',
-            'raw_name_from_csv' => 'Dela Cruz, Juan S.',
         ]);
-        $course = Course::create(['code' => 'MS-MATH', 'title' => 'MS in Mathematics']);
+        $course = $this->graduateCourse('MS-MATH', 'MS in Mathematics');
         $term = AcademicTerm::create([
             'school_year' => '2025-2026',
             'semester' => 'First Semester',
-            'sort_order' => 1,
         ]);
 
         $response = $this->actingAs($user)->post('/graduate-ledger', [
@@ -38,12 +36,11 @@ class GraduateLedgerTest extends TestCase
             'entry_type' => 'ar',
             'units' => 9,
             'transaction_date' => '2026-07-22',
-            'reference_or_jev_number' => 'OR-001',
+            'reference_number' => 'OR-001',
             'particulars' => 'Tuition',
-            'tuition_per_unit_or_misc' => '150.00',
+            'rate' => '150.00',
             'amount' => '1350.00',
             'remarks' => 'New transaction',
-            'input_by' => 'Admin',
         ]);
 
         $response->assertRedirect('/graduate-ledger');
@@ -53,7 +50,7 @@ class GraduateLedgerTest extends TestCase
             'course_id' => $course->id,
             'academic_term_id' => $term->id,
             'entry_type' => 'ar',
-            'reference_or_jev_number' => 'OR-001',
+            'reference_number' => 'OR-001',
             'amount' => '1350.00',
         ]);
     }
@@ -61,6 +58,7 @@ class GraduateLedgerTest extends TestCase
     public function test_user_can_create_a_transaction_with_a_new_student_id(): void
     {
         $user = User::factory()->staff()->create();
+        $course = $this->graduateCourse('MBA');
 
         $response = $this->actingAs($user)->post('/graduate-ledger', [
             'new_student' => [
@@ -71,10 +69,11 @@ class GraduateLedgerTest extends TestCase
             ],
             'school_year' => '2026-2027',
             'semester' => 'First Semester',
+            'course_id' => $course->id,
             'entry_type' => 'payment',
             'transaction_date' => '2026-08-28',
             'particulars' => 'Tuition',
-            'tuition_per_unit_or_misc' => '0.00',
+            'rate' => '0.00',
             'amount' => '500.00',
         ]);
 
@@ -92,6 +91,7 @@ class GraduateLedgerTest extends TestCase
     public function test_new_student_rejects_an_existing_student_id(): void
     {
         $user = User::factory()->staff()->create();
+        $course = $this->graduateCourse('MBA');
         Student::create([
             'student_number' => '2026-00123',
             'last_name' => 'Existing',
@@ -108,9 +108,10 @@ class GraduateLedgerTest extends TestCase
                 ],
                 'school_year' => '2026-2027',
                 'semester' => 'First Semester',
+                'course_id' => $course->id,
                 'entry_type' => 'payment',
                 'transaction_date' => '2026-08-28',
-                'tuition_per_unit_or_misc' => '0.00',
+                'rate' => '0.00',
                 'amount' => '500.00',
             ]);
 
@@ -122,6 +123,7 @@ class GraduateLedgerTest extends TestCase
     public function test_new_student_can_be_created_without_a_student_id(): void
     {
         $user = User::factory()->staff()->create();
+        $course = $this->graduateCourse('MBA');
 
         $response = $this->actingAs($user)->post('/graduate-ledger', [
             'new_student' => [
@@ -131,14 +133,15 @@ class GraduateLedgerTest extends TestCase
             ],
             'school_year' => '2026-2027',
             'semester' => 'First Semester',
+            'course_id' => $course->id,
             'entry_type' => 'payment',
             'transaction_date' => '2026-08-28',
-            'tuition_per_unit_or_misc' => '0.00',
+            'rate' => '0.00',
             'amount' => '500.00',
         ]);
 
         $response->assertRedirect('/graduate-ledger');
-        $this->assertDatabaseHas('graduate_student', [
+        $this->assertDatabaseHas('students', [
             'last_name' => 'Legacy',
             'first_name' => 'Student',
             'student_number' => null,
@@ -151,16 +154,14 @@ class GraduateLedgerTest extends TestCase
 
         $studentA = Student::create(['last_name' => 'Filtered', 'first_name' => 'Student']);
         $studentB = Student::create(['last_name' => 'Other', 'first_name' => 'Student']);
-        $course = Course::create(['code' => 'MS-MATH']);
+        $course = $this->graduateCourse('MS-MATH');
         $termA = AcademicTerm::create([
             'school_year' => '2024-2025',
             'semester' => 'First Semester',
-            'sort_order' => 1,
         ]);
         $termB = AcademicTerm::create([
             'school_year' => '2025-2026',
             'semester' => 'Second Semester',
-            'sort_order' => 2,
         ]);
 
         GraduateLedger::create([
@@ -169,12 +170,12 @@ class GraduateLedgerTest extends TestCase
             'academic_term_id' => $termA->id,
             'entry_type' => 'ar',
             'transaction_date' => '2024-07-10',
-            'reference_or_jev_number' => 'OR-100',
+            'reference_number' => 'OR-100',
             'particulars' => 'Tuition',
-            'tuition_per_unit_or_misc' => '100.00',
+            'rate' => '100.00',
             'amount' => '100.00',
             'remarks' => 'Filtered',
-            'input_by' => 'Admin',
+            'status' => 'posted',
         ]);
 
         GraduateLedger::create([
@@ -183,12 +184,12 @@ class GraduateLedgerTest extends TestCase
             'academic_term_id' => $termB->id,
             'entry_type' => 'ar',
             'transaction_date' => '2025-08-12',
-            'reference_or_jev_number' => 'OR-200',
+            'reference_number' => 'OR-200',
             'particulars' => 'Tuition',
-            'tuition_per_unit_or_misc' => '100.00',
+            'rate' => '100.00',
             'amount' => '100.00',
             'remarks' => 'Other',
-            'input_by' => 'Admin',
+            'status' => 'posted',
         ]);
 
         $response = $this->actingAs($user)->get('/graduate-ledger?school_year=2024-2025&date_from=2024-07-01&date_to=2024-07-31');
@@ -202,9 +203,11 @@ class GraduateLedgerTest extends TestCase
     {
         $user = User::factory()->staff()->create();
         $student = Student::create(['last_name' => 'Computed', 'first_name' => 'Student']);
+        $course = $this->graduateCourse('MSIT');
 
         $response = $this->actingAs($user)->post('/graduate-ledger', [
             'student_id' => $student->id,
+            'course_id' => $course->id,
             'academic_term_id' => '',
             'school_year' => '2026-2027',
             'semester' => 'Second Semester',
@@ -212,7 +215,7 @@ class GraduateLedgerTest extends TestCase
             'units' => 3,
             'transaction_date' => '2026-08-28',
             'particulars' => 'Tuition',
-            'tuition_per_unit_or_misc' => '750.00',
+            'rate' => '750.00',
             'amount' => '',
         ]);
 
@@ -235,19 +238,20 @@ class GraduateLedgerTest extends TestCase
     {
         $user = User::factory()->staff()->create();
         $student = Student::create(['last_name' => 'Paying', 'first_name' => 'Student']);
+        $course = $this->graduateCourse('MBA');
         $term = AcademicTerm::create([
             'school_year' => '2026-2027',
             'semester' => 'First Semester',
-            'sort_order' => 1,
         ]);
 
         $response = $this->actingAs($user)->post('/graduate-ledger', [
             'student_id' => $student->id,
+            'course_id' => $course->id,
             'academic_term_id' => $term->id,
             'entry_type' => 'payment',
             'transaction_date' => '2026-08-28',
             'particulars' => 'Tuition',
-            'tuition_per_unit_or_misc' => '',
+            'rate' => '',
             'amount' => '1000.00',
         ]);
 
@@ -255,7 +259,7 @@ class GraduateLedgerTest extends TestCase
         $this->assertDatabaseHas('graduate_ledgers', [
             'student_id' => $student->id,
             'entry_type' => 'payment',
-            'tuition_per_unit_or_misc' => '0.00',
+            'rate' => '0.00',
             'amount' => '1000.00',
         ]);
     }
@@ -264,26 +268,36 @@ class GraduateLedgerTest extends TestCase
     {
         $user = User::factory()->staff()->create();
         $student = Student::create(['last_name' => 'Invalid', 'first_name' => 'Units']);
+        $course = $this->graduateCourse('MSIT');
         $term = AcademicTerm::create([
             'school_year' => '2026-2027',
             'semester' => 'First Semester',
-            'sort_order' => 1,
         ]);
 
         $response = $this->actingAs($user)
             ->from('/graduate-ledger/add')
             ->post('/graduate-ledger', [
                 'student_id' => $student->id,
+                'course_id' => $course->id,
                 'academic_term_id' => $term->id,
                 'entry_type' => 'ar',
                 'units' => 1.5,
                 'transaction_date' => '2026-08-28',
-                'tuition_per_unit_or_misc' => '750.00',
+                'rate' => '750.00',
                 'amount' => '',
             ]);
 
         $response->assertRedirect('/graduate-ledger/add');
         $response->assertSessionHasErrors('units');
         $this->assertDatabaseCount('graduate_ledgers', 0);
+    }
+
+    private function graduateCourse(string $code, ?string $description = null): Course
+    {
+        return Course::create([
+            'course_code' => $code,
+            'course_desc' => $description ?? $code,
+            'course_college' => 'Graduate School',
+        ]);
     }
 }
