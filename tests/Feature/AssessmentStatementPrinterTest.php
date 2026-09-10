@@ -28,7 +28,7 @@ class AssessmentStatementPrinterTest extends TestCase
             'last_name' => 'Reyes',
             'first_name' => 'Maria',
         ]);
-        $course = Course::create(['code' => 'MBA', 'title' => 'Master of Business Administration']);
+        $course = $this->course('MBA', 'Graduate School', 'Master of Business Administration');
         $requestedTerm = $this->academicTerm('2025-2026', 'First Semester', 1);
         $otherTerm = $this->academicTerm('2025-2026', 'Second Semester', 2);
 
@@ -63,7 +63,7 @@ class AssessmentStatementPrinterTest extends TestCase
             'middle_name' => 'Q',
             'last_name' => 'Santos',
         ]);
-        $course = Course::create(['code' => 'MAED']);
+        $course = $this->course('MAED');
         $term = $this->academicTerm('2025-2026', 'First Semester', 1);
         $this->graduateRecord($student, $course, $term, 'ar', 800, 'AR-NAME');
 
@@ -82,7 +82,7 @@ class AssessmentStatementPrinterTest extends TestCase
             'middle_name' => null,
             'last_name' => 'Cruz',
         ]);
-        $course = Course::create(['code' => 'MSIT']);
+        $course = $this->course('MSIT');
         $term = $this->academicTerm('2025-2026', 'First Semester', 1);
         $first = Student::create(['first_name' => 'Juan', 'middle_name' => 'A', 'last_name' => 'Cruz']);
         $second = Student::create(['first_name' => 'Juan', 'middle_name' => 'B', 'last_name' => 'Cruz']);
@@ -108,9 +108,18 @@ class AssessmentStatementPrinterTest extends TestCase
             'student_id' => 'LAW-100',
             'semester' => 'Second Semester',
         ]);
-        $this->lawRecord('LAW-100', '2nd Semester', 'AR', 2000, 'LAW-AR');
-        $this->lawRecord('LAW-100', 'Second Semester', 'Payment', -750, 'LAW-OR');
-        $this->lawRecord('LAW-100', 'First Semester', 'AR', 9000, 'LAW-OTHER');
+        $student = Student::create([
+            'student_number' => 'LAW-100',
+            'last_name' => 'Dela Cruz',
+            'first_name' => 'Juan',
+            'middle_name' => 'Q',
+        ]);
+        $course = $this->course('JD', 'School of Law');
+        $secondTerm = $this->academicTerm('2025-2026', 'Second Semester');
+        $firstTerm = $this->academicTerm('2025-2026', 'First Semester');
+        $this->lawRecord($student, $course, $secondTerm, 'ar', 2000, 'LAW-AR');
+        $this->lawRecord($student, $course, $secondTerm, 'payment', 750, 'LAW-OR');
+        $this->lawRecord($student, $course, $firstTerm, 'ar', 9000, 'LAW-OTHER');
 
         $statement = app(LedgerMatchingService::class)->forAssessment($assessment);
 
@@ -157,12 +166,11 @@ class AssessmentStatementPrinterTest extends TestCase
         ], $attributes));
     }
 
-    private function academicTerm(string $schoolYear, string $semester, int $sortOrder): AcademicTerm
+    private function academicTerm(string $schoolYear, string $semester, ?int $sortOrder = null): AcademicTerm
     {
         return AcademicTerm::create([
             'school_year' => $schoolYear,
             'semester' => $semester,
-            'sort_order' => $sortOrder,
         ]);
     }
 
@@ -180,32 +188,40 @@ class AssessmentStatementPrinterTest extends TestCase
             'academic_term_id' => $term->id,
             'entry_type' => $entryType,
             'transaction_date' => '2026-01-15',
-            'reference_or_jev_number' => $reference,
+            'reference_number' => $reference,
             'particulars' => 'Tuition',
             'amount' => $amount,
+            'status' => 'posted',
         ]);
     }
 
     private function lawRecord(
-        ?string $studentId,
-        string $semester,
-        string $type,
+        Student $student,
+        Course $course,
+        AcademicTerm $term,
+        string $entryType,
         float $amount,
         string $reference,
     ): LawSchoolLedger {
         return LawSchoolLedger::create([
-            'student_id' => $studentId,
-            'last_name' => 'Dela Cruz',
-            'first_name' => 'Juan',
-            'middle_initial' => 'Q',
-            'course' => 'JD',
-            'school_year' => '2025-2026',
-            'semester_or_summer' => $semester,
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $term->id,
             'transaction_date' => '2026-01-15',
-            'reference_jev_or_number' => $reference,
+            'reference_number' => $reference,
             'particulars' => 'Tuition',
-            'ar_or_payment' => $type,
+            'entry_type' => $entryType,
             'amount' => $amount,
+            'status' => 'posted',
+        ]);
+    }
+
+    private function course(string $code, string $college = 'Graduate School', ?string $description = null): Course
+    {
+        return Course::create([
+            'course_code' => $code,
+            'course_desc' => $description ?? $code,
+            'course_college' => $college,
         ]);
     }
 }
