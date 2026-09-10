@@ -1,8 +1,9 @@
 import { Link, useForm, Head, usePage } from '@inertiajs/react';
 import { UploadCloud02 } from '@untitledui/icons';
-import { Mail, User, ClipboardList, FileText, Home } from 'lucide-react';
-import { useState } from 'react';
+import { Mail, User, ClipboardList, FileText, Home, GraduationCap } from 'lucide-react';
+import { useState, useMemo } from 'react';
 import { FileUpload } from '@/components/application/file-upload/file-upload-base';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -28,6 +29,10 @@ import PublicLayout from '@/pages/layouts/PublicLayout';
 const reqType = ['New Request', 'Re-issue Request'] as const;
 const enlarge =
     'h-12 rounded-xl border-slate-300 bg-white px-4 text-base shadow-sm transition-all duration-200';
+const comboboxInputClass = `border-slate-300 focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`;
+
+
+type FormTab = 'general' | 'student';
 
 interface Membership {
     id: number | string;
@@ -39,15 +44,31 @@ interface PaymentOption {
     payment_desc: string;
 }
 
+interface Course {
+    id: number | string;
+    course_desc: string;
+}
+
+interface AcademicTerm {
+    id: number | string;
+    school_year: string;
+    semester: string;
+}
+
 interface Props {
     memberships: Membership[];
     paymentOptions: PaymentOption[];
+    courses?: Course[];
+    academicTerms?: AcademicTerm[];
 }
 
-export default function SubmitForm({ memberships, paymentOptions }: Props) {
+export default function SubmitForm({ memberships, paymentOptions, courses = [], academicTerms = [], }: Props) {
     const { auth } = usePage<any>().props;
     const user = auth?.user;
     const profile = user?.profile;
+
+    // ? tabs: General (business/default) vs Student (adds Academic Details)
+    const [activeTab, setActiveTab] = useState<FormTab>('general');
 
     // ? form handling
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -64,17 +85,29 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
         membership_id: '',
         payment_detail_option_id: '',
         documents: [] as File[],
+
+        // ? student-only fields (Academic Details)
+        student_num: '',
+        course_id: '',
+        school_year: '',
+        semester: '',
     });
+
+    // Distinct school year / semester options derived from the academic_term table
+    const schoolYearOptions = useMemo(
+        () => Array.from(new Set(academicTerms.map((t) => t.school_year))),
+        [academicTerms],
+    );
+    const semesterOptions = useMemo(
+        () => Array.from(new Set(academicTerms.map((t) => t.semester))),
+        [academicTerms],
+    );
+
+    
     // ? form submit
     // Submit handler with file upload
     const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
         e.preventDefault();
-
-        // Ensures Inertia packages files cleanly
-        // transform((data) => ({
-        //     ...data,
-        //     documents: data.documents,
-        // }));
 
         post('/public/opform', {
             forceFormData: true,
@@ -87,9 +120,7 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
     const isValidContact = data.contact_num.length === 11;
 
     // Tracks animated upload progress (0-100) for each file, keyed by a stable file identifier
-    const [uploadProgress, setUploadProgress] = useState<
-        Record<string, number>
-    >({});
+    const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
 
     // Builds a stable, unique key for a File object so we can track its progress
     const getFileKey = (file: File) =>
@@ -200,6 +231,33 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                             </span>
                         </div>
                     )}
+
+                    {/* Request type tabs: General (business) vs Student */}
+                    <Tabs
+                        value={activeTab}
+                        onValueChange={(value) =>
+                            setActiveTab((value as FormTab) || 'general')
+                        }
+                        className="mb-2 w-full bg-transparent! p-0! rounded-2xl!"
+                    >
+                        <TabsList
+                            className="flex h-12 w-full items-stretch gap-1 rounded-2xl bg-blue-50 p-1"
+                            // variant="line"
+                        >
+                            <TabsTrigger
+                                value="general"
+                                className="flex-1 rounded-xl text-base font-semibold after:bg-blue-500! data-active:text-blue-700 data-active:text-lg"
+                            >
+                                General
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="student"
+                                className="flex-1 rounded-xl text-base font-semibold after:bg-blue-500! data-active:text-blue-700 data-active:text-lg"
+                            >
+                                Student
+                            </TabsTrigger>
+                        </TabsList>
+                    </Tabs>
 
                     <form noValidate onSubmit={handleSubmit}>
                         <Card className="overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-xl">
@@ -521,6 +579,225 @@ export default function SubmitForm({ memberships, paymentOptions }: Props) {
                                         )}
                                     </Field>
                                 </div>
+
+                                {/* Section: Academic Details (Student tab only) */}
+                                {activeTab === 'student' && (
+                                    <div className='gap-y-4'>
+                                        <Separator className="bg-blue-100" />
+                                    <CardTitle className="flex items-center gap-3 my-6 text-xl font-semibold text-blue-900">
+                                        <GraduationCap className="h-5 w-5 text-blue-600" />
+                                        Academic Details
+                                    </CardTitle>
+                                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
+                                            <Field>
+                                                <FieldLabel
+                                                    htmlFor="input-field-studentnum"
+                                                    className="mb-2 font-medium text-slate-700"
+                                                >
+                                                    Student Number
+                                                </FieldLabel>
+                                                <Input
+                                                    className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
+                                                    id="input-field-studentnum"
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    placeholder="202100123"
+                                                    maxLength={9}
+                                                    value={data.student_num}
+                                                    onChange={(e) => {
+                                                        const digits = e.target.value.replace(/\D/g, '').slice(0, 9);
+                                            
+                                                        setData('student_num', digits);
+                                                    }}
+                                                />
+                                                {errors.student_num && (
+                                                    <p className="mt-1 text-sm text-red-500">
+                                                        {errors.student_num}
+                                                    </p>
+                                                )}
+                                            </Field>
+
+                                            <Field>
+                                                <FieldLabel
+                                                    htmlFor="input-field-course"
+                                                    className="mb-2 font-medium text-slate-700"
+                                                >
+                                                    Course
+                                                </FieldLabel>
+                                                <Combobox
+                                                    required
+                                                    items={courses}
+                                                    value={
+                                                        courses.find(
+                                                            (c) =>
+                                                                String(c.id) ===
+                                                                data.course_id,
+                                                        )?.course_desc || ''
+                                                    }
+                                                    onValueChange={(value) => {
+                                                        const selected =
+                                                            courses.find(
+                                                                (c) =>
+                                                                    c.course_desc ===
+                                                                    value,
+                                                            );
+
+                                                        setData(
+                                                            'course_id',
+                                                            selected
+                                                                ? String(
+                                                                        selected.id,
+                                                                    )
+                                                                : '',
+                                                        );
+                                                    }}
+                                                >
+                                                    <ComboboxInput
+                                                        placeholder="Select course"
+                                                        className={
+                                                            comboboxInputClass
+                                                        }
+                                                        showClear={
+                                                            !!data.course_id
+                                                        }
+                                                    />
+                                                    <ComboboxContent>
+                                                        <ComboboxEmpty>
+                                                            No items found.
+                                                        </ComboboxEmpty>
+                                                        <ComboboxList>
+                                                            {(item) => (
+                                                                <ComboboxItem
+                                                                    key={
+                                                                        item.id
+                                                                    }
+                                                                    value={
+                                                                        item.course_desc
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        item.course_desc
+                                                                    }
+                                                                </ComboboxItem>
+                                                            )}
+                                                        </ComboboxList>
+                                                    </ComboboxContent>
+                                                </Combobox>
+                                                {errors.course_id && (
+                                                    <p className="mt-1 text-sm text-red-500">
+                                                        {errors.course_id}
+                                                    </p>
+                                                )}
+                                            </Field>
+
+                                            <Field>
+                                                <FieldLabel
+                                                    htmlFor="input-field-schoolyear"
+                                                    className="mb-2 font-medium text-slate-700"
+                                                >
+                                                    School Year
+                                                </FieldLabel>
+                                                <Combobox
+                                                    required
+                                                    items={schoolYearOptions}
+                                                    value={data.school_year}
+                                                    onValueChange={(value) =>
+                                                        setData(
+                                                            'school_year',
+                                                            value || '',
+                                                        )
+                                                    }
+                                                >
+                                                    <ComboboxInput
+                                                        placeholder="Select school year"
+                                                        className={
+                                                            comboboxInputClass
+                                                        }
+                                                        showClear={
+                                                            !!data.school_year
+                                                        }
+                                                    />
+                                                    <ComboboxContent>
+                                                        <ComboboxEmpty>
+                                                            No items found.
+                                                        </ComboboxEmpty>
+                                                        <ComboboxList>
+                                                            {(item) => (
+                                                                <ComboboxItem
+                                                                    key={item}
+                                                                    value={
+                                                                        item
+                                                                    }
+                                                                >
+                                                                    {item}
+                                                                </ComboboxItem>
+                                                            )}
+                                                        </ComboboxList>
+                                                    </ComboboxContent>
+                                                </Combobox>
+                                                {errors.school_year && (
+                                                    <p className="mt-1 text-sm text-red-500">
+                                                        {errors.school_year}
+                                                    </p>
+                                                )}
+                                            </Field>
+
+                                            <Field>
+                                                <FieldLabel
+                                                    htmlFor="input-field-semester"
+                                                    className="mb-2 font-medium text-slate-700"
+                                                >
+                                                    Semester
+                                                </FieldLabel>
+                                                <Combobox
+                                                    required
+                                                    items={semesterOptions}
+                                                    value={data.semester}
+                                                    onValueChange={(value) =>
+                                                        setData(
+                                                            'semester',
+                                                            value || '',
+                                                        )
+                                                    }
+                                                >
+                                                    <ComboboxInput
+                                                        placeholder="Select semester"
+                                                        className={
+                                                            comboboxInputClass
+                                                        }
+                                                        showClear={
+                                                            !!data.semester
+                                                        }
+                                                    />
+                                                    <ComboboxContent>
+                                                        <ComboboxEmpty>
+                                                            No items found.
+                                                        </ComboboxEmpty>
+                                                        <ComboboxList>
+                                                            {(item) => (
+                                                                <ComboboxItem
+                                                                    key={item}
+                                                                    value={
+                                                                        item
+                                                                    }
+                                                                >
+                                                                    {item}
+                                                                </ComboboxItem>
+                                                            )}
+                                                        </ComboboxList>
+                                                    </ComboboxContent>
+                                                </Combobox>
+                                                {errors.semester && (
+                                                    <p className="mt-1 text-sm text-red-500">
+                                                        {errors.semester}
+                                                    </p>
+                                                )}
+                                            </Field>
+                                        </div>
+                                        <Separator className="bg-blue-100" />
+                                    </div>
+                                )}
+                                
                                 <Separator className="bg-blue-100" />
                                 <CardTitle className="flex items-center gap-3 text-xl font-semibold text-blue-900">
                                     <ClipboardList className="h-5 w-5 text-blue-600" />
