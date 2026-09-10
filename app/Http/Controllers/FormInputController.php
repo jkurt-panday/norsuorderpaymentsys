@@ -8,6 +8,7 @@ use App\Models\Membership;
 // use App\Models\SupportingDocument;
 use App\Models\PaymentDetailOption;
 use App\Models\UserProfile;
+use App\Models\Courses;
 use App\Services\FileUploadService;
 use App\Services\ReceiptPDFService;
 use App\Services\ReferenceNumberService;
@@ -45,10 +46,12 @@ class FormInputController extends Controller
     {
         $memberships = Membership::query()->orderBy('member_desc')->get();
         $paymentOptions = PaymentDetailOption::query()->orderBy('payment_desc')->get();
+        $course = Courses::query()->orderBy('id')->get();
 
         return Inertia::render('public/SubmitForm', [
             'memberships' => $memberships,
             'paymentOptions' => $paymentOptions,
+            'course' => $course,
         ]);
     }
 

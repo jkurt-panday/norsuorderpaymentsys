@@ -46,7 +46,9 @@ interface PaymentOption {
 
 interface Course {
     id: number | string;
+    course_code: string;
     course_desc: string;
+    course_college?: string;
 }
 
 interface AcademicTerm {
@@ -58,17 +60,17 @@ interface AcademicTerm {
 interface Props {
     memberships: Membership[];
     paymentOptions: PaymentOption[];
-    courses?: Course[];
+    course?: Course[];
     academicTerms?: AcademicTerm[];
 }
 
-export default function SubmitForm({ memberships, paymentOptions, courses = [], academicTerms = [], }: Props) {
+export default function SubmitForm({ memberships, paymentOptions, course = [], academicTerms = [], }: Props) {
     const { auth } = usePage<any>().props;
     const user = auth?.user;
     const profile = user?.profile;
 
     // ? tabs: General (business/default) vs Student (adds Academic Details)
-    const [activeTab, setActiveTab] = useState<FormTab>('general');
+    const [activeTab, setActiveTab] = useState<FormTab>('student');
 
     // ? form handling
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -270,6 +272,7 @@ export default function SubmitForm({ memberships, paymentOptions, courses = [], 
                                     Fill out the details below
                                 </CardDescription>
                                 {/*<pre>{JSON.stringify(errors, null, 2)}</pre>*/}
+                                <pre>{JSON.stringify(usePage().props, null, 2)}</pre>
                             </CardHeader>
 
                             <CardContent className="space-y-6">
@@ -626,67 +629,41 @@ export default function SubmitForm({ memberships, paymentOptions, courses = [], 
                                                 </FieldLabel>
                                                 <Combobox
                                                     required
-                                                    items={courses}
+                                                    items={course}
                                                     value={
-                                                        courses.find(
-                                                            (c) =>
-                                                                String(c.id) ===
-                                                                data.course_id,
-                                                        )?.course_desc || ''
+                                                        course.find(
+                                                            (c) => String(c.id) === data.course_id,
+                                                        )?.course_code || ''
                                                     }
                                                     onValueChange={(value) => {
-                                                        const selected =
-                                                            courses.find(
-                                                                (c) =>
-                                                                    c.course_desc ===
-                                                                    value,
-                                                            );
-
+                                                        const selected = course.find(
+                                                            (c) => c.course_code === value,
+                                                        );
+                                            
                                                         setData(
                                                             'course_id',
-                                                            selected
-                                                                ? String(
-                                                                        selected.id,
-                                                                    )
-                                                                : '',
+                                                            selected ? String(selected.id) : '',
                                                         );
                                                     }}
                                                 >
                                                     <ComboboxInput
                                                         placeholder="Select course"
-                                                        className={
-                                                            comboboxInputClass
-                                                        }
-                                                        showClear={
-                                                            !!data.course_id
-                                                        }
+                                                        className={comboboxInputClass}
+                                                        showClear={!!data.course_id}
                                                     />
                                                     <ComboboxContent>
-                                                        <ComboboxEmpty>
-                                                            No items found.
-                                                        </ComboboxEmpty>
+                                                        <ComboboxEmpty>No items found.</ComboboxEmpty>
                                                         <ComboboxList>
                                                             {(item) => (
-                                                                <ComboboxItem
-                                                                    key={
-                                                                        item.id
-                                                                    }
-                                                                    value={
-                                                                        item.course_desc
-                                                                    }
-                                                                >
-                                                                    {
-                                                                        item.course_desc
-                                                                    }
+                                                                <ComboboxItem key={item.id} value={item.course_code}>
+                                                                    {item.course_code} — {item.course_desc}
                                                                 </ComboboxItem>
                                                             )}
                                                         </ComboboxList>
                                                     </ComboboxContent>
                                                 </Combobox>
                                                 {errors.course_id && (
-                                                    <p className="mt-1 text-sm text-red-500">
-                                                        {errors.course_id}
-                                                    </p>
+                                                    <p className="mt-1 text-sm text-red-500">{errors.course_id}</p>
                                                 )}
                                             </Field>
 
