@@ -31,8 +31,26 @@ const enlarge =
     'h-12 rounded-xl border-slate-300 bg-white px-4 text-base shadow-sm transition-all duration-200';
 const comboboxInputClass = `border-slate-300 focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`;
 
-
 type FormTab = 'general' | 'student';
+
+// Generates array of academic years: ["2026-2027", "2025-2026", "2024-2025", ...]
+export const SCHOOL_YEAR_OPTIONS = (() => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0 = Jan, 7 = August
+
+    // If before August (month < 7), academic start year is Year - 1
+    const startAcademicYear = currentMonth >= 7 ? currentYear : currentYear - 1;
+
+    const years: string[] = [];
+
+    for (let i = 0; i < 27; i++) {
+        const startYear = startAcademicYear - i;
+        years.push(`${startYear}-${startYear + 1}`);
+    }
+
+    return years;
+})();
 
 interface Membership {
     id: number | string;
@@ -272,7 +290,7 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                     Fill out the details below
                                 </CardDescription>
                                 {/*<pre>{JSON.stringify(errors, null, 2)}</pre>*/}
-                                <pre>{JSON.stringify(usePage().props, null, 2)}</pre>
+                                {/*<pre>{JSON.stringify(usePage().props, null, 2)}</pre>*/}
                             </CardHeader>
 
                             <CardContent className="space-y-6">
@@ -676,7 +694,7 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                 </FieldLabel>
                                                 <Combobox
                                                     required
-                                                    items={schoolYearOptions}
+                                                    items={SCHOOL_YEAR_OPTIONS}
                                                     value={data.school_year}
                                                     onValueChange={(value) =>
                                                         setData(
@@ -706,7 +724,7 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                                         item
                                                                     }
                                                                 >
-                                                                    {item}
+                                                                    SY {item}
                                                                 </ComboboxItem>
                                                             )}
                                                         </ComboboxList>
