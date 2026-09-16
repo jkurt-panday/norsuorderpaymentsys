@@ -626,8 +626,7 @@ export default function ShowRequest() {
                                 <h3 className="text-base font-semibold text-slate-900">
                                     Personal / Office Information
                                 </h3>
-                                {!isEditingDetails &&
-                                    formInput.staff_input?.status !== 'paid' && (
+                                {!isEditingDetails && (
                                     <button
                                         type="button"
                                         onClick={() => {
@@ -1115,8 +1114,6 @@ export default function ShowRequest() {
                                                 left-side request details card. */}
                                     {formInput.staff_input &&
                                         !isEditingStaffInput &&
-                                        formInput.staff_input.status !==
-                                            'paid' &&
                                         !isCashier && (
                                             <button
                                                 type="button"
