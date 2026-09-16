@@ -7,7 +7,6 @@ use App\Models\AcademicTerm;
 use App\Models\Course;
 use App\Models\FormInput;
 use App\Models\Membership;
-use App\Models\AcademicTerm;
 use App\Models\PaymentDetailOption;
 use App\Models\Student;
 use App\Models\UserProfile;
