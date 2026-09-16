@@ -133,11 +133,18 @@ interface IndexProps {
     schoolYears: string[];
     semesters: string[];
   };
+  courses?: { id: number; code: string }[];
+  academicTerms?: { id: number; school_year: string; semester: string }[];
 }
 
-export default function Index({ records, filters, stats, filterOptions }: IndexProps) {
+export default function Index({ records, filters, stats, filterOptions, courses = [], academicTerms = [] }: IndexProps) {
   const rows: LedgerRecord[] = records?.data ?? [];
-  const importForm = useForm<{ file: File | null }>({ file: null });
+  const importForm = useForm<{ file: File | null; preset_course_id: string; preset_academic_term_id: string }>({
+    file: null,
+    preset_course_id: '',
+    preset_academic_term_id: '',
+  });
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
   // ── Single filter state object to avoid stale-closure bugs ────────────────
   const [filterState, setFilterState] = useState({
@@ -159,8 +166,8 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const [importProgress, setImportProgress] = useState(0);
   const [importSuccess, setImportSuccess] = useState(false);
 
-  const handleImportFile = (file: File | null, inputEl: HTMLInputElement) => {
-    if (!file || isImporting) {
+  const handleImport = () => {
+    if (!importForm.data.file || isImporting) {
 return;
 }
 
@@ -178,7 +185,6 @@ return 90;
       });
     }, 250);
 
-    importForm.setData('file', file);
     importForm.post('/graduate-ledger/import', {
       forceFormData: true,
       preserveScroll: true,
@@ -188,8 +194,8 @@ return 90;
         setTimeout(() => {
           setIsImporting(false);
           setImportSuccess(true);
-          importForm.reset('file');
-          inputEl.value = '';
+          setIsImportDialogOpen(false);
+          importForm.reset();
           setTimeout(() => setImportSuccess(false), 4000);
         }, 300);
       },
@@ -197,7 +203,6 @@ return 90;
         clearInterval(interval);
         setIsImporting(false);
         setImportProgress(0);
-        inputEl.value = '';
       },
     });
   };
@@ -359,17 +364,12 @@ throw new Error('Export failed');
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <label className={`inline-flex items-center rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm font-medium text-[#0B3D91] transition-colors ${isImporting ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-[#F3F8FF]'}`}>
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                disabled={isImporting}
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0] ?? null;
-                  handleImportFile(file, e.target);
-                }}
-              />
+            <Button
+              variant="outline"
+              disabled={isImporting}
+              className={`border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF] ${isImporting ? 'opacity-60 cursor-not-allowed' : ''}`}
+              onClick={() => setIsImportDialogOpen(true)}
+            >
               {isImporting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-1.5 animate-spin text-[#0F6FFF]" />
@@ -378,7 +378,7 @@ throw new Error('Export failed');
               ) : (
                 'Import Excel/CSV'
               )}
-            </label>
+            </Button>
 
             <Button
               variant="outline"
@@ -742,6 +742,119 @@ throw new Error('Export failed');
           )}
         </Card>
       </div>
+
+      {/* Import preset dialog */}
+      {isImportDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4" role="dialog" aria-modal="true" aria-labelledby="import-dialog-title">
+          <div className="w-full max-w-lg rounded-xl border border-[#CFE3FF] bg-white p-6 shadow-2xl">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h2 id="import-dialog-title" className="text-lg font-bold text-[#0B3D91]">Import Graduate Ledger</h2>
+                <p className="mt-1 text-sm text-[#5C7A9E]">
+                  The importer uses each row&apos;s course and academic term first. Optional presets are used only when a row is blank or cannot be recognized.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="rounded-md p-1 text-[#5C7A9E] hover:bg-[#F3F8FF] hover:text-[#0B3D91]"
+                onClick={() => {
+                  if (!isImporting) {
+                    setIsImportDialogOpen(false);
+                    importForm.clearErrors();
+                  }
+                }}
+                aria-label="Close import dialog"
+              >
+                <XCircle className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="ledger-import-file" className="mb-1.5 block text-sm font-semibold text-[#0B3D91]">
+                  Spreadsheet file <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  id="ledger-import-file"
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  disabled={isImporting}
+                  className="border-[#CFE3FF]"
+                  onChange={(event) => importForm.setData('file', event.target.files?.[0] ?? null)}
+                />
+                {importForm.errors.file && <p className="mt-1 text-xs text-red-600">{importForm.errors.file}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="preset-course" className="mb-1.5 block text-sm font-semibold text-[#0B3D91]">
+                  Fallback course <span className="font-normal text-[#7FA6D6]">(optional)</span>
+                </label>
+                <select
+                  id="preset-course"
+                  value={importForm.data.preset_course_id}
+                  disabled={isImporting}
+                  onChange={(event) => importForm.setData('preset_course_id', event.target.value)}
+                  className="h-10 w-full rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                >
+                  <option value="">No fallback — skip unmatched courses</option>
+                  {courses.map((item) => (
+                    <option key={item.id} value={item.id}>{item.code}</option>
+                  ))}
+                </select>
+                {importForm.errors.preset_course_id && <p className="mt-1 text-xs text-red-600">{importForm.errors.preset_course_id}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="preset-term" className="mb-1.5 block text-sm font-semibold text-[#0B3D91]">
+                  Fallback academic term <span className="font-normal text-[#7FA6D6]">(optional)</span>
+                </label>
+                <select
+                  id="preset-term"
+                  value={importForm.data.preset_academic_term_id}
+                  disabled={isImporting}
+                  onChange={(event) => importForm.setData('preset_academic_term_id', event.target.value)}
+                  className="h-10 w-full rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                >
+                  <option value="">No fallback — skip unmatched terms</option>
+                  {academicTerms.map((term) => (
+                    <option key={term.id} value={term.id}>{term.school_year} — {term.semester}</option>
+                  ))}
+                </select>
+                {importForm.errors.preset_academic_term_id && <p className="mt-1 text-xs text-red-600">{importForm.errors.preset_academic_term_id}</p>}
+              </div>
+
+              <div className="rounded-lg border border-[#B9D8FF] bg-[#F3F8FF] p-3 text-xs leading-relaxed text-[#334E68]">
+                Course spellings such as <strong>MS-MATH</strong>, <strong>MS Math</strong>, and <strong>M.S. Math</strong> are normalized before matching. Importing will not create new course or academic-term master records.
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isImporting}
+                className="border-[#CFE3FF] text-[#0B3D91]"
+                onClick={() => {
+                  setIsImportDialogOpen(false);
+                  importForm.reset();
+                  importForm.clearErrors();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={!importForm.data.file || isImporting}
+                className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
+                onClick={handleImport}
+              >
+                {isImporting && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+                {isImporting ? 'Importing...' : 'Start Import'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating Bottom-Right Import Progress Bar & Toast */}
       {(isImporting || importSuccess) && (

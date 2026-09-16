@@ -40,6 +40,11 @@ class PublicFormSubmissionRequest extends FormRequest
             'membership_id' => ['required', 'exists:memberships,id'],
             'payment_detail_option_id' => ['required', 'exists:payment_detail_options,id'],
 
+            // Student-only fields (Academic Details tab — all optional)
+            'student_num' => ['nullable', 'string', 'max:50'],
+            'school_year' => ['nullable', 'string', 'max:20'],
+            'semester' => ['nullable', 'string', 'max:50'],
+
             // File Uploads (Optional)
             'documents' => ['nullable', 'array', 'max:5'],
             'documents.*' => [

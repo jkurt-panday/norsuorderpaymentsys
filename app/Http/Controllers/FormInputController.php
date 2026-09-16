@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\PublicFormSubmissionRequest;
+use App\Models\AcademicTerm;
+use App\Models\Course;
 use App\Models\FormInput;
 use App\Models\Membership;
-// use App\Models\SupportingDocument;
 use App\Models\PaymentDetailOption;
+use App\Models\Student;
 use App\Models\UserProfile;
 use App\Services\FileUploadService;
 use App\Services\ReceiptPDFService;
@@ -45,10 +47,17 @@ class FormInputController extends Controller
     {
         $memberships = Membership::query()->orderBy('member_desc')->get();
         $paymentOptions = PaymentDetailOption::query()->orderBy('payment_desc')->get();
+        $courses = Course::query()->orderBy('course_desc')->get(['id', 'course_desc']);
+        $academicTerms = AcademicTerm::query()
+            ->orderBy('school_year')
+            ->orderBy('semester')
+            ->get(['id', 'school_year', 'semester']);
 
         return Inertia::render('public/SubmitForm', [
             'memberships' => $memberships,
             'paymentOptions' => $paymentOptions,
+            'courses' => $courses,
+            'academicTerms' => $academicTerms,
         ]);
     }
 
@@ -62,6 +71,13 @@ class FormInputController extends Controller
 
             // 2. Generate Reference Number
             $referenceNumber = $this->referenceNumberService->generate();
+
+            // Resolve the student-tab fields to FK ids (best effort — never blocks submission).
+            $studentId = $this->resolveStudentId((string) ($validated['student_num'] ?? ''));
+            $academicTermId = $this->resolveAcademicTermId(
+                (string) ($validated['school_year'] ?? ''),
+                (string) ($validated['semester'] ?? ''),
+            );
 
             $formInput = FormInput::create([
                 'reference_number' => $referenceNumber,
@@ -78,6 +94,8 @@ class FormInputController extends Controller
                 'request_type' => $validated['request_type'],
                 'membership_id' => $validated['membership_id'],
                 'payment_detail_option_id' => $validated['payment_detail_option_id'],
+                'student_num' => $studentId,
+                'academic_term' => $academicTermId,
             ]);
 
             // 4. Handle Uploaded Documents using FileUploadService
@@ -178,6 +196,56 @@ class FormInputController extends Controller
         return $this->receiptPDFService
             ->orderOfPaymentPrint($formInput)
             ->name("receipt-{$formInput->reference_number}.pdf");
+    }
+
+    /**
+     * Resolve a submitted student number string (e.g. "202100123" or "2021-00123")
+     * to a students.id foreign key. Returns null when not provided or unmatched.
+     */
+    private function resolveStudentId(string $rawStudentNum): ?int
+    {
+        $raw = trim($rawStudentNum);
+        if ($raw === '') {
+            return null;
+        }
+
+        $digits = preg_replace('/\D/', '', $raw) ?? '';
+
+        // 1. Exact raw match first
+        $student = Student::query()->where('student_number', $raw)->first();
+        if ($student !== null) {
+            return $student->id;
+        }
+
+        // 2. Normalized digits match (handles "2026-00123" vs "202600123")
+        if ($digits !== '') {
+            $student = Student::query()
+                ->whereRaw("REPLACE(REPLACE(student_number, '-', ''), ' ', '') = ?", [$digits])
+                ->first();
+            if ($student !== null) {
+                return $student->id;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolve school year + semester to an academic_terms.id foreign key.
+     */
+    private function resolveAcademicTermId(string $schoolYear, string $semester): ?int
+    {
+        $sy = trim($schoolYear);
+        $sem = trim($semester);
+
+        if ($sy === '' || $sem === '') {
+            return null;
+        }
+
+        return AcademicTerm::query()
+            ->where('school_year', $sy)
+            ->where('semester', $sem)
+            ->value('id');
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CashierPaymentRequest;
 use App\Models\StaffInput;
+use App\Services\CashierLedgerPostingService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -103,10 +104,12 @@ class CashierRequestController extends Controller
     public function updatePayment(
         CashierPaymentRequest $request,
         StaffInput $staffInput,
+        CashierLedgerPostingService $postingService,
     ): RedirectResponse {
         $isCorrection = false;
+        $posting = ['posted' => false, 'reason' => null];
 
-        DB::transaction(function () use ($request, $staffInput, &$isCorrection): void {
+        DB::transaction(function () use ($request, $staffInput, $postingService, &$isCorrection, &$posting): void {
             $lockedRequest = StaffInput::query()->lockForUpdate()->findOrFail($staffInput->id);
 
             abort_unless(
@@ -121,14 +124,42 @@ class CashierRequestController extends Controller
                 ...$request->validated(),
                 'status' => 'paid',
             ]);
+
+            // Same transaction: when the payer matches a ledger student and an
+            // OR number is present, auto-post a payment row to their ledger.
+            // The service is idempotent, so corrections (re-saves) are safe.
+            $posting = $postingService->postGraduatePayment($lockedRequest->fresh('formInput'));
         });
 
+        $base = $isCorrection
+            ? 'Payment details updated successfully.'
+            : 'OR number saved. Status set to Paid.';
+
         return to_route('cashier.requests.show', $staffInput)
-            ->with(
-                'success',
-                $isCorrection
-                    ? 'Payment details updated successfully.'
-                    : 'OR number saved. Status set to Paid.',
-            );
+            ->with('success', $base.$this->ledgerPostingSuffix($posting));
+    }
+
+    /**
+     * Human-readable suffix describing the graduate-ledger auto-post outcome.
+     *
+     * @param  array{posted: bool, reason: string|null}  $posting
+     */
+    private function ledgerPostingSuffix(array $posting): string
+    {
+        if ($posting['posted']) {
+            return ' Posted to the graduate ledger.';
+        }
+
+        return match ($posting['reason']) {
+            'already_posted' => ' This OR was already posted to the ledger.',
+            'or_already_used' => ' Could not update ledger: that OR number is already in use.',
+            'student_not_found' => ' No matching ledger student — payment was not auto-posted.',
+            'no_ledger_context' => ' Matching student has no ledger records yet — payment was not auto-posted.',
+            'insert_failed' => ' Could not post to the graduate ledger (insert failed).',
+            'missing_or', 'no_form' => '',
+            default => $posting['reason'] === null
+                ? ''
+                : ' (Ledger auto-post skipped: '.$posting['reason'].'.)',
+        };
     }
 }

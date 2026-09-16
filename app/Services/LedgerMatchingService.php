@@ -55,7 +55,7 @@ class LedgerMatchingService
     /** @return array<string, mixed> */
     private function graduateStatement(AssessmentForm $assessment, ?string $manualSelection): array
     {
-        $semester = AcademicTerm::normalizeSemester($assessment->semester);
+        $semester = AcademicTerm::normalizeSemester((string) $assessment->semester) ?? 'First Semester';
 
         $students = Student::query()
             ->whereHas('graduateLedgers', fn ($query) => $query->whereHas(
@@ -96,7 +96,7 @@ class LedgerMatchingService
     /** @return array<string, mixed> */
     private function lawStatement(AssessmentForm $assessment, ?string $manualSelection): array
     {
-        $semester = AcademicTerm::normalizeSemester($assessment->semester);
+        $semester = AcademicTerm::normalizeSemester((string) $assessment->semester) ?? 'First Semester';
         $termRecords = LawSchoolLedger::query()
             ->with(['student', 'course', 'academicTerm'])
             ->whereHas('academicTerm', fn ($query) => $query
@@ -256,7 +256,7 @@ class LedgerMatchingService
             'records' => [],
             'summary' => $this->emptySummary(),
             'schoolYear' => $assessment->sy_last_attended,
-            'semester' => AcademicTerm::normalizeSemester((string) $assessment->semester),
+            'semester' => AcademicTerm::normalizeSemester((string) $assessment->semester) ?? 'First Semester',
         ];
     }
 
@@ -306,7 +306,7 @@ class LedgerMatchingService
             'name' => $this->lawStudentName($record),
             'course' => $record->course?->code,
             'schoolYear' => $record->school_year,
-            'semester' => AcademicTerm::normalizeSemester((string) $record->semester_or_summer),
+            'semester' => AcademicTerm::normalizeSemester((string) $record->semester_or_summer) ?? 'First Semester',
             'transactionDate' => $record->transaction_date?->format('Y-m-d'),
             'referenceNo' => $record->reference_jev_or_number,
             'particulars' => $record->particulars,

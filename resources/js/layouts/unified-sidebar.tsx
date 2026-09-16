@@ -105,6 +105,15 @@ const staffCollapsibleItems = [
     },
 ];
 
+const navigationHrefs = [
+    ...adminNavItems.map((item) => item.href),
+    ...staffNavItems.map((item) => item.href),
+    ...cashierNavItems.map((item) => item.href),
+    ...staffCollapsibleItems.flatMap((item) =>
+        item.items.map((subItem) => subItem.href),
+    ),
+];
+
 export default function UnifiedSidebar() {
     const { url, props } = usePage<{
         auth?: { user?: { role?: string } | null };
@@ -117,11 +126,14 @@ export default function UnifiedSidebar() {
           ? 'Cashier Portal'
           : 'Staff Portal';
 
-    const isActive = (href: string) => {
-        const currentPath = url.split('?')[0];
-
-        return currentPath === href || currentPath.startsWith(href + '/');
-    };
+    const currentPath = url.split('?')[0].replace(/\/$/, '') || '/';
+    const activeHref = navigationHrefs
+        .filter(
+            (href) =>
+                currentPath === href || currentPath.startsWith(`${href}/`),
+        )
+        .sort((left, right) => right.length - left.length)[0];
+    const isActive = (href: string) => activeHref === href;
 
     return (
         <Sidebar className="border-r border-blue-900/40 bg-[#003f7d] text-white [&_[data-sidebar=sidebar]]:bg-transparent">

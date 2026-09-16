@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Exports\GraduateLedgerExport;
 use App\Models\AcademicTerm;
 use App\Models\Course;
 use App\Models\GraduateLedger;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class GraduateLedgerTest extends TestCase
@@ -290,6 +292,102 @@ class GraduateLedgerTest extends TestCase
         $response->assertRedirect('/graduate-ledger/add');
         $response->assertSessionHasErrors('units');
         $this->assertDatabaseCount('graduate_ledgers', 0);
+    }
+
+    public function test_editing_an_imported_transaction_preserves_its_attribution(): void
+    {
+        $importer = User::factory()->staff()->create(['name' => 'Original Importer']);
+        $editor = User::factory()->staff()->create(['name' => 'Later Editor']);
+        $student = Student::create(['last_name' => 'Imported', 'first_name' => 'Student']);
+        $course = $this->graduateCourse('MBA');
+        $term = AcademicTerm::create([
+            'school_year' => '2026-2027',
+            'semester' => 'First Semester',
+        ]);
+        $ledger = GraduateLedger::create([
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $term->id,
+            'entry_type' => 'payment',
+            'transaction_date' => '2026-08-28',
+            'particulars' => 'Tuition',
+            'rate' => '0.00',
+            'amount' => '500.00',
+            'remarks' => 'Before edit',
+            'status' => 'posted',
+            'input_by' => $importer->id,
+            'imported_input_by' => 'MBC',
+        ]);
+
+        $this->actingAs($editor)->put("/graduate-ledger/{$ledger->id}", [
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $term->id,
+            'entry_type' => 'payment',
+            'transaction_date' => '2026-08-28',
+            'particulars' => 'Tuition',
+            'rate' => '0.00',
+            'amount' => '500.00',
+            'remarks' => 'After edit',
+        ])->assertRedirect('/graduate-ledger');
+
+        $ledger->refresh();
+
+        $this->assertSame($importer->id, $ledger->input_by);
+        $this->assertSame('MBC', $ledger->imported_input_by);
+        $this->assertSame('After edit', $ledger->remarks);
+
+        $this->actingAs($editor)->get("/graduate-ledger/{$ledger->id}/edit")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('record.input_by', 'MBC')
+                ->where('record.is_imported', true));
+    }
+
+    public function test_ledger_display_and_export_use_imported_text_or_the_user_name_fallback(): void
+    {
+        $user = User::factory()->staff()->create(['name' => 'Ledger Encoder']);
+        $student = Student::create(['last_name' => 'Display', 'first_name' => 'Student']);
+        $course = $this->graduateCourse('MSIT');
+        $term = AcademicTerm::create([
+            'school_year' => '2026-2027',
+            'semester' => 'First Semester',
+        ]);
+        $base = [
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $term->id,
+            'entry_type' => 'ar',
+            'transaction_date' => '2026-08-28',
+            'particulars' => 'Tuition',
+            'rate' => '100.00',
+            'amount' => '100.00',
+            'status' => 'posted',
+            'input_by' => $user->id,
+        ];
+        $manual = GraduateLedger::create($base + ['reference_number' => 'MANUAL']);
+        $imported = GraduateLedger::create($base + [
+            'reference_number' => 'IMPORTED',
+            'imported_input_by' => 'ABC',
+        ]);
+        $blank = GraduateLedger::create($base + [
+            'reference_number' => 'BLANK',
+            'imported_input_by' => '',
+        ]);
+
+        $this->assertSame('Ledger Encoder', $manual->inputByDisplay());
+        $this->assertSame('ABC', $imported->inputByDisplay());
+        $this->assertSame('', $blank->inputByDisplay());
+
+        $export = new GraduateLedgerExport(GraduateLedger::query());
+        $this->assertSame('ABC', $export->map($imported->load(['student', 'course', 'academicTerm', 'inputByUser']))[13]);
+
+        $this->actingAs($user)->get('/graduate-ledger')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('records.data.0.inputBy', '')
+                ->where('records.data.1.inputBy', 'ABC')
+                ->where('records.data.2.inputBy', 'Ledger Encoder'));
     }
 
     private function graduateCourse(string $code, ?string $description = null): Course

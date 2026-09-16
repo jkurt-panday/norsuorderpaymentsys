@@ -14,7 +14,7 @@ class SyncLedgerToGoogleSheets extends Command
     public function handle()
     {
         $this->info('Fetching records from database...');
-        $records = GraduateLedger::orderBy('id', 'asc')->get();
+        $records = GraduateLedger::with('inputByUser:id,name')->orderBy('id', 'asc')->get();
 
         $rows = [
             [
@@ -48,7 +48,7 @@ class SyncLedgerToGoogleSheets extends Command
                 $r->ar_payment,
                 $r->amount,
                 $r->remarks,
-                $r->input_by,
+                $r->inputByDisplay(),
             ];
         }
 
