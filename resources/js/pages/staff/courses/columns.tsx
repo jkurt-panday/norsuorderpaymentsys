@@ -4,6 +4,8 @@ import { Pencil, Trash2 } from 'lucide-react';
 
 import type { DataTableFeatures } from '@/components/data-table/data-table-features';
 import { Badge } from '@/components/ui/badge';
+import { useConfirm } from '@/components/confirm-dialog';
+import { router } from '@inertiajs/react';
 
 export type CourseType = {
     id: number;
@@ -15,6 +17,44 @@ export type CourseType = {
 };
 
 const columnHelper = createColumnHelper<DataTableFeatures, CourseType>();
+
+function CourseActionsCell({ course }: { course: CourseType }) {
+    const confirm = useConfirm();
+
+    const handleDelete = async () => {
+        const ok = await confirm({
+            title: `Delete "${course.course_code}"?`,
+            description: 'This action cannot be undone.',
+            confirmLabel: 'Delete',
+            variant: 'destructive',
+        });
+
+        if (ok) {
+            router.delete(`/staff/courses/${course.id}`, {
+                preserveScroll: true,
+            });
+        }
+    };
+
+    return (
+        <div className="grid w-max grid-cols-2 justify-self-end-safe">
+            <Link
+                href={`/staff/courses/${course.id}/edit`}
+                className="flex h-8 w-8 items-center justify-center rounded-l-2xl bg-amber-400 text-white transition-colors hover:bg-amber-500"
+            >
+                <Pencil className="h-4 w-4" />
+            </Link>
+
+            <button
+                type="button"
+                onClick={handleDelete}
+                className="flex h-8 w-8 items-center justify-center rounded-r-2xl border-white/20 bg-red-600 text-white transition-colors hover:bg-red-700"
+            >
+                <Trash2 className="h-4 w-4" />
+            </button>
+        </div>
+    );
+}
 
 export const columns = columnHelper.columns([
     columnHelper.display({
@@ -47,28 +87,6 @@ export const columns = columnHelper.columns([
     columnHelper.display({
         id: 'actions',
         header: () => <div className="justify-self-end-safe">Actions</div>,
-        cell: ({ row }) => {
-            const course = row.original;
-
-            return (
-                <div className="grid w-max grid-cols-2 justify-self-end-safe">
-                    <Link
-                        href={`/staff/courses/${course.id}/edit`}
-                        className="flex h-8 w-8 items-center justify-center rounded-l-2xl bg-amber-400 text-white transition-colors hover:bg-amber-500"
-                    >
-                        <Pencil className="h-4 w-4" />
-                    </Link>
-
-                    <Link
-                        as="button"
-                        method="delete"
-                        href={`/staff/courses/${course.id}`}
-                        className="flex h-8 w-8 items-center justify-center rounded-r-2xl border-white/20 bg-red-600 text-white transition-colors hover:bg-red-700"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </Link>
-                </div>
-            );
-        },
+        cell: ({ row }) => <CourseActionsCell course={row.original} />,
     }),
 ]);

@@ -31,8 +31,26 @@ const enlarge =
     'h-12 rounded-xl border-slate-300 bg-white px-4 text-base shadow-sm transition-all duration-200';
 const comboboxInputClass = `border-slate-300 focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`;
 
-
 type FormTab = 'general' | 'student';
+
+// Generates array of academic years: ["2026-2027", "2025-2026", "2024-2025", ...]
+export const SCHOOL_YEAR_OPTIONS = (() => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0 = Jan, 7 = August
+
+    // If before August (month < 7), academic start year is Year - 1
+    const startAcademicYear = currentMonth >= 7 ? currentYear : currentYear - 1;
+
+    const years: string[] = [];
+
+    for (let i = 0; i < 27; i++) {
+        const startYear = startAcademicYear - i;
+        years.push(`${startYear}-${startYear + 1}`);
+    }
+
+    return years;
+})();
 
 interface Membership {
     id: number | string;
@@ -46,7 +64,9 @@ interface PaymentOption {
 
 interface Course {
     id: number | string;
+    course_code: string;
     course_desc: string;
+    course_college?: string;
 }
 
 interface AcademicTerm {
@@ -58,17 +78,17 @@ interface AcademicTerm {
 interface Props {
     memberships: Membership[];
     paymentOptions: PaymentOption[];
-    courses?: Course[];
+    course?: Course[];
     academicTerms?: AcademicTerm[];
 }
 
-export default function SubmitForm({ memberships, paymentOptions, courses = [], academicTerms = [], }: Props) {
+export default function SubmitForm({ memberships, paymentOptions, course = [], academicTerms = [], }: Props) {
     const { auth } = usePage<any>().props;
     const user = auth?.user;
     const profile = user?.profile;
 
     // ? tabs: General (business/default) vs Student (adds Academic Details)
-    const [activeTab, setActiveTab] = useState<FormTab>('general');
+    const [activeTab, setActiveTab] = useState<FormTab>('student');
 
     // ? form handling
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -270,6 +290,7 @@ export default function SubmitForm({ memberships, paymentOptions, courses = [], 
                                     Fill out the details below
                                 </CardDescription>
                                 {/*<pre>{JSON.stringify(errors, null, 2)}</pre>*/}
+                                {/*<pre>{JSON.stringify(usePage().props, null, 2)}</pre>*/}
                             </CardHeader>
 
                             <CardContent className="space-y-6">
@@ -626,67 +647,41 @@ export default function SubmitForm({ memberships, paymentOptions, courses = [], 
                                                 </FieldLabel>
                                                 <Combobox
                                                     required
-                                                    items={courses}
+                                                    items={course}
                                                     value={
-                                                        courses.find(
-                                                            (c) =>
-                                                                String(c.id) ===
-                                                                data.course_id,
-                                                        )?.course_desc || ''
+                                                        course.find(
+                                                            (c) => String(c.id) === data.course_id,
+                                                        )?.course_code || ''
                                                     }
                                                     onValueChange={(value) => {
-                                                        const selected =
-                                                            courses.find(
-                                                                (c) =>
-                                                                    c.course_desc ===
-                                                                    value,
-                                                            );
-
+                                                        const selected = course.find(
+                                                            (c) => c.course_code === value,
+                                                        );
+                                            
                                                         setData(
                                                             'course_id',
-                                                            selected
-                                                                ? String(
-                                                                        selected.id,
-                                                                    )
-                                                                : '',
+                                                            selected ? String(selected.id) : '',
                                                         );
                                                     }}
                                                 >
                                                     <ComboboxInput
                                                         placeholder="Select course"
-                                                        className={
-                                                            comboboxInputClass
-                                                        }
-                                                        showClear={
-                                                            !!data.course_id
-                                                        }
+                                                        className={comboboxInputClass}
+                                                        showClear={!!data.course_id}
                                                     />
                                                     <ComboboxContent>
-                                                        <ComboboxEmpty>
-                                                            No items found.
-                                                        </ComboboxEmpty>
+                                                        <ComboboxEmpty>No items found.</ComboboxEmpty>
                                                         <ComboboxList>
                                                             {(item) => (
-                                                                <ComboboxItem
-                                                                    key={
-                                                                        item.id
-                                                                    }
-                                                                    value={
-                                                                        item.course_desc
-                                                                    }
-                                                                >
-                                                                    {
-                                                                        item.course_desc
-                                                                    }
+                                                                <ComboboxItem key={item.id} value={item.course_code}>
+                                                                    {item.course_code} — {item.course_desc}
                                                                 </ComboboxItem>
                                                             )}
                                                         </ComboboxList>
                                                     </ComboboxContent>
                                                 </Combobox>
                                                 {errors.course_id && (
-                                                    <p className="mt-1 text-sm text-red-500">
-                                                        {errors.course_id}
-                                                    </p>
+                                                    <p className="mt-1 text-sm text-red-500">{errors.course_id}</p>
                                                 )}
                                             </Field>
 
@@ -699,7 +694,7 @@ export default function SubmitForm({ memberships, paymentOptions, courses = [], 
                                                 </FieldLabel>
                                                 <Combobox
                                                     required
-                                                    items={schoolYearOptions}
+                                                    items={SCHOOL_YEAR_OPTIONS}
                                                     value={data.school_year}
                                                     onValueChange={(value) =>
                                                         setData(
@@ -729,7 +724,7 @@ export default function SubmitForm({ memberships, paymentOptions, courses = [], 
                                                                         item
                                                                     }
                                                                 >
-                                                                    {item}
+                                                                    SY {item}
                                                                 </ComboboxItem>
                                                             )}
                                                         </ComboboxList>
@@ -794,7 +789,6 @@ export default function SubmitForm({ memberships, paymentOptions, courses = [], 
                                                 )}
                                             </Field>
                                         </div>
-                                        <Separator className="bg-blue-100" />
                                     </div>
                                 )}
                                 

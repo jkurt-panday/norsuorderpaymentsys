@@ -7,9 +7,11 @@ use App\Models\AcademicTerm;
 use App\Models\Course;
 use App\Models\FormInput;
 use App\Models\Membership;
+use App\Models\AcademicTerm;
 use App\Models\PaymentDetailOption;
 use App\Models\Student;
 use App\Models\UserProfile;
+use App\Models\Courses;
 use App\Services\FileUploadService;
 use App\Services\ReceiptPDFService;
 use App\Services\ReferenceNumberService;
@@ -52,11 +54,15 @@ class FormInputController extends Controller
             ->orderBy('school_year')
             ->orderBy('semester')
             ->get(['id', 'school_year', 'semester']);
+        $course = Courses::query()->orderBy('id')->get();
+        $academicTerms = AcademicTerm::query()->orderBy('school_year', 'desc')->get();
 
         return Inertia::render('public/SubmitForm', [
             'memberships' => $memberships,
             'paymentOptions' => $paymentOptions,
             'courses' => $courses,
+            'academicTerms' => $academicTerms,
+            'course' => $course,
             'academicTerms' => $academicTerms,
         ]);
     }

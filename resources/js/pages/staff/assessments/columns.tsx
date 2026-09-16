@@ -5,11 +5,13 @@ import { createColumnHelper } from '@tanstack/react-table';
 import { Pencil, Trash2, Eye } from 'lucide-react';
 import type {DataTableFeatures} from '@/components/data-table/data-table-features';
 import { Badge } from '@/components/ui/badge';
+import { router } from '@inertiajs/react';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useConfirm } from '@/components/confirm-dialog';
 
 export type AssessmentType = {
     id: number;
@@ -64,6 +66,45 @@ const getSemesterBadgeClass = (semester: string) => {
             return 'bg-slate-100 text-slate-700 border border-slate-200 px-4';
     }
 };
+
+function AssessmentActionsCell({ assessment }: { assessment: AssessmentType }) {
+    const confirm = useConfirm();
+
+    const handleDelete = async () => {
+        const ok = await confirm({
+            title: `Delete assessment ${assessment.reference_number}?`,
+            description: 'This action cannot be undone.',
+            confirmLabel: 'Delete',
+            variant: 'destructive',
+        });
+
+        if (ok) {
+            router.delete(`/staff/assessments/delete/${assessment.id}`, {
+                preserveScroll: true,
+            });
+        }
+    };
+
+    return (
+        <div className="flex justify-center">
+            <div className="grid w-max grid-cols-2">
+                <Link
+                    href={`/staff/assessments/edit/${assessment.id}`}
+                    className="flex h-8 w-8 items-center justify-center rounded-l-2xl bg-amber-400 text-white transition-colors hover:bg-amber-500"
+                >
+                    <Pencil className="h-4 w-4" />
+                </Link>
+                <button
+                    type="button"
+                    onClick={handleDelete}
+                    className="flex h-8 w-8 items-center justify-center rounded-r-2xl bg-red-600 text-white transition-colors hover:bg-red-700"
+                >
+                    <Trash2 className="h-4 w-4" />
+                </button>
+            </div>
+        </div>
+    );
+}
 
 const columnHelper = createColumnHelper<DataTableFeatures, AssessmentType>();
 
@@ -194,35 +235,6 @@ export const columns = columnHelper.columns([
         id: 'actions',
         header: () => <div className="text-center">Actions</div>,
         enableSorting: false,
-        cell: ({ row }) => {
-            const assessment = row.original;
-
-            return (
-                <div className="flex justify-center">
-                    <div className="grid w-max grid-cols-2">
-                        {/*<Link
-                            href={`/staff/assessments/${assessment.id}`}
-                            className="flex h-8 w-8 items-center justify-center rounded-l-2xl bg-slate-500 text-white transition-colors hover:bg-slate-600"
-                        >
-                            <Eye className="h-4 w-4" />
-                        </Link>*/}
-                        <Link
-                            href={`/staff/assessments/edit/${assessment.id}`}
-                            className="flex h-8 w-8 items-center justify-center rounded-l-2xl bg-amber-400 text-white transition-colors hover:bg-amber-500"
-                        >
-                            <Pencil className="h-4 w-4" />
-                        </Link>
-                        <Link
-                            as="button"
-                            method="delete"
-                            href={`/staff/assessments/delete/${assessment.id}`}
-                            className="flex h-8 w-8 items-center justify-center rounded-r-2xl bg-red-600 text-white transition-colors hover:bg-red-700"
-                        >
-                            <Trash2 className="h-4 w-4" />
-                        </Link>
-                    </div>
-                </div>
-            );
-        },
+        cell: ({ row }) => <AssessmentActionsCell assessment={row.original} />,
     }),
 ]);
