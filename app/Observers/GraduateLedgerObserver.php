@@ -20,6 +20,10 @@ class GraduateLedgerObserver
                 return;
             }
 
+            if ($ledger->imported_input_by === null) {
+                $ledger->loadMissing('inputByUser:id,name');
+            }
+
             $row = [
                 $ledger->student_name,
                 $ledger->course,
@@ -33,7 +37,7 @@ class GraduateLedgerObserver
                 $ledger->ar_payment,
                 $ledger->amount,
                 $ledger->remarks,
-                $ledger->input_by,
+                $ledger->inputByDisplay(),
             ];
 
             // Appends new row to Sheet 1 (or specify sheet name like 'Graduate School')

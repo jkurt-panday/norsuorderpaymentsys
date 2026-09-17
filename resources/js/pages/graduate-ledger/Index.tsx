@@ -12,6 +12,8 @@ import {
   Download,
   Loader2,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +27,11 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Pagination,
   PaginationContent,
@@ -133,11 +140,18 @@ interface IndexProps {
     schoolYears: string[];
     semesters: string[];
   };
+  courses?: { id: number; code: string }[];
+  academicTerms?: { id: number; school_year: string; semester: string }[];
 }
 
-export default function Index({ records, filters, stats, filterOptions }: IndexProps) {
+export default function Index({ records, filters, stats, filterOptions, courses = [], academicTerms = [] }: IndexProps) {
   const rows: LedgerRecord[] = records?.data ?? [];
-  const importForm = useForm<{ file: File | null }>({ file: null });
+  const importForm = useForm<{ file: File | null; preset_course_id: string; preset_academic_term_id: string }>({
+    file: null,
+    preset_course_id: '',
+    preset_academic_term_id: '',
+  });
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
   // ── Single filter state object to avoid stale-closure bugs ────────────────
   const [filterState, setFilterState] = useState({
@@ -159,8 +173,8 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const [importProgress, setImportProgress] = useState(0);
   const [importSuccess, setImportSuccess] = useState(false);
 
-  const handleImportFile = (file: File | null, inputEl: HTMLInputElement) => {
-    if (!file || isImporting) {
+  const handleImport = () => {
+    if (!importForm.data.file || isImporting) {
 return;
 }
 
@@ -178,7 +192,6 @@ return 90;
       });
     }, 250);
 
-    importForm.setData('file', file);
     importForm.post('/graduate-ledger/import', {
       forceFormData: true,
       preserveScroll: true,
@@ -188,8 +201,8 @@ return 90;
         setTimeout(() => {
           setIsImporting(false);
           setImportSuccess(true);
-          importForm.reset('file');
-          inputEl.value = '';
+          setIsImportDialogOpen(false);
+          importForm.reset();
           setTimeout(() => setImportSuccess(false), 4000);
         }, 300);
       },
@@ -197,7 +210,6 @@ return 90;
         clearInterval(interval);
         setIsImporting(false);
         setImportProgress(0);
-        inputEl.value = '';
       },
     });
   };
@@ -359,17 +371,12 @@ throw new Error('Export failed');
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <label className={`inline-flex items-center rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm font-medium text-[#0B3D91] transition-colors ${isImporting ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-[#F3F8FF]'}`}>
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                disabled={isImporting}
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0] ?? null;
-                  handleImportFile(file, e.target);
-                }}
-              />
+            <Button
+              variant="outline"
+              disabled={isImporting}
+              className={`border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF] ${isImporting ? 'opacity-60 cursor-not-allowed' : ''}`}
+              onClick={() => setIsImportDialogOpen(true)}
+            >
               {isImporting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-1.5 animate-spin text-[#0F6FFF]" />
@@ -378,7 +385,7 @@ throw new Error('Export failed');
               ) : (
                 'Import Excel/CSV'
               )}
-            </label>
+            </Button>
 
             <Button
               variant="outline"
@@ -636,112 +643,290 @@ throw new Error('Export failed');
                   </div>
 
           {paginationLinks.length > 3 && (
-            <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#CFE3FF] pt-4 pb-4">
+            <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-[#CFE3FF] pt-4 pb-4 gap-4">
               <div className="flex items-center gap-4 text-xs text-[#5C7A9E]">
                 <div>
-                  Page <span className="font-semibold text-[#0B3D91]">{currentPage}</span> of{' '}
-                  <span className="font-semibold text-[#0B3D91]">{lastPage}</span>
+                  Showing {currentPage} of {lastPage}
                 </div>
-                <form onSubmit={handleGoToPage} className="flex items-center gap-1.5">
-                  <span>Go to:</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={lastPage}
-                    value={goToPage}
-                    onChange={(e) => setGoToPage(e.target.value)}
-                    placeholder={String(currentPage)}
-                    className="w-14 h-7 rounded border border-[#CFE3FF] bg-white px-2 text-center text-xs text-[#0B3D91] font-semibold focus:bg-white focus:text-[#0B3D91] focus:border-[#0B62E0] focus:outline-none focus:ring-1 focus:ring-[#0B62E0] [color-scheme:light]"
-                  />
-                  <button
-                    type="submit"
-                    className="h-7 px-2.5 rounded bg-[#EAF2FF] text-[#0B62E0] hover:bg-[#D4E5FF] text-xs font-medium transition-colors"
-                  >
-                    Go
-                  </button>
-                </form>
+                <span className="text-[#8AA8CC]">|</span>
+                <div>
+                  <span className="font-semibold text-[#0B3D91]">{totalRecordCount}</span> total records
+                </div>
               </div>
 
-              <Pagination className="justify-end w-auto mx-0">
-                <PaginationContent className="gap-1">
-                  {paginationLinks.map((link, index) => {
-                    const isPrev = index === 0;
-                    const isNext = index === paginationLinks.length - 1;
-                    const isEllipsis = link.label === '...';
+              {lastPage > 5 ? (
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    disabled={currentPage <= 1}
+                    onClick={() => {
+                      const url = new URL(window.location.href);
+                      url.searchParams.set('page', String(currentPage - 1));
+                      router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true });
+                    }}
+                    aria-label="Previous page"
+                    className="h-8 w-8 shrink-0 rounded-md border-[#CFE3FF] text-[#0B3D91] text-sm hover:bg-[#F3F8FF]"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
 
-                    if (isPrev) {
-                      return (
-                        <PaginationItem key={index}>
-                          <PaginationPrevious
-                            href={link.url ?? '#'}
-                            onClick={(e) => {
-                              e.preventDefault();
-
-                              if (link.url) {
-                                router.get(link.url, {}, { preserveState: true, preserveScroll: true });
-                              }
-                            }}
-                            className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                          />
-                        </PaginationItem>
-                      );
-                    }
-
-                    if (isNext) {
-                      return (
-                        <PaginationItem key={index}>
-                          <PaginationNext
-                            href={link.url ?? '#'}
-                            onClick={(e) => {
-                              e.preventDefault();
-
-                              if (link.url) {
-                                router.get(link.url, {}, { preserveState: true, preserveScroll: true });
-                              }
-                            }}
-                            className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                          />
-                        </PaginationItem>
-                      );
-                    }
-
-                    if (isEllipsis) {
-                      return (
-                        <PaginationItem key={index}>
-                          <PaginationEllipsis />
-                        </PaginationItem>
-                      );
-                    }
-
-                    return (
-                      <PaginationItem key={index}>
-                        <PaginationLink
-                          href={link.url ?? '#'}
-                          isActive={link.active}
-                          onClick={(e) => {
-                            e.preventDefault();
-
-                            if (link.url) {
-                              router.get(link.url, {}, { preserveState: true, preserveScroll: true });
-                            }
-                          }}
-                          className={`cursor-pointer font-medium ${
-                            link.active
-                              ? '!bg-[#0F6FFF] !text-white font-bold hover:!bg-[#0B3D91] hover:!text-white shadow-sm'
-                              : 'text-[#334E68] hover:bg-[#EAF2FF] hover:text-[#0B62E0]'
-                          }`}
+                  <Popover>
+                    <PopoverTrigger>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm font-medium text-[#0B3D91] transition-colors hover:bg-[#F3F8FF]"
+                      >
+                        Page {currentPage} of {lastPage}
+                      </span>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align="center"
+                      className="w-48 space-y-2 p-2"
+                    >
+                      <form onSubmit={handleGoToPage} className="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          min={1}
+                          max={lastPage}
+                          value={goToPage}
+                          onChange={(e) => setGoToPage(e.target.value)}
+                          placeholder={String(currentPage)}
+                          className="h-8 w-full min-w-0 rounded-md border border-[#CFE3FF] bg-white px-2 text-sm text-[#0B3D91] outline-none focus:ring-2 focus:ring-[#0B62E0]"
+                          autoFocus
+                        />
+                        <button
+                          type="submit"
+                          className="h-8 shrink-0 rounded-md bg-[#0F6FFF] px-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#0B5DDB]"
                         >
-                          {link.label}
-                        </PaginationLink>
-                      </PaginationItem>
-                    );
-                  })}
-                </PaginationContent>
-              </Pagination>
+                          Go
+                        </button>
+                      </form>
+
+                      <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-[#EAF2FF] pt-1.5">
+                        {Array.from({ length: lastPage }, (_, i) => i + 1).map((page) => (
+                          <button
+                            key={page}
+                            type="button"
+                            onClick={() => {
+                              const url = new URL(window.location.href);
+                              url.searchParams.set('page', String(page));
+                              router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true });
+                            }}
+                            className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                              page === currentPage
+                                ? 'bg-[#EAF2FF] font-medium text-[#0B62E0]'
+                                : 'text-[#334E68] hover:bg-[#F3F8FF]'
+                            }`}
+                          >
+                            Page {page}
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    disabled={currentPage >= lastPage}
+                    onClick={() => {
+                      const url = new URL(window.location.href);
+                      url.searchParams.set('page', String(currentPage + 1));
+                      router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true });
+                    }}
+                    aria-label="Next page"
+                    className="h-8 w-8 shrink-0 rounded-md border-[#CFE3FF] text-[#0B3D91] text-sm hover:bg-[#F3F8FF]"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Pagination className="justify-end w-auto mx-0">
+                  <PaginationContent className="gap-1">
+                    {paginationLinks.map((link, index) => {
+                      const isPrev = index === 0;
+                      const isNext = index === paginationLinks.length - 1;
+
+                      if (isPrev) {
+                        return (
+                          <PaginationItem key={index}>
+                            <PaginationPrevious
+                              href={link.url ?? '#'}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                if (link.url) {
+                                  router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+                                }
+                              }}
+                              className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                            />
+                          </PaginationItem>
+                        );
+                      }
+
+                      if (isNext) {
+                        return (
+                          <PaginationItem key={index}>
+                            <PaginationNext
+                              href={link.url ?? '#'}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                if (link.url) {
+                                  router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+                                }
+                              }}
+                              className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                            />
+                          </PaginationItem>
+                        );
+                      }
+
+                      return (
+                        <PaginationItem key={index}>
+                          <PaginationLink
+                            href={link.url ?? '#'}
+                            isActive={link.active}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (link.url) {
+                                router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+                              }
+                            }}
+                            className={`cursor-pointer font-medium ${
+                              link.active
+                                ? '!bg-[#0F6FFF] !text-white font-bold hover:!bg-[#0B3D91] hover:!text-white shadow-sm'
+                                : 'text-[#334E68] hover:bg-[#EAF2FF] hover:text-[#0B62E0]'
+                            }`}
+                          >
+                            {link.label}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+                  </PaginationContent>
+                </Pagination>
+              )}
             </CardFooter>
           )}
         </Card>
       </div>
+
+      {/* Import preset dialog */}
+      {isImportDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4" role="dialog" aria-modal="true" aria-labelledby="import-dialog-title">
+          <div className="w-full max-w-lg rounded-xl border border-[#CFE3FF] bg-white p-6 shadow-2xl">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h2 id="import-dialog-title" className="text-lg font-bold text-[#0B3D91]">Import Graduate Ledger</h2>
+                <p className="mt-1 text-sm text-[#5C7A9E]">
+                  The importer uses each row&apos;s course and academic term first. Optional presets are used only when a row is blank or cannot be recognized.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="rounded-md p-1 text-[#5C7A9E] hover:bg-[#F3F8FF] hover:text-[#0B3D91]"
+                onClick={() => {
+                  if (!isImporting) {
+                    setIsImportDialogOpen(false);
+                    importForm.clearErrors();
+                  }
+                }}
+                aria-label="Close import dialog"
+              >
+                <XCircle className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="ledger-import-file" className="mb-1.5 block text-sm font-semibold text-[#0B3D91]">
+                  Spreadsheet file <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  id="ledger-import-file"
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  disabled={isImporting}
+                  className="border-[#CFE3FF]"
+                  onChange={(event) => importForm.setData('file', event.target.files?.[0] ?? null)}
+                />
+                {importForm.errors.file && <p className="mt-1 text-xs text-red-600">{importForm.errors.file}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="preset-course" className="mb-1.5 block text-sm font-semibold text-[#0B3D91]">
+                  Fallback course <span className="font-normal text-[#7FA6D6]">(optional)</span>
+                </label>
+                <select
+                  id="preset-course"
+                  value={importForm.data.preset_course_id}
+                  disabled={isImporting}
+                  onChange={(event) => importForm.setData('preset_course_id', event.target.value)}
+                  className="h-10 w-full rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                >
+                  <option value="">No fallback — skip unmatched courses</option>
+                  {courses.map((item) => (
+                    <option key={item.id} value={item.id}>{item.code}</option>
+                  ))}
+                </select>
+                {importForm.errors.preset_course_id && <p className="mt-1 text-xs text-red-600">{importForm.errors.preset_course_id}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="preset-term" className="mb-1.5 block text-sm font-semibold text-[#0B3D91]">
+                  Fallback academic term <span className="font-normal text-[#7FA6D6]">(optional)</span>
+                </label>
+                <select
+                  id="preset-term"
+                  value={importForm.data.preset_academic_term_id}
+                  disabled={isImporting}
+                  onChange={(event) => importForm.setData('preset_academic_term_id', event.target.value)}
+                  className="h-10 w-full rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                >
+                  <option value="">No fallback — skip unmatched terms</option>
+                  {academicTerms.map((term) => (
+                    <option key={term.id} value={term.id}>{term.school_year} — {term.semester}</option>
+                  ))}
+                </select>
+                {importForm.errors.preset_academic_term_id && <p className="mt-1 text-xs text-red-600">{importForm.errors.preset_academic_term_id}</p>}
+              </div>
+
+              <div className="rounded-lg border border-[#B9D8FF] bg-[#F3F8FF] p-3 text-xs leading-relaxed text-[#334E68]">
+                Course spellings such as <strong>MS-MATH</strong>, <strong>MS Math</strong>, and <strong>M.S. Math</strong> are normalized before matching. Importing will not create new course or academic-term master records.
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isImporting}
+                className="border-[#CFE3FF] text-[#0B3D91]"
+                onClick={() => {
+                  setIsImportDialogOpen(false);
+                  importForm.reset();
+                  importForm.clearErrors();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={!importForm.data.file || isImporting}
+                className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
+                onClick={handleImport}
+              >
+                {isImporting && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+                {isImporting ? 'Importing...' : 'Start Import'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating Bottom-Right Import Progress Bar & Toast */}
       {(isImporting || importSuccess) && (

@@ -71,7 +71,7 @@ class GraduateLedgerExport implements FromQuery, ShouldAutoSize, WithCustomChunk
             $type,
             (float) ($row->amount ?? 0),
             $row->remarks ?? '',
-            $row->input_by ?? '',
+            $row->inputByDisplay(),
         ];
     }
 }

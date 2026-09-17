@@ -85,6 +85,7 @@ interface LedgerFormRecord {
     amount: number | string | null;
     remarks: string | null;
     input_by: string | null;
+    is_imported: boolean;
 }
 
 interface Props {
@@ -698,6 +699,7 @@ export default function EditTransaction({
                                 </label>
                                 <Input
                                     value={data.input_by}
+                                    readOnly={record.is_imported}
                                     onChange={(e) =>
                                         setData('input_by', e.target.value)
                                     }
