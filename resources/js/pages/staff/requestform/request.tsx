@@ -256,30 +256,25 @@ const ManageRequests: React.FC = () => {
         });
     };
 
-    // Compute the list of IDs that will be emailed based on the selected target
+    const bulkRecipients = emailTarget === 'specific'
+        ? []
+        : eligibleRecipients.filter((row) => {
+            const recipientStatus = row.staff_input?.status;
+
+            return (
+                (emailTarget === 'all_paid' && recipientStatus === 'paid') ||
+                (emailTarget === 'all_processed' && recipientStatus === 'processed') ||
+                (emailTarget === 'all_pending' && recipientStatus === 'pending') ||
+                (emailTarget === 'all_cancelled' && recipientStatus === 'cancelled')
+            );
+        });
+
     const computeTargetIds = (): number[] => {
-        if (emailTarget === 'all_paid') {
-            return eligibleRecipients
-                .filter((r) => r.staff_input!.status === 'paid')
-                .map((r) => r.id);
+        if (emailTarget === 'specific') {
+            return Array.from(selectedIds);
         }
-        if (emailTarget === 'all_processed') {
-            return eligibleRecipients
-                .filter((r) => r.staff_input!.status === 'processed')
-                .map((r) => r.id);
-        }
-        if (emailTarget === 'all_pending') {
-            return eligibleRecipients
-                .filter((r) => r.staff_input!.status === 'pending')
-                .map((r) => r.id);
-        }
-        if (emailTarget === 'all_cancelled') {
-            return eligibleRecipients
-                .filter((r) => r.staff_input!.status === 'cancelled')
-                .map((r) => r.id);
-        }
-        // 'specific' — use the checkbox set
-        return Array.from(selectedIds);
+
+        return bulkRecipients.map((r) => r.id);
     };
 
     const handleOpenEmailModal = () => {
@@ -662,13 +657,63 @@ const ManageRequests: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Show recipient count for bulk targets */}
                         {emailTarget !== 'specific' && (
                             <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-                                <span className="font-semibold text-slate-800">
-                                    {computeTargetIds().length}
-                                </span>{' '}
-                                recipient(s) will be emailed
+                                <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-slate-800">
+                                        {bulkRecipients.length}
+                                    </span>{' '}
+                                    <span>recipient(s) will be emailed</span>
+                                </div>
+                                <div className="mt-2 max-h-72 overflow-y-auto rounded-md border border-slate-200 bg-white">
+                                    {bulkRecipients.length === 0 ? (
+                                        <div className="p-4 text-center text-slate-400">
+                                            No recipients found for this status
+                                        </div>
+                                    ) : (
+                                        bulkRecipients.map((row) => {
+                                            const timeAgo = formatTimeAgo(row.staff_input?.emailed_at);
+
+                                            return (
+                                                <div
+                                                    key={row.id}
+                                                    className="flex items-start gap-2 border-b border-slate-100 px-3 py-2 text-sm last:border-0"
+                                                >
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="flex min-w-0 items-center gap-2">
+                                                            <div className="truncate font-medium text-slate-800">
+                                                                {formatFullName(row)}
+                                                            </div>
+                                                            <span
+                                                                className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                                                                    row.staff_input
+                                                                        ? statusBadgeClass(row.staff_input.status)
+                                                                        : 'bg-slate-100 text-slate-600'
+                                                                }`}
+                                                            >
+                                                                {row.staff_input?.status ?? 'Unprocessed'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="truncate text-xs text-slate-500">
+                                                            {row.reference_number} · {row.email}
+                                                        </div>
+                                                        {timeAgo ? (
+                                                            <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-emerald-600">
+                                                                <Mail className="h-3 w-3" />
+                                                                Sent email {timeAgo}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-slate-400">
+                                                                <Mail className="h-3 w-3" />
+                                                                Not sent an email
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
                             </div>
                         )}
 
