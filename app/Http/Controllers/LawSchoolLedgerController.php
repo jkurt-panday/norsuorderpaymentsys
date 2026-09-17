@@ -203,7 +203,7 @@ class LawSchoolLedgerController extends Controller
                 $data['middle_initial'] = $data['middle_initial'] ?? $this->normalizeMiddleInitial($newStudent['middle_name'] ?? null);
             }
 
-            $studentId = (int) $studentId;
+            $studentId = $studentId !== null ? (int) $studentId : null;
 
             // Pull name columns from the chosen student when not provided
             if ($studentId && empty($data['last_name'])) {
@@ -848,7 +848,12 @@ class LawSchoolLedgerController extends Controller
         $mi = trim((string) ($data['middle_name'] ?? ($data['middle_initial'] ?? '')));
 
         $studentId = null;
-        if ($last !== '' || $first !== '') {
+        $rawStudentId = ($data['student_id'] ?? null);
+        if ($rawStudentId !== null && $rawStudentId !== '' && is_numeric($rawStudentId)) {
+            $studentId = (int) $rawStudentId;
+        }
+
+        if ($studentId === null && ($last !== '' || $first !== '')) {
             $kFull = $this->studentImportKey($last, $first, $mi);
             $kInitial = $mi !== '' ? $this->studentImportKey($last, $first, substr($mi, 0, 1)) : $kFull;
             $kNoMid = $this->studentImportKey($last, $first, null);
@@ -856,7 +861,7 @@ class LawSchoolLedgerController extends Controller
             $studentId = $studentMap[$kFull] ?? $studentMap[$kInitial] ?? $studentMap[$kNoMid] ?? null;
         }
 
-        if ($studentId === null || $courseId === null || $academicTermId === null) {
+        if ($courseId === null || $academicTermId === null) {
             return null;
         }
 
