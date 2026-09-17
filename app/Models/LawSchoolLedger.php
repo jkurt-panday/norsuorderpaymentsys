@@ -70,9 +70,9 @@ class LawSchoolLedger extends Model
         return $this->academicTerm();
     }
 
-    public function getStudentIdFkAttribute(): int
+    public function getStudentIdFkAttribute(): ?int
     {
-        return (int) $this->student_id;
+        return $this->student_id !== null ? (int) $this->student_id : null;
     }
 
     public function getLastNameAttribute(): ?string { return $this->student?->last_name; }
