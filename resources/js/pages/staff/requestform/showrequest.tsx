@@ -22,6 +22,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Mail } from 'lucide-react';
 import cashier from '@/routes/cashier';
 import staff from '@/routes/staff';
 import { flashToast } from '@/utils/flashToast';
@@ -66,6 +67,7 @@ interface StaffInput {
     purpose: string | null;
     or_no: string | null;
     or_date: string | null;
+    emailed_at: string | null;
 }
 
 interface SupportingDocument {
@@ -1107,6 +1109,13 @@ export default function ShowRequest() {
                                                 formInput.staff_input.status.slice(
                                                     1,
                                                 )}
+                                        </span>
+                                    )}
+                                    {/* Sent email tag — shows when the OP receipt was emailed to the applicant */}
+                                    {formInput.staff_input?.emailed_at && (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">
+                                            <Mail className="h-3 w-3" />
+                                            Sent email
                                         </span>
                                     )}
                                     {/* Inline edit is used here so the staff processing

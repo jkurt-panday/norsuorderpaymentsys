@@ -128,6 +128,8 @@ interface RequestTableProps<T> {
     pollInterval?: number;
     resourceKey?: string;
     highlightDuration?: number;
+    /** Optional React node rendered at the top-right of the filter bar (e.g. a "Send Email" button). */
+    customToolbar?: React.ReactNode;
 }
 
 const alignClass: Record<NonNullable<ColumnDef<unknown>['align']>, string> = {
@@ -169,6 +171,7 @@ export default function RequestTable<T extends { id: number | string }>({
     pollInterval,
     resourceKey,
     highlightDuration = 2000,
+    customToolbar,
 }: RequestTableProps<T>) {
     const rows = resource.data;
     const showPagination = rows.length > 0;
@@ -542,6 +545,11 @@ export default function RequestTable<T extends { id: number | string }>({
                                 >
                                     Reset
                                 </Button>
+                                {customToolbar && (
+                                    <div className="flex items-center">
+                                        {customToolbar}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </form>

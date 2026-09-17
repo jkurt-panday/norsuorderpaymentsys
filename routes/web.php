@@ -161,6 +161,8 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
     Route::name('requests.')->prefix('requests')->group(function () {
         Route::get('/',                      [StaffInputController::class, 'index'])->name('index');
         Route::post('/process',              [StaffInputController::class, 'store'])->name('store');
+        Route::get('/email-recipients',      [StaffInputController::class, 'emailRecipients'])->name('emailRecipients');
+        Route::post('/bulk-email-op',        [StaffInputController::class, 'bulkEmailOp'])->name('bulkEmailOp');
         Route::get('/{formInput}/process',   [StaffInputController::class, 'create'])->name('process');
         Route::get('/{formInput}',           [StaffInputController::class, 'show'])->name('show');
         Route::get('/{formInput}/view-op',   [StaffInputController::class, 'viewOp'])->name('viewOp');

@@ -135,14 +135,210 @@ class CashierLedgerPostingService
     }
 
     /**
-     * Stable tag linking a ledger payment row back to its source OP,
-     * so corrections can find and update it instead of duplicating.
+     * Post a law school ledger payment row when the cashier saves an OR
+     * on an Order of Payment, whenever the payer can be matched to a
+     * law student.
+     *
+     * Rules mirror postGraduatePayment:
+     * - Only run when status is 'paid' and the OR number exists.
+     * - Corrections (re-saves of an already-paid OP) UPDATE the existing
+     *   ledger row for that OP instead of inserting a duplicate.
+     * - Student resolution priority: direct FK link (form_inputs.student_num)
+     *   → digit-normalized student_number lookup → gated exact name match.
+     * - Name fallback only runs for student-like submissions, never for
+     *   general/office payers.
+     * - Term priority: the OP's own academic_term → the student's latest
+     *   ledger term. Course always comes from ledger history.
+     *
+     * @return array{posted: bool, reason: string|null}
      */
-    private function opRemark(FormInput $formInput): ?string
+    public function postLawPayment(StaffInput $staffInput): array
     {
-        return $formInput->reference_number
-            ? "OR from OP {$formInput->reference_number}"
-            : null;
+        $staffInput->loadMissing('formInput.membership');
+
+        $orNo = trim((string) ($staffInput->or_no ?? ''));
+        if ($orNo === '' || $staffInput->status !== 'paid') {
+            return ['posted' => false, 'reason' => 'missing_or'];
+        }
+
+        $formInput = $staffInput->formInput;
+        if ($formInput === null) {
+            return ['posted' => false, 'reason' => 'no_form'];
+        }
+
+        $student = $this->resolveLawStudent($formInput);
+        if ($student === null) {
+            return ['posted' => false, 'reason' => 'student_not_found'];
+        }
+
+        $context = $this->resolveLawLedgerContext($formInput, $student);
+        if ($context === null) {
+            return ['posted' => false, 'reason' => 'no_ledger_context'];
+        }
+
+        $opRemark = $this->opRemark($formInput);
+        $orDate = $this->normalizeDate($staffInput->or_date) ?? now()->format('Y-m-d');
+        $amount = abs((float) $formInput->amount);
+
+        $particulars = $formInput->paymentDetailOption?->payment_desc
+            ?? $formInput->membership?->member_desc
+            ?? 'Payment';
+
+        try {
+            // Correction path: a ledger payment already exists for this OP.
+            $existing = ($opRemark !== null)
+                ? LawSchoolLedger::query()
+                    ->where('remarks', $opRemark)
+                    ->where('entry_type', 'payment')
+                    ->first()
+                : null;
+
+            if ($existing !== null) {
+                $collision = LawSchoolLedger::query()
+                    ->where('reference_number', $orNo)
+                    ->where('entry_type', 'payment')
+                    ->whereKeyNot($existing->id)
+                    ->exists();
+
+                if ($collision) {
+                    return ['posted' => false, 'reason' => 'or_already_used'];
+                }
+
+                $existing->update([
+                    'student_id' => $student->id,
+                    'course_id' => $context['course_id'],
+                    'academic_term_id' => $context['academic_term_id'],
+                    'transaction_date' => $orDate,
+                    'reference_number' => $orNo,
+                    'amount' => $amount,
+                ]);
+
+                return ['posted' => true, 'reason' => null];
+            }
+
+            // Fresh path: idempotency on the OR number itself.
+            $alreadyPosted = LawSchoolLedger::query()
+                ->where('reference_number', $orNo)
+                ->where('entry_type', 'payment')
+                ->exists();
+
+            if ($alreadyPosted) {
+                return ['posted' => false, 'reason' => 'already_posted'];
+            }
+
+            LawSchoolLedger::create([
+                'student_id' => $student->id,
+                'course_id' => $context['course_id'],
+                'academic_term_id' => $context['academic_term_id'],
+                'entry_type' => 'payment',
+                'transaction_date' => $orDate,
+                'reference_number' => $orNo,
+                'particulars' => Str::limit($particulars ?: 'Payment', 255, ''),
+                'rate' => '0.00',
+                'amount' => $amount,
+                'remarks' => $opRemark,
+                'status' => 'posted',
+                'input_by' => auth()->id(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Law school ledger posting failed', [
+                'staff_input_id' => $staffInput->id,
+                'or_no' => $orNo,
+                'message' => $e->getMessage(),
+            ]);
+
+            return ['posted' => false, 'reason' => 'insert_failed'];
+        }
+
+        return ['posted' => true, 'reason' => null];
+    }
+
+    /**
+     * Resolve the course + term for a law school payment row.
+     * Term: the OP's own academic_term first, then the student's latest
+     * ledger term. Course: the student's latest ledger course, preferring
+     * a row inside the resolved term when one exists.
+     *
+     * @return array{course_id: int, academic_term_id: int}|null
+     */
+    private function resolveLawLedgerContext(FormInput $formInput, LawStudent $student): ?array
+    {
+        $termId = $formInput->academic_term;
+
+        if ($termId === null) {
+            $termId = LawSchoolLedger::query()
+                ->where('student_id', $student->id)
+                ->latest('id')
+                ->value('academic_term_id');
+        }
+
+        if ($termId === null) {
+            return null;
+        }
+
+        $courseId = LawSchoolLedger::query()
+            ->where('student_id', $student->id)
+            ->where('academic_term_id', $termId)
+            ->latest('id')
+            ->value('course_id')
+            ?? LawSchoolLedger::query()
+                ->where('student_id', $student->id)
+                ->latest('id')
+                ->value('course_id');
+
+        if ($courseId === null) {
+            return null;
+        }
+
+        return ['course_id' => (int) $courseId, 'academic_term_id' => (int) $termId];
+    }
+
+    /**
+     * Resolve a law student from the form input.
+     * Priority: direct FK → digit-normalized student_number → gated name match.
+     */
+    private function resolveLawStudent(FormInput $formInput): ?LawStudent
+    {
+        if ($formInput->student_num) {
+            $linked = LawStudent::query()->find($formInput->student_num);
+            if ($linked !== null) {
+                return $linked;
+            }
+        }
+
+        if (! $this->looksLikeStudentSubmission($formInput)) {
+            return null;
+        }
+
+        return $this->resolveLawStudentByName(
+            $formInput->firstname_or_office,
+            $formInput->lastname_or_agency,
+        );
+    }
+
+    /**
+     * Match the payer name on an OP against LawStudents.
+     * Only an exact single match counts.
+     */
+    private function resolveLawStudentByName(?string $firstName, ?string $lastName): ?LawStudent
+    {
+        $first = Str::of((string) $firstName)->squish()->toString();
+        $last = Str::of((string) $lastName)->squish()->toString();
+
+        if ($first === '' && $last === '') {
+            return null;
+        }
+
+        $candidates = LawStudent::query()
+            ->when($last !== '', fn ($q) => $q->whereRaw('LOWER(last_name) = ?', [mb_strtolower($last)]))
+            ->when($first !== '', fn ($q) => $q->whereRaw('LOWER(first_name) = ?', [mb_strtolower($first)]))
+            ->get(['id', 'student_number', 'last_name', 'first_name', 'middle_name']);
+
+        if ($candidates->count() === 1) {
+            return $candidates->first();
+        }
+
+        return null;
     }
 
     /**

@@ -12,6 +12,7 @@ use App\Models\StaffInput;
 use App\Models\UACS;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -524,6 +525,98 @@ class StaffInputController extends Controller
             )
         );
 
+        $formInput->staffInput()->update(['emailed_at' => now()]);
+
         return back()->with('success', 'Order of Payment emailed successfully.');
+    }
+
+    /**
+     * Send Order of Payment emails in bulk to selected requests.
+     *
+     * Accepts an array of form_input IDs plus optional subject / note.
+     * Only requests that have a staff_input record (i.e. processed/paid/
+     * cancelled) are eligible — unprocessed ones are skipped with a warning.
+     */
+    public function bulkEmailOp(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'form_input_ids'   => ['required', 'array', 'min:1'],
+            'form_input_ids.*' => ['integer', 'exists:form_inputs,id'],
+            'subject'          => 'nullable|string|max:255',
+            'recipient_name'   => 'nullable|string|max:255',
+            'note'             => 'nullable|string|max:2000',
+        ]);
+
+        $formInputs = FormInput::with([
+            'staffInput.bankAccount',
+            'staffInput.uacs',
+            'staffInput.referenceDocument',
+        ])->whereIn('id', $validated['form_input_ids'])->get();
+
+        $copyLabels = self::OP_COPY_LABELS;
+        $sent = 0;
+        $skipped = 0;
+
+        foreach ($formInputs as $formInput) {
+            if (! $formInput->staffInput) {
+                $skipped++;
+
+                continue;
+            }
+
+            if (! $formInput->email) {
+                $skipped++;
+
+                continue;
+            }
+
+            $portraitPdf = Pdf::loadView('pdf.op-a6', compact('formInput', 'copyLabels'))
+                ->setPaper('a5', 'portrait');
+
+            $landscapePdf = Pdf::loadView('pdf.op-landscape', compact('formInput', 'copyLabels'))
+                ->setPaper('legal', 'landscape');
+
+            \Mail::to($formInput->email)->send(
+                new OrderOfPaymentMail(
+                    $formInput,
+                    $portraitPdf->output(),
+                    $landscapePdf->output(),
+                    $validated['subject'] ?? null,
+                    $validated['recipient_name'] ?? null,
+                    $validated['note'] ?? null,
+                )
+            );
+
+            $formInput->staffInput()->update(['emailed_at' => now()]);
+
+            $sent++;
+        }
+
+        $message = "{$sent} email(s) sent successfully.";
+        if ($skipped > 0) {
+            $message .= " {$skipped} request(s) were skipped (no email or not yet processed).";
+        }
+
+        return back()->with('success', $message);
+    }
+
+    /**
+     * Return ALL form inputs (not paginated) for the bulk-email modal.
+     *
+     * Includes staff_input + emailed_at so the frontend can render
+     * "Sent email X days ago" tags and checkbox selection across every
+     * page of results.
+     */
+    public function emailRecipients(): \Illuminate\Http\JsonResponse
+    {
+        $formInputs = FormInput::with([
+            'staffInput' => function ($q) {
+                $q->select('id', 'form_input_id', 'status', 'emailed_at');
+            },
+        ])->orderBy('id')->get();
+
+        return response()->json([
+            'data' => $formInputs,
+        ]);
     }
 }
