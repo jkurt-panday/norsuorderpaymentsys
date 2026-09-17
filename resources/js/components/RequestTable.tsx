@@ -718,7 +718,7 @@ export default function RequestTable<T extends { id: number | string }>({
                             {resource.total} results
                         </p>
 
-                        {resource.last_page > 3 ? (
+                        {resource.last_page > 5 ? (
                             (() => {
                                 const prevLink = resource.links.find((l) =>
                                     l.label
