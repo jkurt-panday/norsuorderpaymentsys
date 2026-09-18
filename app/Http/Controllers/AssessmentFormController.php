@@ -36,7 +36,7 @@ class AssessmentFormController extends Controller
      */
     public function create(): InertiaResponse
     {
-        $courses = Courses::query()->orderBy('id')->get();
+        $courses = Courses::query()->publicAvailable()->orderBy('course_code')->get();
 
         return Inertia::render('public/AssessmentForm', [
             'courses' => $courses,

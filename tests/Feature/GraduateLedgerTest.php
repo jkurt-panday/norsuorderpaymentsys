@@ -390,6 +390,202 @@ class GraduateLedgerTest extends TestCase
                 ->where('records.data.2.inputBy', 'Ledger Encoder'));
     }
 
+    public function test_index_filters_records_by_student_and_academic_term_balance_status(): void
+    {
+        $user = User::factory()->staff()->create();
+        $course = $this->graduateCourse('MBA');
+        $term = AcademicTerm::create([
+            'school_year' => '2025-2026',
+            'semester' => 'First Semester',
+        ]);
+
+        // Student 1: Unpaid balance (AR 5,000 - Payment 2,000 = 3,000 remaining)
+        $unpaidStudent = Student::create([
+            'student_number' => '202600001',
+            'first_name' => 'Unpaid',
+            'last_name' => 'Student',
+        ]);
+        GraduateLedger::create([
+            'student_id' => $unpaidStudent->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $term->id,
+            'entry_type' => 'ar',
+            'transaction_date' => '2026-08-01',
+            'reference_number' => 'AR-UNPAID-1',
+            'amount' => 5000.00,
+            'status' => 'posted',
+        ]);
+
+        $settledTerm = AcademicTerm::create([
+            'school_year' => '2025-2026',
+            'semester' => 'Second Semester',
+        ]);
+        GraduateLedger::create([
+            'student_id' => $unpaidStudent->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $settledTerm->id,
+            'entry_type' => 'ar',
+            'transaction_date' => '2026-01-01',
+            'reference_number' => 'AR-SETTLED-TERM',
+            'amount' => 1000.00,
+            'status' => 'posted',
+        ]);
+        GraduateLedger::create([
+            'student_id' => $unpaidStudent->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $settledTerm->id,
+            'entry_type' => 'payment',
+            'transaction_date' => '2026-01-02',
+            'reference_number' => 'PAY-SETTLED-TERM',
+            'amount' => 1000.00,
+            'status' => 'posted',
+        ]);
+        GraduateLedger::create([
+            'student_id' => $unpaidStudent->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $term->id,
+            'entry_type' => 'payment',
+            'transaction_date' => '2026-08-02',
+            'reference_number' => 'PAY-UNPAID-1',
+            'amount' => 2000.00,
+            'status' => 'posted',
+        ]);
+
+        // Student 2: Fully paid / cleared (AR 3,000 - Payment 3,000 = 0 balance)
+        $paidStudent = Student::create([
+            'student_number' => '202600002',
+            'first_name' => 'Paid',
+            'last_name' => 'Student',
+        ]);
+        GraduateLedger::create([
+            'student_id' => $paidStudent->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $term->id,
+            'entry_type' => 'ar',
+            'transaction_date' => '2026-08-01',
+            'reference_number' => 'AR-PAID-1',
+            'amount' => 3000.00,
+            'status' => 'posted',
+        ]);
+        GraduateLedger::create([
+            'student_id' => $paidStudent->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $term->id,
+            'entry_type' => 'payment',
+            'transaction_date' => '2026-08-02',
+            'reference_number' => 'PAY-PAID-1',
+            'amount' => 3000.00,
+            'status' => 'posted',
+        ]);
+
+        // Outstanding returns only Student 1's unpaid term, not their settled term.
+        $responseWithBalance = $this->actingAs($user)->get('/graduate-ledger?balance_status=with_balance');
+        $responseWithBalance->assertOk();
+        $responseWithBalance->assertInertia(fn (Assert $page) => $page
+            ->has('records.data', 2)
+            ->where('records.data.0.referenceNo', 'PAY-UNPAID-1')
+            ->where('records.data.1.referenceNo', 'AR-UNPAID-1')
+        );
+
+        // Cleared returns Student 2 and Student 1's settled term.
+        $responseCleared = $this->actingAs($user)->get('/graduate-ledger?balance_status=cleared');
+        $responseCleared->assertOk();
+        $responseCleared->assertInertia(fn (Assert $page) => $page
+            ->has('records.data', 4)
+            ->where('records.data.0.referenceNo', 'PAY-PAID-1')
+            ->where('records.data.1.referenceNo', 'AR-PAID-1')
+            ->where('records.data.2.referenceNo', 'PAY-SETTLED-TERM')
+            ->where('records.data.3.referenceNo', 'AR-SETTLED-TERM')
+        );
+    }
+
+    public function test_remarks_are_calculated_as_outstanding_or_settled_per_student_and_academic_term(): void
+    {
+        $user = User::factory()->staff()->create();
+        $course = $this->graduateCourse('MBA');
+        $student = Student::create([
+            'student_number' => '2026-9999',
+            'first_name' => 'TermCalc',
+            'last_name' => 'Student',
+        ]);
+
+        $term1 = AcademicTerm::create([
+            'school_year' => '2025-2026',
+            'semester' => 'First Semester',
+        ]);
+        $term2 = AcademicTerm::create([
+            'school_year' => '2025-2026',
+            'semester' => 'Second Semester',
+        ]);
+
+        // Term 1: Settled (AR 4000 - Pay 4000 = 0)
+        $term1Ar = GraduateLedger::create([
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $term1->id,
+            'entry_type' => 'ar',
+            'transaction_date' => '2025-08-10',
+            'reference_number' => 'T1-AR',
+            'amount' => 4000.00,
+            'status' => 'posted',
+        ]);
+        $term1Pay = GraduateLedger::create([
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $term1->id,
+            'entry_type' => 'payment',
+            'transaction_date' => '2025-08-15',
+            'reference_number' => 'T1-PAY',
+            'amount' => 4000.00,
+            'status' => 'posted',
+        ]);
+
+        // Term 2: Outstanding (AR 5000 - Pay 2000 = 3000 balance)
+        $term2Ar = GraduateLedger::create([
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $term2->id,
+            'entry_type' => 'ar',
+            'transaction_date' => '2026-01-10',
+            'reference_number' => 'T2-AR',
+            'amount' => 5000.00,
+            'status' => 'posted',
+        ]);
+        $term2Pay = GraduateLedger::create([
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $term2->id,
+            'entry_type' => 'payment',
+            'transaction_date' => '2026-01-15',
+            'reference_number' => 'T2-PAY',
+            'amount' => 2000.00,
+            'status' => 'posted',
+        ]);
+
+        // UI Index assertion
+        $response = $this->actingAs($user)->get('/graduate-ledger');
+        $response->assertOk();
+        $response->assertInertia(function (Assert $page) {
+            $page->has('records.data', 4);
+            // Latest id first: T2-PAY, T2-AR, T1-PAY, T1-AR
+            $data = $page->toArray()['props']['records']['data'];
+            $byRef = collect($data)->keyBy('referenceNo');
+
+            $this->assertSame('Outstanding', $byRef['T2-PAY']['remark']);
+            $this->assertSame('Outstanding', $byRef['T2-AR']['remark']);
+            $this->assertSame('Settled', $byRef['T1-PAY']['remark']);
+            $this->assertSame('Settled', $byRef['T1-AR']['remark']);
+        });
+
+        // Export assertion
+        $export = new GraduateLedgerExport(GraduateLedger::query());
+        $mapT1 = $export->map($term1Ar->load(['student', 'course', 'academicTerm', 'inputByUser']));
+        $mapT2 = $export->map($term2Ar->load(['student', 'course', 'academicTerm', 'inputByUser']));
+
+        $this->assertSame('Settled', $mapT1[12]);
+        $this->assertSame('Outstanding', $mapT2[12]);
+    }
+
     private function graduateCourse(string $code, ?string $description = null): Course
     {
         return Course::create([

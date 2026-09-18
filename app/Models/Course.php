@@ -12,11 +12,35 @@ class Course extends Model
     /** @use HasFactory<Factory<Course>> */
     use HasFactory;
 
+    /**
+     * Placeholder/fallback course codes that should not be displayed
+     * in public submission dropdowns (e.g. Order of Payment / Assessment forms).
+     *
+     * @var list<string>
+     */
+    public const PLACEHOLDER_CODES = [
+        'UNASSIGNED',
+        'UNDECIDED',
+        'N/A',
+        'NONE',
+    ];
+
     protected $fillable = [
         'course_code',
         'course_desc',
         'course_college',
     ];
+
+    /**
+     * Scope to exclude internal/placeholder courses from public-facing forms.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<Course>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<Course>
+     */
+    public function scopePublicAvailable($query)
+    {
+        return $query->whereNotIn('course_code', self::PLACEHOLDER_CODES);
+    }
 
     /** @return HasMany<GraduateLedger, $this> */
     public function graduateLedgers(): HasMany
@@ -190,6 +214,16 @@ class Course extends Model
             'EDD FILIPINO' => 'EdD. Filipino',
             'EDD TECHNOLOGY MANAGEMENT' => 'EdD. Technology Management',
             'EDD TM' => 'EdD. Technology Management',
+
+            // Placeholder / Unassigned aliases
+            'UNASSIGNED' => 'UNASSIGNED',
+            'UN ASSIGNED' => 'UNASSIGNED',
+            'UNDECIDED' => 'UNASSIGNED',
+            'NOT ASSIGNED' => 'UNASSIGNED',
+            'NO COURSE' => 'UNASSIGNED',
+            'NA' => 'UNASSIGNED',
+            'N A' => 'UNASSIGNED',
+            'NONE' => 'UNASSIGNED',
         ];
     }
 
@@ -261,6 +295,7 @@ class Course extends Model
             'MPM HRM' => 'Master in Public Management major in Human Resource Management',
             'MPM LGA' => 'Master in Public Management major in Local Governance and Administration',
             'MPM' => 'Master in Public Management',
+            'UNASSIGNED' => 'Unassigned / Pending Course Assignment',
         ];
     }
 

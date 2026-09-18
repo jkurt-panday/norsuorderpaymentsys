@@ -48,19 +48,14 @@ class FormInputController extends Controller
     {
         $memberships = Membership::query()->orderBy('member_desc')->get();
         $paymentOptions = PaymentDetailOption::query()->orderBy('payment_desc')->get();
-        $courses = Course::query()->orderBy('course_desc')->get(['id', 'course_desc']);
-        $academicTerms = AcademicTerm::query()
-            ->orderBy('school_year')
-            ->orderBy('semester')
-            ->get(['id', 'school_year', 'semester']);
-        $course = Courses::query()->orderBy('id')->get();
+        $courses = Course::query()->publicAvailable()->orderBy('course_desc')->get(['id', 'course_desc', 'course_code']);
+        $course = Courses::query()->publicAvailable()->orderBy('course_code')->get();
         $academicTerms = AcademicTerm::query()->orderBy('school_year', 'desc')->get();
 
         return Inertia::render('public/SubmitForm', [
             'memberships' => $memberships,
             'paymentOptions' => $paymentOptions,
             'courses' => $courses,
-            'academicTerms' => $academicTerms,
             'course' => $course,
             'academicTerms' => $academicTerms,
         ]);
