@@ -129,6 +129,7 @@ class CashierRequestController extends Controller
             // OR number is present, auto-post a payment row to their ledger.
             // The service is idempotent, so corrections (re-saves) are safe.
             $posting = $postingService->postGraduatePayment($lockedRequest->fresh('formInput'));
+            $lawPosting = $postingService->postLawPayment($lockedRequest->fresh('formInput'));
         });
 
         $base = $isCorrection
@@ -136,7 +137,7 @@ class CashierRequestController extends Controller
             : 'OR number saved. Status set to Paid.';
 
         return to_route('cashier.requests.show', $staffInput)
-            ->with('success', $base.$this->ledgerPostingSuffix($posting));
+            ->with('success', $base.$this->ledgerPostingSuffix($posting).$this->ledgerPostingSuffix($lawPosting, 'law'));
     }
 
     /**
@@ -144,22 +145,24 @@ class CashierRequestController extends Controller
      *
      * @param  array{posted: bool, reason: string|null}  $posting
      */
-    private function ledgerPostingSuffix(array $posting): string
+    private function ledgerPostingSuffix(array $posting, string $ledger = 'graduate'): string
     {
+        $label = $ledger === 'law' ? 'law school' : 'graduate';
+
         if ($posting['posted']) {
-            return ' Posted to the graduate ledger.';
+            return " Posted to the {$label} ledger.";
         }
 
         return match ($posting['reason']) {
-            'already_posted' => ' This OR was already posted to the ledger.',
-            'or_already_used' => ' Could not update ledger: that OR number is already in use.',
-            'student_not_found' => ' No matching ledger student — payment was not auto-posted.',
-            'no_ledger_context' => ' Matching student has no ledger records yet — payment was not auto-posted.',
-            'insert_failed' => ' Could not post to the graduate ledger (insert failed).',
+            'already_posted' => " This OR was already posted to the {$label} ledger.",
+            'or_already_used' => " Could not update {$label} ledger: that OR number is already in use.",
+            'student_not_found' => " No matching {$label} student — payment was not auto-posted.",
+            'no_ledger_context' => " Matching {$label} student has no ledger records yet — payment was not auto-posted.",
+            'insert_failed' => " Could not post to the {$label} ledger (insert failed).",
             'missing_or', 'no_form' => '',
             default => $posting['reason'] === null
                 ? ''
-                : ' (Ledger auto-post skipped: '.$posting['reason'].'.)',
+                : " ({$label} ledger auto-post skipped: {$posting['reason']}.)",
         };
     }
 }

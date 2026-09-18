@@ -791,7 +791,7 @@ export default function ResourceTable<T extends { id: number }>({
                             {resource.total} results
                         </p>
 
-                        {resource.last_page > 3 ? (
+                        {resource.last_page > 5 ? (
                             // ---- Page-jump dropdown (>3 pages) ----
                             // Copied from RequestTable: Prev / a popover with a
                             // type-to-jump input plus a scrollable page list /

@@ -13,6 +13,8 @@ import {
   Filter,
   Loader2,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import {
@@ -37,6 +39,11 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Pagination,
   PaginationContent,
@@ -719,110 +726,175 @@ return 90;
                   </div>
               </div>
 
-          {/* ---- Pagination Footer ---- */}
-          {paginationLinks.length > 3 && (
-            <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-[#CFE3FF] pt-4 pb-4 gap-4">
-              <div className="flex items-center gap-4 text-xs text-[#5C7A9E]">
-                <div>
-                  Page <span className="font-semibold text-[#0B3D91]">{currentPage}</span> of{' '}
-                  <span className="font-semibold text-[#0B3D91]">{lastPage}</span>
-                </div>
-                <form onSubmit={handleGoToPage} className="flex items-center gap-1.5">
-                  <span>Go to:</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={lastPage}
-                    value={goToPage}
-                    onChange={(e) => setGoToPage(e.target.value)}
-                    placeholder={String(currentPage)}
-                    className="w-14 h-7 rounded border border-[#CFE3FF] bg-white px-2 text-center text-xs text-[#0B3D91] font-medium focus:outline-none focus:ring-1 focus:ring-[#0B62E0]"
-                  />
-                  <button
-                    type="submit"
-                    className="h-7 px-2.5 rounded bg-[#EAF2FF] text-[#0B62E0] hover:bg-[#D4E5FF] text-xs font-medium transition-colors"
+{/* ---- Pagination Footer ---- */}
+      {paginationLinks.length > 3 && (
+        <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-[#CFE3FF] pt-4 pb-4 gap-4">
+          <div className="flex items-center gap-4 text-xs text-[#5C7A9E]">
+            <div>
+              Showing {currentPage} of {lastPage}
+            </div>
+            <span className="text-[#8AA8CC]">|</span>
+            <div>
+              <span className="font-semibold text-[#0B3D91]">{totalRecordCount}</span> total records
+            </div>
+          </div>
+
+          {lastPage > 5 ? (
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                disabled={currentPage <= 1}
+                onClick={() => {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('page', String(currentPage - 1));
+                  router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true });
+                }}
+                aria-label="Previous page"
+                className="h-8 w-8 shrink-0 rounded-md border-[#CFE3FF] text-[#0B3D91] text-sm hover:bg-[#F3F8FF]"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              <Popover>
+                <PopoverTrigger>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm font-medium text-[#0B3D91] transition-colors hover:bg-[#F3F8FF]"
                   >
-                    Go
-                  </button>
-                </form>
-              </div>
+                    Page {currentPage} of {lastPage}
+                  </span>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="center"
+                  className="w-48 space-y-2 p-2"
+                >
+                  <form onSubmit={handleGoToPage} className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min={1}
+                      max={lastPage}
+                      value={goToPage}
+                      onChange={(e) => setGoToPage(e.target.value)}
+                      placeholder={String(currentPage)}
+                      className="h-8 w-full min-w-0 rounded-md border border-[#CFE3FF] bg-white px-2 text-sm text-[#0B3D91] outline-none focus:ring-2 focus:ring-[#0B62E0]"
+                      autoFocus
+                    />
+                    <button
+                      type="submit"
+                      className="h-8 shrink-0 rounded-md bg-[#0F6FFF] px-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#0B5DDB]"
+                    >
+                      Go
+                    </button>
+                  </form>
 
-              <Pagination className="justify-end w-auto mx-0">
-                <PaginationContent className="gap-1">
-                  {paginationLinks.map((link, index) => {
-                    const isPrev = index === 0;
-                    const isNext = index === paginationLinks.length - 1;
-                    const isEllipsis = link.label === '...';
+                  <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-[#EAF2FF] pt-1.5">
+                    {Array.from({ length: lastPage }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        type="button"
+                        onClick={() => {
+                          const url = new URL(window.location.href);
+                          url.searchParams.set('page', String(page));
+                          router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true });
+                        }}
+                        className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                          page === currentPage
+                            ? 'bg-[#EAF2FF] font-medium text-[#0B62E0]'
+                            : 'text-[#334E68] hover:bg-[#F3F8FF]'
+                        }`}
+                      >
+                        Page {page}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
 
-                    if (isPrev) {
-                      return (
-                        <PaginationItem key={index}>
-                          <PaginationPrevious
-                            href={link.url ?? '#'}
-                            onClick={(e) => {
-                              e.preventDefault();
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                disabled={currentPage >= lastPage}
+                onClick={() => {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('page', String(currentPage + 1));
+                  router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true });
+                }}
+                aria-label="Next page"
+                className="h-8 w-8 shrink-0 rounded-md border-[#CFE3FF] text-[#0B3D91] text-sm hover:bg-[#F3F8FF]"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <Pagination className="justify-end w-auto mx-0">
+              <PaginationContent className="gap-1">
+                {paginationLinks.map((link, index) => {
+                  const isPrev = index === 0;
+                  const isNext = index === paginationLinks.length - 1;
 
-                              if (link.url) {
-                                router.get(link.url, {}, { preserveState: true, preserveScroll: true });
-                              }
-                            }}
-                            className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                          />
-                        </PaginationItem>
-                      );
-                    }
-
-                    if (isNext) {
-                      return (
-                        <PaginationItem key={index}>
-                          <PaginationNext
-                            href={link.url ?? '#'}
-                            onClick={(e) => {
-                              e.preventDefault();
-
-                              if (link.url) {
-                                router.get(link.url, {}, { preserveState: true, preserveScroll: true });
-                              }
-                            }}
-                            className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                          />
-                        </PaginationItem>
-                      );
-                    }
-
-                    if (isEllipsis) {
-                      return (
-                        <PaginationItem key={index}>
-                          <PaginationEllipsis />
-                        </PaginationItem>
-                      );
-                    }
-
+                  if (isPrev) {
                     return (
                       <PaginationItem key={index}>
-                        <PaginationLink
+                        <PaginationPrevious
                           href={link.url ?? '#'}
-                          isActive={link.active}
                           onClick={(e) => {
                             e.preventDefault();
-
                             if (link.url) {
                               router.get(link.url, {}, { preserveState: true, preserveScroll: true });
                             }
                           }}
-                          className={`cursor-pointer ${
-                            link.active ? 'bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]' : 'text-[#0B3D91]'
-                          }`}
-                        >
-                          {link.label}
-                        </PaginationLink>
+                          className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
                       </PaginationItem>
                     );
-                  })}
-                </PaginationContent>
-              </Pagination>
-            </CardFooter>
+                  }
+
+                  if (isNext) {
+                    return (
+                      <PaginationItem key={index}>
+                        <PaginationNext
+                          href={link.url ?? '#'}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (link.url) {
+                              router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+                            }
+                          }}
+                          className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                    );
+                  }
+
+                  return (
+                    <PaginationItem key={index}>
+                      <PaginationLink
+                        href={link.url ?? '#'}
+                        isActive={link.active}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (link.url) {
+                            router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+                          }
+                        }}
+                        className={`cursor-pointer ${
+                          link.active ? 'bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]' : 'text-[#0B3D91]'
+                        }`}
+                      >
+                        {link.label}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+              </PaginationContent>
+            </Pagination>
           )}
+        </CardFooter>
+      )}
         </Card>
 
       {/* Floating Bottom-Right Import Progress Bar & Toast */}

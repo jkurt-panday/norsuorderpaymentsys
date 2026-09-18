@@ -1,14 +1,46 @@
-import { Link, router, usePage } from '@inertiajs/react';
-import { Inbox } from 'lucide-react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
+import { Inbox, Mail, Send, Search as SearchIcon, X, CheckCircle2, Loader2, CheckSquare, Square } from 'lucide-react';
 import React, { useState, useCallback, useEffect } from 'react';
 import RequestTable, { StatusBadge } from '@/components/RequestTable';
 import type { ColumnDef, PaginatedData } from '@/components/RequestTable';
 import staff from '@/routes/staff';
 import { flashToast } from '@/utils/flashToast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface StaffInput {
     id: number;
-    status: 'pending' | 'approved' | 'cancelled' | 'unprocessed';
+    status: 'pending' | 'approved' | 'cancelled' | 'unprocessed' | 'processed' | 'paid';
+    emailed_at: string | null;
 }
 
 interface FormInput {
@@ -56,6 +88,21 @@ const STATUS_TO_COLOR: Record<string, string> = {
     unprocessed: 'grey',
 };
 
+const statusBadgeClass = (status: string) => {
+    switch (status) {
+        case 'processed':
+            return 'bg-green-50 text-green-700';
+        case 'paid':
+            return 'bg-green-100 text-green-800';
+        case 'cancelled':
+            return 'bg-rose-100 text-rose-800';
+        case 'pending':
+        case 'unprocessed':
+        default:
+            return 'bg-amber-100 text-amber-900';
+    }
+};
+
 const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('en-US', {
         timeZone: 'Asia/Manila',
@@ -90,6 +137,24 @@ const formatFullName = (row: FormInput) => {
         .join(' ');
 };
 
+/** Returns a human-readable "X days ago" / "X hours ago" / "X minutes ago" string. */
+const formatTimeAgo = (isoDate: string | null | undefined): string => {
+    if (!isoDate) return '';
+    const then = new Date(isoDate).getTime();
+    const now = Date.now();
+    const diffMs = now - then;
+    if (diffMs < 0) return 'just now';
+
+    const minutes = Math.floor(diffMs / 60000);
+    const hours = Math.floor(diffMs / 3600000);
+    const days = Math.floor(diffMs / 86400000);
+
+    if (days > 0) return `${days} day${days === 1 ? '' : 's'} ago`;
+    if (hours > 0) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    if (minutes > 0) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    return 'just now';
+};
+
 const ManageRequests: React.FC = () => {
     const { formInputs, filters, flash } = usePage()
         .props as unknown as PageProps;
@@ -113,20 +178,177 @@ const ManageRequests: React.FC = () => {
     const [dateFrom, setDateFrom] = useState(filters.date_from || '');
     const [dateTo, setDateTo] = useState(filters.date_to || '');
 
-    const applyFilters = useCallback(() => {
-        router.get(
-            staff.requests.index.url(),
+    // ---- Bulk Email Modal state ----
+    const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+    const [emailTarget, setEmailTarget] = useState<'specific' | 'all_paid' | 'all_processed' | 'all_pending' | 'all_cancelled'>('specific');
+    const [emailSearch, setEmailSearch] = useState('');
+    const [emailSubject, setEmailSubject] = useState('');
+    const [emailNote, setEmailNote] = useState('');
+    const [isSendingEmail, setIsSendingEmail] = useState(false);
+    // Selected IDs for the "specific person" checkbox list
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    // ALL form inputs (not paginated) fetched from the backend
+    const [allRecipients, setAllRecipients] = useState<FormInput[]>([]);
+    const [isLoadingRecipients, setIsLoadingRecipients] = useState(false);
+
+    // Fetch every form input (across all pages) when the modal opens.
+    // Uses a direct fetch (NOT Inertia router) so it doesn't touch the
+    // page's filter/search state — that keeps the parent table's
+    // Filter / Reset / status controls fully functional.
+    useEffect(() => {
+        if (!isEmailModalOpen) return;
+
+        let cancelled = false;
+        setIsLoadingRecipients(true);
+
+        fetch(staff.requests.emailRecipients.url(), {
+            headers: { Accept: 'application/json' },
+        })
+            .then(async (res) => {
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                return res.json();
+            })
+            .then((json) => {
+                if (cancelled) return;
+                setAllRecipients(json.data ?? []);
+                setIsLoadingRecipients(false);
+            })
+            .catch((err) => {
+                if (cancelled) return;
+                flashToast('error', 'Failed to load recipients.');
+                setIsLoadingRecipients(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isEmailModalOpen]);
+
+    // Build the list of all form inputs from the paginated resource (current page)
+    const allFormInputs: FormInput[] = formInputs.data ?? [];
+
+    // Filtered list for the "specific person" search — uses ALL recipients, not just current page
+    const filteredSpecific = emailSearch.trim() === ''
+        ? allRecipients
+        : allRecipients.filter((row) => {
+            const q = emailSearch.toLowerCase();
+            const fullName = formatFullName(row).toLowerCase();
+            return fullName.includes(q) || row.reference_number.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
+        });
+
+    // Eligible recipients (must have staff_input + email)
+    const eligibleRecipients = allRecipients.filter(
+        (row) => row.staff_input && row.email
+    );
+
+    // Toggle a single ID in the checkbox set
+    const toggleSelectId = (id: number) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
+
+    const bulkRecipients = emailTarget === 'specific'
+        ? []
+        : eligibleRecipients.filter((row) => {
+            const recipientStatus = row.staff_input?.status;
+
+            return (
+                (emailTarget === 'all_paid' && recipientStatus === 'paid') ||
+                (emailTarget === 'all_processed' && recipientStatus === 'processed') ||
+                (emailTarget === 'all_pending' && recipientStatus === 'pending') ||
+                (emailTarget === 'all_cancelled' && recipientStatus === 'cancelled')
+            );
+        });
+
+    const computeTargetIds = (): number[] => {
+        if (emailTarget === 'specific') {
+            return Array.from(selectedIds);
+        }
+
+        return bulkRecipients.map((r) => r.id);
+    };
+
+    const handleOpenEmailModal = () => {
+        setEmailSubject('');
+        setEmailNote('');
+        setEmailSearch('');
+        setEmailTarget('specific');
+        setSelectedIds(new Set());
+        setAllRecipients([]);
+        setIsEmailModalOpen(true);
+    };
+
+    const handleSendBulkEmail = () => {
+        const ids = computeTargetIds();
+        if (ids.length === 0) {
+            flashToast('error', 'No eligible recipients selected.');
+            return;
+        }
+
+        setIsSendingEmail(true);
+        router.post(
+            staff.requests.bulkEmailOp.url(),
             {
-                search: search || undefined,
-                status: status || undefined,
-                date_from: dateFrom || undefined,
-                date_to: dateTo || undefined,
+                form_input_ids: ids,
+                subject: emailSubject || undefined,
+                recipient_name: undefined,
+                note: emailNote || undefined,
             },
             {
-                preserveState: true,
                 preserveScroll: true,
+                preserveState: true,
+                only: ['formInputs'],
+                onSuccess: () => {
+                    flashToast('success', `Email sent to ${ids.length} recipient(s).`);
+                    setIsEmailModalOpen(false);
+                    setSelectedIds(new Set());
+                },
+                onError: () => {
+                    flashToast('error', 'Failed to send emails. Please try again.');
+                },
+                onFinish: () => {
+                    setIsSendingEmail(false);
+                },
             },
         );
+    };
+
+    const applyFilters = useCallback(() => {
+        const params = new URLSearchParams();
+
+        if (search) {
+            params.set('search', search);
+        }
+
+        if (status) {
+            params.set('status', status);
+        }
+
+        if (dateFrom) {
+            params.set('date_from', dateFrom);
+        }
+
+        if (dateTo) {
+            params.set('date_to', dateTo);
+        }
+
+        const qs = params.toString();
+        const url = qs ? `${staff.requests.index.url()}?${qs}` : staff.requests.index.url();
+
+        router.get(url, {}, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['formInputs'],
+        });
     }, [search, status, dateFrom, dateTo]);
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -145,12 +367,17 @@ const ManageRequests: React.FC = () => {
             {
                 preserveState: true,
                 preserveScroll: true,
+                only: ['formInputs'],
             },
         );
     };
 
     const handlePageChange = (url: string) => {
-        router.get(url, {}, { preserveState: true, preserveScroll: true });
+        router.get(url, {}, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['formInputs'],
+        });
     };
 
     const columns: ColumnDef<FormInput>[] = [
@@ -248,40 +475,302 @@ const ManageRequests: React.FC = () => {
     );
 
     return (
-        <RequestTable<FormInput>
-            title="Order of Payment Requests"
-            columns={columns}
-            resource={formInputs}
-            resourceKey="formInputs"
-            pollInterval={15000}
-            renderActions={renderActions}
-            actionsWidth="60px"
-            emptyIcon={Inbox}
-            emptyMessage="No requests found"
-            onPageChange={handlePageChange}
-            search={search}
-            onSearchChange={setSearch}
-            searchPlaceholder="Search by reference, name, or email"
-            status={status}
-            onStatusChange={setStatus}
-            statusOptions={[
-                { value: 'pending', label: 'Pending', color: 'orange' },
-                { value: 'processed', label: 'Processed', color: 'light-green' },
-                { value: 'paid', label: 'Paid', color: 'dark-green' },
-                { value: 'cancelled', label: 'Cancelled', color: 'red' },
-                {
-                    value: 'unprocessed',
-                    label: 'Unprocessed',
-                    color: 'grey',
-                },
-            ]}
-            dateFrom={dateFrom}
-            onDateFromChange={setDateFrom}
-            dateTo={dateTo}
-            onDateToChange={setDateTo}
-            onFilterSubmit={handleSubmit}
-            onFilterReset={handleReset}
-        />
+        <div>
+            <RequestTable<FormInput>
+                title="Order of Payment Requests"
+                columns={columns}
+                resource={formInputs}
+                resourceKey="formInputs"
+                pollInterval={15000}
+                renderActions={renderActions}
+                actionsWidth="60px"
+                emptyIcon={Inbox}
+                emptyMessage="No requests found"
+                onPageChange={handlePageChange}
+                search={search}
+                onSearchChange={setSearch}
+                searchPlaceholder="Search by reference, name, or email"
+                status={status}
+                onStatusChange={setStatus}
+                statusOptions={[
+                    { value: 'pending', label: 'Pending', color: 'orange' },
+                    { value: 'processed', label: 'Processed', color: 'light-green' },
+                    { value: 'paid', label: 'Paid', color: 'dark-green' },
+                    { value: 'cancelled', label: 'Cancelled', color: 'red' },
+                    {
+                        value: 'unprocessed',
+                        label: 'Unprocessed',
+                        color: 'grey',
+                    },
+                ]}
+                dateFrom={dateFrom}
+                onDateFromChange={setDateFrom}
+                dateTo={dateTo}
+                onDateToChange={setDateTo}
+                onFilterSubmit={handleSubmit}
+                onFilterReset={handleReset}
+                customToolbar={
+                    <Button
+                        type="button"
+                        onClick={handleOpenEmailModal}
+                        className="h-10 gap-2 rounded-lg bg-emerald-600 px-4 text-white hover:bg-emerald-700"
+                    >
+                        <Mail className="h-4 w-4" />
+                        <span>Send Email</span>
+                    </Button>
+                }
+            />
+
+            {/* ---- Bulk Email Modal ---- */}
+            <Dialog open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen}>
+                <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Mail className="h-5 w-5 text-emerald-600" />
+                            Send Order of Payment Emails
+                        </DialogTitle>
+                        <DialogDescription>
+                            Choose which recipients should receive their Order of Payment receipts.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 pb-2">
+                        {/* Recipient selection dropdown */}
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-slate-700">
+                                Whom do you want to send email to?
+                            </label>
+                            <Select
+                                value={emailTarget}
+                                onValueChange={(v) => {
+                                    if (v === 'specific' || v === 'all_paid' || v === 'all_processed' || v === 'all_pending' || v === 'all_cancelled') {
+                                        setEmailTarget(v);
+                                    }
+                                }}
+                            >
+                                <SelectTrigger className="h-10 w-full rounded-lg border-slate-200 bg-white shadow-sm">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="specific">Specific person</SelectItem>
+                                    <SelectItem value="all_paid">All paid</SelectItem>
+                                    <SelectItem value="all_processed">All processed</SelectItem>
+                                    <SelectItem value="all_pending">All pending</SelectItem>
+                                    <SelectItem value="all_cancelled">All cancelled</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Specific person search + checkbox list — only shown when 'specific' is chosen */}
+                        {emailTarget === 'specific' && (
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-medium text-slate-700">
+                                    Search recipient
+                                </label>
+                                <div className="relative">
+                                    <SearchIcon className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <Input
+                                        placeholder="Search by name, reference, or email"
+                                        value={emailSearch}
+                                        onChange={(e) => setEmailSearch(e.target.value)}
+                                        className="h-10 rounded-lg pl-9"
+                                    />
+                                </div>
+                                <div className="max-h-72 overflow-y-auto rounded-lg border border-slate-200">
+                                    {isLoadingRecipients ? (
+                                        <div className="flex items-center justify-center p-6">
+                                            <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                                        </div>
+                                    ) : filteredSpecific.length === 0 ? (
+                                        <div className="p-4 text-center text-sm text-slate-400">
+                                            No matching recipients
+                                        </div>
+                                    ) : (
+                                        filteredSpecific.map((row) => {
+                                            const eligible = row.staff_input && row.email;
+                                            const isSelected = selectedIds.has(row.id);
+                                            const timeAgo = formatTimeAgo(row.staff_input?.emailed_at);
+                                            return (
+                                                <div
+                                                    key={row.id}
+                                                    className={`flex items-start gap-2 border-b border-slate-100 px-3 py-2 text-sm last:border-0 ${
+                                                        eligible
+                                                            ? 'cursor-pointer bg-white hover:bg-slate-50'
+                                                            : 'bg-slate-50 opacity-60'
+                                                    }`}
+                                                    onClick={() => {
+                                                        if (eligible) {
+                                                            toggleSelectId(row.id);
+                                                        }
+                                                    }}
+                                                >
+                                                    <div className="mt-0.5 shrink-0">
+                                                        {eligible ? (
+                                                            isSelected ? (
+                                                                <CheckSquare className="h-4 w-4 text-emerald-600" />
+                                                            ) : (
+                                                                <Square className="h-4 w-4 text-slate-300" />
+                                                            )
+                                                        ) : (
+                                                            <Square className="h-4 w-4 text-slate-200" />
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="flex min-w-0 items-center gap-2">
+                                                            <div className="truncate font-medium text-slate-800">
+                                                                {formatFullName(row)}
+                                                            </div>
+                                                            <span
+                                                                className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                                                                    row.staff_input
+                                                                        ? statusBadgeClass(row.staff_input.status)
+                                                                        : 'bg-slate-100 text-slate-600'
+                                                                }`}
+                                                            >
+                                                                {row.staff_input?.status ?? 'Unprocessed'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="truncate text-xs text-slate-500">
+                                                            {row.reference_number} · {row.email}
+                                                        </div>
+                                                        {timeAgo ? (
+                                                            <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-emerald-600">
+                                                                <Mail className="h-3 w-3" />
+                                                                Sent email {timeAgo}
+                                                            </div>
+                                                        ) : eligible ? (
+                                                            <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-slate-400">
+                                                                <Mail className="h-3 w-3" />
+                                                                Not sent an email
+                                                            </div>
+                                                        ) : null}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                    <span className="font-semibold text-slate-700">{selectedIds.size}</span>{' '}
+                                    selected
+                                </div>
+                            </div>
+                        )}
+
+                        {emailTarget !== 'specific' && (
+                            <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-slate-800">
+                                        {bulkRecipients.length}
+                                    </span>{' '}
+                                    <span>recipient(s) will be emailed</span>
+                                </div>
+                                <div className="mt-2 max-h-72 overflow-y-auto rounded-md border border-slate-200 bg-white">
+                                    {bulkRecipients.length === 0 ? (
+                                        <div className="p-4 text-center text-slate-400">
+                                            No recipients found for this status
+                                        </div>
+                                    ) : (
+                                        bulkRecipients.map((row) => {
+                                            const timeAgo = formatTimeAgo(row.staff_input?.emailed_at);
+
+                                            return (
+                                                <div
+                                                    key={row.id}
+                                                    className="flex items-start gap-2 border-b border-slate-100 px-3 py-2 text-sm last:border-0"
+                                                >
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="flex min-w-0 items-center gap-2">
+                                                            <div className="truncate font-medium text-slate-800">
+                                                                {formatFullName(row)}
+                                                            </div>
+                                                            <span
+                                                                className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                                                                    row.staff_input
+                                                                        ? statusBadgeClass(row.staff_input.status)
+                                                                        : 'bg-slate-100 text-slate-600'
+                                                                }`}
+                                                            >
+                                                                {row.staff_input?.status ?? 'Unprocessed'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="truncate text-xs text-slate-500">
+                                                            {row.reference_number} · {row.email}
+                                                        </div>
+                                                        {timeAgo ? (
+                                                            <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-emerald-600">
+                                                                <Mail className="h-3 w-3" />
+                                                                Sent email {timeAgo}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-slate-400">
+                                                                <Mail className="h-3 w-3" />
+                                                                Not sent an email
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Subject + Note */}
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-slate-700">
+                                Subject (optional)
+                            </label>
+                            <Input
+                                placeholder="Leave blank for default subject"
+                                value={emailSubject}
+                                onChange={(e) => setEmailSubject(e.target.value)}
+                                className="h-10 rounded-lg"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-slate-700">
+                                Note (optional)
+                            </label>
+                            <Textarea
+                                placeholder="Optional message to include"
+                                value={emailNote}
+                                onChange={(e) => setEmailNote(e.target.value)}
+                                rows={3}
+                                className="rounded-lg"
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsEmailModalOpen(false)}
+                            disabled={isSendingEmail}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={handleSendBulkEmail}
+                            disabled={isSendingEmail || computeTargetIds().length === 0}
+                            className="gap-2 bg-emerald-600 hover:bg-emerald-700"
+                        >
+                            {isSendingEmail ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Send className="h-4 w-4" />
+                            )}
+                            <span>
+                                {isSendingEmail ? 'Sending...' : `Send (${computeTargetIds().length})`}
+                            </span>
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
     );
 };
 
