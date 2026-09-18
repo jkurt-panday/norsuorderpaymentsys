@@ -1,7 +1,7 @@
 import { Link, useForm, Head, usePage } from '@inertiajs/react';
 import { UploadCloud02 } from '@untitledui/icons';
 import { Mail, User, ClipboardList, FileText, Home, GraduationCap } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { FileUpload } from '@/components/application/file-upload/file-upload-base';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -89,6 +89,20 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
 
     // ? tabs: General (business/default) vs Student (adds Academic Details)
     const [activeTab, setActiveTab] = useState<FormTab>('student');
+
+    // ? keep position_or_designation in sync with the active tab
+    // ? keep position_or_designation in sync with the active tab
+    useEffect(() => {
+        if (activeTab === 'student') {
+            setData('position_or_designation', 'Student');
+        } else {
+            // reset back to the profile's saved value (or blank) when leaving student tab
+            setData(
+                'position_or_designation',
+                profile?.position_or_designation || '',
+            );
+        }
+    }, [activeTab]);
 
     // ? form handling
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -559,6 +573,7 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                             e.target.value,
                                                         )
                                                     }
+                                                    disabled={activeTab === 'student'}
                                                 />
                                                 {errors.position_or_designation && (
                                                     <p className="mt-1 text-sm text-red-500">
