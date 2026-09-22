@@ -561,13 +561,13 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                     </Combobox>
                                                     <Button
                                                             type="button"
-                                                            variant="outline"
+                                                            variant="default"
                                                             size="icon"
                                                             onClick={() => setAddModalOpen(true)}
                                                         title="Add new office / college"
-                                                        className='h-12 w-12'
+                                                        className='h-12 w-12 bg-blue-500 rounded-xl'
                                                         >
-                                                            <Plus className="h-10 w-10" />
+                                                            <Plus className="h-4 w-4" />
                                                     </Button>
                                                 </div>
                                                 
