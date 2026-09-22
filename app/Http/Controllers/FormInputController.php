@@ -9,6 +9,7 @@ use App\Models\AcademicTerm;
 use App\Models\PaymentDetailOption;
 use App\Models\UserProfile;
 use App\Models\Courses;
+use App\Models\CollegeOffice;
 use App\Services\FileUploadService;
 use App\Services\ReceiptPDFService;
 use App\Services\ReferenceNumberService;
@@ -48,12 +49,14 @@ class FormInputController extends Controller
         $paymentOptions = PaymentDetailOption::query()->orderBy('payment_desc')->get();
         $course = Courses::query()->orderBy('id')->get();
         $academicTerms = AcademicTerm::query()->orderBy('school_year', 'desc')->get();
+        $collegeOffices = CollegeOffice::query()->orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('public/SubmitForm', [
             'memberships' => $memberships,
             'paymentOptions' => $paymentOptions,
             'course' => $course,
             'academicTerms' => $academicTerms,
+            'collegeOffices' => $collegeOffices,
         ]);
     }
 
