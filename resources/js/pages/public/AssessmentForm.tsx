@@ -38,8 +38,8 @@ export const SCHOOL_YEAR_OPTIONS = (() => {
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth(); // 0 = Jan, 7 = August
 
-    // If before August (month < 7), academic start year is Year - 1
-    const startAcademicYear = currentMonth >= 7 ? currentYear : currentYear - 1;
+    // If before May (month < 5), academic start year is Year - 1
+    const startAcademicYear = currentMonth >= 5 ? currentYear : currentYear - 1;
 
     const years: string[] = [];
 

@@ -1,7 +1,8 @@
 import { Link, useForm, Head, usePage } from '@inertiajs/react';
 import { UploadCloud02 } from '@untitledui/icons';
-import { Mail, User, ClipboardList, FileText, Home, GraduationCap } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { Mail, User, ClipboardList, FileText, Home, GraduationCap, Plus } from 'lucide-react';
+import AddCollegeOfficeModal from '@/components/AddCollegeOfficeModal';
+import { useState, useMemo, useEffect } from 'react';
 import { FileUpload } from '@/components/application/file-upload/file-upload-base';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -39,8 +40,8 @@ export const SCHOOL_YEAR_OPTIONS = (() => {
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth(); // 0 = Jan, 7 = August
 
-    // If before August (month < 7), academic start year is Year - 1
-    const startAcademicYear = currentMonth >= 7 ? currentYear : currentYear - 1;
+    // If before May (month < 5), academic start year is Year - 1
+    const startAcademicYear = currentMonth >= 5 ? currentYear : currentYear - 1;
 
     const years: string[] = [];
 
@@ -75,20 +76,44 @@ interface AcademicTerm {
     semester: string;
 }
 
+interface CollegeOffice {
+    id: number | string;
+    name: string;
+}
+
 interface Props {
     memberships: Membership[];
     paymentOptions: PaymentOption[];
     course?: Course[];
     academicTerms?: AcademicTerm[];
+    collegeOffices?: CollegeOffice[]; // ? new
 }
 
-export default function SubmitForm({ memberships, paymentOptions, course = [], academicTerms = [], }: Props) {
+export default function SubmitForm({ memberships, paymentOptions, course = [], academicTerms = [], collegeOffices = [] }: Props) {
     const { auth } = usePage<any>().props;
     const user = auth?.user;
     const profile = user?.profile;
 
     // ? tabs: General (business/default) vs Student (adds Academic Details)
     const [activeTab, setActiveTab] = useState<FormTab>('student');
+
+    // 
+    const [collegeOfficesList, setCollegeOfficesList] = useState(collegeOffices ?? []);
+    const [addModalOpen, setAddModalOpen] = useState(false);
+
+    // ? keep position_or_designation in sync with the active tab
+    // ? keep position_or_designation in sync with the active tab
+    useEffect(() => {
+        if (activeTab === 'student') {
+            setData('position_or_designation', 'Student');
+        } else {
+            // reset back to the profile's saved value (or blank) when leaving student tab
+            setData(
+                'position_or_designation',
+                profile?.position_or_designation || '',
+            );
+        }
+    }, [activeTab]);
 
     // ? form handling
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -509,29 +534,52 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                 <FieldDescription>
                                                     * N/A if not applicable
                                                 </FieldDescription>
-                                                <Input
-                                                    className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
-                                                    id="input-field-off-coll"
-                                                    type="text"
-                                                    placeholder="College of Arts and Sciences"
-                                                    value={
-                                                        data.office_or_college
-                                                    }
-                                                    onChange={(e) =>
-                                                        setData(
-                                                            'office_or_college',
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                />
-                                                {errors.office_or_college && (
-                                                    <p className="mt-1 text-sm text-red-500">
-                                                        {
-                                                            errors.office_or_college
-                                                        }
-                                                    </p>
-                                                )}
+                                                
+                                                <div className='grid grid-cols-[88%_10%] gap-2'>
+                                                    <Combobox
+                                                        items={collegeOfficesList}
+                                                        value={data.office_or_college}
+                                                        onValueChange={(value) => {
+                                                            setData('office_or_college', value);
+                                                        }}
+                                                    >
+                                                        <ComboboxInput
+                                                            placeholder="Select office / college"
+                                                            className={`${comboboxInputClass} w-full`}
+                                                            showClear={!!data.office_or_college}
+                                                        />
+                                                        <ComboboxContent>
+                                                            <ComboboxEmpty>No items found.</ComboboxEmpty>
+                                                            <ComboboxList>
+                                                                {(item) => (
+                                                                    <ComboboxItem key={item.id} value={item.name}>
+                                                                        {item.name}
+                                                                    </ComboboxItem>
+                                                                )}
+                                                            </ComboboxList>
+                                                        </ComboboxContent>
+                                                    </Combobox>
+                                                    <Button
+                                                            type="button"
+                                                            variant="default"
+                                                            size="icon"
+                                                            onClick={() => setAddModalOpen(true)}
+                                                        title="Add new office / college"
+                                                        className='h-12 w-12 bg-blue-500 rounded-xl'
+                                                        >
+                                                            <Plus className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                                
                                             </Field>
+                                            <AddCollegeOfficeModal
+                                                open={addModalOpen}
+                                                onOpenChange={setAddModalOpen}
+                                                onCreated={(newItem) => {
+                                                    setCollegeOfficesList((prev) => [...prev, newItem]);
+                                                    setData('office_or_college', newItem.name);
+                                                }}
+                                            />
                                         </div>
                                         <div className="space-y-2">
                                             {/* position / designation */}
@@ -559,6 +607,7 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                             e.target.value,
                                                         )
                                                     }
+                                                    disabled={activeTab === 'student'}
                                                 />
                                                 {errors.position_or_designation && (
                                                     <p className="mt-1 text-sm text-red-500">
@@ -1189,7 +1238,6 @@ return null;
                                         <Button
                                             variant="outline"
                                             type="button"
-                                            asChild
                                             className="cursor-pointer rounded-xl border-slate-300 font-semibold text-slate-700 hover:bg-slate-100"
                                         >
                                             <Link

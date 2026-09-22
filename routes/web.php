@@ -17,6 +17,7 @@ use App\Http\Controllers\StaffInputController;
 use App\Http\Controllers\SupportingDocumentController;
 use App\Http\Controllers\UACSController;
 use App\Http\Controllers\AssessmentController;
+use App\Http\Controllers\CollegeOfficeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -29,6 +30,9 @@ Route::name('public.')->prefix('public')->group(function () {
     // Route::post('/submit', [FormInputController::class, 'store'])->name('submit.store');
     Route::get('/opform', [FormInputController::class, 'create']);
     Route::post('/opform', [FormInputController::class, 'store']);
+
+    Route::post('/college-offices', [CollegeOfficeController::class, 'store'])
+           ->name('college-offices.store');
 
     Route::get('/success/{reference_number}', [FormInputController::class, 'success'])->name('success');
     Route::get('/success/{reference_number}/print', [FormInputController::class, 'printReceipt'])->name('print');

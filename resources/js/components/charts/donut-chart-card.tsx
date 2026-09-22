@@ -91,7 +91,7 @@ export function DonutChartCard({
                                 data={chartData}
                                 dataKey="value"
                                 nameKey="key"
-                                innerRadius="65%"
+                                innerRadius="50%"
                                 outerRadius="90%"
                                 strokeWidth={5}
                             >
@@ -100,12 +100,12 @@ export function DonutChartCard({
                                     if (viewBox && "cx" in viewBox && "cy" in viewBox) {
                                       return (
                                         <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle">
-                                          <tspan x={viewBox.cx} y={(viewBox.cy ?? 0) - 25} className="fill-foreground text-2xl font-bold">
+                                          {/*<tspan x={viewBox.cx} y={(viewBox.cy ?? 0) - 25} className="fill-foreground text-2xl font-bold">
                                             {total.toLocaleString()}
                                           </tspan>
                                           <tspan x={viewBox.cx} y={(viewBox.cy ?? 0) + 1} className="fill-muted-foreground text-xs">
                                             {centerLabel}
-                                          </tspan>
+                                          </tspan>*/}
                                         </text>
                                       )
                                     }
