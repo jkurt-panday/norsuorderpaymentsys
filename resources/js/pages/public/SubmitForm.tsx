@@ -1,6 +1,7 @@
 import { Link, useForm, Head, usePage } from '@inertiajs/react';
 import { UploadCloud02 } from '@untitledui/icons';
-import { Mail, User, ClipboardList, FileText, Home, GraduationCap } from 'lucide-react';
+import { Mail, User, ClipboardList, FileText, Home, GraduationCap, Plus } from 'lucide-react';
+import AddCollegeOfficeModal from '@/components/AddCollegeOfficeModal';
 import { useState, useMemo, useEffect } from 'react';
 import { FileUpload } from '@/components/application/file-upload/file-upload-base';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -75,20 +76,30 @@ interface AcademicTerm {
     semester: string;
 }
 
+interface CollegeOffice {
+    id: number | string;
+    name: string;
+}
+
 interface Props {
     memberships: Membership[];
     paymentOptions: PaymentOption[];
     course?: Course[];
     academicTerms?: AcademicTerm[];
+    collegeOffices?: CollegeOffice[]; // ? new
 }
 
-export default function SubmitForm({ memberships, paymentOptions, course = [], academicTerms = [], }: Props) {
+export default function SubmitForm({ memberships, paymentOptions, course = [], academicTerms = [], collegeOffices = [] }: Props) {
     const { auth } = usePage<any>().props;
     const user = auth?.user;
     const profile = user?.profile;
 
     // ? tabs: General (business/default) vs Student (adds Academic Details)
     const [activeTab, setActiveTab] = useState<FormTab>('student');
+
+    // 
+    const [collegeOfficesList, setCollegeOfficesList] = useState(collegeOffices ?? []);
+    const [addModalOpen, setAddModalOpen] = useState(false);
 
     // ? keep position_or_designation in sync with the active tab
     // ? keep position_or_designation in sync with the active tab
@@ -523,29 +534,52 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                 <FieldDescription>
                                                     * N/A if not applicable
                                                 </FieldDescription>
-                                                <Input
-                                                    className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
-                                                    id="input-field-off-coll"
-                                                    type="text"
-                                                    placeholder="College of Arts and Sciences"
-                                                    value={
-                                                        data.office_or_college
-                                                    }
-                                                    onChange={(e) =>
-                                                        setData(
-                                                            'office_or_college',
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                />
-                                                {errors.office_or_college && (
-                                                    <p className="mt-1 text-sm text-red-500">
-                                                        {
-                                                            errors.office_or_college
-                                                        }
-                                                    </p>
-                                                )}
+                                                
+                                                <div className='grid grid-cols-[88%_10%] gap-2'>
+                                                    <Combobox
+                                                        items={collegeOfficesList}
+                                                        value={data.office_or_college}
+                                                        onValueChange={(value) => {
+                                                            setData('office_or_college', value);
+                                                        }}
+                                                    >
+                                                        <ComboboxInput
+                                                            placeholder="Select office / college"
+                                                            className={`${comboboxInputClass} w-full`}
+                                                            showClear={!!data.office_or_college}
+                                                        />
+                                                        <ComboboxContent>
+                                                            <ComboboxEmpty>No items found.</ComboboxEmpty>
+                                                            <ComboboxList>
+                                                                {(item) => (
+                                                                    <ComboboxItem key={item.id} value={item.name}>
+                                                                        {item.name}
+                                                                    </ComboboxItem>
+                                                                )}
+                                                            </ComboboxList>
+                                                        </ComboboxContent>
+                                                    </Combobox>
+                                                    <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="icon"
+                                                            onClick={() => setAddModalOpen(true)}
+                                                        title="Add new office / college"
+                                                        className='h-12 w-12'
+                                                        >
+                                                            <Plus className="h-10 w-10" />
+                                                    </Button>
+                                                </div>
+                                                
                                             </Field>
+                                            <AddCollegeOfficeModal
+                                                open={addModalOpen}
+                                                onOpenChange={setAddModalOpen}
+                                                onCreated={(newItem) => {
+                                                    setCollegeOfficesList((prev) => [...prev, newItem]);
+                                                    setData('office_or_college', newItem.name);
+                                                }}
+                                            />
                                         </div>
                                         <div className="space-y-2">
                                             {/* position / designation */}
