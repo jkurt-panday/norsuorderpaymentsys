@@ -11,6 +11,7 @@ use App\Models\PaymentDetailOption;
 use App\Models\Student;
 use App\Models\UserProfile;
 use App\Models\Courses;
+use App\Models\CollegeOffice;
 use App\Services\FileUploadService;
 use App\Services\ReceiptPDFService;
 use App\Services\ReferenceNumberService;
@@ -51,6 +52,7 @@ class FormInputController extends Controller
         $courses = Course::query()->publicAvailable()->orderBy('course_desc')->get(['id', 'course_desc', 'course_code']);
         $course = Courses::query()->publicAvailable()->orderBy('course_code')->get();
         $academicTerms = AcademicTerm::query()->orderBy('school_year', 'desc')->get();
+        $collegeOffices = CollegeOffice::query()->orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('public/SubmitForm', [
             'memberships' => $memberships,
@@ -58,6 +60,7 @@ class FormInputController extends Controller
             'courses' => $courses,
             'course' => $course,
             'academicTerms' => $academicTerms,
+            'collegeOffices' => $collegeOffices,
         ]);
     }
 

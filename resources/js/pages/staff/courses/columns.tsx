@@ -23,7 +23,7 @@ function CourseActionsCell({ course }: { course: CourseType }) {
 
     const handleDelete = async () => {
         const ok = await confirm({
-            title: `Delete "${course.course_code}"?`,
+            title: `Delete "${course.course_code} - ${course.course_desc}"?`,
             description: 'This action cannot be undone.',
             confirmLabel: 'Delete',
             variant: 'destructive',
