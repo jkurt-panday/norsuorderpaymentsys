@@ -157,13 +157,11 @@ class CashierRequestController extends Controller
         }
 
         return match ($posting['reason']) {
-            'already_posted' => " This OR was already posted to the {$label} ledger.",
-            'or_already_used' => " Could not update {$label} ledger: that OR number is already in use.",
             'student_not_found' => " No matching {$label} student — payment was not auto-posted.",
             'no_ledger_context' => " Matching {$label} student has no ledger records yet — payment was not auto-posted.",
             'no_course' => ' No course was selected and the ledger destination could not be determined — payment was not auto-posted.',
             'insert_failed' => " Could not post to the {$label} ledger (insert failed).",
-            'missing_or', 'no_form' => '',
+            'missing_or', 'no_form', 'not_required' => '',
             default => $posting['reason'] === null
                 ? ''
                 : " ({$label} ledger auto-post skipped: {$posting['reason']}.)",

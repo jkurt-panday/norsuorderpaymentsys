@@ -175,6 +175,7 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
         Route::put('/{formInput}/details',   [StaffInputController::class, 'updateDetails'])->name('updateDetails');
         Route::put('/{formInput}/student',   [StaffInputController::class, 'linkStudent'])->name('linkStudent');
         Route::post('/{formInput}/student',  [StaffInputController::class, 'createAndLinkStudent'])->name('createAndLinkStudent');
+        Route::put('/{formInput}/academic-term', [StaffInputController::class, 'assignAcademicTerm'])->name('assignAcademicTerm');
         Route::get('/{staffInput}/edit',     [StaffInputController::class, 'edit'])->name('edit');
         Route::put('/{staffInput}',          [StaffInputController::class, 'update'])->name('update');
     });

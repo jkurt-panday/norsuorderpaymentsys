@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AssignOpAcademicTermRequest;
 use App\Http\Requests\CreateAndLinkOpStudentRequest;
 use App\Http\Requests\LinkOpStudentRequest;
 use App\Http\Requests\SearchOpStudentsRequest;
 use App\Http\Requests\StaffProcessingRequest;
 use App\Mail\OrderOfPaymentMail;
+use App\Models\AcademicTerm;
 use App\Models\ActivityLog;
 use App\Models\BankAccountInfo;
 use App\Models\FormInput;
@@ -23,6 +25,7 @@ use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -331,6 +334,13 @@ class StaffInputController extends Controller
             DB::beginTransaction();
 
             $formInput = FormInput::query()->findOrFail($request->integer('form_input_id'));
+            $formInput->loadMissing('course');
+
+            if ($this->isLedgerCourse($formInput) && $formInput->academic_term === null) {
+                throw new \RuntimeException(
+                    'Select an academic term before processing a Graduate or Law request.',
+                );
+            }
 
             if ($formInput->staffInput()->exists()) {
                 throw new \Exception('This request has already been processed.');
@@ -492,9 +502,51 @@ class StaffInputController extends Controller
 
     public function linkStudent(LinkOpStudentRequest $request, FormInput $formInput): RedirectResponse
     {
-        $this->ensureLedgerStudentMatchIsApplicable($formInput);
+        $this->ensureLedgerMatchingIsApplicable($formInput);
 
-        $formInput->update(['student_num' => $request->integer('student_id')]);
+        DB::transaction(function () use ($request, $formInput): void {
+            $lockedForm = FormInput::query()->lockForUpdate()->findOrFail($formInput->id);
+            $student = Student::query()
+                ->lockForUpdate()
+                ->findOrFail($request->integer('student_id'));
+            $studentUpdates = [];
+
+            if (blank($student->student_number) && filled($lockedForm->submitted_student_number)) {
+                $studentNumber = preg_replace(
+                    '/\D/',
+                    '',
+                    (string) $lockedForm->submitted_student_number,
+                ) ?? '';
+
+                if ($studentNumber !== '') {
+                    $numberOwner = Student::query()
+                        ->whereKeyNot($student->id)
+                        ->whereRaw(
+                            "REPLACE(REPLACE(student_number, '-', ''), ' ', '') = ?",
+                            [$studentNumber],
+                        )
+                        ->first();
+
+                    if ($numberOwner !== null) {
+                        throw ValidationException::withMessages([
+                            'student_id' => 'That student number already belongs to another student. Select that student instead.',
+                        ]);
+                    }
+
+                    $studentUpdates['student_number'] = $studentNumber;
+                }
+            }
+
+            if (blank($student->email) && filled($lockedForm->email)) {
+                $studentUpdates['email'] = trim((string) $lockedForm->email);
+            }
+
+            if ($studentUpdates !== []) {
+                $student->update($studentUpdates);
+            }
+
+            $lockedForm->update(['student_num' => $student->id]);
+        });
 
         return back()->with('success', 'Student matched to this Order of Payment.');
     }
@@ -503,7 +555,7 @@ class StaffInputController extends Controller
         CreateAndLinkOpStudentRequest $request,
         FormInput $formInput,
     ): RedirectResponse {
-        $this->ensureLedgerStudentMatchIsApplicable($formInput);
+        $this->ensureLedgerMatchingIsApplicable($formInput);
 
         $validated = $request->validated();
         $studentNumber = preg_replace('/\D/', '', (string) $validated['student_number']) ?? '';
@@ -546,6 +598,19 @@ class StaffInputController extends Controller
         return back()->with('success', 'Student created and matched to this Order of Payment.');
     }
 
+    public function assignAcademicTerm(
+        AssignOpAcademicTermRequest $request,
+        FormInput $formInput,
+    ): RedirectResponse {
+        $this->ensureLedgerMatchingIsApplicable($formInput);
+
+        $formInput->update([
+            'academic_term' => $request->integer('academic_term'),
+        ]);
+
+        return back()->with('success', 'Academic term assigned to this Order of Payment.');
+    }
+
     /**
      * Display staff processing details
      */
@@ -573,17 +638,30 @@ class StaffInputController extends Controller
             'bankAccounts' => BankAccountInfo::orderBy('bank_name')->get(),
             'uacsList' => UACS::orderBy('object_code')->get(),
             'paymentOptions' => PaymentDetailOption::orderBy('payment_desc')->get(),
+            'academicTerms' => AcademicTerm::query()
+                ->orderByDesc('school_year')
+                ->orderBy('semester')
+                ->get(['id', 'school_year', 'semester']),
         ]);
     }
 
-    private function ensureLedgerStudentMatchIsApplicable(FormInput $formInput): void
+    private function ensureLedgerMatchingIsApplicable(FormInput $formInput): void
     {
         $formInput->loadMissing('course');
 
         abort_unless(
-            in_array($formInput->course?->course_college, ['Graduate School', 'School of Law'], true),
+            $this->isLedgerCourse($formInput),
             422,
-            'Student matching is only available for Graduate School and School of Law payments.',
+            'Ledger matching is only available for Graduate School and School of Law payments.',
+        );
+    }
+
+    private function isLedgerCourse(FormInput $formInput): bool
+    {
+        return in_array(
+            $formInput->course?->course_college,
+            ['Graduate School', 'School of Law'],
+            true,
         );
     }
 

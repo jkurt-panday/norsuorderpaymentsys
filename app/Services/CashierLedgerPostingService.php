@@ -28,8 +28,7 @@ class CashierLedgerPostingService
 {
     /**
      * Route a payment to exactly one ledger using the OP's selected course.
-     * Older OPs without a course are routed only when ledger history identifies
-     * one unambiguous destination.
+     * Course-less, General, and Undergraduate OPs require no ledger posting.
      *
      * @return array{posted: bool, reason: string|null, ledger: string|null}
      */
@@ -42,26 +41,24 @@ class CashierLedgerPostingService
             return ['posted' => false, 'reason' => 'no_form', 'ledger' => null];
         }
 
-        $student = $this->resolveStudent($formInput);
-        if ($student === null) {
-            return ['posted' => false, 'reason' => 'student_not_found', 'ledger' => null];
-        }
-
         $college = $formInput->course?->course_college;
 
-        if ($college === null) {
-            $hasGraduateHistory = GraduateLedger::query()->where('student_id', $student->id)->exists();
-            $hasLawHistory = LawSchoolLedger::query()->where('student_id', $student->id)->exists();
+        if (! in_array($college, ['Graduate School', 'School of Law'], true)) {
+            return ['posted' => false, 'reason' => 'not_required', 'ledger' => null];
+        }
 
-            if ($hasGraduateHistory !== $hasLawHistory) {
-                $college = $hasGraduateHistory ? 'Graduate School' : 'School of Law';
-            }
+        $student = $this->resolveStudent($formInput);
+        if ($student === null) {
+            return [
+                'posted' => false,
+                'reason' => 'student_not_found',
+                'ledger' => $college === 'Graduate School' ? 'graduate' : 'law',
+            ];
         }
 
         $result = match ($college) {
             'Graduate School' => $this->postGraduatePayment($staffInput),
             'School of Law' => $this->postLawPayment($staffInput),
-            default => ['posted' => false, 'reason' => 'no_course'],
         };
 
         return [
@@ -69,7 +66,6 @@ class CashierLedgerPostingService
             'ledger' => match ($college) {
                 'Graduate School' => 'graduate',
                 'School of Law' => 'law',
-                default => null,
             },
         ];
     }
@@ -120,18 +116,6 @@ class CashierLedgerPostingService
                 : null;
 
             if ($existing !== null) {
-                // Guard: don't let a correction steal an OR number that
-                // belongs to a *different* ledger row.
-                $collision = GraduateLedger::query()
-                    ->where('reference_number', $orNo)
-                    ->where('entry_type', 'payment')
-                    ->whereKeyNot($existing->id)
-                    ->exists();
-
-                if ($collision) {
-                    return ['posted' => false, 'reason' => 'or_already_used'];
-                }
-
                 $existing->update([
                     'student_id' => $student->id,
                     'course_id' => $context['course_id'],
@@ -142,16 +126,6 @@ class CashierLedgerPostingService
                 ]);
 
                 return ['posted' => true, 'reason' => null];
-            }
-
-            // Fresh path: idempotency on the OR number itself.
-            $alreadyPosted = GraduateLedger::query()
-                ->where('reference_number', $orNo)
-                ->where('entry_type', 'payment')
-                ->exists();
-
-            if ($alreadyPosted) {
-                return ['posted' => false, 'reason' => 'already_posted'];
             }
 
             GraduateLedger::create([
@@ -241,16 +215,6 @@ class CashierLedgerPostingService
                 : null;
 
             if ($existing !== null) {
-                $collision = LawSchoolLedger::query()
-                    ->where('reference_number', $orNo)
-                    ->where('entry_type', 'payment')
-                    ->whereKeyNot($existing->id)
-                    ->exists();
-
-                if ($collision) {
-                    return ['posted' => false, 'reason' => 'or_already_used'];
-                }
-
                 $existing->update([
                     'student_id' => $student->id,
                     'course_id' => $context['course_id'],
@@ -261,16 +225,6 @@ class CashierLedgerPostingService
                 ]);
 
                 return ['posted' => true, 'reason' => null];
-            }
-
-            // Fresh path: idempotency on the OR number itself.
-            $alreadyPosted = LawSchoolLedger::query()
-                ->where('reference_number', $orNo)
-                ->where('entry_type', 'payment')
-                ->exists();
-
-            if ($alreadyPosted) {
-                return ['posted' => false, 'reason' => 'already_posted'];
             }
 
             LawSchoolLedger::create([
@@ -407,6 +361,12 @@ class CashierLedgerPostingService
         }
 
         return Student::query()->find($formInput->student_num);
+    }
+
+    /** Build the stable marker used to identify the ledger row for one OP. */
+    private function opRemark(FormInput $formInput): string
+    {
+        return 'OP:'.$formInput->getKey();
     }
 
     private function normalizeDate(mixed $value): ?string
