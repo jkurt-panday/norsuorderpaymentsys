@@ -1,10 +1,14 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { Inbox, Mail, Send, Search as SearchIcon, X, CheckCircle2, Loader2, CheckSquare, Square } from 'lucide-react';
-import React, { useState, useCallback, useEffect } from 'react';
+import { Inbox, Mail, Send, Search as SearchIcon, X, CheckCircle2, Loader2, CheckSquare, Square, ChevronDown, UserX } from 'lucide-react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import RequestTable, { StatusBadge } from '@/components/RequestTable';
 import type { ColumnDef, PaginatedData } from '@/components/RequestTable';
 import staff from '@/routes/staff';
 import { flashToast } from '@/utils/flashToast';
+
+// Direct URL for email job status (bypasses Wayfinder parser issue)
+const EMAIL_JOB_STATUS_URL = '/staff/requests/email-job-status';
+const BULK_EMAIL_OP_URL = '/staff/requests/bulk-email-op';
 import {
   Dialog,
   DialogContent,
@@ -191,6 +195,42 @@ const ManageRequests: React.FC = () => {
     const [allRecipients, setAllRecipients] = useState<FormInput[]>([]);
     const [isLoadingRecipients, setIsLoadingRecipients] = useState(false);
 
+    // ---- Email Progress Tracking state ----
+    interface EmailProgress {
+        form_input_id: number;
+        status: 'sent' | 'pending';
+        emailed_at: string | null;
+    }
+    const [emailFormInputIds, setEmailFormInputIds] = useState<number[]>([]);
+    const [emailProgress, setEmailProgress] = useState<EmailProgress[]>([]);
+    const [isPollingProgress, setIsPollingProgress] = useState(false);
+    const isPollingRef = useRef(false); // Ref for immediate polling state
+    const [showProgressModal, setShowProgressModal] = useState(false);
+    const [pollingStartTime, setPollingStartTime] = useState<number | null>(null);
+    const [pollTimeoutId, setPollTimeoutId] = useState<ReturnType<typeof setTimeout> | null>(null);
+    const [showSelectedPopover, setShowSelectedPopover] = useState(false);
+    const [selectedPopoverSearch, setSelectedPopoverSearch] = useState('');
+    const popoverRef = useRef<HTMLDivElement>(null);
+    const MAX_POLLING_DURATION = 10 * 60 * 1000; // 10 minutes
+
+    // Close popover when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+                setShowSelectedPopover(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Cleanup polling timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (pollTimeoutId) clearTimeout(pollTimeoutId);
+        };
+    }, [pollTimeoutId]);
+
     // Fetch every form input (across all pages) when the modal opens.
     // Uses a direct fetch (NOT Inertia router) so it doesn't touch the
     // page's filter/search state — that keeps the parent table's
@@ -230,13 +270,16 @@ const ManageRequests: React.FC = () => {
     const allFormInputs: FormInput[] = formInputs.data ?? [];
 
     // Filtered list for the "specific person" search — uses ALL recipients, not just current page
-    const filteredSpecific = emailSearch.trim() === ''
-        ? allRecipients
-        : allRecipients.filter((row) => {
-            const q = emailSearch.toLowerCase();
-            const fullName = formatFullName(row).toLowerCase();
-            return fullName.includes(q) || row.reference_number.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
-        });
+    const filteredSpecific = useMemo(() => 
+        emailSearch.trim() === ''
+            ? allRecipients
+            : allRecipients.filter((row) => {
+                const q = emailSearch.toLowerCase();
+                const fullName = formatFullName(row).toLowerCase();
+                return fullName.includes(q) || row.reference_number.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
+            }), 
+        [allRecipients, emailSearch]
+    );
 
     // Eligible recipients (must have staff_input + email)
     const eligibleRecipients = allRecipients.filter(
@@ -256,25 +299,60 @@ const ManageRequests: React.FC = () => {
         });
     };
 
-    const bulkRecipients = emailTarget === 'specific'
-        ? []
-        : eligibleRecipients.filter((row) => {
-            const recipientStatus = row.staff_input?.status;
+    const bulkRecipients = useMemo(() => 
+        emailTarget === 'specific'
+            ? []
+            : eligibleRecipients.filter((row) => {
+                const recipientStatus = row.staff_input?.status;
 
-            return (
-                (emailTarget === 'all_paid' && recipientStatus === 'paid') ||
-                (emailTarget === 'all_processed' && recipientStatus === 'processed') ||
-                (emailTarget === 'all_pending' && recipientStatus === 'pending') ||
-                (emailTarget === 'all_cancelled' && recipientStatus === 'cancelled')
-            );
-        });
+                return (
+                    (emailTarget === 'all_paid' && recipientStatus === 'paid') ||
+                    (emailTarget === 'all_processed' && recipientStatus === 'processed') ||
+                    (emailTarget === 'all_pending' && recipientStatus === 'pending') ||
+                    (emailTarget === 'all_cancelled' && recipientStatus === 'cancelled')
+                );
+            }), 
+        [emailTarget, eligibleRecipients]
+    );
+
+    // Filter bulk recipients by search query
+    const filteredBulkRecipients = useMemo(() => 
+        emailSearch.trim() === ''
+            ? bulkRecipients
+            : bulkRecipients.filter((row) => {
+                const q = emailSearch.toLowerCase();
+                const fullName = formatFullName(row).toLowerCase();
+                return fullName.includes(q) || row.reference_number.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
+            }), 
+        [bulkRecipients, emailSearch]
+    );
+
+    // Auto-select all bulk recipients when bulk mode changes
+    const prevBulkTargetRef = useRef<string | null>(null);
+    useEffect(() => {
+        const isBulkMode = emailTarget !== 'specific';
+        const wasBulkMode = prevBulkTargetRef.current !== null && prevBulkTargetRef.current !== 'specific';
+        
+        // Only run when emailTarget actually changes, not when bulkRecipients recalculates
+        if (prevBulkTargetRef.current !== emailTarget) {
+            if (isBulkMode) {
+                if (wasBulkMode && prevBulkTargetRef.current !== emailTarget) {
+                    // Switching between bulk modes - clear selections first
+                    setSelectedIds(new Set(bulkRecipients.map(r => r.id)));
+                } else if (!wasBulkMode) {
+                    // Coming from specific mode - select all
+                    setSelectedIds(new Set(bulkRecipients.map(r => r.id)));
+                }
+            } else {
+                // Switching from bulk mode to specific - clear all selections
+                setSelectedIds(new Set());
+            }
+        }
+        prevBulkTargetRef.current = emailTarget;
+    }, [emailTarget]); // Only depend on emailTarget, not bulkRecipients
 
     const computeTargetIds = (): number[] => {
-        if (emailTarget === 'specific') {
-            return Array.from(selectedIds);
-        }
-
-        return bulkRecipients.map((r) => r.id);
+        return Array.from(selectedIds);
     };
 
     const handleOpenEmailModal = () => {
@@ -287,7 +365,7 @@ const ManageRequests: React.FC = () => {
         setIsEmailModalOpen(true);
     };
 
-    const handleSendBulkEmail = () => {
+    const handleSendBulkEmail = async () => {
         const ids = computeTargetIds();
         if (ids.length === 0) {
             flashToast('error', 'No eligible recipients selected.');
@@ -295,31 +373,132 @@ const ManageRequests: React.FC = () => {
         }
 
         setIsSendingEmail(true);
-        router.post(
-            staff.requests.bulkEmailOp.url(),
-            {
-                form_input_ids: ids,
-                subject: emailSubject || undefined,
-                recipient_name: undefined,
-                note: emailNote || undefined,
-            },
-            {
-                preserveScroll: true,
-                preserveState: true,
-                only: ['formInputs'],
-                onSuccess: () => {
-                    flashToast('success', `Email sent to ${ids.length} recipient(s).`);
-                    setIsEmailModalOpen(false);
-                    setSelectedIds(new Set());
+
+        try {
+            const res = await fetch(BULK_EMAIL_OP_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
                 },
-                onError: () => {
-                    flashToast('error', 'Failed to send emails. Please try again.');
+                body: JSON.stringify({
+                    form_input_ids: ids,
+                    subject: emailSubject || undefined,
+                    recipient_name: undefined,
+                    note: emailNote || undefined,
+                }),
+            });
+
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+
+            const data = await res.json();
+
+            if (data.success && data.form_input_ids?.length > 0) {
+                setEmailFormInputIds(data.form_input_ids);
+                setEmailProgress(data.form_input_ids.map((id: number) => ({
+                    form_input_id: id,
+                    status: 'pending' as const,
+                    emailed_at: null,
+                })));
+                setIsEmailModalOpen(false);
+                setSelectedIds(new Set());
+                setShowProgressModal(true);
+                startProgressPolling(data.form_input_ids);
+                flashToast('success', data.message ?? `Email jobs queued for ${ids.length} recipient(s).`);
+            } else {
+                flashToast('error', data.message ?? 'Failed to queue emails.');
+            }
+        } catch (err) {
+            flashToast('error', 'Failed to send emails. Please try again.');
+        } finally {
+            setIsSendingEmail(false);
+        }
+    };
+
+    const startProgressPolling = (ids: number[]) => {
+        isPollingRef.current = true;
+        setIsPollingProgress(true);
+        setPollingStartTime(Date.now());
+        // Use the passed IDs immediately, don't wait for state
+        pollProgressWithIds(ids);
+    };
+
+    const pollProgressWithIds = async (ids: number[]) => {
+        if (!isPollingRef.current || ids.length === 0) {
+            return;
+        }
+
+        // Check for timeout (10 minutes)
+        if (pollingStartTime && Date.now() - pollingStartTime > MAX_POLLING_DURATION) {
+            isPollingRef.current = false;
+            setIsPollingProgress(false);
+            const pendingCount = emailProgress.filter(p => p.status === 'pending').length;
+            flashToast('warning', `Polling timed out. ${pendingCount} email(s) still pending. You can retry them.`);
+            return;
+        }
+
+        try {
+            const res = await fetch(EMAIL_JOB_STATUS_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
                 },
-                onFinish: () => {
-                    setIsSendingEmail(false);
-                },
-            },
-        );
+                body: JSON.stringify({ form_input_ids: ids }),
+            });
+
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+
+            const data = await res.json();
+
+            if (data.jobs) {
+                // Force new array reference to trigger React re-render
+                setEmailProgress(prev => {
+                    const newProgress = data.jobs.map((job: EmailProgress) => ({
+                        form_input_id: job.form_input_id,
+                        status: job.status,
+                        emailed_at: job.emailed_at,
+                    }));
+                    // Only update if actually changed
+                    if (JSON.stringify(newProgress) !== JSON.stringify(prev)) {
+                        return newProgress;
+                    }
+                    return prev;
+                });
+            }
+
+            if (data.completed) {
+                isPollingRef.current = false;
+                setIsPollingProgress(false);
+                if (pollTimeoutId) clearTimeout(pollTimeoutId);
+                flashToast('success', `All emails processed: ${data.summary.sent} sent, ${data.summary.failed} failed.`);
+            } else {
+                // Poll every 5 seconds (passive auto-refresh)
+                const timeoutId = setTimeout(() => pollProgressWithIds(ids), 5000);
+                setPollTimeoutId(timeoutId);
+            }
+        } catch (err) {
+            // Retry after 10 seconds on error
+            const timeoutId = setTimeout(() => pollProgressWithIds(ids), 10000);
+            setPollTimeoutId(timeoutId);
+        }
+    };
+
+    const stopProgressPolling = () => {
+        isPollingRef.current = false;
+        setIsPollingProgress(false);
+        if (pollTimeoutId) clearTimeout(pollTimeoutId);
+    };
+
+    const closeProgressModal = () => {
+        setShowProgressModal(false);
+        // Don't stop polling - let it continue in background
     };
 
     const applyFilters = useCallback(() => {
@@ -481,7 +660,6 @@ const ManageRequests: React.FC = () => {
                 columns={columns}
                 resource={formInputs}
                 resourceKey="formInputs"
-                pollInterval={15000}
                 renderActions={renderActions}
                 actionsWidth="60px"
                 emptyIcon={Inbox}
@@ -523,7 +701,7 @@ const ManageRequests: React.FC = () => {
 
             {/* ---- Bulk Email Modal ---- */}
             <Dialog open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen}>
-                <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+                <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Mail className="h-5 w-5 text-emerald-600" />
@@ -562,21 +740,98 @@ const ManageRequests: React.FC = () => {
                         </div>
 
                         {/* Specific person search + checkbox list — only shown when 'specific' is chosen */}
-                        {emailTarget === 'specific' && (
-                            <div className="space-y-1.5">
-                                <label className="text-sm font-medium text-slate-700">
-                                    Search recipient
-                                </label>
-                                <div className="relative">
-                                    <SearchIcon className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                    <Input
-                                        placeholder="Search by name, reference, or email"
-                                        value={emailSearch}
-                                        onChange={(e) => setEmailSearch(e.target.value)}
-                                        className="h-10 rounded-lg pl-9"
-                                    />
+{emailTarget === 'specific' && (
+                            <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+                                <div className="flex items-center gap-3 mb-2 flex-wrap">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-slate-800">
+                                            {filteredSpecific.length}
+                                        </span>{''}
+                                        <span>recipient(s)</span>
+                                    </div>
+                                    <div className="relative flex-1 max-w-md">
+                                        <SearchIcon className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                        <Input
+                                            placeholder="Search by name, reference, or email"
+                                            value={emailSearch}
+                                            onChange={(e) => setEmailSearch(e.target.value)}
+                                            className="h-9 pl-9 text-sm rounded-lg"
+                                        />
+                                    </div>
+                                    {selectedIds.size > 0 && (
+                                        <div className="relative">
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setShowSelectedPopover(!showSelectedPopover)}
+                                                className="h-9 px-3 gap-1.5 shrink-0"
+                                            >
+                                                <UserX className="h-4 w-4" />
+                                                <span className="hidden sm:inline">{selectedIds.size} selected</span>
+                                                <ChevronDown className="h-3.5 w-3.5" />
+                                            </Button>
+                                            {showSelectedPopover && (
+                                                <div
+                                                    ref={popoverRef}
+                                                    className="absolute right-0 top-full mt-1.5 w-80 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-10"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <div className="px-3 py-2 border-b border-slate-100 flex items-center justify-between">
+                                                        <span className="text-sm font-medium text-slate-800">Selected Recipients</span>
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => setSelectedIds(new Set())}
+                                                            className="text-xs text-rose-600 hover:text-rose-700"
+                                                        >
+                                                            Clear All
+                                                        </Button>
+                                                    </div>
+                                                    <div className="px-3 py-2 border-b border-slate-100">
+                                                        <Input
+                                                            placeholder="Search selected..."
+                                                            value={selectedPopoverSearch}
+                                                            onChange={(e) => setSelectedPopoverSearch(e.target.value)}
+                                                            className="h-9 text-sm"
+                                                            autoFocus
+                                                        />
+                                                    </div>
+                                                    <div className="max-h-48 overflow-y-auto">
+                                                        {Array.from(selectedIds)
+                                                            .map((id) => allRecipients.find(r => r.id === id))
+                                                            .filter((row): row is typeof row & { id: number } => row !== undefined)
+                                                            .filter((row) => {
+                                                                if (!selectedPopoverSearch.trim()) return true;
+                                                                const q = selectedPopoverSearch.toLowerCase();
+                                                                const fullName = formatFullName(row).toLowerCase();
+                                                                return fullName.includes(q) || row.reference_number.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
+                                                            })
+                                                            .map((row) => (
+                                                                <div
+                                                                    key={row.id}
+                                                                    className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 cursor-pointer"
+                                                                    onClick={() => toggleSelectId(row.id)}
+                                                                >
+                                                                    <UserX className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <div className="text-sm font-medium text-slate-800 truncate">
+                                                                            {formatFullName(row)}
+                                                                        </div>
+                                                                        <div className="text-xs text-slate-500 truncate">
+                                                                            {row.reference_number} · {row.email}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="max-h-72 overflow-y-auto rounded-lg border border-slate-200">
+                                <div className="max-h-72 overflow-y-auto rounded-md border border-slate-200 bg-white">
                                     {isLoadingRecipients ? (
                                         <div className="flex items-center justify-center p-6">
                                             <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
@@ -650,35 +905,144 @@ const ManageRequests: React.FC = () => {
                                         })
                                     )}
                                 </div>
-                                <div className="text-xs text-slate-500">
-                                    <span className="font-semibold text-slate-700">{selectedIds.size}</span>{' '}
-                                    selected
-                                </div>
                             </div>
                         )}
 
                         {emailTarget !== 'specific' && (
                             <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-                                <div className="flex items-center gap-2">
-                                    <span className="font-semibold text-slate-800">
-                                        {bulkRecipients.length}
-                                    </span>{' '}
-                                    <span>recipient(s) will be emailed</span>
+                                <div className="flex items-center justify-between gap-2 mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-slate-800">
+                                            {bulkRecipients.length}
+                                        </span>{' '}
+                                        <span>recipient(s)</span>
+                                        <Input
+                                            placeholder="Search recipients..."
+                                            value={emailSearch}
+                                            onChange={(e) => setEmailSearch(e.target.value)}
+                                            className="h-9 w-64 text-sm rounded-lg"
+                                        />
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-1.5">
+                                        {selectedIds.size > 0 && (
+                                            <div className="relative">
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setShowSelectedPopover(!showSelectedPopover)}
+                                                    className="h-9 px-3 gap-1.5"
+                                                >
+                                                    <UserX className="h-4 w-4" />
+                                                    <span>{selectedIds.size} selected</span>
+                                                    <ChevronDown className="h-3.5 w-3.5" />
+                                                </Button>
+                                                {showSelectedPopover && (
+                                                    <div
+                                                        ref={popoverRef}
+                                                        className="absolute right-0 top-full mt-1.5 w-80 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-10"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        <div className="px-3 py-2 border-b border-slate-100 flex items-center justify-between">
+                                                            <span className="text-sm font-medium text-slate-800">Selected Recipients</span>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => setSelectedIds(new Set())}
+                                                                className="text-xs text-rose-600 hover:text-rose-700"
+                                                            >
+                                                                Clear All
+                                                            </Button>
+                                                        </div>
+                                                        <div className="px-3 py-2 border-b border-slate-100">
+                                                            <Input
+                                                                placeholder="Search selected..."
+                                                                value={selectedPopoverSearch}
+                                                                onChange={(e) => setSelectedPopoverSearch(e.target.value)}
+                                                                className="h-9 text-sm"
+                                                                autoFocus
+                                                            />
+                                                        </div>
+                                                        <div className="max-h-48 overflow-y-auto">
+                                                            {Array.from(selectedIds)
+                                                                .map((id) => allRecipients.find(r => r.id === id))
+                                                                .filter((row): row is typeof row & { id: number } => row !== undefined)
+                                                                .filter((row) => {
+                                                                    if (!selectedPopoverSearch.trim()) return true;
+                                                                    const q = selectedPopoverSearch.toLowerCase();
+                                                                    const fullName = formatFullName(row).toLowerCase();
+                                                                    return fullName.includes(q) || row.reference_number.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
+                                                                })
+                                                                .map((row) => (
+                                                                    <div
+                                                                        key={row.id}
+                                                                        className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 cursor-pointer"
+                                                                        onClick={() => toggleSelectId(row.id)}
+                                                                    >
+                                                                        <UserX className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                                                                        <div className="min-w-0 flex-1">
+                                                                            <div className="text-sm font-medium text-slate-800 truncate">
+                                                                                {formatFullName(row)}
+                                                                            </div>
+                                                                            <div className="text-xs text-slate-500 truncate">
+                                                                                {row.reference_number} · {row.email}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                        {selectedIds.size === filteredBulkRecipients.length ? (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setSelectedIds(new Set())}
+                                                className="h-9 px-3"
+                                            >
+                                                Unselect All
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setSelectedIds(new Set(filteredBulkRecipients.map(r => r.id)))}
+                                                className="h-9 px-3"
+                                            >
+                                                Select All
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="mt-2 max-h-72 overflow-y-auto rounded-md border border-slate-200 bg-white">
-                                    {bulkRecipients.length === 0 ? (
+                                    {filteredBulkRecipients.length === 0 ? (
                                         <div className="p-4 text-center text-slate-400">
-                                            No recipients found for this status
+                                            No matching recipients found
                                         </div>
                                     ) : (
-                                        bulkRecipients.map((row) => {
+                                        filteredBulkRecipients.map((row) => {
                                             const timeAgo = formatTimeAgo(row.staff_input?.emailed_at);
+                                            const isSelected = selectedIds.has(row.id);
 
                                             return (
                                                 <div
                                                     key={row.id}
-                                                    className="flex items-start gap-2 border-b border-slate-100 px-3 py-2 text-sm last:border-0"
+                                                    className="flex items-start gap-2 border-b border-slate-100 px-3 py-2 text-sm last:border-0 cursor-pointer hover:bg-slate-50"
+                                                    onClick={() => toggleSelectId(row.id)}
                                                 >
+                                                    <div className="mt-0.5 shrink-0">
+                                                        {isSelected ? (
+                                                            <CheckSquare className="h-4 w-4 text-emerald-600" />
+                                                        ) : (
+                                                            <Square className="h-4 w-4 text-slate-300" />
+                                                        )}
+                                                    </div>
                                                     <div className="min-w-0 flex-1">
                                                         <div className="flex min-w-0 items-center gap-2">
                                                             <div className="truncate font-medium text-slate-800">
@@ -713,6 +1077,10 @@ const ManageRequests: React.FC = () => {
                                             );
                                         })
                                     )}
+                                </div>
+                                <div className="mt-2 text-xs text-slate-500">
+                                    <span className="font-semibold text-slate-700">{selectedIds.size}</span>{' '}
+                                    selected
                                 </div>
                             </div>
                         )}
@@ -767,6 +1135,143 @@ const ManageRequests: React.FC = () => {
                                 {isSendingEmail ? 'Sending...' : `Send (${computeTargetIds().length})`}
                             </span>
                         </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* ---- Email Progress Modal ---- */}
+            <Dialog open={showProgressModal} onOpenChange={setShowProgressModal}>
+                <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-hidden">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Send className="h-5 w-5 text-emerald-600" />
+                            Email Sending Progress
+                        </DialogTitle>
+                        <DialogDescription>
+                            Emails are being sent in the background. You can close this window and continue working.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 pb-2">
+                        {/* Progress Summary */}
+                        <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-lg">
+                            <div className="flex-1 text-center">
+                                <div className="text-2xl font-bold text-emerald-600">
+                                    {emailProgress.filter(p => p.status === 'sent').length}
+                                </div>
+                                <div className="text-xs text-slate-500">Sent</div>
+                            </div>
+                            <div className="w-px h-10 bg-slate-200" />
+                            <div className="flex-1 text-center">
+                                <div className="text-2xl font-bold text-slate-600">
+                                    {emailProgress.filter(p => p.status === 'pending').length}
+                                </div>
+                                <div className="text-xs text-slate-500">Pending</div>
+                            </div>
+                            <div className="w-px h-10 bg-slate-200" />
+                            <div className="flex-1 text-center">
+                                <div className="text-2xl font-bold text-blue-600">
+                                    {emailProgress.length}
+                                </div>
+                                <div className="text-xs text-slate-500">Total</div>
+                            </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                            <div
+                                className="h-full bg-emerald-600 transition-all duration-300"
+                                style={{
+                                    width: `${emailProgress.length > 0
+                                        ? (emailProgress.filter(p => p.status === 'sent').length / emailProgress.length) * 100
+                                        : 0}%`,
+                                }}
+                            />
+                        </div>
+                        <p className="text-sm text-slate-500 text-center flex items-center justify-center gap-2">
+                            {isPollingProgress 
+                                ? (pollingStartTime && Date.now() - pollingStartTime > MAX_POLLING_DURATION * 0.8
+                                    ? 'Almost timed out...'
+                                    : <span>Processing... <Loader2 className="h-4 w-4 animate-spin text-emerald-600" /> <span className="text-xs text-slate-400">(auto-refresh every 5s)</span></span>) 
+                                : 'Completed'}
+                        </p>
+
+                        {/* Job List - Scrollable */}
+                        <div className="max-h-96 overflow-y-auto rounded-lg border border-slate-200">
+                            {emailProgress.length === 0 ? (
+                                <div className="p-4 text-center text-sm text-slate-400">
+                                    No jobs to display
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-slate-100">
+                                    {emailProgress.map((progress, index) => {
+                                        const recipient = allRecipients.find(r => r.id === progress.form_input_id);
+                                        const statusColors = {
+                                            sent: 'bg-emerald-100 text-emerald-700',
+                                            pending: 'bg-amber-100 text-amber-700',
+                                        };
+                                        const statusIcons = {
+                                            sent: <CheckCircle2 className="h-3.5 w-3.5" />,
+                                            pending: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
+                                        };
+
+                                        return (
+                                            <div
+                                                key={`${progress.form_input_id}-${index}`}
+                                                className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50"
+                                            >
+                                                <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${statusColors[progress.status]}`}>
+                                                    {statusIcons[progress.status]}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 truncate">
+                                                        <span className="font-medium text-slate-800 truncate">
+                                                            {recipient ? formatFullName(recipient) : `ID: ${progress.form_input_id}`}
+                                                        </span>
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[progress.status]}`}>
+                                                            {progress.status.charAt(0).toUpperCase() + progress.status.slice(1)}
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-xs text-slate-500 truncate">
+                                                        {recipient ? `${recipient.reference_number} · ${recipient.email}` : `ID: ${progress.form_input_id}`}
+                                                    </div>
+                                                    {progress.emailed_at && (
+                                                        <div className="text-xs text-emerald-600">
+                                                            Sent: {formatDate(progress.emailed_at)}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={closeProgressModal}
+                        >
+                            <X className="h-4 w-4 mr-1.5" />
+                            Close (continue in background)
+                        </Button>
+                        {!isPollingProgress && (
+                            <Button
+                                type="button"
+                                onClick={() => {
+                                    setShowProgressModal(false);
+                                    setEmailFormInputIds([]);
+                                    setEmailProgress([]);
+                                }}
+                                className="gap-2 bg-emerald-600 hover:bg-emerald-700"
+                            >
+                                <CheckCircle2 className="h-4 w-4" />
+                                Done
+                            </Button>
+                        )}
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

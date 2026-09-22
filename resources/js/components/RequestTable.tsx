@@ -128,7 +128,7 @@ interface RequestTableProps<T> {
     pollInterval?: number;
     resourceKey?: string;
     highlightDuration?: number;
-    /** Optional React node rendered at the top-right of the filter bar (e.g. a "Send Email" button). */
+    /** Optional React node rendered beside the total in the table header. */
     customToolbar?: React.ReactNode;
 }
 
@@ -378,7 +378,7 @@ export default function RequestTable<T extends { id: number | string }>({
 
     return (
         <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-slate-50 p-3 sm:p-6">
-            {(title || resource.total !== undefined) && (
+            {(title || resource.total !== undefined || customToolbar) && (
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     {title && (
                         <h2
@@ -388,10 +388,10 @@ export default function RequestTable<T extends { id: number | string }>({
                             {title}
                         </h2>
                     )}
-                    {resource.total !== undefined && (
-                        <span className="text-xs text-slate-500 sm:text-sm">
-                            {resource.total.toLocaleString()} total
-                        </span>
+                    {customToolbar && (
+                        <div className="flex items-center">
+                            {customToolbar}
+                        </div>
                     )}
                 </div>
             )}
@@ -545,11 +545,6 @@ export default function RequestTable<T extends { id: number | string }>({
                                 >
                                     Reset
                                 </Button>
-                                {customToolbar && (
-                                    <div className="flex items-center">
-                                        {customToolbar}
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </form>
