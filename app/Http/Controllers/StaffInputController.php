@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StaffProcessingRequest;
+use App\Jobs\SendOrderOfPaymentEmail;
 use App\Mail\OrderOfPaymentMail;
 use App\Models\ActivityLog;
 use App\Models\BankAccountInfo;
@@ -323,7 +324,7 @@ class StaffInputController extends Controller
     public function store(StaffProcessingRequest $request): RedirectResponse
     {
         try {
-            DB::beginTransaction();
+            db()->beginTransaction();
 
             $formInput = FormInput::query()->findOrFail($request->integer('form_input_id'));
 
@@ -339,13 +340,13 @@ class StaffInputController extends Controller
                 ]
             ));
 
-            DB::commit();
+            db()->commit();
 
             return redirect()->route('staff.requests.show', $formInput)
                 ->with('success', 'Request processed successfully.');
 
         } catch (\Exception $e) {
-            DB::rollBack();
+            db()->rollBack();
             Log::error('Staff processing failed: '.$e->getMessage());
 
             return back()
@@ -359,7 +360,7 @@ class StaffInputController extends Controller
         $validated = $request->validated();
 
         try {
-            DB::beginTransaction();
+            db()->beginTransaction();
 
             $status = $validated['status'];
             $staffInput->update([
@@ -371,13 +372,13 @@ class StaffInputController extends Controller
                 'purpose' => $validated['purpose'] ?? null,
             ]);
 
-            DB::commit();
+            db()->commit();
 
             return redirect()->route('staff.requests.show', $staffInput->formInput)
                 ->with('success', 'Processing updated successfully! Current status: '.ucfirst($staffInput->status));
 
         } catch (\Exception $e) {
-            DB::rollBack();
+            db()->rollBack();
             Log::error('Staff processing update failed: '.$e->getMessage(), [
                 'staff_input_id' => $staffInput->id,
                 'request_data' => $request->all(),
@@ -428,7 +429,7 @@ class StaffInputController extends Controller
         unset($validated['new_payment_option']);
 
         try {
-            DB::beginTransaction();
+            db()->beginTransaction();
             if ($formInput->staffInput) {
                 $formInput->staffInput->update(['purpose' => $validated['purpose'] ?? null]);
             }
@@ -437,13 +438,13 @@ class StaffInputController extends Controller
 
             $formInput->update($validated);
 
-            DB::commit();
+            db()->commit();
 
             return redirect()->route('staff.requests.show', $formInput)
                 ->with('success', 'Request details updated successfully.');
 
         } catch (\Exception $e) {
-            DB::rollBack();
+            db()->rollBack();
             Log::error("Failed to update FormInput details ID {$formInput->id}: ".$e->getMessage());
 
             return back()->withInput()->with('error', 'Failed to update request details: '.$e->getMessage());
@@ -527,78 +528,106 @@ class StaffInputController extends Controller
 
         $formInput->staffInput()->update(['emailed_at' => now()]);
 
-        return back()->with('success', 'Order of Payment emailed successfully.');
+return back()->with('success', 'Order of Payment emailed successfully.');
     }
 
     /**
-     * Send Order of Payment emails in bulk to selected requests.
-     *
-     * Accepts an array of form_input IDs plus optional subject / note.
-     * Only requests that have a staff_input record (i.e. processed/paid/
-     * cancelled) are eligible — unprocessed ones are skipped with a warning.
-     */
-    public function bulkEmailOp(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'form_input_ids'   => ['required', 'array', 'min:1'],
-            'form_input_ids.*' => ['integer', 'exists:form_inputs,id'],
-            'subject'          => 'nullable|string|max:255',
-            'recipient_name'   => 'nullable|string|max:255',
-            'note'             => 'nullable|string|max:2000',
-        ]);
+ * Send Order of Payment emails in bulk to selected requests.
+ *
+ * Accepts an array of form_input IDs plus optional subject / note.
+ * Only requests that have a staff_input record (i.e. processed/paid/
+ * cancelled) are eligible — unprocessed ones are skipped with a warning.
+ */
+public function bulkEmailOp(Request $request): \Illuminate\Http\JsonResponse
+{
+    $validated = $request->validate([
+        'form_input_ids'   => ['required', 'array', 'min:1'],
+        'form_input_ids.*' => ['integer', 'exists:form_inputs,id'],
+        'subject'          => 'nullable|string|max:255',
+        'recipient_name'   => 'nullable|string|max:255',
+        'note'             => 'nullable|string|max:2000',
+    ]);
 
-        $formInputs = FormInput::with([
-            'staffInput.bankAccount',
-            'staffInput.uacs',
-            'staffInput.referenceDocument',
-        ])->whereIn('id', $validated['form_input_ids'])->get();
+    $requestedIds = array_values(array_unique(array_map('intval', $validated['form_input_ids'])));
 
-        $copyLabels = self::OP_COPY_LABELS;
-        $sent = 0;
-        $skipped = 0;
+    $eligibleIds = FormInput::query()
+        ->whereKey($requestedIds)
+        ->whereNotNull('email')
+        ->whereHas('staffInput')
+        ->pluck('id')
+        ->all();
 
-        foreach ($formInputs as $formInput) {
-            if (! $formInput->staffInput) {
-                $skipped++;
+    $skipped = count($requestedIds) - count($eligibleIds);
 
-                continue;
-            }
-
-            if (! $formInput->email) {
-                $skipped++;
-
-                continue;
-            }
-
-            $portraitPdf = Pdf::loadView('pdf.op-a6', compact('formInput', 'copyLabels'))
-                ->setPaper('a5', 'portrait');
-
-            $landscapePdf = Pdf::loadView('pdf.op-landscape', compact('formInput', 'copyLabels'))
-                ->setPaper('legal', 'landscape');
-
-            \Mail::to($formInput->email)->send(
-                new OrderOfPaymentMail(
-                    $formInput,
-                    $portraitPdf->output(),
-                    $landscapePdf->output(),
-                    $validated['subject'] ?? null,
-                    $validated['recipient_name'] ?? null,
-                    $validated['note'] ?? null,
-                )
-            );
-
-            $formInput->staffInput()->update(['emailed_at' => now()]);
-
-            $sent++;
-        }
-
-        $message = "{$sent} email(s) sent successfully.";
-        if ($skipped > 0) {
-            $message .= " {$skipped} request(s) were skipped (no email or not yet processed).";
-        }
-
-        return back()->with('success', $message);
+    $dispatchedIds = [];
+    foreach ($eligibleIds as $formInputId) {
+        SendOrderOfPaymentEmail::dispatch(
+            $formInputId,
+            $validated['subject'] ?? null,
+            $validated['recipient_name'] ?? null,
+            $validated['note'] ?? null,
+        );
+        $dispatchedIds[] = $formInputId;
     }
+
+    return response()->json([
+        'success' => true,
+        'message' => count($eligibleIds)." email job(s) queued successfully.".($skipped > 0 ? " {$skipped} request(s) were skipped (no email or not yet processed)." : ''),
+        'form_input_ids' => $dispatchedIds,
+        'total' => count($eligibleIds),
+    ]);
+}
+
+/**
+ * Check status of bulk email jobs by form_input_id.
+ */
+public function emailJobStatus(Request $request): \Illuminate\Http\JsonResponse
+{
+    $request->validate([
+        'form_input_ids' => ['required', 'array'],
+        'form_input_ids.*' => ['integer', 'exists:form_inputs,id'],
+    ]);
+
+    $formInputIds = $request->input('form_input_ids');
+
+    // Check staff_input for emailed_at
+    $emailedStatus = DB::table('staff_inputs')
+        ->whereIn('form_input_id', $formInputIds)
+        ->pluck('emailed_at', 'form_input_id');
+
+    $results = [];
+    $sentCount = 0;
+    $pendingCount = 0;
+
+    foreach ($formInputIds as $formInputId) {
+        $emailedAt = $emailedStatus[$formInputId] ?? null;
+
+        if ($emailedAt) {
+            $status = 'sent';
+            $sentCount++;
+        } else {
+            $status = 'pending';
+            $pendingCount++;
+        }
+
+        $results[] = [
+            'form_input_id' => $formInputId,
+            'status' => $status,
+            'emailed_at' => $emailedAt,
+        ];
+    }
+
+    return response()->json([
+        'jobs' => $results,
+        'summary' => [
+            'total' => count($formInputIds),
+            'sent' => $sentCount,
+            'failed' => 0,
+            'pending' => $pendingCount,
+        ],
+        'completed' => $pendingCount === 0,
+    ]);
+}
 
     /**
      * Return ALL form inputs (not paginated) for the bulk-email modal.
