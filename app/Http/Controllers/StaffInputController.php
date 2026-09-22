@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CreateAndLinkOpStudentRequest;
+use App\Http\Requests\LinkOpStudentRequest;
+use App\Http\Requests\SearchOpStudentsRequest;
 use App\Http\Requests\StaffProcessingRequest;
 use App\Jobs\SendOrderOfPaymentEmail;
 use App\Mail\OrderOfPaymentMail;
@@ -10,6 +13,7 @@ use App\Models\BankAccountInfo;
 use App\Models\FormInput;
 use App\Models\PaymentDetailOption;
 use App\Models\StaffInput;
+use App\Models\Student;
 use App\Models\UACS;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -17,6 +21,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
@@ -451,6 +456,97 @@ class StaffInputController extends Controller
         }
     }
 
+    public function searchStudents(SearchOpStudentsRequest $request): JsonResponse
+    {
+        $search = trim((string) $request->validated('q', ''));
+        $digits = preg_replace('/\D/', '', $search) ?? '';
+
+        $students = Student::query()
+            ->when($search !== '', function ($query) use ($search, $digits): void {
+                $like = '%'.mb_strtolower($search).'%';
+
+                $query->where(function ($query) use ($like, $digits): void {
+                    $query->whereRaw('LOWER(student_number) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(first_name) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(last_name) LIKE ?', [$like]);
+
+                    if ($digits !== '') {
+                        $query->orWhereRaw(
+                            "REPLACE(REPLACE(student_number, '-', ''), ' ', '') LIKE ?",
+                            ["%{$digits}%"],
+                        );
+                    }
+                });
+            })
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->limit(20)
+            ->get(['id', 'student_number', 'first_name', 'middle_name', 'last_name'])
+            ->map(fn (Student $student): array => [
+                'id' => $student->id,
+                'student_number' => $student->student_number,
+                'full_name' => $student->full_name,
+            ]);
+
+        return response()->json(['students' => $students]);
+    }
+
+    public function linkStudent(LinkOpStudentRequest $request, FormInput $formInput): RedirectResponse
+    {
+        $this->ensureLedgerStudentMatchIsApplicable($formInput);
+
+        $formInput->update(['student_num' => $request->integer('student_id')]);
+
+        return back()->with('success', 'Student matched to this Order of Payment.');
+    }
+
+    public function createAndLinkStudent(
+        CreateAndLinkOpStudentRequest $request,
+        FormInput $formInput,
+    ): RedirectResponse {
+        $this->ensureLedgerStudentMatchIsApplicable($formInput);
+
+        $validated = $request->validated();
+        $studentNumber = preg_replace('/\D/', '', (string) $validated['student_number']) ?? '';
+
+        try {
+            DB::transaction(function () use ($formInput, $validated, $studentNumber): void {
+                $lockedForm = FormInput::query()->lockForUpdate()->findOrFail($formInput->id);
+                $student = Student::query()
+                    ->whereRaw("REPLACE(REPLACE(student_number, '-', ''), ' ', '') = ?", [$studentNumber])
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($student === null) {
+                    $student = Student::query()->create([
+                        'student_number' => $studentNumber,
+                        'first_name' => trim((string) $validated['first_name']),
+                        'middle_name' => filled($validated['middle_name'] ?? null)
+                            ? trim((string) $validated['middle_name'])
+                            : null,
+                        'last_name' => trim((string) $validated['last_name']),
+                        'email' => $validated['email'] ?? null,
+                        'contact_num' => $validated['contact_num'] ?? null,
+                    ]);
+                }
+
+                $lockedForm->update([
+                    'student_num' => $student->id,
+                    'submitted_student_number' => $studentNumber,
+                ]);
+            });
+        } catch (QueryException $exception) {
+            if ((string) $exception->getCode() !== '23505') {
+                throw $exception;
+            }
+
+            $student = Student::query()->where('student_number', $studentNumber)->firstOrFail();
+            $formInput->update(['student_num' => $student->id]);
+        }
+
+        return back()->with('success', 'Student created and matched to this Order of Payment.');
+    }
+
     /**
      * Display staff processing details
      */
@@ -459,11 +555,14 @@ class StaffInputController extends Controller
         $formInput->load([
             'membership',
             'paymentDetailOption',
+            'student',
+            'course',
             'supportingDocuments',
             'staffInput.bankAccount',
             'staffInput.uacs',
             'staffInput.referenceDocument',
         ]);
+        $formInput->student?->append('full_name');
 
         // Added: bankAccounts + uacsList, so the inline "Process Now" form
         // on this page has what it needs without a separate navigation.
@@ -476,6 +575,17 @@ class StaffInputController extends Controller
             'uacsList' => UACS::orderBy('object_code')->get(),
             'paymentOptions' => PaymentDetailOption::orderBy('payment_desc')->get(),
         ]);
+    }
+
+    private function ensureLedgerStudentMatchIsApplicable(FormInput $formInput): void
+    {
+        $formInput->loadMissing('course');
+
+        abort_unless(
+            in_array($formInput->course?->course_college, ['Graduate School', 'School of Law'], true),
+            422,
+            'Student matching is only available for Graduate School and School of Law payments.',
+        );
     }
 
     public function viewOp(FormInput $formInput, Request $request): HttpResponse

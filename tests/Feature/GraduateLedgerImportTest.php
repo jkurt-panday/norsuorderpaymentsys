@@ -82,13 +82,12 @@ class GraduateLedgerImportTest extends TestCase
             'reference_number' => 'OR-001',
             'amount' => '1350.00',
             'input_by' => $user->id,
-            'imported_input_by' => 'Admin',
         ]);
 
         unlink($file);
     }
 
-    public function test_csv_import_preserves_text_blank_and_numeric_input_by_values(): void
+    public function test_csv_import_uses_authenticated_user_and_ignores_spreadsheet_input_by_values(): void
     {
         $user = User::factory()->staff()->create();
         $header = 'student_name,course,school_year,semester_short,semester,units,transaction_date,reference_or_jev_number,particulars,tuition_per_unit_or_misc,ar_payment,amount,remarks,input_by';
@@ -107,17 +106,14 @@ class GraduateLedgerImportTest extends TestCase
         $this->assertDatabaseHas('graduate_ledgers', [
             'reference_number' => 'CSV-INITIALS',
             'input_by' => $user->id,
-            'imported_input_by' => 'MBC',
         ]);
         $this->assertDatabaseHas('graduate_ledgers', [
             'reference_number' => 'CSV-BLANK',
             'input_by' => $user->id,
-            'imported_input_by' => '',
         ]);
         $this->assertDatabaseHas('graduate_ledgers', [
             'reference_number' => 'CSV-NUMERIC',
             'input_by' => $user->id,
-            'imported_input_by' => '123',
         ]);
     }
 
@@ -131,7 +127,7 @@ class GraduateLedgerImportTest extends TestCase
         $sheet->setTitle('Graduate School');
         $sheet->fromArray([
             ['student_name', 'course', 'school_year', 'semester_short', 'semester', 'units', 'transaction_date', 'reference_or_jev_number', 'particulars', 'tuition_per_unit_or_misc', 'ar_payment', 'amount', 'remarks', 'input_by'],
-            ['Negative Blank', 'MS-MATH', '2025-2026', '1st Sem.', 'First Semester', null, '2026-07-22', 'NEG-BLANK', 'Payment', null, '', -100, null, 'Admin'],
+            ['Negative Blank', 'MS-MATH', '2025-2026', '1st Sem.', 'First Semester', null, '2026-07-22', 70000, 'Payment', null, '', -100, null, 'Admin'],
             ['Negative AR', 'MS-MATH', '2025-2026', '1st Sem.', 'First Semester', null, '2026-07-22', 'NEG-AR', 'Payment', null, 'AR', -200, null, 'Admin'],
             ['Positive Payment', 'MS-MATH', '2025-2026', '1st Sem.', 'First Semester', null, '2026-07-22', 'POS-PAY', 'Payment', null, 'PAYMENT', 300, null, 'Admin'],
             ['Positive AR', 'MS-MATH', '2025-2026', '1st Sem.', 'First Semester', null, '2026-07-22', 'POS-AR', 'Assessment', null, '', 400, null, 'Admin'],
@@ -158,8 +154,8 @@ class GraduateLedgerImportTest extends TestCase
                     && str_contains($message, '1 positive amount(s) labeled PAYMENT');
             });
 
-        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'NEG-BLANK', 'entry_type' => 'payment', 'amount' => '100.00']);
-        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'NEG-AR', 'entry_type' => 'payment', 'amount' => '200.00']);
+        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => '70000', 'entry_type' => 'payment', 'amount' => '100.00']);
+        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'NEG-AR', 'entry_type' => 'ar', 'amount' => '200.00']);
         $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'POS-PAY', 'entry_type' => 'payment', 'amount' => '300.00']);
         $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'POS-AR', 'entry_type' => 'ar', 'amount' => '400.00']);
         $this->assertDatabaseMissing('graduate_ledgers', ['reference_number' => 'IGNORED']);
@@ -327,10 +323,9 @@ class GraduateLedgerImportTest extends TestCase
         $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-PRESET-3', 'course_id' => $mathCourse->id]);
     }
 
-    public function test_import_skips_malformed_school_year_without_creating_new_terms(): void
+    public function test_import_falls_back_to_unassigned_term_for_malformed_school_year_or_semester(): void
     {
         $user = User::factory()->staff()->create();
-        $initialTermCount = AcademicTerm::count();
 
         $header = 'student_name,course,school_year,semester_short,semester,units,transaction_date,reference_or_jev_number,particulars,tuition_per_unit_or_misc,ar_payment,amount,remarks,input_by';
         $csv = implode("\n", [
@@ -345,10 +340,67 @@ class GraduateLedgerImportTest extends TestCase
 
         $response->assertRedirect('/graduate-ledger');
 
-        // No new academic terms should be created
-        $this->assertSame($initialTermCount, AcademicTerm::count());
-        $this->assertDatabaseMissing('graduate_ledgers', ['reference_number' => 'REF-BAD-YEAR']);
-        $this->assertDatabaseMissing('graduate_ledgers', ['reference_number' => 'REF-BAD-SEM']);
+        $unassignedTerm = AcademicTerm::where('school_year', 'Unassigned')->where('semester', 'First Semester')->firstOrFail();
+
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'reference_number' => 'REF-BAD-YEAR',
+            'academic_term_id' => $unassignedTerm->id,
+        ]);
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'reference_number' => 'REF-BAD-SEM',
+            'academic_term_id' => $unassignedTerm->id,
+        ]);
+    }
+
+    public function test_import_falls_back_to_unassigned_course_when_blank_and_no_preset(): void
+    {
+        $user = User::factory()->staff()->create();
+
+        $header = 'student_name,course,school_year,semester_short,semester,units,transaction_date,reference_or_jev_number,particulars,tuition_per_unit_or_misc,ar_payment,amount,remarks,input_by';
+        $csv = implode("\n", [
+            $header,
+            '"No Course Student, N",,2025-2026,1st Sem.,First Semester,,2026-07-22,REF-NO-COURSE,Tuition,0,AR,6200,,',
+        ]);
+
+        $response = $this->actingAs($user)->post('/graduate-ledger/import', [
+            'file' => UploadedFile::fake()->createWithContent('no_course.csv', $csv),
+        ]);
+
+        $response->assertRedirect('/graduate-ledger');
+
+        $unassignedCourse = Course::where('course_code', 'UNASSIGNED')->firstOrFail();
+
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'reference_number' => 'REF-NO-COURSE',
+            'course_id' => $unassignedCourse->id,
+            'amount' => '6200.00',
+        ]);
+    }
+
+    public function test_reimporting_same_file_skips_duplicates(): void
+    {
+        $user = User::factory()->staff()->create();
+
+        $header = 'student_name,course,school_year,semester_short,semester,units,transaction_date,reference_or_jev_number,particulars,tuition_per_unit_or_misc,ar_payment,amount,remarks,input_by';
+        $csv = implode("\n", [
+            $header,
+            '"Duplicate Test Student, D",MS-MATH,2025-2026,1st Sem.,First Semester,,2026-07-22,REF-DUP-1,Tuition,0,AR,1500,,',
+        ]);
+
+        // First import
+        $this->actingAs($user)->post('/graduate-ledger/import', [
+            'file' => UploadedFile::fake()->createWithContent('dup1.csv', $csv),
+        ]);
+
+        $this->assertSame(1, GraduateLedger::where('reference_number', 'REF-DUP-1')->count());
+
+        // Re-import the exact same file
+        $response = $this->actingAs($user)->post('/graduate-ledger/import', [
+            'file' => UploadedFile::fake()->createWithContent('dup2.csv', $csv),
+        ]);
+
+        $response->assertRedirect('/graduate-ledger');
+        $this->assertSame(1, GraduateLedger::where('reference_number', 'REF-DUP-1')->count());
     }
 
     public function test_import_uses_preset_academic_term_fallback(): void
@@ -373,6 +425,43 @@ class GraduateLedgerImportTest extends TestCase
             'reference_number' => 'REF-PRESET-TERM-1',
             'academic_term_id' => $term2->id,
         ]);
+    }
+
+    public function test_import_calculates_excel_formulas_for_rate_and_amount_and_handles_formula_errors_gracefully(): void
+    {
+        $user = User::factory()->staff()->create();
+
+        $file = tempnam(sys_get_temp_dir(), 'ledger-formula-test').'.xlsx';
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->fromArray([
+            ['student_name', 'course', 'school_year', 'semester_short', 'semester', 'units', 'transaction_date', 'reference_or_jev_number', 'particulars', 'tuition_per_unit_or_misc', 'ar_payment', 'amount', 'remarks', 'input_by'],
+            ['Formula Student One', 'MS-MATH', '2025-2026', '1st Sem.', 'First Semester', 6, '2026-07-22', 'FORMULA-VALID', 'Tuition', '=100+50', 'AR', '=F2*J2', 'Formula Test', 'Admin'],
+            ['Formula Student Two', 'MS-MATH', '2025-2026', '1st Sem.', 'First Semester', 3, '2026-07-22', 'FORMULA-ERROR', 'Tuition', '150.00', 'AR', '=#DIV/0!', 'Error Formula', 'Admin'],
+        ], null, 'A1');
+
+        (new Xlsx($spreadsheet))->save($file);
+
+        $response = $this->actingAs($user)->post('/graduate-ledger/import', [
+            'file' => new UploadedFile($file, 'formula-test.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ]);
+
+        $response->assertRedirect('/graduate-ledger');
+
+        // Valid formula should evaluate =100+50 to 150 rate and =6*150 to 900 amount
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'reference_number' => 'FORMULA-VALID',
+            'rate'             => '150.00',
+            'amount'           => '900.00',
+        ]);
+
+        // Error formula should not crash and be cleaned to 0.00
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'reference_number' => 'FORMULA-ERROR',
+            'amount'           => '0.00',
+        ]);
+
+        unlink($file);
     }
 
     // ─── Cashier Order of Payment → Graduate Ledger Auto-Posting ─────────────
@@ -860,4 +949,3 @@ class GraduateLedgerImportTest extends TestCase
         $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-PHM-2', 'course_id' => $phdMathCourse->id]);
     }
 }
-

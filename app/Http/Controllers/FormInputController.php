@@ -11,6 +11,7 @@ use App\Models\PaymentDetailOption;
 use App\Models\Student;
 use App\Models\UserProfile;
 use App\Models\Courses;
+use App\Models\CollegeOffice;
 use App\Services\FileUploadService;
 use App\Services\ReceiptPDFService;
 use App\Services\ReferenceNumberService;
@@ -48,21 +49,18 @@ class FormInputController extends Controller
     {
         $memberships = Membership::query()->orderBy('member_desc')->get();
         $paymentOptions = PaymentDetailOption::query()->orderBy('payment_desc')->get();
-        $courses = Course::query()->orderBy('course_desc')->get(['id', 'course_desc']);
-        $academicTerms = AcademicTerm::query()
-            ->orderBy('school_year')
-            ->orderBy('semester')
-            ->get(['id', 'school_year', 'semester']);
-        $course = Courses::query()->orderBy('id')->get();
+        $courses = Course::query()->publicAvailable()->orderBy('course_desc')->get(['id', 'course_desc', 'course_code']);
+        $course = Courses::query()->publicAvailable()->orderBy('course_code')->get();
         $academicTerms = AcademicTerm::query()->orderBy('school_year', 'desc')->get();
+        $collegeOffices = CollegeOffice::query()->orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('public/SubmitForm', [
             'memberships' => $memberships,
             'paymentOptions' => $paymentOptions,
             'courses' => $courses,
-            'academicTerms' => $academicTerms,
             'course' => $course,
             'academicTerms' => $academicTerms,
+            'collegeOffices' => $collegeOffices,
         ]);
     }
 
@@ -100,6 +98,10 @@ class FormInputController extends Controller
                 'membership_id' => $validated['membership_id'],
                 'payment_detail_option_id' => $validated['payment_detail_option_id'],
                 'student_num' => $studentId,
+                'submitted_student_number' => filled($validated['student_num'] ?? null)
+                    ? trim((string) $validated['student_num'])
+                    : null,
+                'course_id' => $validated['course_id'] ?? null,
                 'academic_term' => $academicTermId,
             ]);
 

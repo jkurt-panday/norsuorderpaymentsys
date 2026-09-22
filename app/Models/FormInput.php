@@ -32,6 +32,8 @@ class FormInput extends Model
         'membership_id',
         'payment_detail_option_id',
         'student_num',
+        'submitted_student_number',
+        'course_id',
         'academic_term',
     ];
 
@@ -62,6 +64,12 @@ class FormInput extends Model
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class, 'student_num');
+    }
+
+    /** @return BelongsTo<Course, $this> */
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class);
     }
 
     /**

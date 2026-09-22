@@ -119,6 +119,20 @@ function getEntryTypeBadge(type?: string): string {
   return 'bg-[#EAF2FF] text-[#0B62E0] border-[#B9D8FF] font-semibold';
 }
 
+function getRemarkBadge(remark?: string): string {
+  const normalized = (remark ?? '').trim().toLowerCase();
+
+  if (normalized === 'outstanding') {
+    return 'bg-amber-50 text-amber-800 border-amber-300 font-semibold';
+  }
+
+  if (normalized === 'settled') {
+    return 'bg-emerald-50 text-emerald-800 border-emerald-300 font-semibold';
+  }
+
+  return 'bg-gray-50 text-gray-700 border-gray-200';
+}
+
 interface IndexProps {
   records?: LedgerPaginator;
   filters?: {
@@ -128,6 +142,7 @@ interface IndexProps {
     course?: string;
     date_from?: string;
     date_to?: string;
+    balance_status?: string;
   };
   stats?: {
     totalStudents?: number;
@@ -155,12 +170,13 @@ export default function Index({ records, filters, stats, filterOptions, courses 
 
   // ── Single filter state object to avoid stale-closure bugs ────────────────
   const [filterState, setFilterState] = useState({
-    search:      filters?.search      ?? '',
-    school_year: filters?.school_year ?? '',
-    semester:    filters?.semester    ?? '',
-    course:      filters?.course      ?? '',
-    date_from:   filters?.date_from   ?? '',
-    date_to:     filters?.date_to     ?? '',
+    search:         filters?.search         ?? '',
+    school_year:    filters?.school_year    ?? '',
+    semester:       filters?.semester       ?? '',
+    course:         filters?.course         ?? '',
+    date_from:      filters?.date_from      ?? '',
+    date_to:        filters?.date_to        ?? '',
+    balance_status: filters?.balance_status ?? '',
   });
 
   const [goToPage, setGoToPage] = useState('');
@@ -261,6 +277,10 @@ params.set('date_from',   filterState.date_from);
 params.set('date_to',     filterState.date_to);
 }
 
+      if (filterState.balance_status) {
+params.set('balance_status', filterState.balance_status);
+}
+
       const qs = params.toString();
       const url = '/graduate-ledger/export' + (qs ? '?' + qs : '');
 
@@ -298,12 +318,13 @@ throw new Error('Export failed');
   };
 
   // Convenience aliases for the template
-  const searchQuery = filterState.search;
-  const schoolYear  = filterState.school_year;
-  const semester    = filterState.semester;
-  const course      = filterState.course;
-  const dateFrom    = filterState.date_from;
-  const dateTo      = filterState.date_to;
+  const searchQuery   = filterState.search;
+  const schoolYear    = filterState.school_year;
+  const semester      = filterState.semester;
+  const course        = filterState.course;
+  const dateFrom      = filterState.date_from;
+  const dateTo        = filterState.date_to;
+  const balanceStatus = filterState.balance_status;
 
   /**
    * Merge overrides into the current filter state, then immediately
@@ -443,14 +464,30 @@ throw new Error('Export failed');
             </CardContent>
           </Card>
 
-          <Card className="shadow-xs border border-[#CFE3FF] bg-white">
+          <Card
+            onClick={() => applyFilters({ balance_status: balanceStatus === 'with_balance' ? '' : 'with_balance' })}
+            className={`shadow-xs border transition-all cursor-pointer select-none ${
+              balanceStatus === 'with_balance'
+                ? 'border-orange-400 bg-orange-50/70 ring-2 ring-orange-300'
+                : 'border-[#CFE3FF] bg-white hover:border-orange-300 hover:bg-orange-50/30'
+            }`}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-[#5C7A9E]">Outstanding Balance</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-orange-500" />
+              <CardTitle className="text-sm font-medium text-[#5C7A9E] flex items-center gap-1.5">
+                Outstanding Balance
+                {balanceStatus === 'with_balance' && (
+                  <Badge variant="outline" className="text-[10px] bg-orange-100 text-orange-800 border-orange-300 px-1.5 py-0 h-4">
+                    Active Filter
+                  </Badge>
+                )}
+              </CardTitle>
+              <AlertTriangle className={`h-4 w-4 ${balanceStatus === 'with_balance' ? 'text-orange-600 animate-pulse' : 'text-orange-500'}`} />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{currency(outstandingBalance)}</div>
-              <p className="text-[10px] text-[#8AA8CC] mt-1">Net pending balance</p>
+              <p className="text-[10px] text-[#8AA8CC] mt-1">
+                {balanceStatus === 'with_balance' ? 'Click to show all records' : 'Click to filter students with balance'}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -521,6 +558,22 @@ throw new Error('Export failed');
                   ))}
                 </select>
 
+                <select
+                  value={balanceStatus}
+                  onChange={(e) => applyFilters({ balance_status: e.target.value })}
+                  className={`h-9 rounded-md border px-3 text-sm font-medium transition-colors ${
+                    balanceStatus === 'with_balance'
+                      ? 'border-orange-400 bg-orange-50 text-orange-900 font-semibold'
+                      : balanceStatus === 'cleared'
+                      ? 'border-emerald-400 bg-emerald-50 text-emerald-900 font-semibold'
+                      : 'border-[#CFE3FF] bg-white text-[#0B3D91]'
+                  }`}
+                >
+                  <option value="">All Balances</option>
+                  <option value="with_balance">With Outstanding Balance</option>
+                  <option value="cleared">Cleared / Fully Paid</option>
+                </select>
+
                 <input
                   type="date"
                   value={dateFrom}
@@ -549,6 +602,7 @@ throw new Error('Export failed');
                       course: '',
                       date_from: '',
                       date_to: '',
+                      balance_status: '',
                     });
                     router.get('/graduate-ledger');
                   }}
@@ -606,7 +660,11 @@ throw new Error('Export failed');
                         </Badge>
                       </td>
                       <td className="py-2 pr-4 text-right font-medium text-[#0B3D91]">{currency(r.amount)}</td>
-                      <td className="py-2 pr-4 text-[#8AA8CC]">{r.remark}</td>
+                      <td className="py-2 pr-4">
+                        <Badge variant="outline" className={`text-xs ${getRemarkBadge(r.remark)}`}>
+                          {r.remark || '—'}
+                        </Badge>
+                      </td>
                       <td className="py-2 pr-4 text-[#8AA8CC]">{r.inputBy}</td>
                       <td className="py-2 pr-2 text-center whitespace-nowrap">
                         <button

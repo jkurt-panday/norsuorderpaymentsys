@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\FormInput;
 use App\Models\GraduateLedger;
+use App\Models\LawSchoolLedger;
 use App\Models\StaffInput;
 use App\Models\Student;
 use Illuminate\Support\Facades\Log;
@@ -18,15 +19,61 @@ use Illuminate\Support\Str;
  * - Only run when status is 'paid' and the OR number exists.
  * - Corrections (re-saves of an already-paid OP) UPDATE the existing
  *   ledger row for that OP instead of inserting a duplicate.
- * - Student resolution priority: direct FK link (form_inputs.student_num)
- *   → digit-normalized student_number lookup → gated exact name match.
- * - Name fallback only runs for student-like submissions, never for
- *   general/office payers.
+ * - Students are resolved only through the explicit form_inputs.student_num
+ *   link selected by staff. Cashier-side number/name guessing is prohibited.
  * - Term priority: the OP's own academic_term → the student's latest
- *   ledger term. Course always comes from ledger history.
+ *   ledger term. Course priority: the OP's course, then ledger history.
  */
 class CashierLedgerPostingService
 {
+    /**
+     * Route a payment to exactly one ledger using the OP's selected course.
+     * Older OPs without a course are routed only when ledger history identifies
+     * one unambiguous destination.
+     *
+     * @return array{posted: bool, reason: string|null, ledger: string|null}
+     */
+    public function postPayment(StaffInput $staffInput): array
+    {
+        $staffInput->loadMissing('formInput.course', 'formInput.membership');
+
+        $formInput = $staffInput->formInput;
+        if ($formInput === null) {
+            return ['posted' => false, 'reason' => 'no_form', 'ledger' => null];
+        }
+
+        $student = $this->resolveStudent($formInput);
+        if ($student === null) {
+            return ['posted' => false, 'reason' => 'student_not_found', 'ledger' => null];
+        }
+
+        $college = $formInput->course?->course_college;
+
+        if ($college === null) {
+            $hasGraduateHistory = GraduateLedger::query()->where('student_id', $student->id)->exists();
+            $hasLawHistory = LawSchoolLedger::query()->where('student_id', $student->id)->exists();
+
+            if ($hasGraduateHistory !== $hasLawHistory) {
+                $college = $hasGraduateHistory ? 'Graduate School' : 'School of Law';
+            }
+        }
+
+        $result = match ($college) {
+            'Graduate School' => $this->postGraduatePayment($staffInput),
+            'School of Law' => $this->postLawPayment($staffInput),
+            default => ['posted' => false, 'reason' => 'no_course'],
+        };
+
+        return [
+            ...$result,
+            'ledger' => match ($college) {
+                'Graduate School' => 'graduate',
+                'School of Law' => 'law',
+                default => null,
+            },
+        ];
+    }
+
     /**
      * @return array{posted: bool, reason: string|null}
      */
@@ -256,12 +303,11 @@ class CashierLedgerPostingService
     /**
      * Resolve the course + term for a law school payment row.
      * Term: the OP's own academic_term first, then the student's latest
-     * ledger term. Course: the student's latest ledger course, preferring
-     * a row inside the resolved term when one exists.
+     * ledger term. Course: the OP's selected course first, then ledger history.
      *
      * @return array{course_id: int, academic_term_id: int}|null
      */
-    private function resolveLawLedgerContext(FormInput $formInput, LawStudent $student): ?array
+    private function resolveLawLedgerContext(FormInput $formInput, Student $student): ?array
     {
         $termId = $formInput->academic_term;
 
@@ -276,15 +322,19 @@ class CashierLedgerPostingService
             return null;
         }
 
-        $courseId = LawSchoolLedger::query()
-            ->where('student_id', $student->id)
-            ->where('academic_term_id', $termId)
-            ->latest('id')
-            ->value('course_id')
-            ?? LawSchoolLedger::query()
+        $courseId = $formInput->course_id;
+
+        if ($courseId === null) {
+            $courseId = LawSchoolLedger::query()
                 ->where('student_id', $student->id)
+                ->where('academic_term_id', $termId)
                 ->latest('id')
-                ->value('course_id');
+                ->value('course_id')
+                ?? LawSchoolLedger::query()
+                    ->where('student_id', $student->id)
+                    ->latest('id')
+                    ->value('course_id');
+        }
 
         if ($courseId === null) {
             return null;
@@ -293,59 +343,16 @@ class CashierLedgerPostingService
         return ['course_id' => (int) $courseId, 'academic_term_id' => (int) $termId];
     }
 
-    /**
-     * Resolve a law student from the form input.
-     * Priority: direct FK → digit-normalized student_number → gated name match.
-     */
-    private function resolveLawStudent(FormInput $formInput): ?LawStudent
+    /** Resolve the law student only through the explicit staff-created link. */
+    private function resolveLawStudent(FormInput $formInput): ?Student
     {
-        if ($formInput->student_num) {
-            $linked = LawStudent::query()->find($formInput->student_num);
-            if ($linked !== null) {
-                return $linked;
-            }
-        }
-
-        if (! $this->looksLikeStudentSubmission($formInput)) {
-            return null;
-        }
-
-        return $this->resolveLawStudentByName(
-            $formInput->firstname_or_office,
-            $formInput->lastname_or_agency,
-        );
-    }
-
-    /**
-     * Match the payer name on an OP against LawStudents.
-     * Only an exact single match counts.
-     */
-    private function resolveLawStudentByName(?string $firstName, ?string $lastName): ?LawStudent
-    {
-        $first = Str::of((string) $firstName)->squish()->toString();
-        $last = Str::of((string) $lastName)->squish()->toString();
-
-        if ($first === '' && $last === '') {
-            return null;
-        }
-
-        $candidates = LawStudent::query()
-            ->when($last !== '', fn ($q) => $q->whereRaw('LOWER(last_name) = ?', [mb_strtolower($last)]))
-            ->when($first !== '', fn ($q) => $q->whereRaw('LOWER(first_name) = ?', [mb_strtolower($first)]))
-            ->get(['id', 'student_number', 'last_name', 'first_name', 'middle_name']);
-
-        if ($candidates->count() === 1) {
-            return $candidates->first();
-        }
-
-        return null;
+        return $this->resolveStudent($formInput);
     }
 
     /**
      * Resolve the course + term for the payment row.
      * Term: the OP's own academic_term first, then the student's latest
-     * ledger term. Course: the student's latest ledger course, preferring
-     * a row inside the resolved term when one exists.
+     * ledger term. Course: the OP's selected course first, then ledger history.
      *
      * @return array{course_id: int, academic_term_id: int}|null
      */
@@ -366,15 +373,19 @@ class CashierLedgerPostingService
 
         // Prefer a course from a row inside the resolved term; fall back
         // to the student's latest course overall.
-        $courseId = GraduateLedger::query()
-            ->where('student_id', $student->id)
-            ->where('academic_term_id', $termId)
-            ->latest('id')
-            ->value('course_id')
-            ?? GraduateLedger::query()
+        $courseId = $formInput->course_id;
+
+        if ($courseId === null) {
+            $courseId = GraduateLedger::query()
                 ->where('student_id', $student->id)
+                ->where('academic_term_id', $termId)
                 ->latest('id')
-                ->value('course_id');
+                ->value('course_id')
+                ?? GraduateLedger::query()
+                    ->where('student_id', $student->id)
+                    ->latest('id')
+                    ->value('course_id');
+        }
 
         if ($courseId === null) {
             return null;
@@ -384,71 +395,18 @@ class CashierLedgerPostingService
     }
 
     /**
-     * Student resolution priority:
-     * 1. Direct FK link (form_inputs.student_num → students.id).
-     * 2. Gated exact name match — only for student-like submissions.
+     * Resolve only the student explicitly linked by staff.
+     *
+     * Name-based fallback is intentionally prohibited so cashier processing
+     * cannot silently post a payment to the wrong ledger.
      */
     private function resolveStudent(FormInput $formInput): ?Student
     {
-        if ($formInput->student_num) {
-            $linked = Student::query()->find($formInput->student_num);
-            if ($linked !== null) {
-                return $linked;
-            }
-        }
-
-        if (! $this->looksLikeStudentSubmission($formInput)) {
+        if (! $formInput->student_num) {
             return null;
         }
 
-        return $this->resolveStudentByName(
-            $formInput->firstname_or_office,
-            $formInput->lastname_or_agency,
-        );
-    }
-
-    /**
-     * Only allow the (less reliable) name fallback when the OP carries
-     * student signals — a linked student, an academic term, or a
-     * student-flavoured membership. General/office payers never match.
-     */
-    private function looksLikeStudentSubmission(FormInput $formInput): bool
-    {
-        if ($formInput->student_num || $formInput->academic_term) {
-            return true;
-        }
-
-        $code = strtolower((string) ($formInput->membership?->member_code ?? ''));
-        $desc = strtolower((string) ($formInput->membership?->member_desc ?? ''));
-
-        return str_contains($code, 'student')
-            || str_contains($desc, 'student');
-    }
-
-    /**
-     * Match the payer name on an Order of Payment against Students.
-     * Form fields mirror student parts: firstname_or_office → first name,
-     * lastname_or_agency → last name. Only an exact single match counts.
-     */
-    private function resolveStudentByName(?string $firstName, ?string $lastName): ?Student
-    {
-        $first = Str::of((string) $firstName)->squish()->toString();
-        $last = Str::of((string) $lastName)->squish()->toString();
-
-        if ($first === '' && $last === '') {
-            return null;
-        }
-
-        $candidates = Student::query()
-            ->when($last !== '', fn ($q) => $q->whereRaw('LOWER(last_name) = ?', [mb_strtolower($last)]))
-            ->when($first !== '', fn ($q) => $q->whereRaw('LOWER(first_name) = ?', [mb_strtolower($first)]))
-            ->get(['id', 'student_number', 'last_name', 'first_name', 'middle_name']);
-
-        if ($candidates->count() === 1) {
-            return $candidates->first();
-        }
-
-        return null;
+        return Student::query()->find($formInput->student_num);
     }
 
     private function normalizeDate(mixed $value): ?string

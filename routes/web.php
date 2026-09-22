@@ -17,6 +17,7 @@ use App\Http\Controllers\StaffInputController;
 use App\Http\Controllers\SupportingDocumentController;
 use App\Http\Controllers\UACSController;
 use App\Http\Controllers\AssessmentController;
+use App\Http\Controllers\CollegeOfficeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -29,6 +30,9 @@ Route::name('public.')->prefix('public')->group(function () {
     // Route::post('/submit', [FormInputController::class, 'store'])->name('submit.store');
     Route::get('/opform', [FormInputController::class, 'create']);
     Route::post('/opform', [FormInputController::class, 'store']);
+
+    Route::post('/college-offices', [CollegeOfficeController::class, 'store'])
+           ->name('college-offices.store');
 
     Route::get('/success/{reference_number}', [FormInputController::class, 'success'])->name('success');
     Route::get('/success/{reference_number}/print', [FormInputController::class, 'printReceipt'])->name('print');
@@ -162,6 +166,7 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
         Route::get('/',                      [StaffInputController::class, 'index'])->name('index');
         Route::post('/process',              [StaffInputController::class, 'store'])->name('store');
         Route::get('/email-recipients',      [StaffInputController::class, 'emailRecipients'])->name('emailRecipients');
+        Route::get('/student-search',        [StaffInputController::class, 'searchStudents'])->name('searchStudents');
         Route::post('/bulk-email-op',        [StaffInputController::class, 'bulkEmailOp'])->name('bulkEmailOp');
         Route::post('/email-job-status',     [StaffInputController::class, 'emailJobStatus'])->name('emailJobStatus');
         Route::get('/{formInput}/process',   [StaffInputController::class, 'create'])->name('process');
@@ -169,6 +174,8 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
         Route::get('/{formInput}/view-op',   [StaffInputController::class, 'viewOp'])->name('viewOp');
         Route::post('/{formInput}/email-op', [StaffInputController::class, 'emailOp'])->name('emailOp');
         Route::put('/{formInput}/details',   [StaffInputController::class, 'updateDetails'])->name('updateDetails');
+        Route::put('/{formInput}/student',   [StaffInputController::class, 'linkStudent'])->name('linkStudent');
+        Route::post('/{formInput}/student',  [StaffInputController::class, 'createAndLinkStudent'])->name('createAndLinkStudent');
         Route::get('/{staffInput}/edit',     [StaffInputController::class, 'edit'])->name('edit');
         Route::put('/{staffInput}',          [StaffInputController::class, 'update'])->name('update');
     });

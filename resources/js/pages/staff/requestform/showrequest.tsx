@@ -1,4 +1,5 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
+import { AlertTriangle, CheckCircle2, Mail, Search, UserPlus } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import {
     Dialog,
@@ -22,7 +23,6 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Mail } from 'lucide-react';
 import cashier from '@/routes/cashier';
 import staff from '@/routes/staff';
 import { flashToast } from '@/utils/flashToast';
@@ -79,6 +79,19 @@ interface SupportingDocument {
     file_url?: string;
 }
 
+interface StudentMatch {
+    id: number;
+    student_number: string | null;
+    full_name: string;
+}
+
+interface Course {
+    id: number;
+    course_code: string;
+    course_desc: string;
+    course_college: string;
+}
+
 interface FormInput {
     id: number;
     reference_number: string;
@@ -97,6 +110,10 @@ interface FormInput {
     payment_detail_option: PaymentDetailOption | null;
     staff_input: StaffInput | null;
     supportingDocuments?: SupportingDocument[];
+    student_num: number | null;
+    submitted_student_number: string | null;
+    student: StudentMatch | null;
+    course: Course | null;
 }
 
 interface FlashProps {
@@ -300,6 +317,108 @@ export default function ShowRequest() {
     const [emailRecipientName, setEmailRecipientName] = useState('');
     const [emailNote, setEmailNote] = useState('');
     const [isSendingEmail, setIsSendingEmail] = useState(false);
+    const [isStudentMatchOpen, setIsStudentMatchOpen] = useState(false);
+    const [studentMatchMode, setStudentMatchMode] = useState<
+        'existing' | 'create'
+    >('existing');
+    const [studentSearch, setStudentSearch] = useState(
+        formInput.submitted_student_number ?? '',
+    );
+    const [studentCandidates, setStudentCandidates] = useState<StudentMatch[]>(
+        [],
+    );
+    const [isSearchingStudents, setIsSearchingStudents] = useState(false);
+
+    const linkStudentForm = useForm({ student_id: '' });
+    const createStudentForm = useForm({
+        student_number: formInput.submitted_student_number ?? '',
+        first_name: formInput.firstname_or_office,
+        middle_name: formInput.middlename_or_project ?? '',
+        last_name: formInput.lastname_or_agency,
+        email: formInput.email,
+        contact_num: formInput.contact_num,
+    });
+
+    const isLedgerCourse = ['Graduate School', 'School of Law'].includes(
+        formInput.course?.course_college ?? '',
+    );
+    const needsStudentMatch = isLedgerCourse && !formInput.student_num;
+
+    useEffect(() => {
+        if (!isStudentMatchOpen || studentMatchMode !== 'existing') {
+            return;
+        }
+
+        const controller = new AbortController();
+        const timeout = window.setTimeout(async () => {
+            setIsSearchingStudents(true);
+
+            try {
+                const response = await fetch(
+                    staff.requests.searchStudents.url({
+                        query: { q: studentSearch },
+                    }),
+                    {
+                        headers: { Accept: 'application/json' },
+                        signal: controller.signal,
+                    },
+                );
+
+                if (!response.ok) {
+                    throw new Error('Student search failed.');
+                }
+
+                const payload = (await response.json()) as {
+                    students: StudentMatch[];
+                };
+                setStudentCandidates(payload.students);
+            } catch (error) {
+                if ((error as Error).name !== 'AbortError') {
+                    setStudentCandidates([]);
+                    flashToast('error', 'Unable to search students right now.');
+                }
+            } finally {
+                if (!controller.signal.aborted) {
+                    setIsSearchingStudents(false);
+                }
+            }
+        }, 250);
+
+        return () => {
+            window.clearTimeout(timeout);
+            controller.abort();
+        };
+    }, [isStudentMatchOpen, studentMatchMode, studentSearch]);
+
+    const openStudentMatch = () => {
+        linkStudentForm.reset();
+        linkStudentForm.clearErrors();
+        createStudentForm.clearErrors();
+        setStudentSearch(formInput.submitted_student_number ?? '');
+        setStudentMatchMode('existing');
+        setIsStudentMatchOpen(true);
+    };
+
+    const confirmExistingStudent = () => {
+        if (!linkStudentForm.data.student_id) {
+            return;
+        }
+
+        linkStudentForm.put(staff.requests.linkStudent.url(formInput.id), {
+            preserveScroll: true,
+            onSuccess: () => setIsStudentMatchOpen(false),
+        });
+    };
+
+    const createAndLinkStudent = () => {
+        createStudentForm.post(
+            staff.requests.createAndLinkStudent.url(formInput.id),
+            {
+                preserveScroll: true,
+                onSuccess: () => setIsStudentMatchOpen(false),
+            },
+        );
+    };
 
     const buildDefaultEmailSubject = () =>
         `Order of Payment - ${formInput.reference_number}`;
@@ -1089,6 +1208,7 @@ export default function ShowRequest() {
                                 )}
                             </div>
                         </section>
+
                     </div>
 
                     <div className="space-y-6">
@@ -2249,6 +2369,58 @@ export default function ShowRequest() {
                         </section>
                     </div>
                 </div>
+
+                {needsStudentMatch && (
+                    <section className="mt-6 rounded-3xl border border-amber-300 bg-amber-50 p-5 shadow-sm">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex gap-3 text-amber-950">
+                                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                                <div>
+                                    <h3 className="font-semibold">
+                                        Student is not matched to a ledger record
+                                    </h3>
+                                    <p className="mt-1 text-sm text-amber-800">
+                                        Match this {formInput.course?.course_college}{' '}
+                                        student before cashier payment to enable automatic
+                                        ledger posting. Processing may continue without a match,
+                                        but the payment will not be posted automatically.
+                                    </p>
+                                    {formInput.submitted_student_number && (
+                                        <p className="mt-2 text-xs font-semibold text-amber-900">
+                                            Submitted student number:{' '}
+                                            {formInput.submitted_student_number}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={openStudentMatch}
+                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-amber-700"
+                            >
+                                <Search className="h-4 w-4" />
+                                Match Student
+                            </button>
+                        </div>
+                    </section>
+                )}
+
+                {isLedgerCourse && formInput.student && (
+                    <section className="mt-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+                        <div className="flex gap-3 text-emerald-950">
+                            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                            <div>
+                                <h3 className="font-semibold">Student matched</h3>
+                                <p className="mt-1 text-sm text-emerald-800">
+                                    {formInput.student.full_name}
+                                    {formInput.student.student_number
+                                        ? ` · ${formInput.student.student_number}`
+                                        : ''}
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+                )}
             </div>
             {formInput.staff_input && (
                 <div className="mx-auto mt-6 flex justify-end gap-2 sm:max-w-6xl">
@@ -2338,6 +2510,256 @@ export default function ShowRequest() {
                     </button>
                 </div>
             )}
+            <Dialog open={isStudentMatchOpen} onOpenChange={setIsStudentMatchOpen}>
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Match Student</DialogTitle>
+                        <DialogDescription>
+                            Link this Order of Payment to one shared student record.
+                            The cashier will use only this confirmed link for ledger posting.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="flex rounded-xl bg-slate-100 p-1">
+                        <button
+                            type="button"
+                            onClick={() => setStudentMatchMode('existing')}
+                            className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                                studentMatchMode === 'existing'
+                                    ? 'bg-white text-blue-700 shadow-sm'
+                                    : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                        >
+                            Search Existing
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setStudentMatchMode('create')}
+                            className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                                studentMatchMode === 'create'
+                                    ? 'bg-white text-blue-700 shadow-sm'
+                                    : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                        >
+                            Create Student
+                        </button>
+                    </div>
+
+                    {studentMatchMode === 'existing' ? (
+                        <div className="space-y-4">
+                            <div className="relative">
+                                <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                <Input
+                                    value={studentSearch}
+                                    onChange={(event) => setStudentSearch(event.target.value)}
+                                    placeholder="Search student number or name"
+                                    className="pl-9"
+                                    autoFocus
+                                />
+                            </div>
+
+                            <div className="max-h-72 space-y-2 overflow-y-auto rounded-xl border border-slate-200 p-2">
+                                {isSearchingStudents ? (
+                                    <p className="py-8 text-center text-sm text-slate-500">
+                                        Searching students...
+                                    </p>
+                                ) : studentCandidates.length > 0 ? (
+                                    studentCandidates.map((student) => {
+                                        const selected =
+                                            linkStudentForm.data.student_id ===
+                                            String(student.id);
+
+                                        return (
+                                            <button
+                                                key={student.id}
+                                                type="button"
+                                                onClick={() =>
+                                                    linkStudentForm.setData(
+                                                        'student_id',
+                                                        String(student.id),
+                                                    )
+                                                }
+                                                className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
+                                                    selected
+                                                        ? 'border-blue-500 bg-blue-50'
+                                                        : 'border-transparent hover:bg-slate-50'
+                                                }`}
+                                            >
+                                                <span>
+                                                    <span className="block text-sm font-semibold text-slate-900">
+                                                        {student.full_name}
+                                                    </span>
+                                                    <span className="block text-xs text-slate-500">
+                                                        {student.student_number ?? 'No student number'}
+                                                    </span>
+                                                </span>
+                                                {selected && (
+                                                    <CheckCircle2 className="h-5 w-5 shrink-0 text-blue-600" />
+                                                )}
+                                            </button>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="py-8 text-center">
+                                        <p className="text-sm font-medium text-slate-700">
+                                            No matching students found.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => setStudentMatchMode('create')}
+                                            className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700"
+                                        >
+                                            <UserPlus className="h-4 w-4" />
+                                            Create this student
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {linkStudentForm.errors.student_id && (
+                                <p className="text-sm text-rose-600">
+                                    {linkStudentForm.errors.student_id}
+                                </p>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-slate-700">
+                                    Student Number
+                                </label>
+                                <Input
+                                    value={createStudentForm.data.student_number}
+                                    onChange={(event) =>
+                                        createStudentForm.setData(
+                                            'student_number',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
+                                {createStudentForm.errors.student_number && (
+                                    <p className="mt-1 text-xs text-rose-600">
+                                        {createStudentForm.errors.student_number}
+                                    </p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-slate-700">
+                                    First Name
+                                </label>
+                                <Input
+                                    value={createStudentForm.data.first_name}
+                                    onChange={(event) =>
+                                        createStudentForm.setData('first_name', event.target.value)
+                                    }
+                                />
+                                {createStudentForm.errors.first_name && (
+                                    <p className="mt-1 text-xs text-rose-600">
+                                        {createStudentForm.errors.first_name}
+                                    </p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-slate-700">
+                                    Middle Name
+                                </label>
+                                <Input
+                                    value={createStudentForm.data.middle_name}
+                                    onChange={(event) =>
+                                        createStudentForm.setData('middle_name', event.target.value)
+                                    }
+                                />
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-slate-700">
+                                    Last Name
+                                </label>
+                                <Input
+                                    value={createStudentForm.data.last_name}
+                                    onChange={(event) =>
+                                        createStudentForm.setData('last_name', event.target.value)
+                                    }
+                                />
+                                {createStudentForm.errors.last_name && (
+                                    <p className="mt-1 text-xs text-rose-600">
+                                        {createStudentForm.errors.last_name}
+                                    </p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-slate-700">
+                                    Email
+                                </label>
+                                <Input
+                                    type="email"
+                                    value={createStudentForm.data.email}
+                                    onChange={(event) =>
+                                        createStudentForm.setData('email', event.target.value)
+                                    }
+                                />
+                                {createStudentForm.errors.email && (
+                                    <p className="mt-1 text-xs text-rose-600">
+                                        {createStudentForm.errors.email}
+                                    </p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-slate-700">
+                                    Contact Number
+                                </label>
+                                <Input
+                                    value={createStudentForm.data.contact_num}
+                                    onChange={(event) =>
+                                        createStudentForm.setData(
+                                            'contact_num',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
+                                {createStudentForm.errors.contact_num && (
+                                    <p className="mt-1 text-xs text-rose-600">
+                                        {createStudentForm.errors.contact_num}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    <DialogFooter>
+                        <button
+                            type="button"
+                            onClick={() => setIsStudentMatchOpen(false)}
+                            className="rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={
+                                studentMatchMode === 'existing'
+                                    ? confirmExistingStudent
+                                    : createAndLinkStudent
+                            }
+                            disabled={
+                                studentMatchMode === 'existing'
+                                    ? !linkStudentForm.data.student_id ||
+                                      linkStudentForm.processing
+                                    : createStudentForm.processing
+                            }
+                            className="rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            {studentMatchMode === 'existing'
+                                ? linkStudentForm.processing
+                                    ? 'Linking...'
+                                    : 'Confirm Match'
+                                : createStudentForm.processing
+                                  ? 'Creating...'
+                                  : 'Create and Match'}
+                        </button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             {/* Email Preview / Edit Modal */}
             <Dialog
                 open={isEmailPreviewOpen}
