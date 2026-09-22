@@ -41,6 +41,21 @@ class OpStudentMatchingTest extends TestCase
             ->assertJsonPath('students.0.id', $student->id);
     }
 
+    public function test_admin_can_search_students_from_the_staff_processing_page(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $student = Student::create([
+            'student_number' => '202600325',
+            'first_name' => 'Admin',
+            'last_name' => 'Searchable',
+        ]);
+
+        $this->actingAs($admin)
+            ->getJson('/staff/requests/student-search?q=600325')
+            ->assertSuccessful()
+            ->assertJsonPath('students.0.id', $student->id);
+    }
+
     public function test_staff_can_persistently_link_an_existing_student(): void
     {
         $staff = User::factory()->staff()->create();

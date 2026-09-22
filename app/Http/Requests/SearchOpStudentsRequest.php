@@ -9,7 +9,11 @@ class SearchOpStudentsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->role === UserRole::Staff->value;
+        return in_array(
+            $this->user()?->role,
+            [UserRole::Staff->value, UserRole::Admin->value],
+            true,
+        );
     }
 
     /** @return array<string, array<int, string>> */
