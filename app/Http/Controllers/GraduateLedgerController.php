@@ -29,6 +29,7 @@ use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
@@ -608,9 +609,9 @@ class GraduateLedgerController extends Controller
                 $sheet->getCell("G{$r}")->getValue(),
                 $sheet->getCell("H{$r}")->getValue(),
                 $sheet->getCell("I{$r}")->getValue(),
-                $sheet->getCell("J{$r}")->getValue(),
+                $this->getCalculatedCellValue($sheet, "J{$r}"),
                 $sheet->getCell("K{$r}")->getValue(),
-                $sheet->getCell("L{$r}")->getCalculatedValue(),
+                $this->getCalculatedCellValue($sheet, "L{$r}"),
                 $sheet->getCell("M{$r}")->getValue(),
                 $sheet->getCell("N{$r}")->getValue(),
             ];
@@ -640,9 +641,9 @@ class GraduateLedgerController extends Controller
                 $sheet->getCell("G{$r}")->getValue(),
                 $sheet->getCell("H{$r}")->getValue(),
                 $sheet->getCell("I{$r}")->getValue(),
-                $sheet->getCell("J{$r}")->getValue(),
+                $this->getCalculatedCellValue($sheet, "J{$r}"),
                 $sheet->getCell("K{$r}")->getValue(),
-                $sheet->getCell("L{$r}")->getCalculatedValue(),
+                $this->getCalculatedCellValue($sheet, "L{$r}"),
                 $sheet->getCell("M{$r}")->getValue(),
                 $sheet->getCell("N{$r}")->getValue(),
             ];
@@ -1452,6 +1453,11 @@ class GraduateLedgerController extends Controller
     {
         $str = trim((string) ($rawAmount ?? ''));
 
+        // Handle spreadsheet error values (#VALUE!, #REF!, #DIV/0!, #NAME?, #N/A, etc.)
+        if ($str === '' || str_starts_with($str, '#')) {
+            return 0.0;
+        }
+
         // If somehow a raw formula string still arrives (e.g. from CSV), strip the = and try to parse the number
         if (str_starts_with($str, '=')) {
             $str = ltrim($str, '=');
@@ -1465,6 +1471,24 @@ class GraduateLedgerController extends Controller
         }
 
         return abs($cleaned);
+    }
+
+    /**
+     * Safely calculate a cell's formula value with fallback to raw value or null.
+     */
+    private function getCalculatedCellValue(Worksheet $sheet, string $coordinate): mixed
+    {
+        try {
+            $cell = $sheet->getCell($coordinate);
+
+            return $cell->isFormula() ? $cell->getCalculatedValue() : $cell->getValue();
+        } catch (\Throwable) {
+            try {
+                return $sheet->getCell($coordinate)->getValue();
+            } catch (\Throwable) {
+                return null;
+            }
+        }
     }
 
     /**

@@ -42,6 +42,7 @@ class PublicFormSubmissionRequest extends FormRequest
 
             // Student-only fields (Academic Details tab — all optional)
             'student_num' => ['nullable', 'string', 'max:50'],
+            'course_id' => ['nullable', 'integer', 'exists:courses,id'],
             'school_year' => ['nullable', 'string', 'max:20'],
             'semester' => ['nullable', 'string', 'max:50'],
 

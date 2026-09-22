@@ -427,6 +427,43 @@ class GraduateLedgerImportTest extends TestCase
         ]);
     }
 
+    public function test_import_calculates_excel_formulas_for_rate_and_amount_and_handles_formula_errors_gracefully(): void
+    {
+        $user = User::factory()->staff()->create();
+
+        $file = tempnam(sys_get_temp_dir(), 'ledger-formula-test').'.xlsx';
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->fromArray([
+            ['student_name', 'course', 'school_year', 'semester_short', 'semester', 'units', 'transaction_date', 'reference_or_jev_number', 'particulars', 'tuition_per_unit_or_misc', 'ar_payment', 'amount', 'remarks', 'input_by'],
+            ['Formula Student One', 'MS-MATH', '2025-2026', '1st Sem.', 'First Semester', 6, '2026-07-22', 'FORMULA-VALID', 'Tuition', '=100+50', 'AR', '=F2*J2', 'Formula Test', 'Admin'],
+            ['Formula Student Two', 'MS-MATH', '2025-2026', '1st Sem.', 'First Semester', 3, '2026-07-22', 'FORMULA-ERROR', 'Tuition', '150.00', 'AR', '=#DIV/0!', 'Error Formula', 'Admin'],
+        ], null, 'A1');
+
+        (new Xlsx($spreadsheet))->save($file);
+
+        $response = $this->actingAs($user)->post('/graduate-ledger/import', [
+            'file' => new UploadedFile($file, 'formula-test.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ]);
+
+        $response->assertRedirect('/graduate-ledger');
+
+        // Valid formula should evaluate =100+50 to 150 rate and =6*150 to 900 amount
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'reference_number' => 'FORMULA-VALID',
+            'rate'             => '150.00',
+            'amount'           => '900.00',
+        ]);
+
+        // Error formula should not crash and be cleaned to 0.00
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'reference_number' => 'FORMULA-ERROR',
+            'amount'           => '0.00',
+        ]);
+
+        unlink($file);
+    }
+
     // ─── Cashier Order of Payment → Graduate Ledger Auto-Posting ─────────────
 
     public function test_cashier_payment_updates_staff_input_and_auto_posts_to_matching_graduate_student_ledger(): void

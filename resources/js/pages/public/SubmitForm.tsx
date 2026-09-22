@@ -113,6 +113,21 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
         semester: '',
     });
 
+    const handleTabChange = (value: string) => {
+        const nextTab = (value as FormTab) || 'general';
+        setActiveTab(nextTab);
+
+        if (nextTab === 'general') {
+            setData({
+                ...data,
+                student_num: '',
+                course_id: '',
+                school_year: '',
+                semester: '',
+            });
+        }
+    };
+
     // Distinct school year / semester options derived from the academic_term table
     const schoolYearOptions = useMemo(
         () => Array.from(new Set(academicTerms.map((t) => t.school_year))),
@@ -255,9 +270,7 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                     {/* Request type tabs: General (business) vs Student */}
                     <Tabs
                         value={activeTab}
-                        onValueChange={(value) =>
-                            setActiveTab((value as FormTab) || 'general')
-                        }
+                        onValueChange={handleTabChange}
                         className="mb-2 w-full bg-transparent! p-0! rounded-2xl!"
                     >
                         <TabsList

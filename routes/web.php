@@ -162,12 +162,15 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
         Route::get('/',                      [StaffInputController::class, 'index'])->name('index');
         Route::post('/process',              [StaffInputController::class, 'store'])->name('store');
         Route::get('/email-recipients',      [StaffInputController::class, 'emailRecipients'])->name('emailRecipients');
+        Route::get('/student-search',        [StaffInputController::class, 'searchStudents'])->name('searchStudents');
         Route::post('/bulk-email-op',        [StaffInputController::class, 'bulkEmailOp'])->name('bulkEmailOp');
         Route::get('/{formInput}/process',   [StaffInputController::class, 'create'])->name('process');
         Route::get('/{formInput}',           [StaffInputController::class, 'show'])->name('show');
         Route::get('/{formInput}/view-op',   [StaffInputController::class, 'viewOp'])->name('viewOp');
         Route::post('/{formInput}/email-op', [StaffInputController::class, 'emailOp'])->name('emailOp');
         Route::put('/{formInput}/details',   [StaffInputController::class, 'updateDetails'])->name('updateDetails');
+        Route::put('/{formInput}/student',   [StaffInputController::class, 'linkStudent'])->name('linkStudent');
+        Route::post('/{formInput}/student',  [StaffInputController::class, 'createAndLinkStudent'])->name('createAndLinkStudent');
         Route::get('/{staffInput}/edit',     [StaffInputController::class, 'edit'])->name('edit');
         Route::put('/{staffInput}',          [StaffInputController::class, 'update'])->name('update');
     });

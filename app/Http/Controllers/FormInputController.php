@@ -95,6 +95,10 @@ class FormInputController extends Controller
                 'membership_id' => $validated['membership_id'],
                 'payment_detail_option_id' => $validated['payment_detail_option_id'],
                 'student_num' => $studentId,
+                'submitted_student_number' => filled($validated['student_num'] ?? null)
+                    ? trim((string) $validated['student_num'])
+                    : null,
+                'course_id' => $validated['course_id'] ?? null,
                 'academic_term' => $academicTermId,
             ]);
 
