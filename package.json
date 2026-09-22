@@ -13,6 +13,7 @@
         "types:check": "tsc --noEmit"
     },
     "devDependencies": {
+        "@anthropic-ai/claude-code": "^2.1.276",
         "@eslint/js": "^9.19.0",
         "@laravel/vite-plugin-wayfinder": "^0.1.3",
         "@stylistic/eslint-plugin": "^5.10.0",
