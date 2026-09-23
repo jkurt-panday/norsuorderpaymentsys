@@ -274,6 +274,19 @@ export default function AssessmentEdit({
                             <Printer className="h-4 w-4" />
                             Print Statement
                         </Button>
+                        <Button
+                            variant="outline"
+                            size="lg"
+                            render={
+                                <Link 
+                                    href={`/staff/assessments/edit/${assessment.id}`}
+                                    preserveScroll
+                                    preserveState={false}
+                                />
+                            }
+                        >
+                            Change Student
+                        </Button>
                     </CardHeader>
 
                     <CardContent className="space-y-6 p-4 sm:p-6">
