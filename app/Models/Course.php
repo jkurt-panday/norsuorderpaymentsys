@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -34,8 +35,8 @@ class Course extends Model
     /**
      * Scope to exclude internal/placeholder courses from public-facing forms.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder<Course>  $query
-     * @return \Illuminate\Database\Eloquent\Builder<Course>
+     * @param  Builder<Course>  $query
+     * @return Builder<Course>
      */
     public function scopePublicAvailable($query)
     {

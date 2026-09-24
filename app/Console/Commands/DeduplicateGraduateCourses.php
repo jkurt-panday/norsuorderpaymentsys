@@ -81,6 +81,7 @@ class DeduplicateGraduateCourses extends Command
                             $single->update($updates);
                         }
                     }
+
                     continue;
                 }
 
@@ -113,7 +114,7 @@ class DeduplicateGraduateCourses extends Command
                 $duplicates = array_filter($courses, fn (Course $c): bool => $c->id !== $masterCourse->id);
                 $dupIds = array_map(fn (Course $c): int => (int) $c->id, $duplicates);
 
-                $this->info("Merging [".implode(', ', array_map(fn (Course $c) => $c->course_code, $duplicates))."] into '{$canonicalCode}' (ID: {$masterCourse->id})");
+                $this->info('Merging ['.implode(', ', array_map(fn (Course $c) => $c->course_code, $duplicates))."] into '{$canonicalCode}' (ID: {$masterCourse->id})");
 
                 $affectedLedgers = GraduateLedger::whereIn('course_id', $dupIds)->count();
 

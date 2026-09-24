@@ -17,7 +17,7 @@ class LogSentNotifications
         $recipient = $notifiable->email ?? $notifiable->routeNotificationFor('mail') ?? 'unknown';
         $notificationClass = class_basename($notification);
 
-        $dedupKey = 'notification_log:' . md5((string) $recipient . '|' . $notificationClass);
+        $dedupKey = 'notification_log:'.md5((string) $recipient.'|'.$notificationClass);
 
         if (Cache::get($dedupKey)) {
             return;

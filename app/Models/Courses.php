@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -28,14 +29,14 @@ class Courses extends Model
     protected $fillable = [
         'course_code',
         'course_desc',
-        'course_college'
+        'course_college',
     ];
 
     /**
      * Scope to exclude internal/placeholder courses from public-facing forms.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder<Courses>  $query
-     * @return \Illuminate\Database\Eloquent\Builder<Courses>
+     * @param  Builder<Courses>  $query
+     * @return Builder<Courses>
      */
     public function scopePublicAvailable($query)
     {

@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Models\AssessmentForm;
-use App\Models\FormInput;
 use App\Models\AuthorizedOfficial;
+use App\Models\FormInput;
 use Illuminate\Http\Request;
 use Spatie\LaravelPdf\Facades\Pdf;
 use Spatie\LaravelPdf\PdfBuilder;
@@ -58,7 +58,7 @@ class ReceiptPDFService
             'assessment' => $assessment,
             'ledgerStatement' => $ledgerStatement,
             'preparedBy' => $request->user()->name ?? '—',
-            'authOfficial' => $authOfficial
+            'authOfficial' => $authOfficial,
         ])->format('a4');
     }
 }

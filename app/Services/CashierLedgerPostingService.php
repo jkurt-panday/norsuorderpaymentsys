@@ -7,6 +7,7 @@ use App\Models\GraduateLedger;
 use App\Models\LawSchoolLedger;
 use App\Models\StaffInput;
 use App\Models\Student;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -416,7 +417,7 @@ class CashierLedgerPostingService
         }
 
         try {
-            return \Carbon\Carbon::parse((string) $value)->format('Y-m-d');
+            return Carbon::parse((string) $value)->format('Y-m-d');
         } catch (\Throwable) {
             return null;
         }

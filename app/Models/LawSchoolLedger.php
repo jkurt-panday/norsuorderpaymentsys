@@ -75,13 +75,48 @@ class LawSchoolLedger extends Model
         return $this->student_id !== null ? (int) $this->student_id : null;
     }
 
-    public function getLastNameAttribute(): ?string { return $this->student?->last_name; }
-    public function getFirstNameAttribute(): ?string { return $this->student?->first_name; }
-    public function getMiddleNameAttribute(): ?string { return $this->student?->middle_name; }
-    public function getMiddleInitialAttribute(): ?string { return $this->student?->middle_name ? substr($this->student->middle_name, 0, 1) : null; }
-    public function getSchoolYearAttribute(): ?string { return $this->academicTerm?->school_year; }
-    public function getSemesterOrSummerAttribute(): ?string { return $this->academicTerm?->semester; }
-    public function getReferenceJevOrNumberAttribute(): ?string { return $this->reference_number; }
-    public function getTuitionPerUnitOrFeePerSemesterAttribute(): mixed { return $this->rate; }
-    public function getArOrPaymentAttribute(): string { return $this->entry_type === 'ar' ? 'AR' : ucfirst((string) $this->entry_type); }
+    public function getLastNameAttribute(): ?string
+    {
+        return $this->student?->last_name;
+    }
+
+    public function getFirstNameAttribute(): ?string
+    {
+        return $this->student?->first_name;
+    }
+
+    public function getMiddleNameAttribute(): ?string
+    {
+        return $this->student?->middle_name;
+    }
+
+    public function getMiddleInitialAttribute(): ?string
+    {
+        return $this->student?->middle_name ? substr($this->student->middle_name, 0, 1) : null;
+    }
+
+    public function getSchoolYearAttribute(): ?string
+    {
+        return $this->academicTerm?->school_year;
+    }
+
+    public function getSemesterOrSummerAttribute(): ?string
+    {
+        return $this->academicTerm?->semester;
+    }
+
+    public function getReferenceJevOrNumberAttribute(): ?string
+    {
+        return $this->reference_number;
+    }
+
+    public function getTuitionPerUnitOrFeePerSemesterAttribute(): mixed
+    {
+        return $this->rate;
+    }
+
+    public function getArOrPaymentAttribute(): string
+    {
+        return $this->entry_type === 'ar' ? 'AR' : ucfirst((string) $this->entry_type);
+    }
 }
