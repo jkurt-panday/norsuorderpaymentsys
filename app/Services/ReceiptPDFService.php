@@ -3,9 +3,10 @@
 namespace App\Services;
 
 use App\Models\AssessmentForm;
-use App\Models\FormInput;
 use App\Models\AuthorizedOfficial;
+use App\Models\FormInput;
 use Illuminate\Http\Request;
+use Spatie\Browsershot\Browsershot;
 use Spatie\LaravelPdf\Facades\Pdf;
 use Spatie\LaravelPdf\PdfBuilder;
 
@@ -58,7 +59,14 @@ class ReceiptPDFService
             'assessment' => $assessment,
             'ledgerStatement' => $ledgerStatement,
             'preparedBy' => $request->user()->name ?? '—',
-            'authOfficial' => $authOfficial
-        ])->format('a4');
+            'authOfficial' => $authOfficial,
+        ])
+            ->driver('browsershot')
+            ->withBrowsershot(function (Browsershot $browsershot): void {
+                // Full Chrome's current headless mode avoids the Windows
+                // chrome-headless-shell IO.read failure while retaining CSS.
+                $browsershot->newHeadless();
+            })
+            ->format('a4');
     }
 }

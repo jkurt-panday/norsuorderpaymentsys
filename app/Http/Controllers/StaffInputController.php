@@ -17,6 +17,7 @@ use App\Models\PaymentDetailOption;
 use App\Models\StaffInput;
 use App\Models\Student;
 use App\Models\UACS;
+use App\Services\CashierLedgerPostingService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
@@ -332,7 +333,7 @@ class StaffInputController extends Controller
     public function store(StaffProcessingRequest $request): RedirectResponse
     {
         try {
-            db()->beginTransaction();
+            DB::beginTransaction();
 
             $formInput = FormInput::query()->findOrFail($request->integer('form_input_id'));
             $formInput->loadMissing('course');
@@ -340,6 +341,12 @@ class StaffInputController extends Controller
             if ($this->isLedgerCourse($formInput) && $formInput->academic_term === null) {
                 throw new \RuntimeException(
                     'Select an academic term before processing a Graduate or Law request.',
+                );
+            }
+
+            if ($this->isLedgerCourse($formInput) && $formInput->student_num === null) {
+                throw new \RuntimeException(
+                    'Match a student before processing a Graduate or Law request.',
                 );
             }
 
@@ -355,13 +362,13 @@ class StaffInputController extends Controller
                 ]
             ));
 
-            db()->commit();
+            DB::commit();
 
             return redirect()->route('staff.requests.show', $formInput)
                 ->with('success', 'Request processed successfully.');
 
         } catch (\Exception $e) {
-            db()->rollBack();
+            DB::rollBack();
             Log::error('Staff processing failed: '.$e->getMessage());
 
             return back()
@@ -370,36 +377,47 @@ class StaffInputController extends Controller
         }
     }
 
-    public function update(StaffProcessingRequest $request, StaffInput $staffInput): RedirectResponse
+    public function update(
+        StaffProcessingRequest $request,
+        StaffInput $staffInput,
+        CashierLedgerPostingService $postingService,
+    ): RedirectResponse
     {
         $validated = $request->validated();
 
         try {
-            db()->beginTransaction();
+            DB::transaction(function () use ($validated, $staffInput, $postingService): void {
+                $lockedRequest = StaffInput::query()
+                    ->lockForUpdate()
+                    ->findOrFail($staffInput->id);
+                $status = $validated['status'];
 
-            $status = $validated['status'];
-            $staffInput->update([
-                'fundcluster_id' => $validated['fundcluster_id'],
-                'ref_document_id' => $validated['ref_document_id'] ?? null,
-                'ref_date' => $validated['ref_date'],
-                'uacs_id' => $validated['uacs_id'],
-                'status' => $status,
-                'purpose' => $validated['purpose'] ?? null,
-            ]);
+                if ($lockedRequest->status === 'paid' && $status === 'cancelled') {
+                    $postingService->reversePayment($lockedRequest);
+                }
 
-            db()->commit();
+                $lockedRequest->update([
+                    'fundcluster_id' => $validated['fundcluster_id'],
+                    'ref_document_id' => $validated['ref_document_id'] ?? null,
+                    'ref_date' => $validated['ref_date'],
+                    'uacs_id' => $validated['uacs_id'],
+                    'status' => $status,
+                    'purpose' => $validated['purpose'] ?? null,
+                ]);
+            });
+
+            $staffInput->refresh();
 
             return redirect()->route('staff.requests.show', $staffInput->formInput)
                 ->with('success', 'Processing updated successfully! Current status: '.ucfirst($staffInput->status));
 
-        } catch (\Exception $e) {
-            db()->rollBack();
+        } catch (\Throwable $e) {
             Log::error('Staff processing update failed: '.$e->getMessage(), [
                 'staff_input_id' => $staffInput->id,
                 'request_data' => $request->all(),
             ]);
 
-            return back()->withInput()->with('error', 'Failed to update processing: '.$e->getMessage());
+            return back()->withInput()->with('error', 'An error occurred. Please do the action again.');
         }
     }
 
@@ -444,7 +462,7 @@ class StaffInputController extends Controller
         unset($validated['new_payment_option']);
 
         try {
-            db()->beginTransaction();
+            DB::beginTransaction();
             if ($formInput->staffInput) {
                 $formInput->staffInput->update(['purpose' => $validated['purpose'] ?? null]);
             }
@@ -453,13 +471,13 @@ class StaffInputController extends Controller
 
             $formInput->update($validated);
 
-            db()->commit();
+            DB::commit();
 
             return redirect()->route('staff.requests.show', $formInput)
                 ->with('success', 'Request details updated successfully.');
 
         } catch (\Exception $e) {
-            db()->rollBack();
+            DB::rollBack();
             Log::error("Failed to update FormInput details ID {$formInput->id}: ".$e->getMessage());
 
             return back()->withInput()->with('error', 'Failed to update request details: '.$e->getMessage());

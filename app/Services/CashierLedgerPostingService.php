@@ -27,6 +27,60 @@ use Illuminate\Support\Str;
 class CashierLedgerPostingService
 {
     /**
+     * Reverse the ledger payment for a cancelled paid OP.
+     *
+     * The original payment is retained for audit history. A negative payment
+     * offsets it, and the stable reversal remark makes repeated cancellation
+     * attempts idempotent.
+     */
+    public function reversePayment(StaffInput $staffInput): void
+    {
+        $staffInput->loadMissing('formInput.course');
+
+        $formInput = $staffInput->formInput;
+        $college = $formInput?->course?->course_college;
+
+        if (! in_array($college, ['Graduate School', 'School of Law'], true)) {
+            return;
+        }
+
+        $ledgerModel = $college === 'Graduate School'
+            ? GraduateLedger::class
+            : LawSchoolLedger::class;
+        $opRemark = $this->opRemark($formInput);
+        $reversalRemark = $opRemark.':REVERSAL';
+
+        $original = $ledgerModel::query()
+            ->where('remarks', $opRemark)
+            ->where('entry_type', 'payment')
+            ->lockForUpdate()
+            ->first();
+
+        if ($original === null) {
+            throw new \RuntimeException('The original ledger payment could not be found.');
+        }
+
+        $ledgerModel::query()->updateOrCreate(
+            [
+                'remarks' => $reversalRemark,
+                'entry_type' => 'payment',
+            ],
+            [
+                'student_id' => $original->student_id,
+                'course_id' => $original->course_id,
+                'academic_term_id' => $original->academic_term_id,
+                'transaction_date' => now()->format('Y-m-d'),
+                'reference_number' => $staffInput->or_no,
+                'particulars' => Str::limit('Reversal of '.$original->particulars, 255, ''),
+                'rate' => '0.00',
+                'amount' => -abs((float) $original->amount),
+                'status' => 'posted',
+                'input_by' => auth()->id(),
+            ],
+        );
+    }
+
+    /**
      * Route a payment to exactly one ledger using the OP's selected course.
      * Course-less, General, and Undergraduate OPs require no ledger posting.
      *
@@ -149,7 +203,7 @@ class CashierLedgerPostingService
                 'message' => $e->getMessage(),
             ]);
 
-            return ['posted' => false, 'reason' => 'insert_failed'];
+            throw $e;
         }
 
         return ['posted' => true, 'reason' => null];
@@ -248,7 +302,7 @@ class CashierLedgerPostingService
                 'message' => $e->getMessage(),
             ]);
 
-            return ['posted' => false, 'reason' => 'insert_failed'];
+            throw $e;
         }
 
         return ['posted' => true, 'reason' => null];

@@ -9,8 +9,10 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class CashierRequestController extends Controller
 {
@@ -109,27 +111,50 @@ class CashierRequestController extends Controller
         $isCorrection = false;
         $posting = ['posted' => false, 'reason' => null];
 
-        DB::transaction(function () use ($request, $staffInput, $postingService, &$isCorrection, &$posting): void {
-            $lockedRequest = StaffInput::query()->lockForUpdate()->findOrFail($staffInput->id);
+        try {
+            DB::transaction(function () use ($request, $staffInput, $postingService, &$isCorrection, &$posting): void {
+                $lockedRequest = StaffInput::query()->lockForUpdate()->findOrFail($staffInput->id);
 
-            abort_unless(
-                in_array($lockedRequest->status, ['processed', 'paid'], true),
-                422,
-                'Only processed or paid requests can be updated by the cashier.',
-            );
+                abort_unless(
+                    in_array($lockedRequest->status, ['processed', 'paid'], true),
+                    422,
+                    'Only processed or paid requests can be updated by the cashier.',
+                );
 
-            $isCorrection = $lockedRequest->status === 'paid';
+                $formInput = $lockedRequest->formInput()->with('course')->first();
+                $requiresLedgerStudent = in_array(
+                    $formInput?->course?->course_college,
+                    ['Graduate School', 'School of Law'],
+                    true,
+                );
 
-            $lockedRequest->update([
-                ...$request->validated(),
-                'status' => 'paid',
+                if ($requiresLedgerStudent && $formInput?->student_num === null) {
+                    throw ValidationException::withMessages([
+                        'student' => 'A student must be matched before this payment can be completed.',
+                    ]);
+                }
+
+                $isCorrection = $lockedRequest->status === 'paid';
+
+                $lockedRequest->update([
+                    ...$request->validated(),
+                    'status' => 'paid',
+                ]);
+
+                // Same transaction: when the payer matches a ledger student and an
+                // OR number is present, auto-post a payment row to their ledger.
+                // The service is idempotent, so corrections (re-saves) are safe.
+                $posting = $postingService->postPayment($lockedRequest->fresh('formInput.course'));
+            });
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return back()->withErrors([
+                'or_no' => 'An error occurred. Please do the action again.',
             ]);
-
-            // Same transaction: when the payer matches a ledger student and an
-            // OR number is present, auto-post a payment row to their ledger.
-            // The service is idempotent, so corrections (re-saves) are safe.
-            $posting = $postingService->postPayment($lockedRequest->fresh('formInput.course'));
-        });
+        }
 
         $base = $isCorrection
             ? 'Payment details updated successfully.'
@@ -160,7 +185,6 @@ class CashierRequestController extends Controller
             'student_not_found' => " No matching {$label} student — payment was not auto-posted.",
             'no_ledger_context' => " Matching {$label} student has no ledger records yet — payment was not auto-posted.",
             'no_course' => ' No course was selected and the ledger destination could not be determined — payment was not auto-posted.',
-            'insert_failed' => " Could not post to the {$label} ledger (insert failed).",
             'missing_or', 'no_form', 'not_required' => '',
             default => $posting['reason'] === null
                 ? ''
