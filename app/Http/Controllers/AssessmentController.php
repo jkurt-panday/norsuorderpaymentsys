@@ -72,6 +72,7 @@ class AssessmentController extends Controller
                 'semesters' => AssessmentForm::query()
                     ->distinct()
                     ->whereNotNull('semester')
+                    ->orderBy('semester')
                     ->pluck('semester'),
             ],
         ]);
