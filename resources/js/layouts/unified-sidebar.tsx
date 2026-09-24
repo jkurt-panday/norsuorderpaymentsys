@@ -92,7 +92,7 @@ const staffCollapsibleItems = [
         icon: GraduationCap,
         items: [
             { title: 'Ledger Overview', href: '/graduate-ledger' },
-            { title: 'Search Student', href: '/graduate-ledger/print-select' },
+            { title: 'Print Statement', href: '/graduate-ledger/print-select' },
         ],
     },
     {

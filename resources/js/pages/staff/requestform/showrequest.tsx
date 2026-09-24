@@ -92,6 +92,12 @@ interface Course {
     course_college: string;
 }
 
+interface AcademicTerm {
+    id: number;
+    school_year: string;
+    semester: string;
+}
+
 interface FormInput {
     id: number;
     reference_number: string;
@@ -114,6 +120,7 @@ interface FormInput {
     submitted_student_number: string | null;
     student: StudentMatch | null;
     course: Course | null;
+    academic_term: number | null;
 }
 
 interface FlashProps {
@@ -132,6 +139,7 @@ interface PageProps {
     bankAccounts: BankAccount[];
     uacsList: Uacs[];
     paymentOptions: PaymentDetailOption[];
+    academicTerms: AcademicTerm[];
     flash?: FlashProps;
 }
 
@@ -306,8 +314,15 @@ const formatFileSize = (bytes?: number) => {
 };
 
 export default function ShowRequest() {
-    const { auth, formInput, bankAccounts, uacsList, paymentOptions, flash } =
-        usePage().props as unknown as PageProps;
+    const {
+        auth,
+        formInput,
+        bankAccounts,
+        uacsList,
+        paymentOptions,
+        academicTerms,
+        flash,
+    } = usePage().props as unknown as PageProps;
     const isCashier = auth?.user?.role === 'cashier';
     const isAdmin = auth?.user?.role === 'admin';
     const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
@@ -338,11 +353,18 @@ export default function ShowRequest() {
         email: formInput.email,
         contact_num: formInput.contact_num,
     });
+    const academicTermForm = useForm({
+        academic_term: formInput.academic_term
+            ? String(formInput.academic_term)
+            : '',
+    });
 
     const isLedgerCourse = ['Graduate School', 'School of Law'].includes(
         formInput.course?.course_college ?? '',
     );
     const needsStudentMatch = isLedgerCourse && !formInput.student_num;
+    const needsAcademicTermMatch =
+        isLedgerCourse && !formInput.academic_term;
 
     useEffect(() => {
         if (!isStudentMatchOpen || studentMatchMode !== 'existing') {
@@ -417,6 +439,15 @@ export default function ShowRequest() {
                 preserveScroll: true,
                 onSuccess: () => setIsStudentMatchOpen(false),
             },
+        );
+    };
+
+    const assignAcademicTerm = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        academicTermForm.put(
+            staff.requests.assignAcademicTerm.url(formInput.id),
+            { preserveScroll: true },
         );
     };
 
@@ -1335,7 +1366,13 @@ export default function ShowRequest() {
                                                 onClick={() =>
                                                     setIsProcessing(true)
                                                 }
-                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700"
+                                                disabled={needsAcademicTermMatch}
+                                                title={
+                                                    needsAcademicTermMatch
+                                                        ? 'Assign an academic term before processing.'
+                                                        : undefined
+                                                }
+                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                                             >
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
@@ -2401,6 +2438,64 @@ export default function ShowRequest() {
                                 <Search className="h-4 w-4" />
                                 Match Student
                             </button>
+                        </div>
+                    </section>
+                )}
+
+                {needsAcademicTermMatch && (
+                    <section className="mt-6 rounded-3xl border border-rose-300 bg-rose-50 p-5 shadow-sm">
+                        <div className="flex gap-3 text-rose-950">
+                            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+                            <div className="min-w-0 flex-1">
+                                <h3 className="font-semibold">
+                                    Academic term must be assigned
+                                </h3>
+                                <p className="mt-1 text-sm text-rose-800">
+                                    Select the correct academic term before this{' '}
+                                    {formInput.course?.course_college} request can
+                                    be processed.
+                                </p>
+                                <form
+                                    onSubmit={assignAcademicTerm}
+                                    className="mt-4 flex flex-col gap-3 sm:flex-row"
+                                >
+                                    <select
+                                        value={academicTermForm.data.academic_term}
+                                        onChange={(e) =>
+                                            academicTermForm.setData(
+                                                'academic_term',
+                                                e.target.value,
+                                            )
+                                        }
+                                        className="min-w-0 flex-1 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-200"
+                                        required
+                                    >
+                                        <option value="">Select academic term</option>
+                                        {academicTerms.map((term) => (
+                                            <option key={term.id} value={term.id}>
+                                                {term.school_year} · {term.semester}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        type="submit"
+                                        disabled={
+                                            academicTermForm.processing ||
+                                            !academicTermForm.data.academic_term
+                                        }
+                                        className="inline-flex shrink-0 items-center justify-center rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        {academicTermForm.processing
+                                            ? 'Assigning...'
+                                            : 'Assign Academic Term'}
+                                    </button>
+                                </form>
+                                {academicTermForm.errors.academic_term && (
+                                    <p className="mt-2 text-sm text-rose-700">
+                                        {academicTermForm.errors.academic_term}
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     </section>
                 )}
