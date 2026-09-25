@@ -80,7 +80,6 @@ class ReceiptPDFService
             'ledgerStatement' => $ledgerStatement,
             'preparedBy' => $request->user()->name ?? '—',
             'authOfficial' => $authOfficial,
-<<<<<<< HEAD
         ])
             ->driver('browsershot')
             ->withBrowsershot(function (Browsershot $browsershot): void {
@@ -103,8 +102,5 @@ class ReceiptPDFService
     {
         ini_set('max_execution_time', (string) self::PHP_TIMEOUT_SECONDS);
         set_time_limit(self::PHP_TIMEOUT_SECONDS);
-=======
-        ])->format('a4');
->>>>>>> a2e7e207d656e76a50fc8e51dba89eef4fe296fc
     }
 }

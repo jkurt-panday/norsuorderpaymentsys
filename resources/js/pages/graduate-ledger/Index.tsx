@@ -14,6 +14,9 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Columns3,
+  ChevronDown,
+  Filter,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import StudentBalanceDrawer from './StudentBalanceDrawer';
@@ -162,6 +165,36 @@ interface IndexProps {
   academicTerms?: { id: number; school_year: string; semester: string }[];
 }
 
+const defaultVisibleColumns = {
+  course: true,
+  schoolYear: true,
+  semester: true,
+  units: true,
+  transactionDate: true,
+  referenceNo: true,
+  particulars: true,
+  feeRate: false,
+  entryType: true,
+  remark: true,
+  inputBy: true,
+};
+
+type OptionalColumn = keyof typeof defaultVisibleColumns;
+
+const optionalColumnLabels: Record<OptionalColumn, string> = {
+  course: 'Course',
+  schoolYear: 'School Year',
+  semester: 'Semester',
+  units: 'Units',
+  transactionDate: 'Transaction Date',
+  referenceNo: 'Reference Number',
+  particulars: 'Particulars',
+  feeRate: 'Tuition/Unit or Reg. & Misc. Fee',
+  entryType: 'AR/Payment',
+  remark: 'Remark',
+  inputBy: 'Input By',
+};
+
 export default function Index({ records, filters, stats, filterOptions, courses = [], academicTerms = [] }: IndexProps) {
   const rows: LedgerRecord[] = records?.data ?? [];
   const importForm = useForm<{ file: File | null; preset_course_id: string; preset_academic_term_id: string }>({
@@ -174,6 +207,42 @@ export default function Index({ records, filters, stats, filterOptions, courses 
     studentId: number;
     transactionId: string | number;
   } | null>(null);
+  const [showFilters, setShowFilters] = useState(() =>
+    Boolean(
+      filters?.school_year ||
+      filters?.semester ||
+      filters?.course ||
+      filters?.date_from ||
+      filters?.date_to ||
+      filters?.balance_status,
+    ),
+  );
+  const [visibleColumns, setVisibleColumns] = useState(() => {
+    if (typeof window === 'undefined') {
+      return defaultVisibleColumns;
+    }
+
+    try {
+      const saved = JSON.parse(
+        window.localStorage.getItem('graduate-ledger.visible-columns') ?? '{}',
+      ) as Partial<typeof defaultVisibleColumns>;
+
+      return { ...defaultVisibleColumns, ...saved };
+    } catch {
+      return defaultVisibleColumns;
+    }
+  });
+
+  const toggleColumn = (column: OptionalColumn) => {
+    setVisibleColumns((current) => {
+      const next = { ...current, [column]: !current[column] };
+      window.localStorage.setItem('graduate-ledger.visible-columns', JSON.stringify(next));
+
+      return next;
+    });
+  };
+
+  const visibleColumnCount = 3 + Object.values(visibleColumns).filter(Boolean).length;
 
   // ── Single filter state object to avoid stale-closure bugs ────────────────
   const [filterState, setFilterState] = useState({
@@ -187,6 +256,7 @@ export default function Index({ records, filters, stats, filterOptions, courses 
   });
 
   const [goToPage, setGoToPage] = useState('');
+  const [isFiltering, setIsFiltering] = useState(false);
 
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
@@ -333,6 +403,18 @@ throw new Error('Export failed');
   const dateTo        = filterState.date_to;
   const balanceStatus = filterState.balance_status;
 
+  const activeAdvancedFilters = [
+    schoolYear && { key: 'school_year', label: `School year: ${schoolYear}` },
+    semester && { key: 'semester', label: semester },
+    course && { key: 'course', label: `Course: ${course}` },
+    balanceStatus && {
+      key: 'balance_status',
+      label: balanceStatus === 'with_balance' ? 'Outstanding balance' : 'Fully paid',
+    },
+    dateFrom && { key: 'date_from', label: `From: ${formatTransactionDate(dateFrom)}` },
+    dateTo && { key: 'date_to', label: `To: ${formatTransactionDate(dateTo)}` },
+  ].filter(Boolean) as { key: keyof typeof filterState; label: string }[];
+
   /**
    * Merge overrides into the current filter state, then immediately
    * navigate — uses the merged object directly so there is no stale closure.
@@ -351,6 +433,37 @@ throw new Error('Export failed');
     router.get('/graduate-ledger', params, {
       preserveState: true,
       replace: true,
+      onStart: () => setIsFiltering(true),
+      onFinish: () => setIsFiltering(false),
+    });
+  };
+
+  const applyDatePreset = (preset: 'today' | 'month' | 'clear') => {
+    if (preset === 'clear') {
+      applyFilters({ date_from: '', date_to: '' });
+
+      return;
+    }
+
+    const now = new Date();
+    const toDateInput = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+
+      return `${year}-${month}-${day}`;
+    };
+    const today = toDateInput(now);
+
+    if (preset === 'today') {
+      applyFilters({ date_from: today, date_to: today });
+
+      return;
+    }
+
+    applyFilters({
+      date_from: toDateInput(new Date(now.getFullYear(), now.getMonth(), 1)),
+      date_to: today,
     });
   };
 
@@ -506,11 +619,47 @@ throw new Error('Export failed');
               <div>
                 <CardTitle className="text-md text-[#0B3D91]">Transaction Ledger</CardTitle>
                 <CardDescription className="text-[#7FA6D6] mt-0.5">
-                  Showing {rows.length} of {totalRecordCount} record{totalRecordCount === 1 ? '' : 's'}
+                  <span className="inline-flex items-center gap-1.5">
+                    {isFiltering && <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0F6FFF]" />}
+                    {isFiltering
+                      ? 'Updating results...'
+                      : `Showing ${rows.length} of ${totalRecordCount} record${totalRecordCount === 1 ? '' : 's'}`}
+                  </span>
                 </CardDescription>
               </div>
 
-              <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center gap-2">
+              <form onSubmit={handleSearchSubmit} className="flex flex-1 flex-wrap items-center gap-2 md:justify-end">
+                <Popover>
+                  <PopoverTrigger>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
+                    >
+                      <Columns3 className="h-4 w-4" /> Columns
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-72 p-3">
+                    <div className="mb-2">
+                      <p className="text-sm font-semibold text-[#0B3D91]">Visible columns</p>
+                      <p className="text-xs text-[#7FA6D6]">Name, Amount, and Actions always remain visible.</p>
+                    </div>
+                    <div className="grid gap-1">
+                      {(Object.keys(optionalColumnLabels) as OptionalColumn[]).map((column) => (
+                        <label key={column} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[#334E68] hover:bg-[#F3F8FF]">
+                          <input
+                            type="checkbox"
+                            checked={visibleColumns[column]}
+                            onChange={() => toggleColumn(column)}
+                            className="h-4 w-4 rounded border-[#B9D8FF] accent-[#0F6FFF]"
+                          />
+                          <span>{optionalColumnLabels[column]}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <div className="relative w-full sm:w-64">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#7FA6D6]" />
                   <Input
@@ -532,6 +681,28 @@ throw new Error('Export failed');
                   <Search className="h-4 w-4 mr-1.5" /> Search
                 </Button>
 
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  aria-expanded={showFilters}
+                  onClick={() => setShowFilters((current) => !current)}
+                  className={`h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF] ${
+                    activeAdvancedFilters.length > 0 ? 'bg-[#EAF2FF]' : ''
+                  }`}
+                >
+                  <Filter className="h-4 w-4" />
+                  Filters
+                  {activeAdvancedFilters.length > 0 && (
+                    <span className="rounded-full bg-[#0F6FFF] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                      {activeAdvancedFilters.length}
+                    </span>
+                  )}
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+                </Button>
+
+                {showFilters && (
+                <div className="flex basis-full flex-wrap items-end gap-2 rounded-lg border border-[#DCEAFF] bg-[#F8FBFF] p-3">
                 <select
                   value={schoolYear}
                   onChange={(e) => applyFilters({ school_year: e.target.value })}
@@ -581,28 +752,48 @@ throw new Error('Export failed');
                   <option value="cleared">Cleared / Fully Paid</option>
                 </select>
 
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => applyFilters({ date_from: e.target.value })}
-                  className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
-                  placeholder="Date from"
-                />
+                <label className="grid gap-1 text-xs font-medium text-[#5C7A9E]">
+                  From
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    max={dateTo || undefined}
+                    onChange={(e) => applyFilters({ date_from: e.target.value })}
+                    className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm font-normal text-[#0B3D91]"
+                  />
+                </label>
 
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => applyFilters({ date_to: e.target.value })}
-                  className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
-                  placeholder="Date to"
-                />
+                <label className="grid gap-1 text-xs font-medium text-[#5C7A9E]">
+                  To
+                  <input
+                    type="date"
+                    value={dateTo}
+                    min={dateFrom || undefined}
+                    onChange={(e) => applyFilters({ date_to: e.target.value })}
+                    className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm font-normal text-[#0B3D91]"
+                  />
+                </label>
+
+                <div className="flex flex-wrap items-center gap-1 self-end" aria-label="Date filter shortcuts">
+                  <Button type="button" size="sm" variant="outline" onClick={() => applyDatePreset('today')} className="h-9 border-[#CFE3FF] text-[#0B3D91]">
+                    Today
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={() => applyDatePreset('month')} className="h-9 border-[#CFE3FF] text-[#0B3D91]">
+                    This month
+                  </Button>
+                  {(dateFrom || dateTo) && (
+                    <Button type="button" size="sm" variant="ghost" onClick={() => applyDatePreset('clear')} className="h-9 text-[#5C7A9E]">
+                      Clear dates
+                    </Button>
+                  )}
+                </div>
 
                 <Button
                   type="button"
                   variant="outline"
                   className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
                   onClick={() => {
-                    setFilterState({
+                    applyFilters({
                       search: '',
                       school_year: '',
                       semester: '',
@@ -611,41 +802,88 @@ throw new Error('Export failed');
                       date_to: '',
                       balance_status: '',
                     });
-                    router.get('/graduate-ledger');
                   }}
                 >
                   <XCircle className="h-4 w-4 mr-1.5" />
                   Clear Filters
                 </Button>
+                </div>
+                )}
+
+                {activeAdvancedFilters.length > 0 && (
+                  <div className="flex basis-full flex-wrap items-center gap-1.5">
+                    <span className="mr-1 text-xs font-medium text-[#5C7A9E]">Active:</span>
+                    {activeAdvancedFilters.map((filter) => (
+                      <button
+                        key={filter.key}
+                        type="button"
+                        onClick={() => applyFilters({ [filter.key]: '' })}
+                        className="inline-flex items-center gap-1 rounded-full border border-[#B9D8FF] bg-[#EAF2FF] px-2.5 py-1 text-xs font-medium text-[#0B62E0] transition-colors hover:border-[#0F6FFF] hover:bg-[#DCEAFF]"
+                        title={`Remove ${filter.label} filter`}
+                      >
+                        {filter.label}
+                        <XCircle className="h-3.5 w-3.5" />
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        applyFilters({
+                          school_year: '',
+                          semester: '',
+                          course: '',
+                          date_from: '',
+                          date_to: '',
+                          balance_status: '',
+                        });
+                      }}
+                      className="px-2 py-1 text-xs font-semibold text-[#5C7A9E] hover:text-[#0B3D91] hover:underline"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                )}
               </form>
             </div>
                   </CardHeader>
-        <div className="rotate-180 overflow-x-auto custom-scrollbar border-collapse">
+        {isFiltering && (
+          <div className="h-1 w-full overflow-hidden bg-[#EAF2FF]" role="progressbar" aria-label="Filtering ledger records">
+            <div className="h-full w-1/3 animate-[pulse_1s_ease-in-out_infinite] rounded-full bg-[#0F6FFF]" />
+          </div>
+        )}
+        <div
+          aria-busy={isFiltering}
+          className={`rotate-180 overflow-x-auto custom-scrollbar border-collapse transition-opacity ${
+            isFiltering ? 'pointer-events-none opacity-45' : 'opacity-100'
+          }`}
+        >
             <div className="rotate-180 min-w-max">
           <CardContent className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b border-[#CFE3FF] bg-[#F3F8FF]">
                   <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 pl-2 whitespace-nowrap">Name</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Course</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">School Year</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Semester</th>
-                  <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Units</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Trans. Date</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Ref. (JEV/OR #)</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Particulars</th>
-                  <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Tuition/Unit or Reg. & Misc. Fee</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">AR/Payment</th>
+                  {visibleColumns.course && <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Course</th>}
+                  {visibleColumns.schoolYear && <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">School Year</th>}
+                  {visibleColumns.semester && <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Semester</th>}
+                  {visibleColumns.units && <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Units</th>}
+                  {visibleColumns.transactionDate && <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Trans. Date</th>}
+                  {visibleColumns.referenceNo && <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Ref. (JEV/OR #)</th>}
+                  {visibleColumns.particulars && <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Particulars</th>}
+                  {visibleColumns.feeRate && (
+                    <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Tuition/Unit or Reg. & Misc. Fee</th>
+                  )}
+                  {visibleColumns.entryType && <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">AR/Payment</th>}
                   <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Amount</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Remark</th>
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Input By</th>
+                  {visibleColumns.remark && <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Remark</th>}
+                  {visibleColumns.inputBy && <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Input By</th>}
                   <th className="py-2 pr-2 text-center font-medium whitespace-nowrap text-[#5C7A9E]">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.length === 0 ? (
                   <tr>
-                    <td colSpan={14} className="text-center text-sm text-[#8AA8CC] py-8">
+                    <td colSpan={visibleColumnCount} className="text-center text-sm text-[#8AA8CC] py-8">
                       No transactions found. Upload a CSV/Excel file or add one manually.
                     </td>
                   </tr>
@@ -666,26 +904,28 @@ throw new Error('Export failed');
                       className="cursor-pointer border-b border-[#EAF2FF] transition-colors hover:bg-[#F3F8FF] focus-visible:bg-[#F3F8FF] focus-visible:outline-2 focus-visible:outline-[#0F6FFF]"
                     >
                       <td className="py-2 pr-4 pl-2 font-medium whitespace-nowrap text-[#0B3D91]">{r.name}</td>
-                      <td className="py-2 pr-4 text-[#334E68]">{r.course}</td>
-                      <td className="py-2 pr-4 text-[#334E68]">{r.schoolYear}</td>
-                      <td className="py-2 pr-4 text-[#334E68]">{r.semester}</td>
-                      <td className="py-2 pr-4 text-right text-[#334E68]">{r.units}</td>
-                      <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{formatTransactionDate(r.transactionDate)}</td>
-                      <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{r.referenceNo}</td>
-                      <td className="py-2 pr-4 text-[#334E68]">{r.particulars}</td>
-                      <td className="py-2 pr-4 text-right text-[#334E68]">{currency(r.tuitionPerUnitOrFeePerSemester)}</td>
-                      <td className="py-2 pr-4">
+                      {visibleColumns.course && <td className="py-2 pr-4 text-[#334E68]">{r.course}</td>}
+                      {visibleColumns.schoolYear && <td className="py-2 pr-4 text-[#334E68]">{r.schoolYear}</td>}
+                      {visibleColumns.semester && <td className="py-2 pr-4 text-[#334E68]">{r.semester}</td>}
+                      {visibleColumns.units && <td className="py-2 pr-4 text-right text-[#334E68]">{r.units}</td>}
+                      {visibleColumns.transactionDate && <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{formatTransactionDate(r.transactionDate)}</td>}
+                      {visibleColumns.referenceNo && <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{r.referenceNo}</td>}
+                      {visibleColumns.particulars && <td className="py-2 pr-4 text-[#334E68]">{r.particulars}</td>}
+                      {visibleColumns.feeRate && (
+                        <td className="py-2 pr-4 text-right text-[#334E68]">{currency(r.tuitionPerUnitOrFeePerSemester)}</td>
+                      )}
+                      {visibleColumns.entryType && <td className="py-2 pr-4">
                         <Badge variant="outline" className={getEntryTypeBadge(r.arPayment)}>
                           {r.arPayment}
                         </Badge>
-                      </td>
+                      </td>}
                       <td className="py-2 pr-4 text-right font-medium text-[#0B3D91]">{currency(r.amount)}</td>
-                      <td className="py-2 pr-4">
+                      {visibleColumns.remark && <td className="py-2 pr-4">
                         <Badge variant="outline" className={`text-xs ${getRemarkBadge(r.remark)}`}>
                           {r.remark || '—'}
                         </Badge>
-                      </td>
-                      <td className="py-2 pr-4 text-[#8AA8CC]">{r.inputBy}</td>
+                      </td>}
+                      {visibleColumns.inputBy && <td className="py-2 pr-4 text-[#8AA8CC]">{r.inputBy}</td>}
                       <td className="py-2 pr-2 text-center whitespace-nowrap">
                         <button
                           onClick={(event) => {

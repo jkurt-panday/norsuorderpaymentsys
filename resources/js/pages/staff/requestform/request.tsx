@@ -182,6 +182,15 @@ const ManageRequests: React.FC = () => {
     const [dateFrom, setDateFrom] = useState(filters.date_from || '');
     const [dateTo, setDateTo] = useState(filters.date_to || '');
 
+    // Sync local filter state whenever the server returns updated filters
+    // (e.g. after a navigation, reset, or Inertia partial reload).
+    useEffect(() => {
+        setSearch(filters.search || '');
+        setStatus(filters.status || '');
+        setDateFrom(filters.date_from || '');
+        setDateTo(filters.date_to || '');
+    }, [filters.search, filters.status, filters.date_from, filters.date_to]);
+
     // ---- Bulk Email Modal state ----
     const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
     const [emailTarget, setEmailTarget] = useState<'specific' | 'all_paid' | 'all_processed' | 'all_pending' | 'all_cancelled'>('specific');
@@ -502,32 +511,20 @@ const ManageRequests: React.FC = () => {
     };
 
     const applyFilters = useCallback(() => {
-        const params = new URLSearchParams();
-
-        if (search) {
-            params.set('search', search);
-        }
-
-        if (status) {
-            params.set('status', status);
-        }
-
-        if (dateFrom) {
-            params.set('date_from', dateFrom);
-        }
-
-        if (dateTo) {
-            params.set('date_to', dateTo);
-        }
-
-        const qs = params.toString();
-        const url = qs ? `${staff.requests.index.url()}?${qs}` : staff.requests.index.url();
-
-        router.get(url, {}, {
-            preserveState: true,
-            preserveScroll: true,
-            only: ['formInputs'],
-        });
+        router.get(
+            staff.requests.index.url(),
+            {
+                search: search || undefined,
+                status: status || undefined,
+                date_from: dateFrom || undefined,
+                date_to: dateTo || undefined,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
     }, [search, status, dateFrom, dateTo]);
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -546,17 +543,21 @@ const ManageRequests: React.FC = () => {
             {
                 preserveState: true,
                 preserveScroll: true,
-                only: ['formInputs'],
+                replace: true,
             },
         );
     };
 
     const handlePageChange = (url: string) => {
-        router.get(url, {}, {
-            preserveState: true,
-            preserveScroll: true,
-            only: ['formInputs'],
-        });
+        router.get(
+            url,
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
     };
 
     const columns: ColumnDef<FormInput>[] = [
