@@ -64,7 +64,7 @@ class LawSchoolLedgerExport implements FromQuery, ShouldAutoSize, WithHeadings, 
             (float) $row->amount,
             $row->status,
             $row->remarks,
-            $row->input_by,
+            $row->inputByDisplay(),
         ];
     }
 }

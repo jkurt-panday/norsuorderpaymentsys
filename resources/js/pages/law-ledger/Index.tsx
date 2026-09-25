@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Mail,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import {
@@ -361,7 +362,10 @@ return 90;
                  'Import Excel/CSV'
                )}
              </label>
-
+                <Button variant="outline" className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]">
+                <Mail className="h-4 w-4 mr-1.5" />
+                Send Email
+              </Button>
              <Button
                variant="outline"
                className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
@@ -390,11 +394,13 @@ return 90;
                Export Excel/CSV
              </Button>
 
-             <Button className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white" onClick={() => router.get('/law-ledger/new-transaction')}>
-               <PlusCircle className="h-4 w-4 mr-1.5" />
-               New Transaction
-             </Button>
-           </div>
+<Button className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white" onClick={() => router.get('/law-ledger/new-transaction')}>
+                <PlusCircle className="h-4 w-4 mr-1.5" />
+                New Transaction
+              </Button>
+
+
+            </div>
         </div>
 
         {/* Metrics Row */}

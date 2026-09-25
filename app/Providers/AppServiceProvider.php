@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Listeners\LogSentEmails;
+use App\Listeners\LogSentNotifications;
 use App\Models\AcademicTerm;
 use App\Models\AssessmentForm;
 use App\Models\BankAccountInfo;

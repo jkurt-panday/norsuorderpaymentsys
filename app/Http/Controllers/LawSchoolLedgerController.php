@@ -235,7 +235,7 @@ class LawSchoolLedgerController extends Controller
      */
     public function edit(int $id): Response
     {
-        $record = LawSchoolLedger::with(['lawStudent', 'lawCourse', 'lawAcademicTerm'])->findOrFail($id);
+        $record = LawSchoolLedger::with(['lawStudent', 'lawCourse', 'lawAcademicTerm', 'inputByUser:id,name'])->findOrFail($id);
 
         return Inertia::render('law-ledger/EditTransaction', [
             'record' => $this->recordForForm($record),
@@ -1171,7 +1171,7 @@ class LawSchoolLedgerController extends Controller
         $dateTo = $request->input('date_to');
 
         return LawSchoolLedger::query()
-            ->with(['lawStudent', 'lawCourse', 'lawAcademicTerm'])
+            ->with(['lawStudent', 'lawCourse', 'lawAcademicTerm', 'inputByUser:id,name'])
             ->when($request->input('search'), function ($query, $search) {
                 // Lowercase the search term to match the LOWER() applied to columns.
                 // PostgreSQL's LIKE is case-sensitive, so "Juan" won't match "juan"
@@ -1227,7 +1227,7 @@ class LawSchoolLedgerController extends Controller
         $cleanName = trim((string) str_replace(['−', '–', '—'], '-', $studentName));
 
         return LawSchoolLedger::query()
-            ->with(['lawStudent', 'lawCourse', 'lawAcademicTerm'])
+            ->with(['lawStudent', 'lawCourse', 'lawAcademicTerm', 'inputByUser:id,name'])
             ->whereHas('lawStudent', function ($q) use ($cleanName) {
                 $q->whereRaw("TRIM(CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_name, ''))) = ?", [$cleanName])
                     ->orWhereRaw("TRIM(CONCAT(last_name, ', ', first_name)) = ?", [$cleanName])
@@ -1302,7 +1302,7 @@ class LawSchoolLedgerController extends Controller
             'amount' => $this->cleanAmount($r->amount),
             'status' => $r->status,
             'remark' => $r->remarks,
-            'inputBy' => $r->input_by,
+            'inputBy' => $r->inputByDisplay(),
         ];
     }
 
