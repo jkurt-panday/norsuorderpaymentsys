@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Mail,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -392,6 +393,10 @@ throw new Error('Export failed');
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-2">
+                        <Button variant="outline" className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]">
+              <Mail className="h-4 w-4 mr-1.5" />
+              Send Email
+            </Button>
             <Button
               variant="outline"
               disabled={isImporting}
@@ -426,6 +431,7 @@ throw new Error('Export failed');
               <PlusCircle className="h-4 w-4 mr-1.5" />
               New Transaction
             </Button>
+
           </div>
         </div>
 
