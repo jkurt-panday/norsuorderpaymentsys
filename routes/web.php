@@ -34,8 +34,8 @@ Route::name('public.')->prefix('public')->group(function () {
     Route::post('/college-offices', [CollegeOfficeController::class, 'store'])
            ->name('college-offices.store');
 
-    Route::get('/success/{reference_number}', [FormInputController::class, 'success'])->name('success');
-    Route::get('/success/{reference_number}/print', [FormInputController::class, 'printReceipt'])->name('print');
+    Route::get('/success/{formInput:reference_number}', [FormInputController::class, 'success'])->name('success');
+    Route::get('/success/{formInput:reference_number}/print', [FormInputController::class, 'printReceipt'])->name('print');
 
     Route::get('/assessmentform', [AssessmentFormController::class, 'create'])->name('assessmentform');
     Route::post('/assessmentform', [AssessmentFormController::class, 'store']);
