@@ -18,6 +18,7 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Http\UploadedFile;
@@ -204,13 +205,48 @@ class GraduateLedgerController extends Controller
     /**
      * Renders the form for creating a new ledger transaction.
      */
-    public function create(): Response
+    public function create(Request $request): Response
     {
         return Inertia::render('graduate-ledger/AddTransaction', [
             'students' => $this->studentList(),
             'courses' => $this->courseList(),
             'academicTerms' => $this->academicTermList(),
             'authUserName' => optional(auth()->user())->name ?? '',
+            'selectedStudentId' => $request->integer('student_id') ?: null,
+            'defaultEntryType' => in_array($request->input('entry_type'), ['ar', 'payment', 'adjustment'], true)
+                ? $request->input('entry_type')
+                : 'ar',
+        ]);
+    }
+
+    /**
+     * Return a student's complete graduate-ledger history and balance summary.
+     */
+    public function studentBalance(Student $student): JsonResponse
+    {
+        $records = GraduateLedger::query()
+            ->with(['student', 'course', 'academicTerm', 'inputByUser:id,name'])
+            ->where('student_id', $student->id)
+            ->orderBy('transaction_date')
+            ->orderBy('id')
+            ->get();
+
+        $termBalances = $this->calculateTermBalancesForRecords($records);
+        $latestRecord = $records->last();
+
+        return response()->json([
+            'student' => [
+                'id' => $student->id,
+                'studentNumber' => $student->student_number,
+                'name' => $student->full_name,
+                'email' => $student->email,
+                'contactNumber' => $student->contact_num,
+                'course' => $latestRecord?->course?->code,
+            ],
+            'summary' => $this->calculateStudentBalanceNormalized($records),
+            'transactions' => $records
+                ->map(fn (GraduateLedger $record) => $this->transformRecord($record, $termBalances))
+                ->values(),
         ]);
     }
 
@@ -228,6 +264,7 @@ class GraduateLedgerController extends Controller
                 $newStudent = $data['new_student'];
                 $studentAttributes = [
                     'student_number' => $newStudent['student_number'] ?? null,
+                    'email' => $newStudent['email'] ?? null,
                     'last_name' => $newStudent['last_name'],
                     'first_name' => $newStudent['first_name'],
                     'middle_name' => $newStudent['middle_name'] ?? null,
@@ -829,6 +866,8 @@ class GraduateLedgerController extends Controller
 
         return [
             'id' => $r->id,
+            'studentId' => $r->student_id,
+            'studentNumber' => $r->student?->student_number,
             'name' => $name,
             'course' => $courseCode,
             'schoolYear' => $schoolYear,
@@ -1330,7 +1369,7 @@ class GraduateLedgerController extends Controller
         return strtolower(preg_replace('/[^a-z0-9]+/i', '', implode('|', [
             $lastName,
             $firstName,
-            $middleName,
+            Student::normalizeMiddleInitial($middleName),
         ])) ?? '');
     }
 

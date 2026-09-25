@@ -16,6 +16,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import React, { useState } from 'react';
+import StudentBalanceDrawer from './StudentBalanceDrawer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,6 +45,8 @@ import {
 
 export interface LedgerRecord {
   id: string | number;
+  studentId: number;
+  studentNumber?: string | null;
   name: string;
   course: string;
   schoolYear: string;
@@ -167,6 +170,10 @@ export default function Index({ records, filters, stats, filterOptions, courses 
     preset_academic_term_id: '',
   });
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [drawerSelection, setDrawerSelection] = useState<{
+    studentId: number;
+    transactionId: string | number;
+  } | null>(null);
 
   // ── Single filter state object to avoid stale-closure bugs ────────────────
   const [filterState, setFilterState] = useState({
@@ -644,7 +651,20 @@ throw new Error('Export failed');
                   </tr>
                 ) : (
                   rows.map((r) => (
-                    <tr key={r.id} className="border-b border-[#EAF2FF] hover:bg-[#F3F8FF]">
+                    <tr
+                      key={r.id}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`View ${r.name}'s balance and transaction history`}
+                      onClick={() => setDrawerSelection({ studentId: r.studentId, transactionId: r.id })}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setDrawerSelection({ studentId: r.studentId, transactionId: r.id });
+                        }
+                      }}
+                      className="cursor-pointer border-b border-[#EAF2FF] transition-colors hover:bg-[#F3F8FF] focus-visible:bg-[#F3F8FF] focus-visible:outline-2 focus-visible:outline-[#0F6FFF]"
+                    >
                       <td className="py-2 pr-4 pl-2 font-medium whitespace-nowrap text-[#0B3D91]">{r.name}</td>
                       <td className="py-2 pr-4 text-[#334E68]">{r.course}</td>
                       <td className="py-2 pr-4 text-[#334E68]">{r.schoolYear}</td>
@@ -668,23 +688,20 @@ throw new Error('Export failed');
                       <td className="py-2 pr-4 text-[#8AA8CC]">{r.inputBy}</td>
                       <td className="py-2 pr-2 text-center whitespace-nowrap">
                         <button
-                          onClick={() =>
-                            router.get(
-                              `/graduate-ledger/${r.id}/edit`,
-                            )
-                          }
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            router.get(`/graduate-ledger/${r.id}/edit`);
+                          }}
                           className="mr-1 inline-flex items-center justify-center rounded p-1.5 text-[#0B62E0] transition-colors hover:bg-[#EAF2FF]"
                           title="Edit"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
                         <button
-                          onClick={() =>
-                            handleDelete(
-                              r.id,
-                              r.name,
-                            )
-                          }
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDelete(r.id, r.name);
+                          }}
                           className="inline-flex items-center justify-center rounded p-1.5 text-red-500 transition-colors hover:bg-red-50"
                           title="Delete"
                         >
@@ -1063,6 +1080,17 @@ throw new Error('Export failed');
           )}
         </div>
       )}
+
+      <StudentBalanceDrawer
+        open={drawerSelection !== null}
+        studentId={drawerSelection?.studentId ?? null}
+        selectedTransactionId={drawerSelection?.transactionId ?? null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDrawerSelection(null);
+          }
+        }}
+      />
     </>
   );
 }

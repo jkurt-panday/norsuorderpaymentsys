@@ -71,6 +71,8 @@ interface Props {
     courses: CourseOption[];
     academicTerms: AcademicTermOption[];
     authUserName: string;
+    selectedStudentId?: number | string | null;
+    defaultEntryType?: 'ar' | 'payment' | 'adjustment';
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -219,6 +221,8 @@ export default function AddTransaction({
     courses,
     academicTerms,
     authUserName,
+    selectedStudentId = null,
+    defaultEntryType = 'ar',
 }: Props) {
     const [showNewStudent, setShowNewStudent] = useState(false);
 
@@ -230,6 +234,7 @@ export default function AddTransaction({
         student_id: string | number;
         new_student: {
             student_number: string;
+            email: string;
             last_name: string;
             first_name: string;
             middle_name: string;
@@ -248,17 +253,17 @@ export default function AddTransaction({
         remarks: string;
         input_by: string;
     }>({
-        student_id: '',
+        student_id: selectedStudentId ?? '',
         new_student: null,
         course_id: '',
         academic_term_id: '',
         school_year: defaultSy,
         semester: 'First Semester',
-        entry_type: 'ar',
+        entry_type: defaultEntryType,
         units: '',
         transaction_date: todayStr,
         reference_or_jev_number: '',
-        particulars: 'Tuition',
+        particulars: defaultEntryType === 'payment' ? 'Payment' : 'Tuition',
         tuition_per_unit_or_misc: '',
         amount: '',
         remarks: '',
@@ -367,6 +372,7 @@ export default function AddTransaction({
                                             setData('student_id', '');
                                             setData('new_student', {
                                                 student_number: '',
+                                                email: '',
                                                 last_name: '',
                                                 first_name: '',
                                                 middle_name: '',
@@ -392,10 +398,10 @@ export default function AddTransaction({
                             </div>
 
                             {showNewStudent ? (
-                                <div className="grid grid-cols-1 gap-2 rounded-md border border-blue-100 bg-blue-50 p-3 sm:grid-cols-2 lg:grid-cols-4">
+                                <div className="grid grid-cols-1 gap-3 rounded-md border border-blue-100 bg-blue-50 p-3 sm:grid-cols-2 lg:grid-cols-3">
                                     <div>
                                         <label className="text-xs text-[#334E68]">
-                                            Student ID
+                                            School ID
                                         </label>
                                         <Input
                                             value={
@@ -429,6 +435,45 @@ export default function AddTransaction({
                                                         string
                                                     >
                                                 )['new_student.student_number']
+                                            }
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-[#334E68]">
+                                            Email
+                                        </label>
+                                        <Input
+                                            type="email"
+                                            value={
+                                                data.new_student?.email ?? ''
+                                            }
+                                            onChange={(e) =>
+                                                setData('new_student', {
+                                                    ...data.new_student!,
+                                                    email: e.target.value,
+                                                })
+                                            }
+                                            placeholder="student@example.com"
+                                            autoComplete="email"
+                                            className={
+                                                (
+                                                    errors as Record<
+                                                        string,
+                                                        string
+                                                    >
+                                                )['new_student.email']
+                                                    ? 'border-red-400'
+                                                    : ''
+                                            }
+                                        />
+                                        <FieldError
+                                            message={
+                                                (
+                                                    errors as Record<
+                                                        string,
+                                                        string
+                                                    >
+                                                )['new_student.email']
                                             }
                                         />
                                     </div>

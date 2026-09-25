@@ -103,7 +103,7 @@ class FortifyServiceProvider extends ServiceProvider
             return Inertia::render('auth/login', [
                 'canResetPassword' => Features::enabled(Features::resetPasswords()),
                 'status' => $request->session()->get('status'),
-                'deactivated_account' => $request->session()->get('deactivated_account') || $request->session()->get('google_deactivated_account'),
+                'deactivated_account' => $request->session()->get('deactivated_account'),
             ]);
         });
 

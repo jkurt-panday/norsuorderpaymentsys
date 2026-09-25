@@ -38,6 +38,7 @@ class StoreGraduateLedgerRequest extends FormRequest
                 'max:50',
                 Rule::unique(Student::class, 'student_number'),
             ],
+            'new_student.email' => ['nullable', 'email:rfc', 'max:255'],
             'new_student.last_name' => ['required_with:new_student', 'string', 'max:255'],
             'new_student.first_name' => ['required_with:new_student', 'string', 'max:255'],
             'new_student.middle_name' => ['nullable', 'string', 'max:255'],

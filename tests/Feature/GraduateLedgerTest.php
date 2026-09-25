@@ -65,6 +65,7 @@ class GraduateLedgerTest extends TestCase
         $response = $this->actingAs($user)->post('/graduate-ledger', [
             'new_student' => [
                 'student_number' => '2026-00123',
+                'email' => 'maria.reyes@example.com',
                 'last_name' => 'Reyes',
                 'first_name' => 'Maria',
                 'middle_name' => 'Santos',
@@ -88,6 +89,7 @@ class GraduateLedgerTest extends TestCase
             'entry_type' => 'payment',
             'amount' => '500.00',
         ]);
+        $this->assertSame('maria.reyes@example.com', $student->email);
     }
 
     public function test_new_student_rejects_an_existing_student_id(): void

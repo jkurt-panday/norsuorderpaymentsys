@@ -12,12 +12,20 @@ use Spatie\LaravelPdf\PdfBuilder;
 
 class ReceiptPDFService
 {
+    private const PHP_TIMEOUT_SECONDS = 360;
+
+    private const BROWSER_TIMEOUT_SECONDS = 300;
+
+    private const PROTOCOL_TIMEOUT_MILLISECONDS = 300_000;
+
     public function __construct(
         private readonly LedgerMatchingService $ledgerMatcher,
     ) {}
 
     public function orderOfPaymentPrint(FormInput $formInput): PdfBuilder
     {
+        $this->extendPhpExecutionTime();
+
         $formInput->load([
             'membership',
             'paymentDetailOption',
@@ -26,20 +34,32 @@ class ReceiptPDFService
 
         return Pdf::view('pdf.success-receipt', [
             'formInput' => $formInput,
-        ])->format('a4');
+        ])
+            ->withBrowsershot(function (Browsershot $browsershot): void {
+                $this->configureBrowsershot($browsershot);
+            })
+            ->format('a4');
     }
 
     public function assessmentPrint(AssessmentForm $assessmentForm): PdfBuilder
     {
+        $this->extendPhpExecutionTime();
+
         $assessmentForm->load(['course']);
 
         return Pdf::view('pdf.assessment-success-receipt', [
             'assessmentForm' => $assessmentForm,
-        ])->format('a4');
+        ])
+            ->withBrowsershot(function (Browsershot $browsershot): void {
+                $this->configureBrowsershot($browsershot);
+            })
+            ->format('a4');
     }
 
     public function soaPrint(Request $request, AssessmentForm $assessment): PdfBuilder
     {
+        $this->extendPhpExecutionTime();
+
         $validated = $request->validate([
             'ledger_student' => ['nullable', 'string', 'max:255'],
         ]);
@@ -63,10 +83,24 @@ class ReceiptPDFService
         ])
             ->driver('browsershot')
             ->withBrowsershot(function (Browsershot $browsershot): void {
-                // Full Chrome's current headless mode avoids the Windows
-                // chrome-headless-shell IO.read failure while retaining CSS.
-                $browsershot->newHeadless();
+                $this->configureBrowsershot($browsershot);
             })
             ->format('a4');
+    }
+
+    private function configureBrowsershot(Browsershot $browsershot): void
+    {
+        // Full Chrome's current headless mode avoids the Windows
+        // chrome-headless-shell IO.read failure while retaining CSS.
+        $browsershot
+            ->newHeadless()
+            ->timeout(self::BROWSER_TIMEOUT_SECONDS)
+            ->setOption('protocolTimeout', self::PROTOCOL_TIMEOUT_MILLISECONDS);
+    }
+
+    private function extendPhpExecutionTime(): void
+    {
+        ini_set('max_execution_time', (string) self::PHP_TIMEOUT_SECONDS);
+        set_time_limit(self::PHP_TIMEOUT_SECONDS);
     }
 }

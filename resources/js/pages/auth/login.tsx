@@ -181,12 +181,6 @@ export default function Login({
                         login
                     </span>
                 </Button>
-                <a
-    href="/auth/google"
-    className="flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2"
->
-    Continue with Google
-</a>
             </form>
 
             <Dialog open={isDeactivatedOpen} onOpenChange={setIsDeactivatedOpen}>
