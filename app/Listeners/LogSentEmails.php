@@ -7,6 +7,7 @@ use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Symfony\Component\Mime\Address;
+use Symfony\Component\Mime\Email;
 
 class LogSentEmails
 {
@@ -22,7 +23,7 @@ class LogSentEmails
 
         $subject = $message->getSubject() ?? '(no subject)';
 
-        $dedupKey = 'email_log:' . md5($recipientEmails . '|' . $subject);
+        $dedupKey = 'email_log:'.md5($recipientEmails.'|'.$subject);
 
         if (Cache::get($dedupKey)) {
             return;
@@ -48,7 +49,7 @@ class LogSentEmails
         ]);
     }
 
-    private function extractRecipients(\Symfony\Component\Mime\Email $message): string
+    private function extractRecipients(Email $message): string
     {
         $recipients = [];
 
@@ -60,7 +61,7 @@ class LogSentEmails
     }
 
     /**
-     * @param array<int, string> $recipients
+     * @param  array<int, string>  $recipients
      */
     private function addAddresses(array &$recipients, mixed $addresses): void
     {

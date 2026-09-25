@@ -41,10 +41,10 @@ class HandleInertiaRequests extends Middleware
             // 🌟 1. SHARE AUTHENTICATED USER DATA GLOBALLY
             'auth' => [
                 'user' => $request->user() ? [
-                    'id'      => $request->user()->id,
-                    'name'    => $request->user()->name,
-                    'email'   => $request->user()->email,
-                    'role'    => $request->user()->role,
+                    'id' => $request->user()->id,
+                    'name' => $request->user()->name,
+                    'email' => $request->user()->email,
+                    'role' => $request->user()->role,
                     'profile' => $request->user()->profile,
                 ] : null,
             ],

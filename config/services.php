@@ -38,4 +38,14 @@ return [
     'brevo' => [
         'key' => env('BREVO_API_KEY'),
     ],
+<<<<<<< HEAD
+=======
+
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI'),
+    ],
+
+>>>>>>> a2e7e207d656e76a50fc8e51dba89eef4fe296fc
 ];

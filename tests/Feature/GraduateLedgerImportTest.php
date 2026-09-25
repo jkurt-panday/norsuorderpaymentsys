@@ -273,15 +273,15 @@ class GraduateLedgerImportTest extends TestCase
         // string is kept as course_desc since no canonical title is known
         $this->assertSame($initialCourseCount + 1, Course::count());
         $this->assertDatabaseHas('courses', [
-            'course_code'    => 'MS NURSING',
-            'course_desc'    => 'MS Nursing',
+            'course_code' => 'MS NURSING',
+            'course_desc' => 'MS Nursing',
             'course_college' => 'Graduate School',
         ]);
 
         $course = Course::where('course_code', 'MS NURSING')->firstOrFail();
         $this->assertDatabaseHas('graduate_ledgers', [
             'reference_number' => 'REF-SKIP-1',
-            'course_id'        => $course->id,
+            'course_id' => $course->id,
         ]);
     }
 
@@ -307,14 +307,14 @@ class GraduateLedgerImportTest extends TestCase
         // Recognized canonical code is auto-created with the proper course_code
         // and the official program description
         $this->assertDatabaseHas('courses', [
-            'course_code'    => 'PhD. Mathematics',
-            'course_desc'    => 'Doctor of Philosophy in Mathematics',
+            'course_code' => 'PhD. Mathematics',
+            'course_desc' => 'Doctor of Philosophy in Mathematics',
             'course_college' => 'Graduate School',
         ]);
         $course = Course::where('course_code', 'PhD. Mathematics')->firstOrFail();
         $this->assertDatabaseHas('graduate_ledgers', [
             'reference_number' => 'REF-CANON-NEW',
-            'course_id'        => $course->id,
+            'course_id' => $course->id,
         ]);
     }
 
@@ -336,13 +336,13 @@ class GraduateLedgerImportTest extends TestCase
 
         // Course is stored exactly as "MS"
         $this->assertDatabaseHas('courses', [
-            'course_code'    => 'MS',
+            'course_code' => 'MS',
             'course_college' => 'Graduate School',
         ]);
         $course = Course::where('course_code', 'MS')->firstOrFail();
         $this->assertDatabaseHas('graduate_ledgers', [
             'reference_number' => 'REF-MS-EXACT',
-            'course_id'        => $course->id,
+            'course_id' => $course->id,
         ]);
     }
 
@@ -508,14 +508,14 @@ class GraduateLedgerImportTest extends TestCase
         // Valid formula should evaluate =100+50 to 150 rate and =6*150 to 900 amount
         $this->assertDatabaseHas('graduate_ledgers', [
             'reference_number' => 'FORMULA-VALID',
-            'rate'             => '150.00',
-            'amount'           => '900.00',
+            'rate' => '150.00',
+            'amount' => '900.00',
         ]);
 
         // Error formula should not crash and be cleaned to 0.00
         $this->assertDatabaseHas('graduate_ledgers', [
             'reference_number' => 'FORMULA-ERROR',
-            'amount'           => '0.00',
+            'amount' => '0.00',
         ]);
 
         unlink($file);

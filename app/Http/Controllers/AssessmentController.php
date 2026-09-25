@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\AssessmentSoaMail;
 use App\Models\AssessmentForm;
 use App\Models\Courses;
 use App\Services\AssessmentStatsService;
@@ -9,6 +10,7 @@ use App\Services\LedgerMatchingService;
 use App\Services\ReceiptPDFService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Spatie\LaravelPdf\PdfBuilder;
@@ -141,6 +143,31 @@ class AssessmentController extends Controller
         return $this->receiptPDFService
             ->soaPrint($request, $assessment)
             ->inline();
+    }
+
+    public function emailSoa(Request $request, AssessmentForm $assessment): RedirectResponse
+    {
+        $validated = $request->validate([
+            'subject' => 'nullable|string|max:255',
+            'recipient_name' => 'nullable|string|max:255',
+            'note' => 'nullable|string|max:2000',
+            'ledger_student' => 'nullable|string|max:255',
+        ]);
+
+        $pdfBuilder = $this->receiptPDFService->soaPrint($request, $assessment);
+        $pdfContent = $pdfBuilder->generatePdfContent();
+
+        Mail::to($assessment->email)->send(
+            new AssessmentSoaMail(
+                $assessment,
+                $pdfContent,
+                $validated['subject'] ?? null,
+                $validated['recipient_name'] ?? null,
+                $validated['note'] ?? null,
+            )
+        );
+
+        return back()->with('success', 'Assessment Statement of Account emailed successfully.');
     }
 
     // /**

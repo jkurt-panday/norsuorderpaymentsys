@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+<<<<<<< HEAD
 use App\Models\GraduateLedger;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -13,12 +14,17 @@ use Illuminate\Validation\Rules\Password;
 use Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoTransportFactory;
 use Symfony\Component\Mailer\Transport\Dsn;
 
+=======
+use App\Listeners\LogSentEmails;
+use App\Listeners\LogSentNotifications;
+>>>>>>> a2e7e207d656e76a50fc8e51dba89eef4fe296fc
 use App\Models\AcademicTerm;
 use App\Models\AssessmentForm;
 use App\Models\BankAccountInfo;
 use App\Models\Course;
 use App\Models\Courses;
 use App\Models\FormInput;
+use App\Models\GraduateLedger;
 use App\Models\LawSchoolLedger;
 use App\Models\Membership;
 use App\Models\PaymentDetailOption;
@@ -27,9 +33,19 @@ use App\Models\Student;
 use App\Models\SupportingDocument;
 use App\Models\UACS;
 use App\Models\User;
-use App\Listeners\LogSentEmails;
-use App\Listeners\LogSentNotifications;
 use App\Observers\ActivityLogObserver;
+use App\Observers\GraduateLedgerObserver;
+use Carbon\CarbonImmutable;
+use Illuminate\Mail\Events\MessageSent;
+use Illuminate\Notifications\Events\NotificationSent;
+use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
+use Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoTransportFactory;
+use Symfony\Component\Mailer\Transport\Dsn;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -80,8 +96,8 @@ class AppServiceProvider extends ServiceProvider
             );
         });
 
-        Event::listen(\Illuminate\Mail\Events\MessageSent::class, LogSentEmails::class);
-        Event::listen(\Illuminate\Notifications\Events\NotificationSent::class, LogSentNotifications::class);
+        Event::listen(MessageSent::class, LogSentEmails::class);
+        Event::listen(NotificationSent::class, LogSentNotifications::class);
     }
 
     /**
