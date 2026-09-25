@@ -10,6 +10,7 @@ import {
     Receipt,
     IdCard,
     Printer,
+    Home
 } from 'lucide-react';
 import React, { useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
