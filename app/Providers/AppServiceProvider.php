@@ -2,8 +2,22 @@
 
 namespace App\Providers;
 
+<<<<<<< HEAD
+use App\Models\GraduateLedger;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
+use Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoTransportFactory;
+use Symfony\Component\Mailer\Transport\Dsn;
+
+=======
 use App\Listeners\LogSentEmails;
 use App\Listeners\LogSentNotifications;
+>>>>>>> a2e7e207d656e76a50fc8e51dba89eef4fe296fc
 use App\Models\AcademicTerm;
 use App\Models\AssessmentForm;
 use App\Models\BankAccountInfo;
@@ -48,8 +62,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        GraduateLedger::observe(GraduateLedgerObserver::class);
-
         $this->configureDefaults();
 
         // Centralized audit trail: log all CRUD on staff/admin-managed

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Student extends Model
 {
@@ -65,14 +66,11 @@ class Student extends Model
     /** @return array{last_name: string, first_name: string, middle_name: string|null} */
     public static function parseRawName(string $rawName): array
     {
-        $rawName = trim($rawName);
+        $rawName = Str::squish($rawName);
 
-        // Pattern: "LAST, FIRST MIDDLE" or "LAST, FIRST"
         if (str_contains($rawName, ',')) {
             [$last, $rest] = explode(',', $rawName, 2);
-            $rest = trim($rest);
-
-            $parts = preg_split('/\s+/', $rest);
+            $parts = preg_split('/\s+/', Str::squish($rest));
 
             if ($parts === false || $parts === []) {
                 return [
@@ -82,28 +80,44 @@ class Student extends Model
                 ];
             }
 
+            $parts = array_values(array_filter(
+                $parts,
+                fn (string $part): bool => ! preg_match('/^\([^)]*\)$/u', $part),
+            ));
+
+            if ($parts === []) {
+                return [
+                    'last_name' => trim($last),
+                    'first_name' => '',
+                    'middle_name' => null,
+                ];
+            }
+
+            $suffix = null;
+            $lastPart = Str::upper(rtrim(end($parts), '.,'));
+            if (in_array($lastPart, ['JR', 'SR', 'II', 'III', 'IV', 'V'], true)) {
+                $suffix = array_pop($parts);
+            }
+
             $count = count($parts);
+            $middle = null;
 
             if ($count === 1) {
                 $first = $parts[0];
-                $middle = null;
             } elseif ($count === 2) {
-                // If there are exactly two words, check if the last word is a middle initial
-                $lastWord = trim($parts[1]);
-                $cleanLastWord = rtrim($lastWord, '.');
-
-                // Single character is a middle initial, otherwise it is a double first name
-                if (strlen($cleanLastWord) === 1) {
+                if (self::isMiddleInitial($parts[1])) {
                     $first = $parts[0];
-                    $middle = $cleanLastWord;
+                    $middle = self::normalizeMiddleInitial($parts[1]);
                 } else {
-                    $first = $parts[0].' '.$parts[1];
-                    $middle = null;
+                    $first = implode(' ', $parts);
                 }
             } else {
-                // 3 or more words: last word is the middle name, all previous words are first name
-                $middle = rtrim(trim($parts[$count - 1]), '.');
+                $middle = self::normalizeMiddleInitial($parts[$count - 1]);
                 $first = implode(' ', array_slice($parts, 0, $count - 1));
+            }
+
+            if ($suffix !== null) {
+                $first = trim($first.' '.$suffix);
             }
 
             return [
@@ -119,5 +133,23 @@ class Student extends Model
             'first_name' => '',
             'middle_name' => null,
         ];
+    }
+
+    private static function isMiddleInitial(string $value): bool
+    {
+        return preg_match('/^\p{L}[.,]?$/u', trim($value)) === 1;
+    }
+
+    public static function normalizeMiddleInitial(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (preg_match('/\p{L}/u', $value, $matches) !== 1) {
+            return null;
+        }
+
+        return Str::upper($matches[0]);
     }
 }

@@ -231,11 +231,151 @@ class OpStudentMatchingTest extends TestCase
                 'or_no' => '2026-00324',
                 'or_date' => '2026-09-02',
             ])
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertSessionHasErrors('student');
+
+        $this->assertSame('processed', $staffInput->fresh()->status);
+        $this->assertNull($staffInput->fresh()->or_no);
 
         $this->assertFalse(GraduateLedger::query()
             ->where('reference_number', '2026-00324')
             ->exists());
+    }
+
+    public function test_ledger_write_failure_rolls_back_cashier_payment(): void
+    {
+        $cashier = User::factory()->cashier()->create();
+        $student = Student::create([
+            'student_number' => '202600399',
+            'first_name' => 'Rollback',
+            'last_name' => 'Student',
+        ]);
+        $formInput = $this->makeLedgerFormInput(['student_num' => $student->id]);
+        $bank = BankAccountInfo::firstOrCreate(
+            ['account_num' => '123456789'],
+            ['account_name' => 'Main', 'bank_name' => 'Landbank', 'fund_cluster' => '01'],
+        );
+        $uacs = UACS::firstOrCreate(
+            ['object_code' => '4020101000'],
+            ['account_title' => 'Tuition Fees'],
+        );
+        $staffInput = StaffInput::create([
+            'form_input_id' => $formInput->id,
+            'fundcluster_id' => $bank->id,
+            'ref_date' => '2026-09-01',
+            'uacs_id' => $uacs->id,
+            'status' => 'processed',
+        ]);
+
+        $this->mock(CashierLedgerPostingService::class)
+            ->shouldReceive('postPayment')
+            ->once()
+            ->andThrow(new \RuntimeException('Simulated ledger failure'));
+
+        $this->actingAs($cashier)
+            ->put("/cashier/requests/{$staffInput->id}/payment", [
+                'or_no' => '2026-00399',
+                'or_date' => '2026-09-24',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors([
+                'or_no' => 'An error occurred. Please do the action again.',
+            ]);
+
+        $staffInput->refresh();
+
+        $this->assertSame('processed', $staffInput->status);
+        $this->assertNull($staffInput->or_no);
+        $this->assertNull($staffInput->or_date);
+    }
+
+    public function test_cancelling_a_paid_ledger_op_creates_an_idempotent_reversal(): void
+    {
+        $staff = User::factory()->staff()->create();
+        $student = Student::create([
+            'student_number' => '202600398',
+            'first_name' => 'Reversal',
+            'last_name' => 'Student',
+        ]);
+        $formInput = $this->makeLedgerFormInput(['student_num' => $student->id]);
+        $staffInput = $this->makePaidStaffInput($formInput, '2026-00398');
+
+        GraduateLedger::create([
+            'student_id' => $student->id,
+            'course_id' => $formInput->course_id,
+            'academic_term_id' => $formInput->academic_term,
+            'entry_type' => 'payment',
+            'transaction_date' => '2026-09-24',
+            'reference_number' => '2026-00398',
+            'particulars' => 'Tuition',
+            'rate' => '0.00',
+            'amount' => 500,
+            'remarks' => 'OP:'.$formInput->id,
+            'status' => 'posted',
+        ]);
+
+        $payload = [
+            'form_input_id' => $formInput->id,
+            'fundcluster_id' => $staffInput->fundcluster_id,
+            'ref_document_id' => null,
+            'ref_date' => $staffInput->ref_date->format('Y-m-d'),
+            'uacs_id' => $staffInput->uacs_id,
+            'status' => 'cancelled',
+            'purpose' => null,
+        ];
+
+        $this->actingAs($staff)
+            ->put("/staff/requests/{$staffInput->id}", $payload)
+            ->assertRedirect();
+
+        $this->assertSame('cancelled', $staffInput->fresh()->status);
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'remarks' => 'OP:'.$formInput->id.':REVERSAL',
+            'entry_type' => 'payment',
+            'amount' => '-500.00',
+        ]);
+        $this->assertSame(
+            0.0,
+            (float) GraduateLedger::query()
+                ->where('student_id', $student->id)
+                ->where('entry_type', 'payment')
+                ->sum('amount'),
+        );
+
+        $this->actingAs($staff)
+            ->put("/staff/requests/{$staffInput->id}", $payload)
+            ->assertRedirect();
+
+        $this->assertSame(1, GraduateLedger::query()
+            ->where('remarks', 'OP:'.$formInput->id.':REVERSAL')
+            ->count());
+    }
+
+    public function test_paid_ledger_op_remains_paid_when_reversal_cannot_be_written(): void
+    {
+        $staff = User::factory()->staff()->create();
+        $student = Student::create([
+            'student_number' => '202600397',
+            'first_name' => 'Missing',
+            'last_name' => 'Payment',
+        ]);
+        $formInput = $this->makeLedgerFormInput(['student_num' => $student->id]);
+        $staffInput = $this->makePaidStaffInput($formInput, '2026-00397');
+
+        $this->actingAs($staff)
+            ->put("/staff/requests/{$staffInput->id}", [
+                'form_input_id' => $formInput->id,
+                'fundcluster_id' => $staffInput->fundcluster_id,
+                'ref_document_id' => null,
+                'ref_date' => $staffInput->ref_date->format('Y-m-d'),
+                'uacs_id' => $staffInput->uacs_id,
+                'status' => 'cancelled',
+                'purpose' => null,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('error', 'An error occurred. Please do the action again.');
+
+        $this->assertSame('paid', $staffInput->fresh()->status);
     }
 
     public function test_different_ops_can_post_with_the_same_or_number(): void
@@ -376,6 +516,38 @@ class OpStudentMatchingTest extends TestCase
             ->assertSessionHas('error', fn (string $message): bool => str_contains(
                 $message,
                 'Select an academic term',
+            ));
+
+        $this->assertFalse($formInput->staffInput()->exists());
+    }
+
+    public function test_staff_cannot_process_a_ledger_op_without_a_matched_student(): void
+    {
+        $staff = User::factory()->staff()->create();
+        $formInput = $this->makeLedgerFormInput(['student_num' => null]);
+        $bank = BankAccountInfo::firstOrCreate(
+            ['account_num' => '123456789'],
+            ['account_name' => 'Main', 'bank_name' => 'Landbank', 'fund_cluster' => '01'],
+        );
+        $uacs = UACS::firstOrCreate(
+            ['object_code' => '4020101000'],
+            ['account_title' => 'Tuition Fees'],
+        );
+
+        $this->actingAs($staff)
+            ->post('/staff/requests/process', [
+                'form_input_id' => $formInput->id,
+                'fundcluster_id' => $bank->id,
+                'ref_document_id' => null,
+                'ref_date' => '2026-09-22',
+                'uacs_id' => $uacs->id,
+                'status' => 'processed',
+                'purpose' => null,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('error', fn (string $message): bool => str_contains(
+                $message,
+                'Match a student',
             ));
 
         $this->assertFalse($formInput->staffInput()->exists());

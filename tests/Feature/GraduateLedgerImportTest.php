@@ -87,6 +87,63 @@ class GraduateLedgerImportTest extends TestCase
         unlink($file);
     }
 
+    public function test_import_normalizes_middle_names_to_initials_without_splitting_double_first_names(): void
+    {
+        $user = User::factory()->staff()->create();
+        $existingStudent = Student::create([
+            'last_name' => 'Abugan',
+            'first_name' => 'Ma. Jessa',
+            'middle_name' => 'Febra',
+        ]);
+        $header = 'student_name,course,school_year,semester_short,semester,units,transaction_date,reference_or_jev_number,particulars,tuition_per_unit_or_misc,ar_payment,amount,remarks,input_by';
+        $csv = implode("\n", [
+            $header,
+            '"Santos, Adrian Ace",MBA,2025-2026,1st Sem.,First Semester,,2026-07-22,NAME-1,Tuition,0,AR,100,,',
+            '"Reyes, Maria Katrina Cassandra",MBA,2025-2026,1st Sem.,First Semester,,2026-07-22,NAME-2,Tuition,0,AR,100,,',
+            '"Cruz, Juan D.",MBA,2025-2026,1st Sem.,First Semester,,2026-07-22,NAME-3,Tuition,0,AR,100,,',
+            '"Cadimas, Joe Val II",MBA,2025-2026,1st Sem.,First Semester,,2026-07-22,NAME-4,Tuition,0,AR,100,,',
+            '"Vargas, Carlos Daniel Z. (FOREIGN)",MBA,2025-2026,1st Sem.,First Semester,,2026-07-22,NAME-5,Tuition,0,AR,100,,',
+            '"Abugan, Ma. Jessa Febra",MBA,2025-2026,1st Sem.,First Semester,,2026-07-22,NAME-6,Tuition,0,AR,100,,',
+        ]);
+
+        $response = $this->actingAs($user)->post('/graduate-ledger/import', [
+            'file' => UploadedFile::fake()->createWithContent('names.csv', $csv),
+        ]);
+
+        $response->assertRedirect('/graduate-ledger');
+
+        $this->assertDatabaseHas('students', [
+            'last_name' => 'Santos',
+            'first_name' => 'Adrian Ace',
+            'middle_name' => null,
+        ]);
+        $this->assertDatabaseHas('students', [
+            'last_name' => 'Reyes',
+            'first_name' => 'Maria Katrina',
+            'middle_name' => 'C',
+        ]);
+        $this->assertDatabaseHas('students', [
+            'last_name' => 'Cruz',
+            'first_name' => 'Juan',
+            'middle_name' => 'D',
+        ]);
+        $this->assertDatabaseHas('students', [
+            'last_name' => 'Cadimas',
+            'first_name' => 'Joe Val II',
+            'middle_name' => null,
+        ]);
+        $this->assertDatabaseHas('students', [
+            'last_name' => 'Vargas',
+            'first_name' => 'Carlos Daniel',
+            'middle_name' => 'Z',
+        ]);
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'student_id' => $existingStudent->id,
+            'reference_number' => 'NAME-6',
+        ]);
+        $this->assertSame(1, Student::query()->where('last_name', 'Abugan')->count());
+    }
+
     public function test_csv_import_uses_authenticated_user_and_ignores_spreadsheet_input_by_values(): void
     {
         $user = User::factory()->staff()->create();

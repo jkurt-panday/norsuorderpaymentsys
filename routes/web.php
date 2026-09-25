@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AssessmentFormController;
-use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\AuthorizedOfficialController;
 use App\Http\Controllers\BankAccountInfoController;
 use App\Http\Controllers\CashierRequestController;
@@ -48,14 +47,7 @@ Route::name('public.')->prefix('public')->group(function () {
 Route::redirect('/', '/login')->name('home');
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Authentication Routes (Google OAuth)
 // ─────────────────────────────────────────────────────────────────────────────
-
-Route::get('/auth/google', [GoogleController::class, 'redirect'])
-    ->name('google.redirect');
-
-Route::get('/auth/google/callback', [GoogleController::class, 'callback'])
-    ->name('google.callback');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Authenticated Routes
@@ -86,6 +78,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/print-select', [GraduateLedgerController::class, 'printSelect'])->name('print-select');
         Route::get('/pdf',          [GraduateLedgerController::class, 'generatePdf'])->name('pdf');
         Route::get('/export',       [GraduateLedgerController::class, 'export'])->name('export');
+        Route::get('/students/{student}/balance', [GraduateLedgerController::class, 'studentBalance'])->name('students.balance');
         Route::get('/add',          [GraduateLedgerController::class, 'create'])->name('create');
         Route::post('/',            [GraduateLedgerController::class, 'store'])->name('store');
         Route::post('/import',      [GraduateLedgerController::class, 'import'])->name('import');

@@ -10,23 +10,21 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
-   
         "barryvdh/laravel-dompdf": "*",
+        "blade-ui-kit/blade-icons": "^1.10",
         "inertiajs/inertia-laravel": "^3.0",
         "laravel/chisel": "^0.1.0",
         "laravel/fortify": "*",
         "laravel/framework": "^13.17",
         "laravel/sanctum": "*",
-        "laravel/socialite": "*",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
         "maatwebsite/excel": "*",
-        "symfony/brevo-mailer": "*",
-        "symfony/http-client": "*",
-        "blade-ui-kit/blade-icons": "^1.10",
         "mallardduck/blade-lucide-icons": "^2.0",
+        "spatie/browsershot": "^5.4",
         "spatie/laravel-pdf": "^2.13",
-        "spatie/browsershot": "^5.4"
+        "symfony/brevo-mailer": "*",
+        "symfony/http-client": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.24",
@@ -110,10 +108,6 @@
         ]
     },
     "extra": {
-        "google/apiclient-services": [
-            "Sheets",
-            "Drive"
-        ],
         "laravel": {
             "dont-discover": [],
             "installer": {
