@@ -33,8 +33,8 @@ Route::name('public.')->prefix('public')->group(function () {
     Route::post('/college-offices', [CollegeOfficeController::class, 'store'])
            ->name('college-offices.store');
 
-    Route::get('/success/{reference_number}', [FormInputController::class, 'success'])->name('success');
-    Route::get('/success/{reference_number}/print', [FormInputController::class, 'printReceipt'])->name('print');
+    Route::get('/success/{formInput:reference_number}', [FormInputController::class, 'success'])->name('success');
+    Route::get('/success/{formInput:reference_number}/print', [FormInputController::class, 'printReceipt'])->name('print');
 
     Route::get('/assessmentform', [AssessmentFormController::class, 'create'])->name('assessmentform');
     Route::post('/assessmentform', [AssessmentFormController::class, 'store']);
@@ -216,6 +216,7 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
         Route::get('/', [AssessmentController::class, 'index'])->name('index');
         Route::get('/dashboard', [AssessmentController::class, 'dashboard'])->name('dashboard');
         Route::get('/edit/{assessment}', [AssessmentController::class, 'edit'])->name('edit');
+        Route::patch('/edit/{assessment}', [AssessmentController::class, 'update'])->name('assessments.update');
         Route::get('/print_soa/{assessment}', [AssessmentController::class, 'print'])->name('print_soa');
         Route::delete('/delete/{assessment}', [AssessmentController::class, 'destroy'])->name('delete_assessment');
     });

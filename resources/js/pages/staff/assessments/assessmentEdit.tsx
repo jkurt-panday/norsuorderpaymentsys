@@ -25,6 +25,21 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+const statusOptions = [
+  { label: "Pending", value: "pending" },
+  { label: "Approved", value: "approved" },
+  { label: "Rejected", value: "rejected" },
+  { label: "Completed", value: "completed" },
+]
 import { Textarea } from '@/components/ui/textarea';
 import {
     Dialog,
@@ -57,6 +72,7 @@ interface AssessmentFormModel {
     sy_last_attended: string;
     semester: string;
     course?: Course;
+    status?: string;
 }
 
 interface StudentCandidate {
@@ -140,6 +156,8 @@ export default function AssessmentEdit({
         };
     };
     const [search, setSearch] = useState('');
+    const [status, setStatus] = useState(assessment.status ?? 'pending');
+    const [savingStatus, setSavingStatus] = useState(false);
     const [isEmailPreviewOpen, setIsEmailPreviewOpen] = useState(false);
     const [emailSubject, setEmailSubject] = useState('');
     const [emailRecipientName, setEmailRecipientName] = useState('');
@@ -187,6 +205,25 @@ export default function AssessmentEdit({
             }),
             {},
             { preserveScroll: true, preserveState: true },
+        );
+    };
+
+    // assessment status
+    const handleStatusChange = (value: string | null) => {
+        if (!value) return; // guard against null before using it
+    
+        setStatus(value);
+    
+        setSavingStatus(true);
+        router.patch(
+            `/staff/assessments/edit/${assessment.id}`,
+            { status: value },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onFinish: () => setSavingStatus(false),
+                onError: () => setStatus(assessment.status ?? 'pending'),
+            },
         );
     };
 
@@ -251,13 +288,30 @@ export default function AssessmentEdit({
                         <CardTitle className="text-xl font-bold text-slate-900">
                             Assessment: {assessment.reference_number}
                         </CardTitle>
-                        <Button
-                            variant="outline"
-                            render={<Link href={assessmentsIndex.url()} />}
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                            Back
-                        </Button>
+                        <div className="flex items-center gap-3">
+                            <Select value={status} onValueChange={handleStatusChange}>
+                                <SelectTrigger className="w-40 capitalize" disabled={savingStatus}>
+                                    <SelectValue placeholder="Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        {statusOptions.map((item) => (
+                                            <SelectItem key={item.label} value={item.value}>
+                                                {item.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                
+                            <Button
+                                variant="outline"
+                                render={<Link href={assessmentsIndex.url()} />}
+                            >
+                                <ArrowLeft className="h-4 w-4" />
+                                Back
+                            </Button>
+                        </div>
                     </CardHeader>
                 </Card>
 
@@ -322,6 +376,7 @@ export default function AssessmentEdit({
                                     label="SY Last Attended"
                                     value={assessment.sy_last_attended}
                                 />
+                                
                             </div>
                         </section>
                     </CardContent>
@@ -344,6 +399,27 @@ export default function AssessmentEdit({
                                 requested in this assessment.
                             </CardDescription>
                         </div>
+                        <Button
+                            onClick={printStatement}
+                            disabled={!ledgerStatement.selectedStudent}
+                            className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
+                        >
+                            <Printer className="h-4 w-4" />
+                            Print Statement
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="lg"
+                            render={
+                                <Link 
+                                    href={`/staff/assessments/edit/${assessment.id}`}
+                                    preserveScroll
+                                    preserveState={false}
+                                />
+                            }
+                        >
+                            Change Student
+                        </Button>
                         <div className="flex gap-2">
                             <Button
                                 onClick={openEmailPreview}

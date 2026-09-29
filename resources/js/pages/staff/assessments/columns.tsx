@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/tooltip"
 import { useConfirm } from '@/components/confirm-dialog';
 
+export type AssessmentStatus = 'pending' | 'approved' | 'rejected' | 'completed';
+
 export type AssessmentType = {
     id: number;
     reference_number: string;
@@ -33,6 +35,7 @@ export type AssessmentType = {
         course_code: string;
         course_desc: string;
     };
+    status: AssessmentStatus | null;
 };
 
 const getEnrolledUnderBadgeClass = (enrolled_under: string) => {
@@ -61,6 +64,25 @@ const getSemesterBadgeClass = (semester: string) => {
 
         case 'Summer':
             return 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-100 px-4 py-3 text-xs';
+
+        default:
+            return 'bg-slate-100 text-slate-700 border border-slate-200 px-4';
+    }
+};
+
+const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+        case 'pending':
+            return 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-100 px-4 py-3 text-xs';
+
+        case 'approved':
+            return 'bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-4 py-3 text-xs';
+
+        case 'rejected':
+            return 'bg-red-100 text-red-700 border border-red-200 hover:bg-red-100 px-4 py-3 text-xs';
+
+        case 'completed':
+            return 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-100 px-4 py-3 text-xs';
 
         default:
             return 'bg-slate-100 text-slate-700 border border-slate-200 px-4';
@@ -157,21 +179,21 @@ export const columns = columnHelper.columns([
         id: 'course',
         header: () => <div className="text-center">Course</div>,
         cell: ({ row }) => (
-                <div className="flex justify-center">
-                    <Tooltip>
-                        <TooltipTrigger>
-                            <span className="inline-flex rounded-full bg-blue-400 px-3 py-1 text-xs font-semibold tracking-wide text-white">
-                                {row.original.course.course_code}
-                            </span>
-                        </TooltipTrigger>
+            <div className="flex justify-center">
+                <Tooltip>
+                    <TooltipTrigger>
+                        <span className="inline-flex rounded-full bg-blue-400 px-3 py-1 text-xs font-semibold tracking-wide text-white">
+                            {row.original.course.course_code}
+                        </span>
+                    </TooltipTrigger>
                     <TooltipContent
                         side='bottom'
                         className='bg-blue-400 text-sm'>
                         {row.original.course.course_desc}
-                        </TooltipContent>
-                    </Tooltip>
-                </div>
-            ),
+                    </TooltipContent>
+                </Tooltip>
+            </div>
+        ),
     }),
 
     columnHelper.accessor('enrolled_under', {
@@ -229,6 +251,31 @@ export const columns = columnHelper.columns([
                 )}
             </div>
         ),
+    }),
+
+    columnHelper.accessor('status', {
+        header: () => <div className="text-center">Status</div>,
+        cell: ({ row }) => {
+            const status = row.getValue('status') as string | null;
+    
+            if (!status) {
+                return (
+                    <div className="flex justify-center">
+                        <Badge className={getStatusBadgeClass('')}>
+                            Unknown
+                        </Badge>
+                    </div>
+                );
+            }
+    
+            return (
+                <div className="flex justify-center">
+                    <Badge className={getStatusBadgeClass(status)}>
+                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </Badge>
+                </div>
+            );
+        },
     }),
 
     columnHelper.display({
