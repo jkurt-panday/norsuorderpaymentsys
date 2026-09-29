@@ -61,6 +61,13 @@ const CashierRequestsIndex: React.FC<Props> = ({ requests, filters }) => {
     const [dateFrom, setDateFrom] = useState(filters.date_from || '');
     const [dateTo, setDateTo] = useState(filters.date_to || '');
 
+    React.useEffect(() => {
+        setSearch(filters.search || '');
+        setStatus(filters.status || '');
+        setDateFrom(filters.date_from || '');
+        setDateTo(filters.date_to || '');
+    }, [filters.search, filters.status, filters.date_from, filters.date_to]);
+
     const applyFilters = useCallback(() => {
         router.get(
             cashier.requests.index.url(),
@@ -90,12 +97,13 @@ const CashierRequestsIndex: React.FC<Props> = ({ requests, filters }) => {
             {
                 preserveState: true,
                 preserveScroll: true,
+                replace: true,
             },
         );
     };
 
     const handlePageChange = (url: string) => {
-        router.get(url, {}, { preserveState: true, preserveScroll: true });
+        router.get(url, {}, { preserveState: true, preserveScroll: true, replace: true });
     };
 
     const columns: ColumnDef<PaymentRequest>[] = [

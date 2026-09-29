@@ -70,17 +70,6 @@ class LawSchoolLedger extends Model
         return $this->academicTerm();
     }
 
-    /** @return BelongsTo<User, $this> */
-    public function inputByUser(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'input_by')->without('profile');
-    }
-
-    public function inputByDisplay(): string
-    {
-        return $this->inputByUser?->name ?? '';
-    }
-
     public function getStudentIdFkAttribute(): ?int
     {
         return $this->student_id !== null ? (int) $this->student_id : null;

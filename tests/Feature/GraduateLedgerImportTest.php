@@ -33,6 +33,10 @@ class GraduateLedgerImportTest extends TestCase
             ['course_desc' => 'Master of Arts in Mathematics', 'course_college' => 'Graduate School'],
         );
         Course::firstOrCreate(
+            ['course_code' => 'MS MATH'],
+            ['course_desc' => 'Master of Science in Mathematics', 'course_college' => 'Graduate School'],
+        );
+        Course::firstOrCreate(
             ['course_code' => 'MSIT'],
             ['course_desc' => 'Master of Science in Information Technology', 'course_college' => 'Graduate School'],
         );
@@ -223,6 +227,18 @@ class GraduateLedgerImportTest extends TestCase
     public function test_import_normalizes_course_spelling_variants_to_canonical_course_without_creating_new_courses(): void
     {
         $user = User::factory()->staff()->create();
+        Course::firstOrCreate(
+            ['course_code' => 'MA Psychology'],
+            ['course_desc' => 'Master of Arts in Psychology', 'course_college' => 'Graduate School'],
+        );
+        Course::firstOrCreate(
+            ['course_code' => 'MASPED'],
+            ['course_desc' => 'Master of Arts in Special Education', 'course_college' => 'Graduate School'],
+        );
+        Course::firstOrCreate(
+            ['course_code' => 'UNASSIGNED', 'course_college' => 'Graduate School'],
+            ['course_desc' => 'Unassigned / Pending Course Assignment'],
+        );
         $initialCourseCount = Course::count();
 
         $header = 'student_name,course,school_year,semester_short,semester,units,transaction_date,reference_or_jev_number,particulars,tuition_per_unit_or_misc,ar_payment,amount,remarks,input_by';
@@ -232,6 +248,9 @@ class GraduateLedgerImportTest extends TestCase
             '"Student Two, B",M.S. - Math,2025-2026,1st Sem.,First Semester,,2026-07-22,REF-VAR-2,Tuition,0,AR,100,,',
             '"Student Three, C",MSMATH,2025-2026,1st Sem.,First Semester,,2026-07-22,REF-VAR-3,Tuition,0,AR,100,,',
             '"Student Four, D",MS IT,2025-2026,1st Sem.,First Semester,,2026-07-22,REF-VAR-4,Tuition,0,AR,100,,',
+            '"Student Five, E",MAPYSCH,2025-2026,1st Sem.,First Semester,,2026-07-22,REF-VAR-5,Tuition,0,AR,100,,',
+            '"Student Six, F",MASPEED,2025-2026,1st Sem.,First Semester,,2026-07-22,REF-VAR-6,Tuition,0,AR,100,,',
+            '"Student Seven, G",MAMT,2025-2026,1st Sem.,First Semester,,2026-07-22,REF-VAR-7,Tuition,0,AR,100,,',
         ]);
 
         $response = $this->actingAs($user)->post('/graduate-ledger/import', [
@@ -240,16 +259,22 @@ class GraduateLedgerImportTest extends TestCase
 
         $response->assertRedirect('/graduate-ledger');
 
-        // No new course records should have been created
+        // Every supplied variant must resolve without creating another course.
         $this->assertSame($initialCourseCount, Course::count());
 
-        $mathCourse = Course::where('course_code', 'MA Mathematics')->firstOrFail();
+        $mathCourse = Course::where('course_code', 'MS MATH')->firstOrFail();
+        $maMathCourse = Course::where('course_code', 'MA Mathematics')->firstOrFail();
         $msitCourse = Course::where('course_code', 'MSIT')->firstOrFail();
+        $psychologyCourse = Course::where('course_code', 'MA Psychology')->firstOrFail();
+        $specialEducationCourse = Course::where('course_code', 'MASPED')->firstOrFail();
 
         $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-VAR-1', 'course_id' => $mathCourse->id]);
         $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-VAR-2', 'course_id' => $mathCourse->id]);
         $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-VAR-3', 'course_id' => $mathCourse->id]);
         $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-VAR-4', 'course_id' => $msitCourse->id]);
+        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-VAR-5', 'course_id' => $psychologyCourse->id]);
+        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-VAR-6', 'course_id' => $specialEducationCourse->id]);
+        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-VAR-7', 'course_id' => $maMathCourse->id]);
     }
 
     public function test_import_auto_creates_unrecognized_course_when_no_preset_is_supplied(): void
