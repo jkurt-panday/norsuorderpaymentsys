@@ -123,7 +123,7 @@ interface RequestTableProps<T> {
     onDateFromChange: (value: string) => void;
     dateTo: string;
     onDateToChange: (value: string) => void;
-    onFilterSubmit: (e: React.FormEvent) => void;
+    onFilterSubmit: (e: React.SyntheticEvent) => void;
     onFilterReset: () => void;
     pollInterval?: number;
     resourceKey?: string;

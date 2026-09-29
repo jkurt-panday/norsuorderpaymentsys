@@ -1,11 +1,10 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
-import type { FormEvent } from 'react';
 import cashier from '@/routes/cashier';
 
 interface PaymentRequest {
     id: number;
-    status: 'processed' | 'paid';
+    status: 'processed' | 'paid' | 'cancelled';
     purpose: string | null;
     or_no: string | null;
     or_date: string | null;
@@ -26,12 +25,38 @@ const money = new Intl.NumberFormat('en-PH', {
     currency: 'PHP',
 });
 
+const getStatusBadgeConfig = (status: PaymentRequest['status']) => {
+    switch (status) {
+        case 'paid':
+            return {
+                label: 'Paid',
+                className: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+            };
+        case 'processed':
+            return {
+                label: 'Ready for payment',
+                className: 'bg-amber-100 text-amber-800 border-amber-200',
+            };
+        case 'cancelled':
+            return {
+                label: 'Cancelled',
+                className: 'bg-rose-100 text-rose-800 border-rose-200',
+            };
+        default:
+            return {
+                label: status,
+                className: 'bg-slate-100 text-slate-800 border-slate-200',
+            };
+    }
+};
+
 export default function CashierRequestShow({
     request,
 }: {
     request: PaymentRequest;
 }) {
     const form = useForm({
+        status: request.status,
         or_no: request.or_no ?? '',
         or_date:
             request.or_date?.slice(0, 10) ??
@@ -45,10 +70,13 @@ export default function CashierRequestShow({
         .filter(Boolean)
         .join(' ');
 
-    const submit = (event: FormEvent) => {
+    const submit = (event: React.SyntheticEvent) => {
         event.preventDefault();
         form.put(cashier.requests.payment.update.url(request.id));
     };
+
+    const badge = getStatusBadgeConfig(request.status);
+    const isPaid = form.data.status === 'paid';
 
     return (
         <>
@@ -74,15 +102,9 @@ export default function CashierRequestShow({
                             </h1>
                         </div>
                         <span
-                            className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${
-                                request.status === 'paid'
-                                    ? 'bg-emerald-100 text-emerald-800'
-                                    : 'bg-amber-100 text-amber-800'
-                            }`}
+                            className={`w-fit rounded-full border px-3 py-1 text-xs font-semibold ${badge.className}`}
                         >
-                            {request.status === 'paid'
-                                ? 'Paid'
-                                : 'Ready for payment'}
+                            {badge.label}
                         </span>
                     </div>
 
@@ -141,15 +163,37 @@ export default function CashierRequestShow({
                         className="mt-5 space-y-5 rounded-lg border border-blue-200 bg-blue-50/50 p-5"
                     >
                         <h2 className="font-semibold text-slate-900">
-                            {request.status === 'paid'
-                                ? 'Correct payment details'
-                                : 'Record payment'}
+                            Update request details
                         </h2>
-                        <div className="grid gap-4 sm:grid-cols-2">
+
+                        <div className="grid gap-4 sm:grid-cols-3">
                             <label className="text-sm font-medium text-slate-700">
-                                OR number
+                                Status
+                                <select
+                                    value={form.data.status}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'status',
+                                            e.target.value as PaymentRequest['status'],
+                                        )
+                                    }
+                                    className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                >
+                                    <option value="processed">Ready for payment</option>
+                                    <option value="paid">Paid</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                                {form.errors.status && (
+                                    <span className="mt-1 block text-xs text-rose-600">
+                                        {form.errors.status}
+                                    </span>
+                                )}
+                            </label>
+
+                            <label className="text-sm font-medium text-slate-700">
+                                OR number {isPaid ? <span className="text-rose-500">*</span> : <span className="text-xs text-slate-400 font-normal">(optional)</span>}
                                 <input
-                                    required
+                                    required={isPaid}
                                     maxLength={50}
                                     inputMode="numeric"
                                     pattern="[0-9\-\.\/\s]+"
@@ -171,10 +215,11 @@ export default function CashierRequestShow({
                                     </span>
                                 )}
                             </label>
+
                             <label className="text-sm font-medium text-slate-700">
-                                Payment date
+                                Payment date {isPaid ? <span className="text-rose-500">*</span> : <span className="text-xs text-slate-400 font-normal">(optional)</span>}
                                 <input
-                                    required
+                                    required={isPaid}
                                     type="date"
                                     max={new Date().toISOString().slice(0, 10)}
                                     value={form.data.or_date}
@@ -200,9 +245,7 @@ export default function CashierRequestShow({
                         >
                             {form.processing
                                 ? 'Saving…'
-                                : request.status === 'paid'
-                                  ? 'Update payment details'
-                                  : 'Mark as paid'}
+                                : 'Save changes'}
                         </button>
                     </form>
                 </div>

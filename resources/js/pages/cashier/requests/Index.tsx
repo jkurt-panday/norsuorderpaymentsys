@@ -16,7 +16,7 @@ interface FormInput {
 
 interface PaymentRequest {
     id: number;
-    status: 'processed' | 'paid';
+    status: 'processed' | 'paid' | 'cancelled';
     or_no: string | null;
     or_date: string | null;
     created_at: string;
@@ -41,8 +41,22 @@ const money = new Intl.NumberFormat('en-PH', {
 });
 
 const STATUS_TO_COLOR: Record<string, string> = {
-    processed: 'orange',
+    processed: 'light-green',
     paid: 'dark-green',
+    cancelled: 'red',
+};
+
+const getStatusLabel = (status: string) => {
+    switch (status) {
+        case 'paid':
+            return 'Paid';
+        case 'processed':
+            return 'Ready for payment';
+        case 'cancelled':
+            return 'Cancelled';
+        default:
+            return status;
+    }
 };
 
 function fullName(formInput: FormInput) {
@@ -81,7 +95,7 @@ const CashierRequestsIndex: React.FC<Props> = ({ requests, filters }) => {
         );
     }, [search, status, dateFrom, dateTo]);
 
-    const handleSubmit = (event: React.FormEvent) => {
+    const handleSubmit = (event: React.SyntheticEvent) => {
         event.preventDefault();
         applyFilters();
     };
@@ -149,7 +163,7 @@ const CashierRequestsIndex: React.FC<Props> = ({ requests, filters }) => {
             width: '120px',
             render: (row) => (
                 <StatusBadge
-                    label={row.status === 'paid' ? 'Paid' : 'Ready'}
+                    label={getStatusLabel(row.status)}
                     color={STATUS_TO_COLOR[row.status]}
                 />
             ),
@@ -228,9 +242,10 @@ const CashierRequestsIndex: React.FC<Props> = ({ requests, filters }) => {
                     {
                         value: 'processed',
                         label: 'Ready for payment',
-                        color: 'orange',
+                        color: 'light-green',
                     },
                     { value: 'paid', label: 'Paid', color: 'dark-green' },
+                    { value: 'cancelled', label: 'Cancelled', color: 'red' },
                 ]}
                 statusPlaceholder="All Status"
                 dateFrom={dateFrom}
