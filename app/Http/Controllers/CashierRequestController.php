@@ -19,11 +19,8 @@ class CashierRequestController extends Controller
     public function index(Request $request): Response
     {
         $requestedStatus = $request->string('status')->toString();
-        // An empty/absent (or "All") status means "no single-status filter" —
-        // i.e. show both 'processed' and 'paid' (the cashier's two scopes),
-        // mirroring the StaffInputController "All Status" behaviour. Only an
-        // explicit 'processed'/'paid' narrows the result set.
-        $status = in_array($requestedStatus, ['processed', 'paid'], true)
+        $allowedStatuses = ['processed', 'paid', 'cancelled'];
+        $status = in_array($requestedStatus, $allowedStatuses, true)
             ? $requestedStatus
             : '';
         $search = trim($request->string('search')->toString());
@@ -32,9 +29,9 @@ class CashierRequestController extends Controller
 
         $query = StaffInput::query()
             ->with(['formInput.membership', 'formInput.paymentDetailOption'])
-            ->whereIn('status', ['processed', 'paid'])
+            ->whereIn('staff_inputs.status', ['processed', 'paid', 'cancelled'])
             ->when($status !== '', function (Builder $query) use ($status): void {
-                $query->where('status', $status);
+                $query->where('staff_inputs.status', $status);
             })
             ->when($search !== '', function (Builder $query) use ($search): void {
                 $like = '%'.mb_strtolower($search).'%';
@@ -73,12 +70,12 @@ class CashierRequestController extends Controller
             if (in_array($sort, $sortableFormColumns, true)) {
                 $query->join('form_inputs', 'form_inputs.id', '=', 'staff_inputs.form_input_id')
                     ->select('staff_inputs.*')
-                    ->orderBy($sort, $direction);
+                    ->orderBy('form_inputs.'.$sort, $direction);
             } else {
                 $query->orderBy('staff_inputs.'.$sort, $direction);
             }
         } else {
-            $query->latest();
+            $query->orderBy('staff_inputs.created_at', 'desc');
         }
 
         $requests = $query->paginate(10)->withQueryString();
@@ -96,8 +93,6 @@ class CashierRequestController extends Controller
 
     public function show(StaffInput $staffInput): Response
     {
-        abort_unless(in_array($staffInput->status, ['processed', 'paid'], true), 404);
-
         $staffInput->load(['formInput.membership', 'formInput.paymentDetailOption']);
 
         return Inertia::render('cashier/requests/Show', ['request' => $staffInput]);
@@ -115,12 +110,6 @@ class CashierRequestController extends Controller
             DB::transaction(function () use ($request, $staffInput, $postingService, &$isCorrection, &$posting): void {
                 $lockedRequest = StaffInput::query()->lockForUpdate()->findOrFail($staffInput->id);
 
-                abort_unless(
-                    in_array($lockedRequest->status, ['processed', 'paid'], true),
-                    422,
-                    'Only processed or paid requests can be updated by the cashier.',
-                );
-
                 $formInput = $lockedRequest->formInput()->with('course')->first();
                 $requiresLedgerStudent = in_array(
                     $formInput?->course?->course_college,
@@ -128,7 +117,10 @@ class CashierRequestController extends Controller
                     true,
                 );
 
-                if ($requiresLedgerStudent && $formInput?->student_num === null) {
+                $validated = $request->validated();
+                $targetStatus = $validated['status'] ?? 'paid';
+
+                if ($targetStatus === 'paid' && $requiresLedgerStudent && $formInput?->student_num === null) {
                     throw ValidationException::withMessages([
                         'student' => 'A student must be matched before this payment can be completed.',
                     ]);
@@ -137,14 +129,15 @@ class CashierRequestController extends Controller
                 $isCorrection = $lockedRequest->status === 'paid';
 
                 $lockedRequest->update([
-                    ...$request->validated(),
-                    'status' => 'paid',
+                    'or_no' => $validated['or_no'] ?? null,
+                    'or_date' => $validated['or_date'] ?? null,
+                    'status' => $targetStatus,
                 ]);
 
-                // Same transaction: when the payer matches a ledger student and an
-                // OR number is present, auto-post a payment row to their ledger.
-                // The service is idempotent, so corrections (re-saves) are safe.
-                $posting = $postingService->postPayment($lockedRequest->fresh('formInput.course'));
+                // Auto-post only if status is paid and OR number is present
+                if ($targetStatus === 'paid') {
+                    $posting = $postingService->postPayment($lockedRequest->fresh('formInput.course'));
+                }
             });
         } catch (ValidationException $exception) {
             throw $exception;
@@ -158,7 +151,7 @@ class CashierRequestController extends Controller
 
         $base = $isCorrection
             ? 'Payment details updated successfully.'
-            : 'OR number saved. Status set to Paid.';
+            : 'Payment details and status updated successfully.';
 
         return to_route('cashier.requests.show', $staffInput)
             ->with('success', $base.$this->ledgerPostingSuffix($posting, $posting['ledger'] ?? null));
