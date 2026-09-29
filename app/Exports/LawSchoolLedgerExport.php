@@ -47,24 +47,39 @@ class LawSchoolLedgerExport implements FromQuery, ShouldAutoSize, WithHeadings, 
 
     public function map($row): array
     {
+        // Use accessor methods and relationships to get the correct data
+        $lastName = $row->lawStudent?->last_name ?? '';
+        $firstName = $row->lawStudent?->first_name ?? '';
+        $middleInitial = $row->lawStudent?->middle_name ? substr($row->lawStudent->middle_name, 0, 1) : '';
+        
         return [
-            trim("$row->last_name, $row->first_name ".($row->middle_initial ? "$row->middle_initial" : '')),
-            $row->last_name,
-            $row->first_name,
-            $row->middle_initial,
-            $row->course,
-            $row->school_year,
-            $row->semester_or_summer,
-            (float) $row->units,
-            $row->transaction_date?->format('Y-m-d'),
-            $row->reference_jev_or_number,
-            $row->particulars,
-            (float) $row->tuition_per_unit_or_fee_per_semester,
-            $row->ar_or_payment,
-            (float) $row->amount,
-            $row->status,
-            $row->remarks,
-            $row->input_by,
+            trim("$lastName, $firstName ".($middleInitial ? "$middleInitial" : '')),
+            $lastName,
+            $firstName,
+            $middleInitial,
+            $row->lawCourse?->course_code ?? '',
+            $row->lawAcademicTerm?->school_year ?? '',
+            $row->lawAcademicTerm?->semester ?? '',
+            (float) ($row->units ?? 0),
+            $row->transaction_date?->format('Y-m-d') ?? '',
+            $row->reference_number ?? '',
+            $row->particulars ?? '',
+            (float) ($row->rate ?? 0),
+            $this->formatEntryType($row->entry_type),
+            (float) ($row->amount ?? 0),
+            $row->status ?? '',
+            $row->remarks ?? '',
+            $row->inputByDisplay() ?? '',
         ];
+    }
+
+    private function formatEntryType(?string $entryType): string
+    {
+        return match ($entryType) {
+            'ar' => 'AR',
+            'adjustment' => 'Adjustment',
+            'payment' => 'Payment',
+            default => 'AR',
+        };
     }
 }

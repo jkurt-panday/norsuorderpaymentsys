@@ -202,7 +202,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const [deleteTarget, setDeleteTarget] = useState<LawLedgerRecord | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [honorTarget, setHonorTarget] = useState<LawLedgerRecord | null>(null);
-  const [selectedHonor, setSelectedHonor] = useState<'SUMMA' | 'MAGNA' | ''>('');
+  const [selectedHonor, setSelectedHonor] = useState<'SUMMA' | 'MAGNA' | 'CUM_LAUDE' | ''>('');
   const [isApplyingHonor, setIsApplyingHonor] = useState(false);
 
   const handleImportFile = (file: File | null, inputEl: HTMLInputElement) => {
@@ -1138,6 +1138,27 @@ return 90;
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-semibold text-[#0B3D91]">Magna Cum Laude</p>
+                        <p className="text-xs text-[#5C7A9E]">100% discount – Full scholarship</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-emerald-600">-{currency(honorTarget.amount)}</p>
+                        <p className="text-xs text-[#8AA8CC]">New: {currency(0)}</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedHonor('CUM_LAUDE')}
+                    className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
+                      selectedHonor === 'CUM_LAUDE'
+                        ? 'border-[#0F6FFF] bg-[#EAF2FF]'
+                        : 'border-[#CFE3FF] bg-white hover:border-[#B9D8FF]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-[#0B3D91]">Cum Laude</p>
                         <p className="text-xs text-[#5C7A9E]">50% discount – Half scholarship</p>
                       </div>
                       <div className="text-right">

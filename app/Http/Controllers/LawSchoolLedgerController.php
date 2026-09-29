@@ -1264,7 +1264,7 @@ class LawSchoolLedgerController extends Controller
         $dateTo = $request->input('date_to');
 
         return LawSchoolLedger::query()
-            ->with(['lawStudent', 'lawCourse', 'lawAcademicTerm'])
+            ->with(['lawStudent', 'lawCourse', 'lawAcademicTerm', 'inputByUser'])
             ->when($request->input('search'), function ($query, $search) {
                 // Lowercase the search term to match the LOWER() applied to columns.
                 // PostgreSQL's LIKE is case-sensitive, so "Juan" won't match "juan"
@@ -2002,7 +2002,7 @@ class LawSchoolLedgerController extends Controller
     public function applyLatinHonor(Request $request, int $id): RedirectResponse
     {
         $validated = $request->validate([
-            'latin_honor' => ['required', 'in:SUMMA,MAGNA'],
+            'latin_honor' => ['required', 'in:SUMMA,MAGNA,CUM_LAUDE'],
         ]);
 
         $record = LawSchoolLedger::findOrFail($id);
@@ -2017,8 +2017,9 @@ class LawSchoolLedgerController extends Controller
 
         // Calculate discount based on honor type
         $discountPercentage = match ($latinHonor) {
-            'SUMMA' => 100, // 100% discount
-            'MAGNA' => 50,  // 50% discount
+            'SUMMA' => 100,      // 100% discount
+            'MAGNA' => 100,      // 100% discount
+            'CUM_LAUDE' => 50,   // 50% discount
             default => 0,
         };
 
@@ -2035,6 +2036,20 @@ class LawSchoolLedgerController extends Controller
             ]);
 
             // Create a corresponding adjustment entry for the discount
+            $particulars = match ($latinHonor) {
+                'SUMMA' => 'Summa Cum Laude Scholarship (100%)',
+                'MAGNA' => 'Magna Cum Laude Scholarship (100%)',
+                'CUM_LAUDE' => 'Cum Laude Scholarship (50%)',
+                default => 'Latin Honor Scholarship',
+            };
+
+            $referencePrefix = match ($latinHonor) {
+                'SUMMA' => 'SUM',
+                'MAGNA' => 'MAG',
+                'CUM_LAUDE' => 'CUM',
+                default => 'HON',
+            };
+
             LawSchoolLedger::create([
                 'student_id' => $record->student_id,
                 'course_id' => $record->course_id,
@@ -2042,10 +2057,8 @@ class LawSchoolLedgerController extends Controller
                 'entry_type' => 'adjustment',
                 'units' => null,
                 'transaction_date' => now()->toDateString(),
-                'reference_number' => 'HONOR-'.strtoupper(substr($latinHonor, 0, 3)).'-'.$record->id,
-                'particulars' => $latinHonor === 'SUMMA' 
-                    ? 'Summa Cum Laude Scholarship (100%)' 
-                    : 'Magna Cum Laude Scholarship (50%)',
+                'reference_number' => 'HONOR-'.$referencePrefix.'-'.$record->id,
+                'particulars' => $particulars,
                 'rate' => 0,
                 'amount' => $discountAmount,
                 'remarks' => 'Latin honor discount applied to AR #'.$record->id,
@@ -2056,7 +2069,12 @@ class LawSchoolLedgerController extends Controller
             ]);
         });
 
-        $honorName = $latinHonor === 'SUMMA' ? 'Summa Cum Laude' : 'Magna Cum Laude';
+        $honorName = match ($latinHonor) {
+            'SUMMA' => 'Summa Cum Laude',
+            'MAGNA' => 'Magna Cum Laude',
+            'CUM_LAUDE' => 'Cum Laude',
+            default => 'Latin Honor',
+        };
         
         return back()->with('success', "{$honorName} discount of ₱".number_format($discountAmount, 2)." applied successfully.");
     }
