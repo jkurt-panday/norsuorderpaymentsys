@@ -2,21 +2,32 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AssignOpAcademicTermRequest;
+use App\Http\Requests\CreateAndLinkOpStudentRequest;
+use App\Http\Requests\LinkOpStudentRequest;
+use App\Http\Requests\SearchOpStudentsRequest;
 use App\Http\Requests\StaffProcessingRequest;
+use App\Jobs\SendOrderOfPaymentEmail;
 use App\Mail\OrderOfPaymentMail;
+use App\Models\AcademicTerm;
 use App\Models\ActivityLog;
 use App\Models\BankAccountInfo;
 use App\Models\FormInput;
 use App\Models\PaymentDetailOption;
 use App\Models\StaffInput;
+use App\Models\Student;
 use App\Models\UACS;
+use App\Services\CashierLedgerPostingService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\QueryException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -325,6 +336,19 @@ class StaffInputController extends Controller
             DB::beginTransaction();
 
             $formInput = FormInput::query()->findOrFail($request->integer('form_input_id'));
+            $formInput->loadMissing('course');
+
+            if ($this->isLedgerCourse($formInput) && $formInput->academic_term === null) {
+                throw new \RuntimeException(
+                    'Select an academic term before processing a Graduate or Law request.',
+                );
+            }
+
+            if ($this->isLedgerCourse($formInput) && $formInput->student_num === null) {
+                throw new \RuntimeException(
+                    'Match a student before processing a Graduate or Law request.',
+                );
+            }
 
             if ($formInput->staffInput()->exists()) {
                 throw new \Exception('This request has already been processed.');
@@ -353,38 +377,47 @@ class StaffInputController extends Controller
         }
     }
 
-    public function update(StaffProcessingRequest $request, StaffInput $staffInput): RedirectResponse
+    public function update(
+        StaffProcessingRequest $request,
+        StaffInput $staffInput,
+        CashierLedgerPostingService $postingService,
+    ): RedirectResponse
     {
-        abort_if($staffInput->status === 'paid', 422, 'Paid requests can no longer be changed by Accounting.');
-
         $validated = $request->validated();
 
         try {
-            DB::beginTransaction();
+            DB::transaction(function () use ($validated, $staffInput, $postingService): void {
+                $lockedRequest = StaffInput::query()
+                    ->lockForUpdate()
+                    ->findOrFail($staffInput->id);
+                $status = $validated['status'];
 
-            $status = $validated['status'];
-            $staffInput->update([
-                'fundcluster_id' => $validated['fundcluster_id'],
-                'ref_document_id' => $validated['ref_document_id'] ?? null,
-                'ref_date' => $validated['ref_date'],
-                'uacs_id' => $validated['uacs_id'],
-                'status' => $status,
-                'purpose' => $validated['purpose'] ?? null,
-            ]);
+                if ($lockedRequest->status === 'paid' && $status === 'cancelled') {
+                    $postingService->reversePayment($lockedRequest);
+                }
 
-            DB::commit();
+                $lockedRequest->update([
+                    'fundcluster_id' => $validated['fundcluster_id'],
+                    'ref_document_id' => $validated['ref_document_id'] ?? null,
+                    'ref_date' => $validated['ref_date'],
+                    'uacs_id' => $validated['uacs_id'],
+                    'status' => $status,
+                    'purpose' => $validated['purpose'] ?? null,
+                ]);
+            });
+
+            $staffInput->refresh();
 
             return redirect()->route('staff.requests.show', $staffInput->formInput)
                 ->with('success', 'Processing updated successfully! Current status: '.ucfirst($staffInput->status));
 
-        } catch (\Exception $e) {
-            DB::rollBack();
+        } catch (\Throwable $e) {
             Log::error('Staff processing update failed: '.$e->getMessage(), [
                 'staff_input_id' => $staffInput->id,
                 'request_data' => $request->all(),
             ]);
 
-            return back()->withInput()->with('error', 'Failed to update processing: '.$e->getMessage());
+            return back()->withInput()->with('error', 'An error occurred. Please do the action again.');
         }
     }
 
@@ -396,10 +429,6 @@ class StaffInputController extends Controller
      */
     public function updateDetails(Request $request, FormInput $formInput): RedirectResponse
     {
-        if ($formInput->staffInput && $formInput->staffInput->status === 'paid') {
-            abort(422, 'Paid requests can no longer be changed by Accounting.');
-        }
-
         $validated = $request->validate([
             'firstname_or_office' => 'required|string|max:100',
             'middlename_or_project' => 'nullable|string|max:100',
@@ -455,6 +484,152 @@ class StaffInputController extends Controller
         }
     }
 
+    public function searchStudents(SearchOpStudentsRequest $request): JsonResponse
+    {
+        $search = trim((string) $request->validated('q', ''));
+        $digits = preg_replace('/\D/', '', $search) ?? '';
+
+        $students = Student::query()
+            ->when($search !== '', function ($query) use ($search, $digits): void {
+                $like = '%'.mb_strtolower($search).'%';
+
+                $query->where(function ($query) use ($like, $digits): void {
+                    $query->whereRaw('LOWER(student_number) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(first_name) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(last_name) LIKE ?', [$like]);
+
+                    if ($digits !== '') {
+                        $query->orWhereRaw(
+                            "REPLACE(REPLACE(student_number, '-', ''), ' ', '') LIKE ?",
+                            ["%{$digits}%"],
+                        );
+                    }
+                });
+            })
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->limit(20)
+            ->get(['id', 'student_number', 'first_name', 'middle_name', 'last_name'])
+            ->map(fn (Student $student): array => [
+                'id' => $student->id,
+                'student_number' => $student->student_number,
+                'full_name' => $student->full_name,
+            ]);
+
+        return response()->json(['students' => $students]);
+    }
+
+    public function linkStudent(LinkOpStudentRequest $request, FormInput $formInput): RedirectResponse
+    {
+        $this->ensureLedgerMatchingIsApplicable($formInput);
+
+        DB::transaction(function () use ($request, $formInput): void {
+            $lockedForm = FormInput::query()->lockForUpdate()->findOrFail($formInput->id);
+            $student = Student::query()
+                ->lockForUpdate()
+                ->findOrFail($request->integer('student_id'));
+            $studentUpdates = [];
+
+            if (blank($student->student_number) && filled($lockedForm->submitted_student_number)) {
+                $studentNumber = preg_replace(
+                    '/\D/',
+                    '',
+                    (string) $lockedForm->submitted_student_number,
+                ) ?? '';
+
+                if ($studentNumber !== '') {
+                    $numberOwner = Student::query()
+                        ->whereKeyNot($student->id)
+                        ->whereRaw(
+                            "REPLACE(REPLACE(student_number, '-', ''), ' ', '') = ?",
+                            [$studentNumber],
+                        )
+                        ->first();
+
+                    if ($numberOwner !== null) {
+                        throw ValidationException::withMessages([
+                            'student_id' => 'That student number already belongs to another student. Select that student instead.',
+                        ]);
+                    }
+
+                    $studentUpdates['student_number'] = $studentNumber;
+                }
+            }
+
+            if (blank($student->email) && filled($lockedForm->email)) {
+                $studentUpdates['email'] = trim((string) $lockedForm->email);
+            }
+
+            if ($studentUpdates !== []) {
+                $student->update($studentUpdates);
+            }
+
+            $lockedForm->update(['student_num' => $student->id]);
+        });
+
+        return back()->with('success', 'Student matched to this Order of Payment.');
+    }
+
+    public function createAndLinkStudent(
+        CreateAndLinkOpStudentRequest $request,
+        FormInput $formInput,
+    ): RedirectResponse {
+        $this->ensureLedgerMatchingIsApplicable($formInput);
+
+        $validated = $request->validated();
+        $studentNumber = preg_replace('/\D/', '', (string) $validated['student_number']) ?? '';
+
+        try {
+            DB::transaction(function () use ($formInput, $validated, $studentNumber): void {
+                $lockedForm = FormInput::query()->lockForUpdate()->findOrFail($formInput->id);
+                $student = Student::query()
+                    ->whereRaw("REPLACE(REPLACE(student_number, '-', ''), ' ', '') = ?", [$studentNumber])
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($student === null) {
+                    $student = Student::query()->create([
+                        'student_number' => $studentNumber,
+                        'first_name' => trim((string) $validated['first_name']),
+                        'middle_name' => filled($validated['middle_name'] ?? null)
+                            ? trim((string) $validated['middle_name'])
+                            : null,
+                        'last_name' => trim((string) $validated['last_name']),
+                        'email' => $validated['email'] ?? null,
+                        'contact_num' => $validated['contact_num'] ?? null,
+                    ]);
+                }
+
+                $lockedForm->update([
+                    'student_num' => $student->id,
+                    'submitted_student_number' => $studentNumber,
+                ]);
+            });
+        } catch (QueryException $exception) {
+            if ((string) $exception->getCode() !== '23505') {
+                throw $exception;
+            }
+
+            $student = Student::query()->where('student_number', $studentNumber)->firstOrFail();
+            $formInput->update(['student_num' => $student->id]);
+        }
+
+        return back()->with('success', 'Student created and matched to this Order of Payment.');
+    }
+
+    public function assignAcademicTerm(
+        AssignOpAcademicTermRequest $request,
+        FormInput $formInput,
+    ): RedirectResponse {
+        $this->ensureLedgerMatchingIsApplicable($formInput);
+
+        $formInput->update([
+            'academic_term' => $request->integer('academic_term'),
+        ]);
+
+        return back()->with('success', 'Academic term assigned to this Order of Payment.');
+    }
+
     /**
      * Display staff processing details
      */
@@ -463,11 +638,14 @@ class StaffInputController extends Controller
         $formInput->load([
             'membership',
             'paymentDetailOption',
+            'student',
+            'course',
             'supportingDocuments',
             'staffInput.bankAccount',
             'staffInput.uacs',
             'staffInput.referenceDocument',
         ]);
+        $formInput->student?->append('full_name');
 
         // Added: bankAccounts + uacsList, so the inline "Process Now" form
         // on this page has what it needs without a separate navigation.
@@ -479,7 +657,31 @@ class StaffInputController extends Controller
             'bankAccounts' => BankAccountInfo::orderBy('bank_name')->get(),
             'uacsList' => UACS::orderBy('object_code')->get(),
             'paymentOptions' => PaymentDetailOption::orderBy('payment_desc')->get(),
+            'academicTerms' => AcademicTerm::query()
+                ->orderByDesc('school_year')
+                ->orderBy('semester')
+                ->get(['id', 'school_year', 'semester']),
         ]);
+    }
+
+    private function ensureLedgerMatchingIsApplicable(FormInput $formInput): void
+    {
+        $formInput->loadMissing('course');
+
+        abort_unless(
+            $this->isLedgerCourse($formInput),
+            422,
+            'Ledger matching is only available for Graduate School and School of Law payments.',
+        );
+    }
+
+    private function isLedgerCourse(FormInput $formInput): bool
+    {
+        return in_array(
+            $formInput->course?->course_college,
+            ['Graduate School', 'School of Law'],
+            true,
+        );
     }
 
     public function viewOp(FormInput $formInput, Request $request): HttpResponse
@@ -530,6 +732,126 @@ class StaffInputController extends Controller
             )
         );
 
+        $formInput->staffInput()->update(['emailed_at' => now()]);
+
         return back()->with('success', 'Order of Payment emailed successfully.');
+    }
+
+    /**
+     * Send Order of Payment emails in bulk to selected requests.
+     *
+     * Accepts an array of form_input IDs plus optional subject / note.
+     * Only requests that have a staff_input record (i.e. processed/paid/
+     * cancelled) are eligible — unprocessed ones are skipped with a warning.
+     */
+    public function bulkEmailOp(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'form_input_ids' => ['required', 'array', 'min:1'],
+            'form_input_ids.*' => ['integer', 'exists:form_inputs,id'],
+            'subject' => 'nullable|string|max:255',
+            'recipient_name' => 'nullable|string|max:255',
+            'note' => 'nullable|string|max:2000',
+        ]);
+
+        $requestedIds = array_values(array_unique(array_map('intval', $validated['form_input_ids'])));
+
+        $eligibleIds = FormInput::query()
+            ->whereKey($requestedIds)
+            ->whereNotNull('email')
+            ->whereHas('staffInput')
+            ->pluck('id')
+            ->all();
+
+        $skipped = count($requestedIds) - count($eligibleIds);
+
+        $dispatchedIds = [];
+        foreach ($eligibleIds as $formInputId) {
+            SendOrderOfPaymentEmail::dispatch(
+                $formInputId,
+                $validated['subject'] ?? null,
+                $validated['recipient_name'] ?? null,
+                $validated['note'] ?? null,
+            );
+            $dispatchedIds[] = $formInputId;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => count($eligibleIds).' email job(s) queued successfully.'.($skipped > 0 ? " {$skipped} request(s) were skipped (no email or not yet processed)." : ''),
+            'form_input_ids' => $dispatchedIds,
+            'total' => count($eligibleIds),
+        ]);
+    }
+
+    /**
+     * Check status of bulk email jobs by form_input_id.
+     */
+    public function emailJobStatus(Request $request): JsonResponse
+    {
+        $request->validate([
+            'form_input_ids' => ['required', 'array'],
+            'form_input_ids.*' => ['integer', 'exists:form_inputs,id'],
+        ]);
+
+        $formInputIds = $request->input('form_input_ids');
+
+        // Check staff_input for emailed_at
+        $emailedStatus = DB::table('staff_inputs')
+            ->whereIn('form_input_id', $formInputIds)
+            ->pluck('emailed_at', 'form_input_id');
+
+        $results = [];
+        $sentCount = 0;
+        $pendingCount = 0;
+
+        foreach ($formInputIds as $formInputId) {
+            $emailedAt = $emailedStatus[$formInputId] ?? null;
+
+            if ($emailedAt) {
+                $status = 'sent';
+                $sentCount++;
+            } else {
+                $status = 'pending';
+                $pendingCount++;
+            }
+
+            $results[] = [
+                'form_input_id' => $formInputId,
+                'status' => $status,
+                'emailed_at' => $emailedAt,
+            ];
+        }
+
+        return response()->json([
+            'jobs' => $results,
+            'summary' => [
+                'total' => count($formInputIds),
+                'sent' => $sentCount,
+                'failed' => 0,
+                'pending' => $pendingCount,
+            ],
+            'completed' => $pendingCount === 0,
+        ]);
+    }
+
+    /**
+     * Return ALL form inputs (not paginated) for the bulk-email modal.
+     *
+     * Includes staff_input + emailed_at so the frontend can render
+     * "Sent email X days ago" tags and checkbox selection across every
+     * page of results.
+     */
+    public function emailRecipients(): JsonResponse
+    {
+        $formInputs = FormInput::with([
+            'staffInput' => function ($q) {
+                $q->select('id', 'form_input_id', 'status', 'emailed_at');
+            },
+        ])->orderBy('id')->get();
+
+        return response()->json([
+            'data' => $formInputs,
+        ]);
     }
 }

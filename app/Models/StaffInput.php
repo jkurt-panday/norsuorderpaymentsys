@@ -22,12 +22,14 @@ class StaffInput extends Model
         'status',
         'or_no',
         'or_date',
+        'emailed_at',
     ];
 
     protected $casts = [
         'ref_date' => 'date',
         'or_date' => 'date',
         'status' => 'string',
+        'emailed_at' => 'datetime',
     ];
 
     public const STATUSES = ['pending', 'processed', 'paid', 'cancelled'];

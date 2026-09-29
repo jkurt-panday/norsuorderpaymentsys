@@ -26,6 +26,7 @@ class GraduateLedger extends Model
         'amount',
         'remarks',
         'input_by',
+        'imported_input_by',
         'status',
     ];
 
@@ -64,5 +65,20 @@ class GraduateLedger extends Model
     public function academicTerm(): BelongsTo
     {
         return $this->belongsTo(AcademicTerm::class);
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function inputByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'input_by')->without('profile');
+    }
+
+    public function inputByDisplay(): string
+    {
+        if ($this->imported_input_by !== null) {
+            return $this->imported_input_by;
+        }
+
+        return $this->inputByUser?->name ?? '';
     }
 }

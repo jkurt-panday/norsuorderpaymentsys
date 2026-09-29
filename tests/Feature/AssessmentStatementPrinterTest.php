@@ -148,6 +148,7 @@ class AssessmentStatementPrinterTest extends TestCase
         $course = Courses::create([
             'course_code' => 'BS-TEST',
             'course_desc' => 'Test Course',
+            'course_college' => 'Graduate School',
         ]);
 
         return AssessmentForm::create(array_merge([

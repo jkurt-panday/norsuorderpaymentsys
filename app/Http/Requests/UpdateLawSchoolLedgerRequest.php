@@ -32,7 +32,7 @@ class UpdateLawSchoolLedgerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'student_id' => ['required', 'exists:students,id'],
+            'student_id' => ['nullable', 'exists:students,id'],
             'course_id' => ['required', Rule::exists('courses', 'id')->where('course_college', 'School of Law')],
             'academic_term_id' => ['nullable', 'exists:academic_terms,id'],
             'school_year' => ['required_without:academic_term_id', 'nullable', 'regex:/^\d{4}-\d{4}$/', 'max:20'],

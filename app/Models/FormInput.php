@@ -31,6 +31,10 @@ class FormInput extends Model
         'request_type',
         'membership_id',
         'payment_detail_option_id',
+        'student_num',
+        'submitted_student_number',
+        'course_id',
+        'academic_term',
     ];
 
     protected $casts = [
@@ -48,6 +52,36 @@ class FormInput extends Model
     public function paymentDetailOption(): BelongsTo
     {
         return $this->belongsTo(PaymentDetailOption::class, 'payment_detail_option_id');
+    }
+
+    /**
+     * Student this submission is linked to.
+     * Note the column is named `student_num` (FK → students.id),
+     * so the foreign key must be passed explicitly.
+     *
+     * @return BelongsTo<Student, $this>
+     */
+    public function student(): BelongsTo
+    {
+        return $this->belongsTo(Student::class, 'student_num');
+    }
+
+    /** @return BelongsTo<Course, $this> */
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class);
+    }
+
+    /**
+     * Academic term selected on the student tab.
+     * Note the column is named `academic_term` (FK → academic_terms.id),
+     * so the foreign key must be passed explicitly.
+     *
+     * @return BelongsTo<AcademicTerm, $this>
+     */
+    public function academicTerm(): BelongsTo
+    {
+        return $this->belongsTo(AcademicTerm::class, 'academic_term');
     }
 
     /** @return HasMany<SupportingDocument, $this> */

@@ -42,14 +42,14 @@ class CoursesController extends Controller
         $validated = $request->validate([
             'course_code' => ['required', 'string', 'max:20', 'unique:courses,course_code'],
             'course_desc' => ['required', 'string', 'max:255'],
-            'course_college' => ['required', 'string', Rule::in(['Graduate School', 'School of Law']),]
+            'course_college' => ['required', 'string', Rule::in(['Graduate School', 'School of Law'])],
         ], [
             'course_code.required' => 'Please enter a course code.',
             'course_code.unique' => 'This course code already exists.',
             'course_code.max' => 'Course code must not exceed 20 characters.',
             'course_desc.required' => 'Please enter a course description or full name.',
             'course_desc.max' => 'Course description must not exceed 255 characters.',
-            'course_college.required' => 'Please select which college is the course under.'
+            'course_college.required' => 'Please select which college is the course under.',
         ]);
 
         try {
@@ -59,7 +59,7 @@ class CoursesController extends Controller
             Courses::query()->create([
                 'course_code' => $validated['course_code'],
                 'course_desc' => $validated['course_desc'],
-                'course_college' => $validated['course_college']
+                'course_college' => $validated['course_college'],
             ]);
 
             DB::commit();
@@ -104,7 +104,7 @@ class CoursesController extends Controller
         // 1. Validate the input fields
         $validated = $request->validate([
             // Ignore current course ID when checking unique constraint
-            'course_code' => ['required','string','max:20',Rule::unique('courses', 'course_code')->ignore($courses->id),],
+            'course_code' => ['required', 'string', 'max:20', Rule::unique('courses', 'course_code')->ignore($courses->id)],
             'course_desc' => ['required', 'string', 'max:255'],
             'course_college' => ['required', 'string', Rule::in(['Graduate School', 'School of Law'])],
         ], [
@@ -113,7 +113,7 @@ class CoursesController extends Controller
             'course_code.max' => 'Course code must not exceed 20 characters.',
             'course_desc.required' => 'Please enter a course description.',
             'course_desc.max' => 'Course description must not exceed 255 characters.',
-            'course_college.required' => 'Please select which college is the course under.'
+            'course_college.required' => 'Please select which college is the course under.',
         ]);
 
         try {
@@ -123,7 +123,7 @@ class CoursesController extends Controller
             $courses->update([
                 'course_code' => $validated['course_code'],
                 'course_desc' => $validated['course_desc'],
-                'course_college' =>$validated['course_college']
+                'course_college' => $validated['course_college'],
             ]);
 
             DB::commit();

@@ -1,17 +1,19 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     AlertCircle,
     ArrowLeft,
     CheckCircle2,
     FileQuestion,
+    Mail,
     Printer,
     Search,
     X,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     edit as editAssessment,
     index as assessmentsIndex,
+    emailSoa,
 } from '@/actions/App/Http/Controllers/AssessmentController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -38,6 +40,16 @@ const statusOptions = [
   { label: "Rejected", value: "rejected" },
   { label: "Completed", value: "completed" },
 ]
+import { Textarea } from '@/components/ui/textarea';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { flashToast } from '@/utils/flashToast';
 
 interface Course {
     id: number;
@@ -102,6 +114,11 @@ interface LedgerStatement {
 interface AssessmentEditProps {
     assessment: AssessmentFormModel;
     ledgerStatement: LedgerStatement;
+    flash?: {
+        success?: string;
+        error?: string;
+        warning?: string;
+    };
 }
 
 const currencyFormatter = new Intl.NumberFormat('en-PH', {
@@ -130,9 +147,28 @@ export default function AssessmentEdit({
     assessment,
     ledgerStatement,
 }: AssessmentEditProps) {
+    const { auth, flash } = usePage().props as {
+        auth?: { user?: { role?: string } };
+        flash?: {
+            success?: string;
+            error?: string;
+            warning?: string;
+        };
+    };
     const [search, setSearch] = useState('');
     const [status, setStatus] = useState(assessment.status ?? 'pending');
     const [savingStatus, setSavingStatus] = useState(false);
+    const [isEmailPreviewOpen, setIsEmailPreviewOpen] = useState(false);
+    const [emailSubject, setEmailSubject] = useState('');
+    const [emailRecipientName, setEmailRecipientName] = useState('');
+    const [emailNote, setEmailNote] = useState('');
+    const [isSendingEmail, setIsSendingEmail] = useState(false);
+    
+    useEffect(() => {
+        flashToast('success', flash?.success);
+        flashToast('error', flash?.error);
+        flashToast('warning', flash?.warning);
+    }, [flash]);
     
     const fullName = [
         assessment.first_name,
@@ -197,6 +233,47 @@ export default function AssessmentEdit({
           ? `?ledger_student=${encodeURIComponent(ledgerStatement.selectedStudent.key)}`
           : '');
       window.open(url, '_blank');
+    };
+
+    const buildDefaultEmailSubject = () =>
+        `Statement of Account - ${assessment.reference_number}`;
+
+    const buildDefaultRecipientName = () =>
+        `${assessment.first_name} ${assessment.last_name}`;
+
+    const openEmailPreview = () => {
+        setEmailSubject(buildDefaultEmailSubject());
+        setEmailRecipientName(buildDefaultRecipientName());
+        setEmailNote('');
+        setIsEmailPreviewOpen(true);
+    };
+
+    const handleConfirmSendEmail = () => {
+        setIsSendingEmail(true);
+        
+        const ledgerStudentKey = ledgerStatement.selectedStudent?.key ?? '';
+        
+        router.post(
+            emailSoa.url(assessment.id),
+            {
+                subject: emailSubject,
+                recipient_name: emailRecipientName,
+                note: emailNote,
+                ledger_student: ledgerStudentKey,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setIsEmailPreviewOpen(false);
+                },
+                onError: () => {
+                    // Error handling - toast will show from server
+                },
+                onFinish: () => {
+                    setIsSendingEmail(false);
+                },
+            },
+        );
     };
 
     return (
@@ -343,6 +420,25 @@ export default function AssessmentEdit({
                         >
                             Change Student
                         </Button>
+                        <div className="flex gap-2">
+                            <Button
+                                onClick={openEmailPreview}
+                                disabled={!ledgerStatement.selectedStudent}
+                                variant="outline"
+                                className="bg-white text-[#0B3D91] border-blue-200 hover:bg-blue-50"
+                            >
+                                <Mail className="h-4 w-4" />
+                                Email Statement
+                            </Button>
+                            <Button
+                                onClick={printStatement}
+                                disabled={!ledgerStatement.selectedStudent}
+                                className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
+                            >
+                                <Printer className="h-4 w-4" />
+                                Print Statement
+                            </Button>
+                        </div>
                     </CardHeader>
 
                     <CardContent className="space-y-6 p-4 sm:p-6">
@@ -549,6 +645,77 @@ export default function AssessmentEdit({
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Email Preview Modal */}
+            <Dialog open={isEmailPreviewOpen} onOpenChange={setIsEmailPreviewOpen}>
+                <DialogContent className="sm:max-w-[480px]">
+                    <DialogHeader>
+                        <DialogTitle>Email Statement of Account</DialogTitle>
+                        <DialogDescription>
+                            Review and customize the email before sending the Statement of Account PDF.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-slate-700">
+                                To
+                            </label>
+                            <Input
+                                value={assessment.email}
+                                disabled
+                                className="bg-slate-50 text-slate-600"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-slate-700">
+                                Recipient Name
+                            </label>
+                            <Input
+                                value={emailRecipientName}
+                                onChange={(e) => setEmailRecipientName(e.target.value)}
+                                placeholder="Recipient name"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-slate-700">
+                                Subject
+                            </label>
+                            <Input
+                                value={emailSubject}
+                                onChange={(e) => setEmailSubject(e.target.value)}
+                                placeholder="Email subject"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-slate-700">
+                                Additional Note (optional)
+                            </label>
+                            <Textarea
+                                value={emailNote}
+                                onChange={(e) => setEmailNote(e.target.value)}
+                                placeholder="Add a personal note..."
+                                rows={4}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter className="gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsEmailPreviewOpen(false)}
+                            disabled={isSendingEmail}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleConfirmSendEmail}
+                            disabled={isSendingEmail}
+                            className="bg-[#0B3D91] hover:bg-[#092D6F]"
+                        >
+                            {isSendingEmail ? 'Sending...' : 'Send Email'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

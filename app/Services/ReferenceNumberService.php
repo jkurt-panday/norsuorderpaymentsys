@@ -3,9 +3,9 @@
 namespace App\Services;
 
 use App\Models\AssessmentForm;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\DB;
 use App\Models\YearSequence;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ReferenceNumberService
 {
@@ -46,57 +46,57 @@ class ReferenceNumberService
      * Generate a unique reference number
      * Format: OP-YYYYMMDD-XXXXX (where XXXXX is a random alphanumeric)
      */
-     public function old_assess_ref_gen(): string
-     {
-         $date = now()->format('Ymd');
-         $random = Str::upper(Str::random(5));
-         $referenceNumber = 'OP-'.$date.'-'.$random;
- 
-         // Ensure uniqueness
-         while (AssessmentForm::query()->where('reference_number', $referenceNumber)->exists()) {
-             $random = Str::upper(Str::random(5));
-             $referenceNumber = 'OP-'.$date.'-'.$random;
-         }
- 
-         return $referenceNumber;
-     }
+    public function old_assess_ref_gen(): string
+    {
+        $date = now()->format('Ymd');
+        $random = Str::upper(Str::random(5));
+        $referenceNumber = 'OP-'.$date.'-'.$random;
 
-     /**
-      * 2026-08-AF-060, this is the format
-      */
-     public function assess_ref_gen(): string
-     {
-         return DB::transaction(function () {
-     
-             $now = now();
-     
-             $year = $now->year;
-             $month = $now->month;
-     
-             $sequence = YearSequence::lockForUpdate()
-                 ->firstOrCreate(
-                     ['year' => $year],
-                     [
-                         'month' => $month,
-                         'current_number' => 0,
-                         'assessment_number' => 0,
-                     ]
-                 );
-     
-             $sequence->increment('assessment_number');
-     
-             $sequence->update([
-                 'month' => $month,
-             ]);
-     
-             return sprintf(
-                 '%d-%02d-AF-%03d',
-                 $year,
-                 $month,
-                 $sequence->assessment_number
-             );
-         });
-     }
+        // Ensure uniqueness
+        while (AssessmentForm::query()->where('reference_number', $referenceNumber)->exists()) {
+            $random = Str::upper(Str::random(5));
+            $referenceNumber = 'OP-'.$date.'-'.$random;
+        }
+
+        return $referenceNumber;
+    }
+
+    /**
+     * 2026-08-AF-060, this is the format
+     */
+    public function assess_ref_gen(): string
+    {
+        return DB::transaction(function () {
+
+            $now = now();
+
+            $year = $now->year;
+            $month = $now->month;
+
+            $sequence = YearSequence::lockForUpdate()
+                ->firstOrCreate(
+                    ['year' => $year],
+                    [
+                        'month' => $month,
+                        'current_number' => 0,
+                        'assessment_number' => 0,
+                    ]
+                );
+
+            $sequence->increment('assessment_number');
+
+            $sequence->update([
+                'month' => $month,
+            ]);
+
+            return sprintf(
+                '%d-%02d-AF-%03d',
+                $year,
+                $month,
+                $sequence->assessment_number
+            );
+        });
+    }
 
     /**
      * Validate reference number format

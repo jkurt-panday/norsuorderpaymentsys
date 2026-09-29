@@ -2,6 +2,7 @@ packages:
   - '.'
 
 allowBuilds:
+  '@anthropic-ai/claude-code': set this to true or false
   core-js: true
   puppeteer: true
   unrs-resolver: false

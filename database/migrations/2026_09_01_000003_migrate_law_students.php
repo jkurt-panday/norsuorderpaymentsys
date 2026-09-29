@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
 use App\Models\LawStudent;
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
@@ -20,7 +20,7 @@ return new class extends Migration
             ->get();
 
         foreach ($students as $student) {
-            $rawName = trim("{$student->last_name}, {$student->first_name}" . ($student->middle_initial ? " {$student->middle_initial}" : ''));
+            $rawName = trim("{$student->last_name}, {$student->first_name}".($student->middle_initial ? " {$student->middle_initial}" : ''));
 
             LawStudent::firstOrCreate(
                 [

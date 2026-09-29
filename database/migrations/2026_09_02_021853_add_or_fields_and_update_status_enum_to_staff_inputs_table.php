@@ -25,9 +25,9 @@ return new class extends Migration
             return;
         }
 
-        DB::statement("ALTER TABLE staff_inputs DROP CONSTRAINT IF EXISTS staff_inputs_status_check");
-        DB::statement("ALTER TABLE staff_inputs ALTER COLUMN status DROP DEFAULT");
-        DB::statement("ALTER TABLE staff_inputs ALTER COLUMN status TYPE VARCHAR(255)");
+        DB::statement('ALTER TABLE staff_inputs DROP CONSTRAINT IF EXISTS staff_inputs_status_check');
+        DB::statement('ALTER TABLE staff_inputs ALTER COLUMN status DROP DEFAULT');
+        DB::statement('ALTER TABLE staff_inputs ALTER COLUMN status TYPE VARCHAR(255)');
         DB::statement("ALTER TABLE staff_inputs ALTER COLUMN status SET DEFAULT 'pending'");
         DB::statement("ALTER TABLE staff_inputs ADD CONSTRAINT staff_inputs_status_check CHECK (status IN ('pending', 'processed', 'paid', 'cancelled'))");
     }
@@ -38,8 +38,8 @@ return new class extends Migration
     public function down(): void
     {
         if (DB::connection()->getDriverName() === 'pgsql') {
-            DB::statement("ALTER TABLE staff_inputs DROP CONSTRAINT IF EXISTS staff_inputs_status_check");
-            DB::statement("ALTER TABLE staff_inputs ALTER COLUMN status DROP DEFAULT");
+            DB::statement('ALTER TABLE staff_inputs DROP CONSTRAINT IF EXISTS staff_inputs_status_check');
+            DB::statement('ALTER TABLE staff_inputs ALTER COLUMN status DROP DEFAULT');
         } else {
             Schema::table('staff_inputs', function (Blueprint $table) {
                 $table->enum('status', ['pending', 'approved', 'cancelled'])->default('pending')->change();

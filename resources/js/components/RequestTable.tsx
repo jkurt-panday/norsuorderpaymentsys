@@ -123,11 +123,13 @@ interface RequestTableProps<T> {
     onDateFromChange: (value: string) => void;
     dateTo: string;
     onDateToChange: (value: string) => void;
-    onFilterSubmit: (e: React.FormEvent) => void;
+    onFilterSubmit: (e: React.SyntheticEvent) => void;
     onFilterReset: () => void;
     pollInterval?: number;
     resourceKey?: string;
     highlightDuration?: number;
+    /** Optional React node rendered beside the total in the table header. */
+    customToolbar?: React.ReactNode;
 }
 
 const alignClass: Record<NonNullable<ColumnDef<unknown>['align']>, string> = {
@@ -169,6 +171,7 @@ export default function RequestTable<T extends { id: number | string }>({
     pollInterval,
     resourceKey,
     highlightDuration = 2000,
+    customToolbar,
 }: RequestTableProps<T>) {
     const rows = resource.data;
     const showPagination = rows.length > 0;
@@ -375,7 +378,7 @@ export default function RequestTable<T extends { id: number | string }>({
 
     return (
         <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-slate-50 p-3 sm:p-6">
-            {(title || resource.total !== undefined) && (
+            {(title || resource.total !== undefined || customToolbar) && (
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     {title && (
                         <h2
@@ -385,10 +388,10 @@ export default function RequestTable<T extends { id: number | string }>({
                             {title}
                         </h2>
                     )}
-                    {resource.total !== undefined && (
-                        <span className="text-xs text-slate-500 sm:text-sm">
-                            {resource.total.toLocaleString()} total
-                        </span>
+                    {customToolbar && (
+                        <div className="flex items-center">
+                            {customToolbar}
+                        </div>
                     )}
                 </div>
             )}
@@ -718,7 +721,7 @@ export default function RequestTable<T extends { id: number | string }>({
                             {resource.total} results
                         </p>
 
-                        {resource.last_page > 3 ? (
+                        {resource.last_page > 5 ? (
                             (() => {
                                 const prevLink = resource.links.find((l) =>
                                     l.label

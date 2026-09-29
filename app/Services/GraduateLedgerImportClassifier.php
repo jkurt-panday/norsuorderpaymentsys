@@ -27,14 +27,19 @@ final class GraduateLedgerImportClassifier
             return ['entry_type' => 'adjustment', 'warning' => null];
         }
 
-        if ($hasParentheses || $isNegative) {
-            $warning = null;
+        if ($type === 'AR') {
+            return [
+                'entry_type' => 'ar',
+                'warning' => $hasParentheses || $isNegative
+                    ? self::WARNING_NEGATIVE_LABELED_AR
+                    : null,
+            ];
+        }
 
-            if ($type === 'AR') {
-                $warning = self::WARNING_NEGATIVE_LABELED_AR;
-            } elseif ($type === '' || ! $this->isPaymentType($type)) {
-                $warning = self::WARNING_NEGATIVE_BLANK_TYPE;
-            }
+        if ($hasParentheses || $isNegative) {
+            $warning = $type === '' || ! $this->isPaymentType($type)
+                ? self::WARNING_NEGATIVE_BLANK_TYPE
+                : null;
 
             return ['entry_type' => 'payment', 'warning' => $warning];
         }

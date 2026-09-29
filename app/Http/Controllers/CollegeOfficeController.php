@@ -13,7 +13,7 @@ class CollegeOfficeController extends Controller
     // ? used if you ever need a standalone list endpoint
     public function index(): JsonResponse
     {
-         return Inertia::render('public/SubmitForm', [
+        return Inertia::render('public/SubmitForm', [
             'collegeOffices' => CollegeOffice::orderBy('name')->get(['id', 'name']), // ? new
         ]);
     }

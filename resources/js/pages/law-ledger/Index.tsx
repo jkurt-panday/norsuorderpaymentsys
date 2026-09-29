@@ -13,6 +13,9 @@ import {
   Filter,
   Loader2,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Mail,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import {
@@ -37,6 +40,11 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Pagination,
   PaginationContent,
@@ -64,10 +72,13 @@ export interface LawLedgerRecord {
   particulars: string;
   tuitionPerUnitOrFeePerSemester: number;
   arOrPayment: string;
+  entryType: string;
   amount: number;
   status: string;
   remark: string;
   inputBy: string;
+  latinHonor?: string | null;
+  discountAmount?: number;
 }
 
 export interface LawLedgerPaginator {
@@ -190,6 +201,9 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const [importSuccess, setImportSuccess] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<LawLedgerRecord | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [honorTarget, setHonorTarget] = useState<LawLedgerRecord | null>(null);
+  const [selectedHonor, setSelectedHonor] = useState<'SUMMA' | 'MAGNA' | ''>('');
+  const [isApplyingHonor, setIsApplyingHonor] = useState(false);
 
   const handleImportFile = (file: File | null, inputEl: HTMLInputElement) => {
     if (!file || isImporting) {
@@ -305,6 +319,24 @@ return 90;
     });
   };
 
+  const applyHonorDiscount = () => {
+    if (!honorTarget || !selectedHonor || isApplyingHonor) {
+      return;
+    }
+
+    setIsApplyingHonor(true);
+    router.post(`/law-ledger/${honorTarget.id}/apply-honor`, {
+      latin_honor: selectedHonor,
+    }, {
+      preserveScroll: true,
+      onFinish: () => {
+        setIsApplyingHonor(false);
+        setHonorTarget(null);
+        setSelectedHonor('');
+      },
+    });
+  };
+
   const totalStudents = stats?.totalStudents ?? 0;
   const totalAssessments = stats?.totalAssessments ?? 0;
   const totalPayments = stats?.totalPayments ?? 0;
@@ -354,7 +386,10 @@ return 90;
                  'Import Excel/CSV'
                )}
              </label>
-
+                <Button variant="outline" className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]">
+                <Mail className="h-4 w-4 mr-1.5" />
+                Send Email
+              </Button>
              <Button
                variant="outline"
                className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
@@ -383,11 +418,13 @@ return 90;
                Export Excel/CSV
              </Button>
 
-             <Button className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white" onClick={() => router.get('/law-ledger/new-transaction')}>
-               <PlusCircle className="h-4 w-4 mr-1.5" />
-               New Transaction
-             </Button>
-           </div>
+<Button className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white" onClick={() => router.get('/law-ledger/new-transaction')}>
+                <PlusCircle className="h-4 w-4 mr-1.5" />
+                New Transaction
+              </Button>
+
+
+            </div>
         </div>
 
         {/* Metrics Row */}
@@ -677,11 +714,35 @@ return 90;
                         <td className="py-2 pr-4 text-[#334E68]">{r.particulars}</td>
                         <td className="py-2 pr-4 text-right text-[#334E68]">{currency(r.tuitionPerUnitOrFeePerSemester)}</td>
                       <td className="py-2 pr-4">
-                        <Badge variant="outline" className={typeBadgeVariant(r.arOrPayment)}>
+                        <Badge 
+                          variant="outline" 
+                          className={`${typeBadgeVariant(r.arOrPayment)} ${
+                            r.entryType === 'ar' && !r.latinHonor ? 'cursor-pointer hover:ring-2 hover:ring-[#0F6FFF]' : ''
+                          }`}
+                          onClick={() => {
+                            if (r.entryType === 'ar' && !r.latinHonor) {
+                              setHonorTarget(r);
+                              setSelectedHonor('');
+                            }
+                          }}
+                          title={r.entryType === 'ar' && !r.latinHonor ? 'Click to apply Latin Honor discount' : undefined}
+                        >
                           {r.arOrPayment}
+                          {r.latinHonor && (
+                            <span className="ml-1 text-xs">({r.latinHonor})</span>
+                          )}
                         </Badge>
                       </td>
-                        <td className="py-2 pr-4 text-right font-medium text-[#0B3D91]">{currency(r.amount)}</td>
+                        <td className="py-2 pr-4 text-right">
+                          <div className="flex flex-col items-end">
+                            <span className="font-medium text-[#0B3D91]">{currency(r.amount)}</span>
+                            {r.discountAmount && r.discountAmount > 0 && (
+                              <span className="text-xs text-emerald-600">
+                                (Discount: -{currency(r.discountAmount)})
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="py-2 pr-4">
                           <Badge variant="outline" className={statusBadgeVariant(r.status)}>
                             {r.status}
@@ -719,110 +780,175 @@ return 90;
                   </div>
               </div>
 
-          {/* ---- Pagination Footer ---- */}
-          {paginationLinks.length > 3 && (
-            <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-[#CFE3FF] pt-4 pb-4 gap-4">
-              <div className="flex items-center gap-4 text-xs text-[#5C7A9E]">
-                <div>
-                  Page <span className="font-semibold text-[#0B3D91]">{currentPage}</span> of{' '}
-                  <span className="font-semibold text-[#0B3D91]">{lastPage}</span>
-                </div>
-                <form onSubmit={handleGoToPage} className="flex items-center gap-1.5">
-                  <span>Go to:</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={lastPage}
-                    value={goToPage}
-                    onChange={(e) => setGoToPage(e.target.value)}
-                    placeholder={String(currentPage)}
-                    className="w-14 h-7 rounded border border-[#CFE3FF] bg-white px-2 text-center text-xs text-[#0B3D91] font-medium focus:outline-none focus:ring-1 focus:ring-[#0B62E0]"
-                  />
-                  <button
-                    type="submit"
-                    className="h-7 px-2.5 rounded bg-[#EAF2FF] text-[#0B62E0] hover:bg-[#D4E5FF] text-xs font-medium transition-colors"
+{/* ---- Pagination Footer ---- */}
+      {paginationLinks.length > 3 && (
+        <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-[#CFE3FF] pt-4 pb-4 gap-4">
+          <div className="flex items-center gap-4 text-xs text-[#5C7A9E]">
+            <div>
+              Showing {currentPage} of {lastPage}
+            </div>
+            <span className="text-[#8AA8CC]">|</span>
+            <div>
+              <span className="font-semibold text-[#0B3D91]">{totalRecordCount}</span> total records
+            </div>
+          </div>
+
+          {lastPage > 5 ? (
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                disabled={currentPage <= 1}
+                onClick={() => {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('page', String(currentPage - 1));
+                  router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true });
+                }}
+                aria-label="Previous page"
+                className="h-8 w-8 shrink-0 rounded-md border-[#CFE3FF] text-[#0B3D91] text-sm hover:bg-[#F3F8FF]"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              <Popover>
+                <PopoverTrigger>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm font-medium text-[#0B3D91] transition-colors hover:bg-[#F3F8FF]"
                   >
-                    Go
-                  </button>
-                </form>
-              </div>
+                    Page {currentPage} of {lastPage}
+                  </span>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="center"
+                  className="w-48 space-y-2 p-2"
+                >
+                  <form onSubmit={handleGoToPage} className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min={1}
+                      max={lastPage}
+                      value={goToPage}
+                      onChange={(e) => setGoToPage(e.target.value)}
+                      placeholder={String(currentPage)}
+                      className="h-8 w-full min-w-0 rounded-md border border-[#CFE3FF] bg-white px-2 text-sm text-[#0B3D91] outline-none focus:ring-2 focus:ring-[#0B62E0]"
+                      autoFocus
+                    />
+                    <button
+                      type="submit"
+                      className="h-8 shrink-0 rounded-md bg-[#0F6FFF] px-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#0B5DDB]"
+                    >
+                      Go
+                    </button>
+                  </form>
 
-              <Pagination className="justify-end w-auto mx-0">
-                <PaginationContent className="gap-1">
-                  {paginationLinks.map((link, index) => {
-                    const isPrev = index === 0;
-                    const isNext = index === paginationLinks.length - 1;
-                    const isEllipsis = link.label === '...';
+                  <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-[#EAF2FF] pt-1.5">
+                    {Array.from({ length: lastPage }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        type="button"
+                        onClick={() => {
+                          const url = new URL(window.location.href);
+                          url.searchParams.set('page', String(page));
+                          router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true });
+                        }}
+                        className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                          page === currentPage
+                            ? 'bg-[#EAF2FF] font-medium text-[#0B62E0]'
+                            : 'text-[#334E68] hover:bg-[#F3F8FF]'
+                        }`}
+                      >
+                        Page {page}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
 
-                    if (isPrev) {
-                      return (
-                        <PaginationItem key={index}>
-                          <PaginationPrevious
-                            href={link.url ?? '#'}
-                            onClick={(e) => {
-                              e.preventDefault();
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                disabled={currentPage >= lastPage}
+                onClick={() => {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('page', String(currentPage + 1));
+                  router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true });
+                }}
+                aria-label="Next page"
+                className="h-8 w-8 shrink-0 rounded-md border-[#CFE3FF] text-[#0B3D91] text-sm hover:bg-[#F3F8FF]"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <Pagination className="justify-end w-auto mx-0">
+              <PaginationContent className="gap-1">
+                {paginationLinks.map((link, index) => {
+                  const isPrev = index === 0;
+                  const isNext = index === paginationLinks.length - 1;
 
-                              if (link.url) {
-                                router.get(link.url, {}, { preserveState: true, preserveScroll: true });
-                              }
-                            }}
-                            className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                          />
-                        </PaginationItem>
-                      );
-                    }
-
-                    if (isNext) {
-                      return (
-                        <PaginationItem key={index}>
-                          <PaginationNext
-                            href={link.url ?? '#'}
-                            onClick={(e) => {
-                              e.preventDefault();
-
-                              if (link.url) {
-                                router.get(link.url, {}, { preserveState: true, preserveScroll: true });
-                              }
-                            }}
-                            className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                          />
-                        </PaginationItem>
-                      );
-                    }
-
-                    if (isEllipsis) {
-                      return (
-                        <PaginationItem key={index}>
-                          <PaginationEllipsis />
-                        </PaginationItem>
-                      );
-                    }
-
+                  if (isPrev) {
                     return (
                       <PaginationItem key={index}>
-                        <PaginationLink
+                        <PaginationPrevious
                           href={link.url ?? '#'}
-                          isActive={link.active}
                           onClick={(e) => {
                             e.preventDefault();
-
                             if (link.url) {
                               router.get(link.url, {}, { preserveState: true, preserveScroll: true });
                             }
                           }}
-                          className={`cursor-pointer ${
-                            link.active ? 'bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]' : 'text-[#0B3D91]'
-                          }`}
-                        >
-                          {link.label}
-                        </PaginationLink>
+                          className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
                       </PaginationItem>
                     );
-                  })}
-                </PaginationContent>
-              </Pagination>
-            </CardFooter>
+                  }
+
+                  if (isNext) {
+                    return (
+                      <PaginationItem key={index}>
+                        <PaginationNext
+                          href={link.url ?? '#'}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (link.url) {
+                              router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+                            }
+                          }}
+                          className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                    );
+                  }
+
+                  return (
+                    <PaginationItem key={index}>
+                      <PaginationLink
+                        href={link.url ?? '#'}
+                        isActive={link.active}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (link.url) {
+                            router.get(link.url, {}, { preserveState: true, preserveScroll: true });
+                          }
+                        }}
+                        className={`cursor-pointer ${
+                          link.active ? 'bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]' : 'text-[#0B3D91]'
+                        }`}
+                      >
+                        {link.label}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+              </PaginationContent>
+            </Pagination>
           )}
+        </CardFooter>
+      )}
         </Card>
 
       {/* Floating Bottom-Right Import Progress Bar & Toast */}
@@ -930,6 +1056,122 @@ return 90;
                 <>
                   <Trash2 className="h-4 w-4" />
                   Delete Transaction
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Latin Honor Discount Dialog */}
+      <AlertDialog
+        open={honorTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !isApplyingHonor) {
+            setHonorTarget(null);
+            setSelectedHonor('');
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-md gap-0 overflow-hidden border border-[#CFE3FF] bg-white p-0 shadow-xl sm:max-w-md">
+          <AlertDialogHeader className="gap-3 p-5 sm:place-items-start sm:text-left">
+            <AlertDialogMedia className="mb-0 size-11 rounded-full bg-blue-50 text-[#0F6FFF]">
+              <GraduationCap className="size-5" />
+            </AlertDialogMedia>
+            <AlertDialogTitle className="text-lg font-semibold text-[#0B3D91]">
+              Apply Latin Honor Discount
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-[#5C7A9E]">
+              Select the student's Latin Honor to automatically apply the corresponding discount to the assessment amount.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {honorTarget && (
+            <div className="mx-5 mb-5 space-y-4">
+              <div className="rounded-lg border border-[#EAF2FF] bg-[#F8FBFF] p-3">
+                <p className="text-sm font-semibold text-[#0B3D91]">{honorTarget.name}</p>
+                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-[#5C7A9E]">
+                  <div>
+                    <span className="block text-[11px] uppercase tracking-wide text-[#8AA8CC]">Original Amount</span>
+                    <span className="font-medium text-[#334E68]">{currency(honorTarget.amount)}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] uppercase tracking-wide text-[#8AA8CC]">Term</span>
+                    <span className="font-medium text-[#334E68]">{honorTarget.schoolYear} {honorTarget.semesterOrSummer}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-[#0B3D91]">Select Latin Honor</label>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedHonor('SUMMA')}
+                    className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
+                      selectedHonor === 'SUMMA'
+                        ? 'border-[#0F6FFF] bg-[#EAF2FF]'
+                        : 'border-[#CFE3FF] bg-white hover:border-[#B9D8FF]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-[#0B3D91]">Summa Cum Laude</p>
+                        <p className="text-xs text-[#5C7A9E]">100% discount – Full scholarship</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-emerald-600">-{currency(honorTarget.amount)}</p>
+                        <p className="text-xs text-[#8AA8CC]">New: {currency(0)}</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedHonor('MAGNA')}
+                    className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
+                      selectedHonor === 'MAGNA'
+                        ? 'border-[#0F6FFF] bg-[#EAF2FF]'
+                        : 'border-[#CFE3FF] bg-white hover:border-[#B9D8FF]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-[#0B3D91]">Magna Cum Laude</p>
+                        <p className="text-xs text-[#5C7A9E]">50% discount – Half scholarship</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-emerald-600">-{currency(honorTarget.amount * 0.5)}</p>
+                        <p className="text-xs text-[#8AA8CC]">New: {currency(honorTarget.amount * 0.5)}</p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <AlertDialogFooter className="mx-0 mb-0 rounded-none border-[#EAF2FF] bg-[#F8FBFF] px-5 py-4">
+            <AlertDialogCancel
+              disabled={isApplyingHonor}
+              className="border-[#CFE3FF] text-[#0B3D91] hover:bg-white"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isApplyingHonor || !selectedHonor}
+              onClick={applyHonorDiscount}
+              className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB] disabled:opacity-50"
+            >
+              {isApplyingHonor ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Applying...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  Apply Discount
                 </>
               )}
             </AlertDialogAction>

@@ -15,15 +15,15 @@ return new class extends Migration
     {
         // 1. Normalize all existing semester values to 3 canonical strings
         $map = [
-            'First Semester'  => ['1st', 'first'],
+            'First Semester' => ['1st', 'first'],
             'Second Semester' => ['2nd', 'second'],
-            'Summer'          => ['summer', 'intersession'],
+            'Summer' => ['summer', 'intersession'],
         ];
 
         $terms = DB::table('graduate_academic_term')->get();
 
         foreach ($terms as $term) {
-            $lower    = strtolower(trim($term->semester));
+            $lower = strtolower(trim($term->semester));
             $canonical = 'First Semester'; // default
 
             if (str_contains($lower, '2nd') || str_contains($lower, 'second')) {
@@ -70,8 +70,8 @@ return new class extends Migration
         foreach ($surviving as $term) {
             $sortOrder = match ($term->semester) {
                 'Second Semester' => 2,
-                'Summer'          => 3,
-                default           => 1,
+                'Summer' => 3,
+                default => 1,
             };
             DB::table('graduate_academic_term')
                 ->where('id', $term->id)

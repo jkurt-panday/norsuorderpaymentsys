@@ -4,23 +4,23 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CashierPaymentRequest;
 use App\Models\StaffInput;
+use App\Services\CashierLedgerPostingService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class CashierRequestController extends Controller
 {
     public function index(Request $request): Response
     {
         $requestedStatus = $request->string('status')->toString();
-        // An empty/absent (or "All") status means "no single-status filter" —
-        // i.e. show both 'processed' and 'paid' (the cashier's two scopes),
-        // mirroring the StaffInputController "All Status" behaviour. Only an
-        // explicit 'processed'/'paid' narrows the result set.
-        $status = in_array($requestedStatus, ['processed', 'paid'], true)
+        $allowedStatuses = ['processed', 'paid', 'cancelled'];
+        $status = in_array($requestedStatus, $allowedStatuses, true)
             ? $requestedStatus
             : '';
         $search = trim($request->string('search')->toString());
@@ -29,9 +29,9 @@ class CashierRequestController extends Controller
 
         $query = StaffInput::query()
             ->with(['formInput.membership', 'formInput.paymentDetailOption'])
-            ->whereIn('status', ['processed', 'paid'])
+            ->whereIn('staff_inputs.status', ['processed', 'paid', 'cancelled'])
             ->when($status !== '', function (Builder $query) use ($status): void {
-                $query->where('status', $status);
+                $query->where('staff_inputs.status', $status);
             })
             ->when($search !== '', function (Builder $query) use ($search): void {
                 $like = '%'.mb_strtolower($search).'%';
@@ -70,12 +70,12 @@ class CashierRequestController extends Controller
             if (in_array($sort, $sortableFormColumns, true)) {
                 $query->join('form_inputs', 'form_inputs.id', '=', 'staff_inputs.form_input_id')
                     ->select('staff_inputs.*')
-                    ->orderBy($sort, $direction);
+                    ->orderBy('form_inputs.'.$sort, $direction);
             } else {
                 $query->orderBy('staff_inputs.'.$sort, $direction);
             }
         } else {
-            $query->latest();
+            $query->orderBy('staff_inputs.created_at', 'desc');
         }
 
         $requests = $query->paginate(10)->withQueryString();
@@ -93,8 +93,6 @@ class CashierRequestController extends Controller
 
     public function show(StaffInput $staffInput): Response
     {
-        abort_unless(in_array($staffInput->status, ['processed', 'paid'], true), 404);
-
         $staffInput->load(['formInput.membership', 'formInput.paymentDetailOption']);
 
         return Inertia::render('cashier/requests/Show', ['request' => $staffInput]);
@@ -103,32 +101,87 @@ class CashierRequestController extends Controller
     public function updatePayment(
         CashierPaymentRequest $request,
         StaffInput $staffInput,
+        CashierLedgerPostingService $postingService,
     ): RedirectResponse {
         $isCorrection = false;
+        $posting = ['posted' => false, 'reason' => null];
 
-        DB::transaction(function () use ($request, $staffInput, &$isCorrection): void {
-            $lockedRequest = StaffInput::query()->lockForUpdate()->findOrFail($staffInput->id);
+        try {
+            DB::transaction(function () use ($request, $staffInput, $postingService, &$isCorrection, &$posting): void {
+                $lockedRequest = StaffInput::query()->lockForUpdate()->findOrFail($staffInput->id);
 
-            abort_unless(
-                in_array($lockedRequest->status, ['processed', 'paid'], true),
-                422,
-                'Only processed or paid requests can be updated by the cashier.',
-            );
+                $formInput = $lockedRequest->formInput()->with('course')->first();
+                $requiresLedgerStudent = in_array(
+                    $formInput?->course?->course_college,
+                    ['Graduate School', 'School of Law'],
+                    true,
+                );
 
-            $isCorrection = $lockedRequest->status === 'paid';
+                $validated = $request->validated();
+                $targetStatus = $validated['status'] ?? 'paid';
 
-            $lockedRequest->update([
-                ...$request->validated(),
-                'status' => 'paid',
+                if ($targetStatus === 'paid' && $requiresLedgerStudent && $formInput?->student_num === null) {
+                    throw ValidationException::withMessages([
+                        'student' => 'A student must be matched before this payment can be completed.',
+                    ]);
+                }
+
+                $isCorrection = $lockedRequest->status === 'paid';
+
+                $lockedRequest->update([
+                    'or_no' => $validated['or_no'] ?? null,
+                    'or_date' => $validated['or_date'] ?? null,
+                    'status' => $targetStatus,
+                ]);
+
+                // Auto-post only if status is paid and OR number is present
+                if ($targetStatus === 'paid') {
+                    $posting = $postingService->postPayment($lockedRequest->fresh('formInput.course'));
+                }
+            });
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return back()->withErrors([
+                'or_no' => 'An error occurred. Please do the action again.',
             ]);
-        });
+        }
+
+        $base = $isCorrection
+            ? 'Payment details updated successfully.'
+            : 'Payment details and status updated successfully.';
 
         return to_route('cashier.requests.show', $staffInput)
-            ->with(
-                'success',
-                $isCorrection
-                    ? 'Payment details updated successfully.'
-                    : 'OR number saved. Status set to Paid.',
-            );
+            ->with('success', $base.$this->ledgerPostingSuffix($posting, $posting['ledger'] ?? null));
+    }
+
+    /**
+     * Human-readable suffix describing the selected ledger's auto-post outcome.
+     *
+     * @param  array{posted: bool, reason: string|null, ledger?: string|null}  $posting
+     */
+    private function ledgerPostingSuffix(array $posting, ?string $ledger = null): string
+    {
+        $label = match ($ledger) {
+            'law' => 'law school',
+            'graduate' => 'graduate',
+            default => 'ledger',
+        };
+
+        if ($posting['posted']) {
+            return " Posted to the {$label} ledger.";
+        }
+
+        return match ($posting['reason']) {
+            'student_not_found' => " No matching {$label} student — payment was not auto-posted.",
+            'no_ledger_context' => " Matching {$label} student has no ledger records yet — payment was not auto-posted.",
+            'no_course' => ' No course was selected and the ledger destination could not be determined — payment was not auto-posted.',
+            'missing_or', 'no_form', 'not_required' => '',
+            default => $posting['reason'] === null
+                ? ''
+                : " ({$label} ledger auto-post skipped: {$posting['reason']}.)",
+        };
     }
 }
