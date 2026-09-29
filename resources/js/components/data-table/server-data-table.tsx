@@ -190,6 +190,7 @@ export function ServerDataTable<TData extends RowData>({
         sy_last_attended: "SY Last Attended",
       semester: 'Semester',
         created_at: "Submitted",
+        status: 'Status',
         actions: 'Actions'
     }
 

@@ -137,7 +137,7 @@ class FormInputController extends Controller
             }
 
             return redirect()->route('public.success', [
-                'reference_number' => $formInput->reference_number,
+                'formInput' => $formInput->reference_number,
             ]);
 
         } catch (\Throwable $e) {
@@ -154,16 +154,13 @@ class FormInputController extends Controller
         }
     }
 
-    public function success(string $referenceNumber): Response
+    public function success(FormInput $formInput): Response
     {
         // if session is not found, prevents access to other OP
-        if (session('success_reference_number') !== $referenceNumber) {
+        if (session('success_reference_number') !== $formInput->reference_number) {
             abort(404);
         }
 
-        $formInput = FormInput::query()
-            ->where('reference_number', $referenceNumber)
-            ->firstOrFail();
         $formInput->load(['membership', 'paymentDetailOption', 'supportingDocuments']);
 
         $user = auth()->user();
@@ -184,9 +181,13 @@ class FormInputController extends Controller
     /**
      * Stream the PDF receipt in the browser window.
      */
-    public function printReceipt(string $referenceNumber): PdfBuilder
+    public function printReceipt(FormInput $formInput): PdfBuilder
     {
-        $formInput = FormInput::query()->where('reference_number', $referenceNumber)->firstOrFail();
+        if (session('success_reference_number') !== $formInput->reference_number) {
+                abort(404);
+            }
+        
+        // $formInput = FormInput::query()->where('reference_number', $referenceNumber)->firstOrFail();
 
         // dd($formInput);
 
@@ -200,6 +201,10 @@ class FormInputController extends Controller
      */
     public function downloadReceipt(FormInput $formInput): PdfBuilder
     {
+        if (session('success_reference_number') !== $formInput->reference_number) {
+               abort(404);
+           }
+        
         return $this->receiptPDFService
             ->orderOfPaymentPrint($formInput)
             ->name("receipt-{$formInput->reference_number}.pdf");

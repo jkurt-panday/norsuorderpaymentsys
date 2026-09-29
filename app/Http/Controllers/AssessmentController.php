@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Spatie\LaravelPdf\PdfBuilder;
+use Illuminate\Validation\Rule;
 
 class AssessmentController extends Controller
 {
@@ -74,6 +75,7 @@ class AssessmentController extends Controller
                 'semesters' => AssessmentForm::query()
                     ->distinct()
                     ->whereNotNull('semester')
+                    ->orderBy('semester')
                     ->pluck('semester'),
             ],
         ]);
@@ -173,10 +175,16 @@ class AssessmentController extends Controller
     // /**
     //  * Update the specified resource in storage.
     //  */
-    // public function update(Request $request, string $id)
-    // {
-    //     //
-    // }
+    public function update(Request $request, AssessmentForm $assessment): RedirectResponse
+    {        
+        $validated = $request->validate([
+            'status' => ['required', 'string', Rule::in(['pending', 'approved', 'rejected', 'completed'])],
+        ]);
+    
+        $assessment->update($validated);
+        
+        return back()->with('success', 'Status updated.');
+    }
 
     /**
      * Remove the specified resource from storage.

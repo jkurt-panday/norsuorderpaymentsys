@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\AssessmentFormInfoRequest;
 use App\Models\AssessmentForm;
+use App\Models\Student;
 // use Illuminate\Support\Facades\Redirect as FacadeRedirect;
 use App\Models\Courses;
 use App\Services\ReceiptPDFService;
@@ -71,6 +72,8 @@ class AssessmentFormController extends Controller
                 'semester' => $validated['semester'],
             ]);
 
+            // Student::query()->
+
             DB::commit();
 
             // dd($assessment);
@@ -94,7 +97,7 @@ class AssessmentFormController extends Controller
                 // 'trace' => $e->getTraceAsString(),
             ]);
 
-            return back()->withInput()->with('error', 'Faild to submit request.'.$e->getMessage());
+            return back()->withInput()->with('error', 'Failed to submit request.'.$e->getMessage());
         }
     }
 
@@ -126,6 +129,9 @@ class AssessmentFormController extends Controller
         //     ->firstOrFail();
 
         // dd($formInput);
+         if (session('success_reference_number') !== $assessmentForm->reference_number) {
+            abort(404);
+        }
 
         return $this->receiptPdfService
             ->assessmentPrint($assessmentForm)
@@ -137,6 +143,10 @@ class AssessmentFormController extends Controller
      */
     public function downloadReceipt(AssessmentForm $assessmentForm): PdfBuilder
     {
+        if (session('success_reference_number') !== $assessmentForm->reference_number) {
+            abort(404);
+        }
+        
         return $this->receiptPdfService
             ->assessmentPrint($assessmentForm)
             ->name("receipt-{$assessmentForm->reference_number}.pdf");

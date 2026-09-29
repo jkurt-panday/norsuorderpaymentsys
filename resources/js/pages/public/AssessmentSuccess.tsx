@@ -21,6 +21,10 @@ import {
     CardFooter,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import PublicLayout from '../layouts/PublicLayout';
+import { Button } from '@/components/ui/button';
+import { usePage } from '@inertiajs/react';
+import { useRef } from 'react';
 
 interface Courses {
     id: number | string;
