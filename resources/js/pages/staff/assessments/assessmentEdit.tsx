@@ -354,7 +354,7 @@ export default function AssessmentEdit({
                                     value={assessment.semester}
                                 />
                                 <Detail
-                                    label="SY Last Attended"
+                                    label="SY Last Attended | SY Requested"
                                     value={assessment.sy_last_attended}
                                 />
                             </div>
