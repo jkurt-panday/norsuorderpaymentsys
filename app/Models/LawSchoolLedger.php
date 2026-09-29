@@ -25,6 +25,8 @@ class LawSchoolLedger extends Model
         'amount',
         'remarks',
         'status',
+        'latin_honor',
+        'discount_amount',
         'input_by',
     ];
 
@@ -32,6 +34,7 @@ class LawSchoolLedger extends Model
         'units' => 'decimal:2',
         'rate' => 'decimal:2',
         'amount' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
         'transaction_date' => 'date:Y-m-d',
     ];
 

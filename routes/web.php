@@ -99,6 +99,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/new-transaction', [LawSchoolLedgerController::class, 'create']);
         Route::post('/',               [LawSchoolLedgerController::class, 'store'])->name('store');
         Route::post('/import',         [LawSchoolLedgerController::class, 'import'])->name('import');
+        Route::post('/{id}/apply-honor', [LawSchoolLedgerController::class, 'applyLatinHonor'])->name('apply-honor');
         Route::get('/',                [LawSchoolLedgerController::class, 'index'])->name('index');
         Route::get('/{id}/edit',       [LawSchoolLedgerController::class, 'edit'])->name('edit');
         Route::put('/{id}',            [LawSchoolLedgerController::class, 'update'])->name('update');

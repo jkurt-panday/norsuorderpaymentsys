@@ -1303,6 +1303,8 @@ class LawSchoolLedgerController extends Controller
             'status' => $r->status,
             'remark' => $r->remarks,
             'inputBy' => $r->input_by,
+            'latinHonor' => $r->latin_honor,
+            'discountAmount' => (float) ($r->discount_amount ?? 0),
         ];
     }
 
@@ -1754,5 +1756,70 @@ class LawSchoolLedgerController extends Controller
         return $details === []
             ? $summary
             : $summary.' Warnings: '.implode('; ', $details).'.';
+    }
+
+    /**
+     * Applies a Latin honor discount to an AR transaction.
+     */
+    public function applyLatinHonor(Request $request, int $id): RedirectResponse
+    {
+        $validated = $request->validate([
+            'latin_honor' => ['required', 'in:SUMMA,MAGNA'],
+        ]);
+
+        $record = LawSchoolLedger::findOrFail($id);
+
+        // Only apply to AR entries
+        if ($record->entry_type !== 'ar') {
+            return back()->with('error', 'Latin honor discounts can only be applied to AR (Assessment) entries.');
+        }
+
+        $latinHonor = $validated['latin_honor'];
+        $originalAmount = abs((float) $record->amount);
+
+        // Calculate discount based on honor type
+        $discountPercentage = match ($latinHonor) {
+            'SUMMA' => 100, // 100% discount
+            'MAGNA' => 50,  // 50% discount
+            default => 0,
+        };
+
+        $discountAmount = ($originalAmount * $discountPercentage) / 100;
+        $newAmount = $originalAmount - $discountAmount;
+
+        // Update the record
+        DB::transaction(function () use ($record, $latinHonor, $discountAmount, $newAmount): void {
+            $record->update([
+                'latin_honor' => $latinHonor,
+                'discount_amount' => $discountAmount,
+                'amount' => $newAmount,
+                'status' => $newAmount <= 0 ? 'Paid' : 'Pending',
+            ]);
+
+            // Create a corresponding adjustment entry for the discount
+            LawSchoolLedger::create([
+                'student_id' => $record->student_id,
+                'course_id' => $record->course_id,
+                'academic_term_id' => $record->academic_term_id,
+                'entry_type' => 'adjustment',
+                'units' => null,
+                'transaction_date' => now()->toDateString(),
+                'reference_number' => 'HONOR-'.strtoupper(substr($latinHonor, 0, 3)).'-'.$record->id,
+                'particulars' => $latinHonor === 'SUMMA' 
+                    ? 'Summa Cum Laude Scholarship (100%)' 
+                    : 'Magna Cum Laude Scholarship (50%)',
+                'rate' => 0,
+                'amount' => $discountAmount,
+                'remarks' => 'Latin honor discount applied to AR #'.$record->id,
+                'status' => 'Applied',
+                'latin_honor' => $latinHonor,
+                'discount_amount' => 0,
+                'input_by' => auth()->id(),
+            ]);
+        });
+
+        $honorName = $latinHonor === 'SUMMA' ? 'Summa Cum Laude' : 'Magna Cum Laude';
+        
+        return back()->with('success', "{$honorName} discount of ₱".number_format($discountAmount, 2)." applied successfully.");
     }
 }
