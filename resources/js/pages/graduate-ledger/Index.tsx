@@ -18,9 +18,21 @@ import {
   ChevronDown,
   Filter,
   Mail,
+  Users,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import StudentBalanceDrawer from './StudentBalanceDrawer';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -40,7 +52,6 @@ import {
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
@@ -64,6 +75,8 @@ export interface LedgerRecord {
   amount: number;
   remark: string;
   inputBy: string;
+  membership?: string | null;
+  discountAmount?: number;
 }
 
 export interface LedgerPaginator {
@@ -204,6 +217,9 @@ export default function Index({ records, filters, stats, filterOptions, courses 
     preset_academic_term_id: '',
   });
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [membershipTarget, setMembershipTarget] = useState<LedgerRecord | null>(null);
+  const [selectedMembership, setSelectedMembership] = useState<'NAPU' | 'NORSUFFA' | ''>('');
+  const [isApplyingMembership, setIsApplyingMembership] = useState(false);
   const [drawerSelection, setDrawerSelection] = useState<{
     studentId: number;
     transactionId: string | number;
@@ -395,6 +411,24 @@ throw new Error('Export failed');
     }
   };
 
+  const applyMembershipDiscount = () => {
+    if (!membershipTarget || !selectedMembership || isApplyingMembership) {
+      return;
+    }
+
+    setIsApplyingMembership(true);
+    router.post(`/graduate-ledger/${membershipTarget.id}/apply-membership`, {
+      membership: selectedMembership,
+    }, {
+      preserveScroll: true,
+      onFinish: () => {
+        setIsApplyingMembership(false);
+        setMembershipTarget(null);
+        setSelectedMembership('');
+      },
+    });
+  };
+
   // Convenience aliases for the template
   const searchQuery   = filterState.search;
   const schoolYear    = filterState.school_year;
@@ -468,12 +502,12 @@ throw new Error('Export failed');
     });
   };
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const handleSearchSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault();
     applyFilters();
   };
 
-  const handleGoToPage = (e: React.FormEvent) => {
+  const handleGoToPage = (e: React.SyntheticEvent) => {
     e.preventDefault();
     const pageNum = parseInt(goToPage, 10);
     const last = records?.meta?.last_page ?? records?.last_page ?? 1;
@@ -921,7 +955,26 @@ throw new Error('Export failed');
                         <td className="py-2 pr-4 text-right text-[#334E68]">{currency(r.tuitionPerUnitOrFeePerSemester)}</td>
                       )}
                       {visibleColumns.entryType && <td className="py-2 pr-4">
-                        <Badge variant="outline" className={getEntryTypeBadge(r.arPayment)}>
+                        <Badge
+                          variant="outline"
+                          className={`${getEntryTypeBadge(r.arPayment)} ${
+                            r.arPayment?.toUpperCase() === 'AR'
+                              ? 'cursor-pointer hover:ring-2 hover:ring-[#0F6FFF]'
+                              : ''
+                          }`}
+                          onClick={(e) => {
+                            if (r.arPayment?.toUpperCase() === 'AR') {
+                              e.stopPropagation();
+                              setMembershipTarget(r);
+                              setSelectedMembership('');
+                            }
+                          }}
+                          title={
+                            r.arPayment?.toUpperCase() === 'AR'
+                              ? 'Click to apply Membership Scholarship'
+                              : undefined
+                          }
+                        >
                           {r.arPayment}
                         </Badge>
                       </td>}
@@ -1337,6 +1390,122 @@ throw new Error('Export failed');
           }
         }}
       />
+
+      {/* Membership Scholarship Discount Dialog */}
+      <AlertDialog
+        open={membershipTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !isApplyingMembership) {
+            setMembershipTarget(null);
+            setSelectedMembership('');
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-md gap-0 overflow-hidden border border-[#CFE3FF] bg-white p-0 shadow-xl sm:max-w-md">
+          <AlertDialogHeader className="gap-3 p-5 sm:place-items-start sm:text-left">
+            <AlertDialogMedia className="mb-0 size-11 rounded-full bg-blue-50 text-[#0F6FFF]">
+              <Users className="size-5" />
+            </AlertDialogMedia>
+            <AlertDialogTitle className="text-lg font-semibold text-[#0B3D91]">
+              Apply Membership Scholarship
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-[#5C7A9E]">
+              Select the student&apos;s membership to apply a 100% full scholarship discount to this assessment amount.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {membershipTarget && (
+            <div className="mx-5 mb-5 space-y-4">
+              <div className="rounded-lg border border-[#EAF2FF] bg-[#F8FBFF] p-3">
+                <p className="text-sm font-semibold text-[#0B3D91]">{membershipTarget.name}</p>
+                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-[#5C7A9E]">
+                  <div>
+                    <span className="block text-[11px] uppercase tracking-wide text-[#8AA8CC]">Original Assessment</span>
+                    <span className="font-medium text-[#334E68]">{currency(membershipTarget.amount)}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] uppercase tracking-wide text-[#8AA8CC]">Term</span>
+                    <span className="font-medium text-[#334E68]">{membershipTarget.schoolYear} {membershipTarget.semester}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-[#0B3D91]">Select Membership Type</label>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMembership('NAPU')}
+                    className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
+                      selectedMembership === 'NAPU'
+                        ? 'border-[#0F6FFF] bg-[#EAF2FF]'
+                        : 'border-[#CFE3FF] bg-white hover:border-[#B9D8FF]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-[#0B3D91]">NAPU</p>
+                        <p className="text-xs text-[#5C7A9E]">NORSU Administrative Personnel Union (100% scholarship)</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-emerald-600">-{currency(membershipTarget.amount)}</p>
+                        <p className="text-xs text-[#8AA8CC]">New: {currency(0)}</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMembership('NORSUFFA')}
+                    className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
+                      selectedMembership === 'NORSUFFA'
+                        ? 'border-[#0F6FFF] bg-[#EAF2FF]'
+                        : 'border-[#CFE3FF] bg-white hover:border-[#B9D8FF]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-[#0B3D91]">NORSUFFA</p>
+                        <p className="text-xs text-[#5C7A9E]">NORSU Federated Faculty Association (100% scholarship)</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-emerald-600">-{currency(membershipTarget.amount)}</p>
+                        <p className="text-xs text-[#8AA8CC]">New: {currency(0)}</p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <AlertDialogFooter className="mx-0 mb-0 rounded-none border-[#EAF2FF] bg-[#F8FBFF] px-5 py-4">
+            <AlertDialogCancel
+              disabled={isApplyingMembership}
+              className="border-[#CFE3FF] text-[#0B3D91] hover:bg-white"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isApplyingMembership || !selectedMembership}
+              onClick={applyMembershipDiscount}
+              className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB] disabled:opacity-50"
+            >
+              {isApplyingMembership ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Applying...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  Apply 100% Scholarship
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

@@ -881,6 +881,7 @@ class GraduateLedgerController extends Controller
             'amount' => $this->cleanAmount($r->amount),
             'remark' => $remark,
             'inputBy' => $r->inputByDisplay(),
+            'membership' => $r->membership,
         ];
     }
 
@@ -1555,5 +1556,52 @@ class GraduateLedgerController extends Controller
             'totalPayments' => $totalPayments,
             'outstandingBalance' => $totalCharges - $totalPayments,
         ];
+    }
+
+    /**
+     * Applies a membership scholarship discount to an AR transaction in the Graduate Ledger.
+     * Leaves the original AR entry untouched and creates a corresponding adjustment entry.
+     */
+    public function applyMembership(Request $request, int $id): RedirectResponse
+    {
+        $validated = $request->validate([
+            'membership' => ['required', 'in:NAPU,NORSUFFA'],
+        ]);
+
+        $record = GraduateLedger::findOrFail($id);
+
+        // Only apply to AR entries
+        if (strtolower(trim((string) $record->entry_type)) !== 'ar') {
+            return back()->with('error', 'Membership scholarship discounts can only be applied to AR (Assessment) entries.');
+        }
+
+        $membership = $validated['membership'];
+        $discountAmount = abs((float) $record->amount);
+
+        $membershipFullName = $membership === 'NAPU'
+            ? 'NORSU Administrative Personnel Union'
+            : 'NORSU Federated Faculty Association';
+
+        // Create adjustment entry only — leave the original AR entry untouched
+        DB::transaction(function () use ($record, $membership, $discountAmount): void {
+            GraduateLedger::create([
+                'student_id'      => $record->student_id,
+                'course_id'       => $record->course_id,
+                'academic_term_id'=> $record->academic_term_id,
+                'entry_type'      => 'adjustment',
+                'units'           => null,
+                'transaction_date'=> now()->toDateString(),
+                'reference_number'=> null,
+                'particulars'     => $record->particulars ?? 'Tuition',
+                'rate'            => 0,
+                'amount'          => $discountAmount,
+                'remarks'         => null,
+                'status'          => 'ADJUSTMENT',
+                'membership'      => $membership,
+                'input_by'        => auth()->id(),
+            ]);
+        });
+
+        return back()->with('success', "{$membership} ({$membershipFullName}) 100% scholarship of ₱".number_format($discountAmount, 2)." applied successfully.");
     }
 }
