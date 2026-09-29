@@ -137,24 +137,6 @@ class DatabaseSeeder extends Seeder
             'Successfully seeded: Bank Account Info'
         );
 
-        // $courses = [
-        //     [
-        //         'course_code' => 'BSCS',
-        //         'course_desc' => 'BoS in Computer Science',
-        //     ],
-        //     [
-        //         'course_code' => 'BSLaw',
-        //         'course_desc' => 'BoS in Law Studies',
-        //     ],
-        // ];
-
-        // foreach ($courses as $option) {
-        //     Courses::updateOrCreate(
-        //         ['course_code' => $option['course_code']],
-        //         ['course_desc' => $option['course_desc']],
-        //     );
-        // }
-
         $this->command->info(
             'Successfully seeded: Courses'
         );
@@ -169,5 +151,25 @@ class DatabaseSeeder extends Seeder
         );
 
         $this->command->info('Successfully seede: YearSequence.');
+
+
+        // student seeder
+        $this->call([
+            StudentSeeder::class,
+            AcademicTermSeeder::class,
+            CourseSeeder::class,            
+        ]);
+
+        $this->call(GraduateLedgerSeeder::class, false, [
+               'studentLimit' => 50,
+               'termsPerStudent' => 6,
+               'transactionsPerTerm' => 12,
+        ]);
+    
+        $this->call(LawSchoolLedgerSeeder::class, false, [
+            'studentLimit' => 50,
+            'termsPerStudent' => 6,
+            'transactionsPerTerm' => 10,
+        ]);
     }
 }
