@@ -342,4 +342,45 @@ class Course extends Model
     {
         return static::descriptions()[$canonicalCode] ?? null;
     }
+
+    /**
+     * Normalize a Law School course code for consistent matching.
+     * Law courses are simpler than graduate programs - typically just course codes.
+     * Uppercase, trim, and collapse whitespace.
+     */
+    public static function normalizeLawCourseCode(string $raw): string
+    {
+        $upper = strtoupper(trim($raw));
+        // Collapse multiple spaces into single space
+        return trim((string) preg_replace('/\s+/', ' ', $upper));
+    }
+
+    /**
+     * Resolve a raw Law course code to its canonical form.
+     * For Law courses, we mainly sanitize the input.
+     * Returns null if the input is empty.
+     */
+    public static function resolveLawCanonicalCode(string $raw): ?string
+    {
+        $normalized = self::normalizeLawCourseCode($raw);
+        
+        if ($normalized === '') {
+            return null;
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Get description for a Law course code.
+     * Law courses use course_code as their identifier.
+     */
+    public static function lawDescriptionFor(string $code): ?string
+    {
+        $course = static::where('course_code', $code)
+            ->where('course_college', 'School of Law')
+            ->first();
+        
+        return $course?->course_desc;
+    }
 }
