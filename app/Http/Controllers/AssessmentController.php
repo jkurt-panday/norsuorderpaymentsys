@@ -56,6 +56,7 @@ class AssessmentController extends Controller
                 'enrolled_under' => $request->input('enrolled_under', ''),
                 'sy_last_attended' => $request->input('sy_last_attended', ''),
                 'semester' => $request->input('semester', ''),
+                'status' => $request->input('status', ''),
             ],
             'filterOptions' => [
                 'courses' => Courses::query()
@@ -77,6 +78,7 @@ class AssessmentController extends Controller
                     ->whereNotNull('semester')
                     ->orderBy('semester')
                     ->pluck('semester'),
+                'statuses' => ['pending', 'approved', 'rejected', 'completed'],
             ],
         ]);
     }
