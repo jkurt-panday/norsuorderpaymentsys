@@ -66,11 +66,17 @@ interface AcademicTermOption {
     semester: string;
 }
 
+interface UserOption {
+    id: string | number;
+    name: string;
+}
+
 interface EditTransactionProps {
     record: LawLedgerRecord;
     students: StudentOption[];
     courses: CourseOption[];
     academicTerms: AcademicTermOption[];
+    users?: UserOption[];
     filterOptions?: {
         schoolYears: string[];
         statuses: string[];
@@ -90,11 +96,12 @@ export default function EditTransaction({
     students,
     courses,
     academicTerms,
+    users = [],
     filterOptions,
 }: EditTransactionProps) {
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-    const { data, setData, processing, errors } = useForm({
+    const { data, setData, put, processing, errors } = useForm({
         student_id: String(record.student_id ?? ''),
         course_id: String(record.course_id ?? ''),
         academic_term_id: String(record.academic_term_id ?? ''),
@@ -146,7 +153,7 @@ export default function EditTransaction({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        router.put(`/law-ledger/${record.id}`, data);
+        put(`/law-ledger/${record.id}`);
     };
 
     const handleDelete = () => {
@@ -511,11 +518,23 @@ export default function EditTransaction({
                                 </label>
                                 <Input
                                     value={data.input_by}
+                                    list="users-list"
                                     placeholder="Encoder ID / Initials"
                                     onChange={(e) =>
                                         setData('input_by', e.target.value)
                                     }
+                                    className={
+                                        errors.input_by ? 'border-red-400' : ''
+                                    }
                                 />
+                                {users.length > 0 && (
+                                    <datalist id="users-list">
+                                        {users.map((u) => (
+                                            <option key={u.id} value={u.name} />
+                                        ))}
+                                    </datalist>
+                                )}
+                                <FieldError message={errors.input_by} />
                             </div>
 
                             <div className="md:col-span-2">
