@@ -13,7 +13,8 @@ interface AssessmentFiltersProps {
   courseOptions: CourseOption[]
   enrolledUnderOptions: string[]
   syOptions: string[]
-  semesterOptions: string[]
+    semesterOptions: string[]
+    statusOptions: string[]
 }
 
 /**
@@ -35,10 +36,11 @@ export function AssessmentFilters({
   courseOptions,
   enrolledUnderOptions,
   syOptions,
-  semesterOptions,
+    semesterOptions,
+  statusOptions,
 }: AssessmentFiltersProps) {
   return (
-    <div className="grid grid-cols-4 items-center gap-2">
+    <div className="grid grid-cols-5 items-center gap-2">
       <ColumnFilterDropdown
         label="Course"
         value={values.course_id}
@@ -68,7 +70,18 @@ export function AssessmentFilters({
         value={values.semester}
         onChange={(value) => setValue("semester", value)}
         options={semesterOptions.map((option) => ({ label: option, value: option }))}
-      />
+          />
+
+        <ColumnFilterDropdown
+            label="Status"
+            value={values.status}
+            onChange={(value) => setValue('status', value)}
+            options={statusOptions.map((v) => ({
+            label: v.charAt(0).toUpperCase() + v.slice(1),
+            value: v,
+            }))}
+        />
+          
     </div>
   )
 }
