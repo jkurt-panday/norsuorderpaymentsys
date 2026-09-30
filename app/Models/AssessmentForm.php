@@ -58,6 +58,7 @@ class AssessmentForm extends Model
             ->when($request->date_to, fn ($q, $v) => $q->whereDate('created_at', '<=', $v))
             ->when($request->course_id, fn ($q, $v) => $q->where('course_id', $v))
             ->when($request->enrolled_under, fn ($q, $v) => $q->where('enrolled_under', $v))
+            ->when($request->filled('status'), fn (Builder $q) => $q->where('status', $request->input('status')))
             ->when($request->sy_last_attended, fn ($q, $v) => $q->where('sy_last_attended', $v))
             ->when($request->semester, fn ($q, $v) => $q->where('semester', $v));
     }
