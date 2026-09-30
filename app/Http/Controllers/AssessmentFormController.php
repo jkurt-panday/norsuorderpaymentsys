@@ -70,6 +70,7 @@ class AssessmentFormController extends Controller
                 'enrolled_under' => $validated['enrolled_under'],
                 'sy_last_attended' => $validated['sy_last_attended'],
                 'semester' => $validated['semester'],
+                'status' => 'pending'
             ]);
 
             // Student::query()->

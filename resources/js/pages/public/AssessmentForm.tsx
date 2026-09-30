@@ -618,7 +618,7 @@ export default function AssessmentForm({ courses }: Props) {
                                     htmlFor="input-field-courses"
                                     className="mb-2 text-lg font-medium text-blue-500"
                                 >
-                                    School-Year last attended:
+                                    School-Year last attended | SY Request:
                                 </FieldLabel>
                                 <Combobox
                                     items={SCHOOL_YEAR_OPTIONS}
