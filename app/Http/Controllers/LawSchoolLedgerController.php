@@ -169,7 +169,7 @@ class LawSchoolLedgerController extends Controller
     /**
      * Renders the form for creating a new law ledger transaction.
      */
-    public function create(): Response
+    public function create(Request $request): Response
     {
         $statuses = $this->deduplicatedOptions('status');
 
@@ -184,6 +184,40 @@ class LawSchoolLedgerController extends Controller
             'statuses' => $statuses,
             'authUserName' => optional(auth()->user())->name ?? '',
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
+            'selectedStudentId' => $request->integer('student_id') ?: null,
+            'defaultEntryType' => in_array($request->input('entry_type'), ['ar', 'payment', 'adjustment'], true)
+                ? $request->input('entry_type')
+                : 'ar',
+        ]);
+    }
+
+    /**
+     * Return a student's complete law-ledger history and balance summary.
+     */
+    public function studentBalance(LawStudent $student): JsonResponse
+    {
+        $records = LawSchoolLedger::query()
+            ->with(['lawStudent', 'lawCourse', 'lawAcademicTerm', 'inputByUser:id,name'])
+            ->where('student_id', $student->id)
+            ->orderBy('transaction_date')
+            ->orderBy('id')
+            ->get();
+
+        $latestRecord = $records->last();
+
+        return response()->json([
+            'student' => [
+                'id' => $student->id,
+                'studentNumber' => $student->student_number,
+                'name' => $student->full_name,
+                'email' => $student->email,
+                'contactNumber' => $student->contact_num,
+                'course' => $latestRecord?->lawCourse?->code,
+            ],
+            'summary' => $this->calculateStudentBalanceNormalized($records),
+            'transactions' => $records
+                ->map(fn (LawSchoolLedger $record) => $this->transformRecord($record))
+                ->values(),
         ]);
     }
 
@@ -1545,12 +1579,12 @@ class LawSchoolLedgerController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function transformRecord(LawSchoolLedger $r): array
-    {
-        return [
-            'id' => $r->id,
-            'studentId' => $r->student_id_fk,
-            'studentNumber' => $r->lawStudent?->student_number,
+     private function transformRecord(LawSchoolLedger $r): array
+     {
+         return [
+             'id' => $r->id,
+             'studentId' => $r->student_id,
+             'studentNumber' => $r->lawStudent?->student_number,
             'lastName' => $r->last_name,
             'firstName' => $r->first_name,
             'middleInitial' => $this->normalizeMiddleInitial($r->middle_initial),

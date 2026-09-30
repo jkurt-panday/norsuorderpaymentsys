@@ -73,6 +73,8 @@ interface Props {
     statuses: string[];
     authUserName: string;
     users?: Array<{ id: number | string; name: string }>;
+    selectedStudentId?: number | string | null;
+    defaultEntryType?: 'ar' | 'payment' | 'adjustment';
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -255,6 +257,8 @@ export default function AddTransaction({
     statuses,
     authUserName,
     users = [],
+    selectedStudentId = null,
+    defaultEntryType = 'ar',
 }: Props) {
     const [showNewStudent, setShowNewStudent] = useState(false);
     const [availableStudents, setAvailableStudents] = useState<StudentOption[]>(students);
@@ -286,17 +290,17 @@ export default function AddTransaction({
         remarks: string;
         input_by: string;
     }>({
-        student_id: '',
+        student_id: selectedStudentId ?? '',
         new_student: null,
         course_id: '',
         academic_term_id: '',
         school_year: defaultSy,
         semester: 'First Semester',
-        entry_type: 'ar',
+        entry_type: defaultEntryType,
         units: '',
         transaction_date: todayStr,
         reference_or_jev_number: '',
-        particulars: 'Tuition',
+        particulars: defaultEntryType === 'payment' ? 'Payment' : 'Tuition',
         tuition_per_unit_or_misc: '',
         amount: '',
         status: 'Pending',
