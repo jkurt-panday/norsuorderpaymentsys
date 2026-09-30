@@ -50,7 +50,7 @@ class PublicFormSubmissionRequest extends FormRequest
             'documents' => ['nullable', 'array', 'max:5'],
             'documents.*' => [
                 'file',
-                'mimes:pdf,jpg,jpeg,png,webp,svg',
+                'mimes:pdf,jpg,jpeg,png,webp',
                 'max:10240', // 10 MB per file
             ],
         ];
