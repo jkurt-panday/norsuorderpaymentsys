@@ -78,6 +78,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/print-select', [GraduateLedgerController::class, 'printSelect'])->name('print-select');
         Route::get('/pdf',          [GraduateLedgerController::class, 'generatePdf'])->name('pdf');
         Route::get('/export',       [GraduateLedgerController::class, 'export'])->name('export');
+        Route::get('/email-recipients', [GraduateLedgerController::class, 'emailRecipients'])->name('email-recipients');
+        Route::post('/send-emails', [GraduateLedgerController::class, 'sendBulkEmail'])->name('send-emails');
         Route::get('/students/{student}/balance', [GraduateLedgerController::class, 'studentBalance'])->name('students.balance');
         Route::get('/add',          [GraduateLedgerController::class, 'create'])->name('create');
         Route::post('/',            [GraduateLedgerController::class, 'store'])->name('store');
@@ -93,6 +95,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/print-select',    [LawSchoolLedgerController::class, 'printSelect'])->name('print-select');
         Route::get('/pdf',             [LawSchoolLedgerController::class, 'generatePdf'])->name('pdf');
         Route::get('/export',          [LawSchoolLedgerController::class, 'export'])->name('export');
+        Route::get('/email-recipients', [LawSchoolLedgerController::class, 'emailRecipients'])->name('email-recipients');
+        Route::post('/send-emails',    [LawSchoolLedgerController::class, 'sendBulkEmail'])->name('send-emails');
         Route::get('/students/search', [LawSchoolLedgerController::class, 'searchStudents'])->name('students.search');
         Route::delete('/students/{id}', [LawSchoolLedgerController::class, 'destroyStudent'])->name('students.destroy');
         Route::get('/add',             [LawSchoolLedgerController::class, 'create'])->name('create');
@@ -216,6 +220,7 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
         Route::get('/dashboard', [AssessmentController::class, 'dashboard'])->name('dashboard');
         Route::get('/edit/{assessment}', [AssessmentController::class, 'edit'])->name('edit');
         Route::get('/print_soa/{assessment}', [AssessmentController::class, 'print'])->name('print_soa');
+        Route::post('/email_soa/{assessment}', [AssessmentController::class, 'emailSoa'])->name('email_soa');
         Route::delete('/delete/{assessment}', [AssessmentController::class, 'destroy'])->name('delete_assessment');
     });
 });

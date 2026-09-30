@@ -18,11 +18,16 @@ import {
   ChevronDown,
   Filter,
   Mail,
+  CheckSquare,
+  Square,
+  Calendar as CalendarIcon,
 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import StudentBalanceDrawer from './StudentBalanceDrawer';
+import { emailRecipients, sendBulkEmail } from '@/actions/App/Http/Controllers/GraduateLedgerController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import {
   Card,
   CardContent,
@@ -31,12 +36,15 @@ import {
   CardDescription,
   CardFooter,
 } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import {
   Pagination,
   PaginationContent,
@@ -46,6 +54,20 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { flashToast } from '@/utils/flashToast';
 
 export interface LedgerRecord {
   id: string | number;
@@ -94,6 +116,33 @@ function formatTransactionDate(value?: string | null) {
 
   if (!normalized) {
     return '-';
+  }
+
+  const datePart = normalized.includes('T')
+    ? normalized.split('T')[0]
+    : normalized.split(' ')[0];
+  const parsedDate = new Date(`${datePart}T00:00:00`);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return datePart;
+  }
+
+  return parsedDate.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+  });
+}
+
+function formatDateInput(value?: string | null) {
+  if (!value) {
+    return '';
+  }
+
+  const normalized = String(value).trim();
+
+  if (!normalized) {
+    return '';
   }
 
   const datePart = normalized.includes('T')
@@ -266,6 +315,244 @@ export default function Index({ records, filters, stats, filterOptions, courses 
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [importSuccess, setImportSuccess] = useState(false);
+
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [emailTarget, setEmailTarget] = useState<'all_matching' | 'specific' | 'all_outstanding'>('all_matching');
+  const [emailSearch, setEmailSearch] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [allRecipients, setAllRecipients] = useState<Array<{
+    id: number;
+    student_number: string | null;
+    full_name: string;
+    email: string;
+    balance: number;
+    balance_status: string;
+  }>>([]);
+  const [isLoadingRecipients, setIsLoadingRecipients] = useState(false);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailNote, setEmailNote] = useState('');
+  const [examPeriod, setExamPeriod] = useState<'Midterm' | 'Final' | ''>('');
+  const [examDeadline, setExamDeadline] = useState('');
+  const [isSendingEmails, setIsSendingEmails] = useState(false);
+
+  useEffect(() => {
+    if (!isEmailModalOpen) {
+      return;
+    }
+
+    const fetchRecipients = async () => {
+      setIsLoadingRecipients(true);
+
+      try {
+        const params = new URLSearchParams();
+        Object.entries(filterState).forEach(([key, value]) => {
+          if (value && value.trim()) {
+            params.append(key, value.trim());
+          }
+        });
+
+        const res = await fetch(emailRecipients.url({ query: Object.fromEntries(params) }), {
+          headers: { Accept: 'application/json' },
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = (await res.json()) as typeof allRecipients;
+        setAllRecipients(data);
+        setSelectedIds(new Set(data.map((r) => r.id)));
+      } catch (e) {
+        flashToast('error', 'Failed to load recipients.');
+      } finally {
+        setIsLoadingRecipients(false);
+      }
+    };
+
+    fetchRecipients();
+  }, [isEmailModalOpen]);
+
+  const handleOpenEmailModal = () => {
+    setEmailSubject('');
+    setEmailNote('');
+    setExamPeriod('');
+    setExamDeadline('');
+    setEmailSearch('');
+    setEmailTarget('all_matching');
+    setSelectedIds(new Set());
+    setIsEmailModalOpen(true);
+  };
+
+  const escapeHtml = (value: string) =>
+    value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+
+  const buildEmailPreviewHtml = (note: string, period: string, deadline: string) => {
+    const noteHtml = note.trim()
+      ? `<p>${escapeHtml(note).replace(/\n/g, '<br>')}</p>`
+      : '';
+    const examHtml = (period || deadline) ?
+      `<p class="text-sm text-slate-500">Exam period: ${escapeHtml(period)}.${deadline ? ' Payment deadline: ' + escapeHtml(formatDateInput(deadline || '')) + '.' : ''}</p>`
+      : '';
+
+    return `<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; color: #1e293b; margin:0; padding:16px;">
+    <p>Dear Student,</p>
+    <p>
+        Please find attached your Statement of Account issued by the
+        NORSU Accounting Office. This statement reflects your assessed
+        charges, payments, and adjustments recorded in the Graduate School ledger.
+    </p>
+    ${noteHtml}
+    ${examHtml}
+    <p>
+        Should you have any questions regarding your balance, please visit the
+        Accounting Office with your valid ID.
+    </p>
+    <p>Regards,<br>NORSU Accounting Office</p>
+</body>
+</html>`;
+  };
+
+  const toggleSelectId = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+
+      return next;
+    });
+  };
+
+  const getEffectiveRecipientIds = (): number[] => {
+    if (emailTarget === 'specific') {
+      return Array.from(selectedIds);
+    }
+
+    return allRecipients
+      .filter((r) => {
+        if (emailTarget === 'all_outstanding' && r.balance <= 0) {
+          return false;
+        }
+
+        return selectedIds.has(r.id);
+      })
+      .map((r) => r.id);
+  };
+
+  const visibleRecipients = allRecipients
+    .filter((r) => {
+      if (emailSearch.trim()) {
+        const q = emailSearch.toLowerCase();
+
+        return r.full_name.toLowerCase().includes(q)
+          || r.email.toLowerCase().includes(q)
+          || (r.student_number ?? '').toLowerCase().includes(q);
+      }
+
+      return true;
+    });
+
+  const bulkRecipients = useMemo(() =>
+    allRecipients.filter((r) => {
+      if (emailSearch.trim()) {
+        const q = emailSearch.toLowerCase();
+
+        return r.full_name.toLowerCase().includes(q)
+          || r.email.toLowerCase().includes(q)
+          || (r.student_number ?? '').toLowerCase().includes(q);
+      }
+
+      return true;
+    }),
+    [allRecipients, emailSearch]
+  );
+
+  const prevEmailTargetRef = useRef<string | null>(null);
+  useEffect(() => {
+    const isBulkMode = emailTarget !== 'specific';
+
+    if (isBulkMode && prevEmailTargetRef.current !== emailTarget) {
+      setSelectedIds(new Set(bulkRecipients.map((r) => r.id)));
+    }
+
+    prevEmailTargetRef.current = emailTarget;
+  }, [emailTarget, bulkRecipients]);
+
+  const handleSendEmails = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (isSendingEmails) {
+      return;
+    }
+
+    const targetIds = getEffectiveRecipientIds();
+
+    if (targetIds.length === 0) {
+      flashToast('error', 'No recipients selected.');
+
+      return;
+    }
+
+    const params: Record<string, string | number[]> = {};
+    Object.entries(filterState).forEach(([key, value]) => {
+      if (value && value.trim()) {
+        params[key] = value.trim();
+      }
+    });
+    params.student_ids = targetIds;
+
+    if (emailSubject) {
+      params.subject = emailSubject;
+    }
+
+    if (emailNote) {
+      params.note = emailNote;
+    }
+
+    if (examPeriod) {
+      params.exam_period = examPeriod;
+    }
+
+    if (examDeadline) {
+      params.exam_deadline = examDeadline;
+    }
+
+    setIsSendingEmails(true);
+    router.post(sendBulkEmail.url(), params, {
+      preserveScroll: true,
+      preserveState: true,
+      onSuccess: (page) => {
+        const flash = page.props.flash as { success?: string; error?: string } | undefined;
+
+        if (flash?.success) {
+          flashToast('success', flash.success);
+        } else if (flash?.error) {
+          flashToast('error', flash.error);
+        } else {
+          flashToast('success', 'Emails sent successfully.');
+        }
+
+        setIsEmailModalOpen(false);
+        setEmailSubject('');
+        setEmailNote('');
+        setExamPeriod('');
+        setExamDeadline('');
+      },
+      onError: () => {
+        flashToast('error', 'Failed to send emails. Please try again.');
+      },
+      onFinish: () => setIsSendingEmails(false),
+    });
+  };
 
   const handleImport = () => {
     if (!importForm.data.file || isImporting) {
@@ -513,7 +800,7 @@ throw new Error('Export failed');
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-2">
-                        <Button variant="outline" className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]">
+                        <Button variant="outline" className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]" onClick={handleOpenEmailModal}>
               <Mail className="h-4 w-4 mr-1.5" />
               Send Email
             </Button>
@@ -1079,6 +1366,7 @@ throw new Error('Export failed');
                               href={link.url ?? '#'}
                               onClick={(e) => {
                                 e.preventDefault();
+
                                 if (link.url) {
                                   router.get(link.url, {}, { preserveState: true, preserveScroll: true });
                                 }
@@ -1096,6 +1384,7 @@ throw new Error('Export failed');
                               href={link.url ?? '#'}
                               onClick={(e) => {
                                 e.preventDefault();
+
                                 if (link.url) {
                                   router.get(link.url, {}, { preserveState: true, preserveScroll: true });
                                 }
@@ -1113,6 +1402,7 @@ throw new Error('Export failed');
                             isActive={link.active}
                             onClick={(e) => {
                               e.preventDefault();
+
                               if (link.url) {
                                 router.get(link.url, {}, { preserveState: true, preserveScroll: true });
                               }
@@ -1337,6 +1627,359 @@ throw new Error('Export failed');
           }
         }}
       />
+
+      {/* Email SOA Modal */}
+      <Dialog open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen}>
+        <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-emerald-600" />
+              Email Statement of Account
+            </DialogTitle>
+            <DialogDescription>
+              Choose which students should receive their SOA statement via email.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-6 md:grid-cols-[2fr_1fr]">
+            <div className="space-y-4 overflow-y-auto">
+            {/* Recipient selection dropdown */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">
+                Whom do you want to send email to?
+              </label>
+              <Select
+                value={emailTarget}
+                onValueChange={(v) => {
+                  if (v === 'all_matching' || v === 'specific' || v === 'all_outstanding') {
+                    setEmailTarget(v);
+                  }
+                }}
+              >
+                <SelectTrigger className="h-10 w-full rounded-lg border-slate-200 bg-white shadow-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all_matching">All matching filters</SelectItem>
+                  <SelectItem value="all_outstanding">All outstanding (balance &gt; 0)</SelectItem>
+                  <SelectItem value="specific">Specific person</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Specific person search + checkbox list — only shown when 'specific' is chosen */}
+            {emailTarget === 'specific' && (
+              <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+                <div className="flex items-center gap-3 mb-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-slate-800">
+                      {visibleRecipients.length}
+                    </span>
+                    <span>recipient(s)</span>
+                  </div>
+                  <div className="relative flex-1 max-w-md">
+                    <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      placeholder="Search by name, email, or student number"
+                      value={emailSearch}
+                      onChange={(e) => setEmailSearch(e.target.value)}
+                      className="h-9 pl-9 text-sm rounded-lg"
+                    />
+                  </div>
+                  {selectedIds.size > 0 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedIds(new Set())}
+                      className="h-9 px-3 gap-1.5 shrink-0"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      <span className="hidden sm:inline">Clear ({selectedIds.size})</span>
+                    </Button>
+                  )}
+                </div>
+
+                <div className="max-h-60 overflow-y-auto border border-slate-200 rounded-lg bg-white">
+                  {isLoadingRecipients ? (
+                    <div className="p-4 text-center text-slate-500">Loading recipients...</div>
+                  ) : visibleRecipients.length === 0 ? (
+                    <div className="p-4 text-center text-slate-500">No recipients found.</div>
+                  ) : (
+                    <div>
+                      <div
+                        className="flex items-center gap-3 p-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100"
+                        onClick={() => {
+                          const visibleIds = new Set(visibleRecipients.map((r) => r.id));
+
+                          if (visibleRecipients.every((r) => selectedIds.has(r.id))) {
+                            visibleIds.forEach((id) => selectedIds.delete(id));
+                          } else {
+                            visibleIds.forEach((id) => selectedIds.add(id));
+                          }
+
+                          setSelectedIds(new Set(selectedIds));
+                        }}
+                      >
+                        <div className="flex items-center justify-center w-4 h-4">
+                          {visibleRecipients.every((r) => selectedIds.has(r.id)) ? (
+                            <CheckSquare className="h-4 w-4 text-emerald-600" />
+                          ) : (
+                            <Square className="h-4 w-4 text-slate-400" />
+                          )}
+                        </div>
+                        <span className="font-medium text-slate-700">Select All ({visibleRecipients.length})</span>
+                      </div>
+                      {visibleRecipients.map((row) => (
+                        <div
+                          key={row.id}
+                          className="flex items-center gap-3 p-2 hover:bg-slate-50 cursor-pointer"
+                          onClick={() => toggleSelectId(row.id)}
+                        >
+                          <div className="flex items-center justify-center w-4 h-4">
+                            {selectedIds.has(row.id) ? (
+                              <CheckSquare className="h-4 w-4 text-emerald-600" />
+                            ) : (
+                              <Square className="h-4 w-4 text-slate-400" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium text-slate-800 truncate">
+                              {row.full_name}
+                            </div>
+                            <div className="text-xs text-slate-500 truncate">
+                              {row.student_number ?? '-'} · {row.email}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className={row.balance > 0 ? 'text-amber-600' : 'text-emerald-600'}>
+                              ₱{(row.balance ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Bulk recipient list — shown when NOT 'specific' */}
+            {emailTarget !== 'specific' && (
+              <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-slate-800">
+                      {bulkRecipients.length}
+                    </span>
+                    <span>recipient(s)</span>
+                    <Input
+                      placeholder="Search by name, email, or ID"
+                      value={emailSearch}
+                      onChange={(e) => setEmailSearch(e.target.value)}
+                      className="h-9 w-64 text-sm rounded-lg"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {bulkRecipients.every((r) => selectedIds.has(r.id)) && bulkRecipients.length > 0 ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedIds(new Set())}
+                        className="h-9 px-3"
+                      >
+                        Unselect All
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedIds(new Set(bulkRecipients.map((r) => r.id)))}
+                        className="h-9 px-3"
+                      >
+                        Select All
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="max-h-60 overflow-y-auto border border-slate-200 rounded-lg bg-white">
+                  {isLoadingRecipients ? (
+                    <div className="p-4 text-center text-slate-500">Loading recipients...</div>
+                  ) : bulkRecipients.length === 0 ? (
+                    <div className="p-4 text-center text-slate-500">No recipients found.</div>
+                  ) : (
+                    <div>
+                      {bulkRecipients.map((row) => {
+                        const isSelected = selectedIds.has(row.id);
+
+                        return (
+                          <div
+                            key={row.id}
+                            className="flex items-center gap-3 p-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0"
+                            onClick={() => toggleSelectId(row.id)}
+                          >
+                            <div className="flex items-center justify-center w-4 h-4">
+                              {isSelected ? (
+                                <CheckSquare className="h-4 w-4 text-emerald-600" />
+                              ) : (
+                                <Square className="h-4 w-4 text-slate-400" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="font-medium text-slate-800 truncate">
+                                {row.full_name}
+                              </div>
+                              <div className="text-xs text-slate-500 truncate">
+                                {row.student_number ?? '-'} · {row.email}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className={row.balance > 0 ? 'text-amber-600' : 'text-emerald-600'}>
+                                ₱{(row.balance ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-700">
+                  Subject (optional)
+                </label>
+                <Input
+                  placeholder="Leave blank for default subject"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700">
+                  Exam Period (optional)
+                </label>
+                <Select
+                  value={examPeriod}
+                  onValueChange={(v) => {
+                    if (v === 'Midterm' || v === 'Final' || v === '') {
+                      setExamPeriod(v);
+
+                      if (v === '') {
+                        setExamDeadline('');
+                      }
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-10 w-full rounded-lg border-slate-200 bg-white shadow-sm">
+                    <SelectValue placeholder="Select exam period" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Midterm">Midterm</SelectItem>
+                    <SelectItem value="Final">Final</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-slate-400">
+                  Leave empty if not tied to an exam period.
+                </p>
+              </div>
+
+              {examPeriod && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Payment Deadline (optional)
+                  </label>
+                  <Popover>
+                    <PopoverTrigger
+                      render={
+                        <Button
+                          variant="outline"
+                          className={`w-full justify-start text-left font-normal ${!examDeadline && 'text-slate-400'}`}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {examDeadline ? formatDateInput(examDeadline) : 'Pick a deadline'}
+                        </Button>
+                      }
+                    />
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={examDeadline ? new Date(`${examDeadline}T00:00:00`) : undefined}
+                        onSelect={(date) => {
+                          if (!date) {
+                            setExamDeadline('');
+
+                            return;
+                          }
+
+                          const y = date.getFullYear();
+                          const m = String(date.getMonth() + 1).padStart(2, '0');
+                          const d = String(date.getDate()).padStart(2, '0');
+                          setExamDeadline(`${y}-${m}-${d}`);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Deadline for SOA payment related to {examPeriod}.
+                  </p>
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-slate-700">
+                  Additional Note (optional)
+                </label>
+                <Textarea
+                  placeholder="Add a personal note..."
+                  value={emailNote}
+                  onChange={(e) => setEmailNote(e.target.value)}
+                  rows={5}
+                />
+                <p className="mt-1 text-xs text-slate-400">
+                  Plain text only — no formatting needed, it's inserted as its own paragraph.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Live Preview
+            </label>
+            <div className="overflow-hidden rounded-xl border border-slate-200">
+              <iframe
+                title="Email preview"
+                srcDoc={buildEmailPreviewHtml(emailNote, examPeriod, examDeadline)}
+                className="h-[28rem] w-[500px] bg-white"
+              />
+            </div>
+          </div>
+         </div>
+
+        <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsEmailModalOpen(false)}
+              disabled={isSendingEmails}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-[#0B3D91] text-white hover:bg-[#092D6F]"
+              disabled={isSendingEmails || getEffectiveRecipientIds().length === 0}
+              onClick={handleSendEmails}
+            >
+              {isSendingEmails ? 'Sending...' : `Send (${getEffectiveRecipientIds().length})`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

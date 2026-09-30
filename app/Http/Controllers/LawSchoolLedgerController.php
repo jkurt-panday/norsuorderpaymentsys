@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\LawSchoolLedgerExport;
 use App\Http\Requests\StoreLawSchoolLedgerRequest;
 use App\Http\Requests\UpdateLawSchoolLedgerRequest;
+use App\Mail\LawSchoolLedgerStatementMail;
 use App\Models\AcademicTerm as LawAcademicTerm;
 use App\Models\ActivityLog;
 use App\Models\Course as LawCourse;
@@ -21,6 +22,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -29,6 +31,7 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 // use Spatie\LaravelPdf\Facades\Pdf;
+use Spatie\LaravelPdf\Facades\Pdf;
 use Spatie\LaravelPdf\PdfBuilder;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -52,7 +55,7 @@ class LawSchoolLedgerController extends Controller
         $query = $this->buildFilteredQuery($request);
 
         // 1. Calculate overall metrics using a cloned query BEFORE pagination
-        $totalStudents = (clone $query)->distinct('student_id')->count('student_id');
+        $totalStudents = (clone $query)->reorder()->distinct()->count('student_id');
 
         // Payments/credits are stored as negative amounts, so compare the transaction
         // type case-insensitively and accumulate payment magnitudes (positive) to keep
@@ -1004,6 +1007,171 @@ class LawSchoolLedgerController extends Controller
         $filename = 'Statement_of_Account_'.str_replace(['/', '\\', ' '], '_', $studentName).'.pdf';
 
         return $pdf;
+    }
+
+    // ─── Bulk Email ─────────────────────────────────────────────────────────────
+
+    /**
+     * Returns all students matching the current filters (with email and
+     * outstanding balance) for the email modal's recipient list.
+     */
+    public function emailRecipients(Request $request): JsonResponse
+    {
+        $query = $this->buildFilteredQuery($request);
+
+        $studentIds = (clone $query)
+             ->whereNotNull('student_id')
+             ->reorder()
+             ->distinct()
+             ->pluck('student_id')
+            ->filter()->unique()->values()->all();
+
+        if (empty($studentIds)) {
+            return response()->json([]);
+        }
+
+        $balances = DB::table('law_school_ledgers')
+            ->whereIn('student_id', $studentIds)
+            ->select('student_id')
+            ->selectRaw("SUM(CASE WHEN LOWER(TRIM(entry_type)) = 'ar' THEN amount WHEN LOWER(TRIM(entry_type)) IN ('payment','adjustment') THEN -amount ELSE 0 END) as balance")
+            ->groupBy('student_id')
+            ->get()
+            ->keyBy('student_id');
+
+        $students = LawStudent::whereIn('id', $studentIds)
+            ->whereNotNull('email')
+            ->where('email', '!=', '')
+            ->orderBy('last_name')
+            ->get();
+
+        return response()->json(
+            $students->map(function (LawStudent $student) use ($balances): array {
+                $balance = isset($balances[$student->id]) ? (float) $balances[$student->id]->balance : 0.0;
+
+                return [
+                    'id' => $student->id,
+                    'student_number' => $student->student_number,
+                    'full_name' => $student->full_name,
+                    'email' => $student->email,
+                    'balance' => $balance,
+                    'balance_status' => $balance > 0 ? 'outstanding' : 'settled',
+                ];
+            })->values()
+        );
+    }
+
+    /**
+     * Sends the statement-of-account PDF to students matching the
+     * current filters (or a specific subset) who have an email address.
+     */
+    public function sendBulkEmail(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'school_year' => ['nullable', 'string', 'max:20'],
+            'semester' => ['nullable', 'in:First Semester,Second Semester,Summer'],
+            'subject' => ['nullable', 'string', 'max:255'],
+            'note' => ['nullable', 'string', 'max:2000'],
+            'exam_period' => ['nullable', 'in:Midterm,Final'],
+            'exam_deadline' => ['nullable', 'date'],
+            'student_ids' => ['nullable', 'array'],
+            'student_ids.*' => ['integer', 'exists:students,id'],
+        ]);
+
+        $query = $this->buildFilteredQuery($request);
+
+        $studentIds = (clone $query)
+             ->whereNotNull('student_id')
+             ->reorder()
+             ->distinct()
+             ->pluck('student_id')
+            ->filter()->unique()->values()->all();
+
+        $specificIds = $request->input('student_ids');
+        if (is_array($specificIds) && ! empty($specificIds)) {
+            $studentIds = array_intersect($studentIds, array_map('intval', $specificIds));
+        }
+
+        $students = LawStudent::whereIn('id', $studentIds)
+            ->whereNotNull('email')
+            ->where('email', '!=', '')
+            ->orderBy('last_name')
+            ->get();
+
+        $sent = 0;
+        $skipped = 0;
+
+        foreach ($students as $student) {
+            if (! $student->email) {
+                $skipped++;
+                continue;
+            }
+
+            $pdfContent = $this->generateStudentPdfContent(
+                (int) $student->id,
+                $validated['school_year'] ?? null,
+                $validated['semester'] ?? null,
+            );
+
+            Mail::to($student->email)->send(
+                new LawSchoolLedgerStatementMail(
+                    $student,
+                    $pdfContent,
+                    $validated['subject'] ?? null,
+                    $validated['note'] ?? null,
+                    $validated['exam_period'] ?? null,
+                    $validated['exam_deadline'] ?? null,
+                )
+            );
+
+            $sent++;
+        }
+
+        return back()->with('success', "Emailed SOA to {$sent} student(s)." . ($skipped > 0 ? " {$skipped} student(s) skipped (no email)." : ''));
+    }
+
+    /**
+     * Generates raw PDF content bytes for a single law student's
+     * statement of account, reusing the same view and data as generatePdf().
+     */
+    private function generateStudentPdfContent(int $studentId, ?string $schoolYear, ?string $semester): string
+    {
+        $recordsQuery = LawSchoolLedger::query()
+            ->with(['lawStudent', 'lawCourse', 'lawAcademicTerm'])
+            ->where('student_id', $studentId);
+
+        $records = $recordsQuery
+            ->when(
+                $schoolYear,
+                fn ($query, $sy) => $query->whereHas(
+                    'lawAcademicTerm',
+                    fn ($termQuery) => $termQuery->where('school_year', $sy),
+                ),
+            )
+            ->orderBy('id', 'asc')
+            ->get()
+            ->when(
+                $semester,
+                fn ($records, $sem) => $records->filter(
+                    fn (LawSchoolLedger $record) => LawAcademicTerm::normalizeSemester(
+                        (string) $record->semester_or_summer,
+                    ) === $sem,
+                )->values(),
+            );
+
+        $student = LawStudent::query()->findOrFail($studentId);
+        $studentName = trim("{$student->last_name}, {$student->first_name} ".($student->middle_name ? substr($student->middle_name, 0, 1).'.' : ''));
+
+        $summary = $this->calculateStudentBalanceNormalized($records);
+
+        return Pdf::view('pdf.law-student-ledger-statement', [
+            'studentName' => $studentName,
+            'records' => $records,
+            'summary' => $summary,
+            'generatedAt' => now()->timezone('Asia/Manila')->format('Y-m-d h:i A'),
+        ])
+            ->driver('dompdf')
+            ->format('a4')
+            ->generatePdfContent();
     }
 
     /**

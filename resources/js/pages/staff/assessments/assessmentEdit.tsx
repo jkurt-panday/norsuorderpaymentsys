@@ -16,7 +16,8 @@ import {
     emailSoa,
 } from '@/actions/App/Http/Controllers/AssessmentController';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
     Card,
     CardContent,
@@ -204,6 +205,40 @@ export default function AssessmentEdit({
     const buildDefaultRecipientName = () =>
         `${assessment.first_name} ${assessment.last_name}`;
 
+    const escapeHtml = (value: string) =>
+        value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+
+    const buildEmailPreviewHtml = (recipientName: string, note: string) => {
+        const noteHtml = note.trim()
+            ? `<p>${escapeHtml(note).replace(/\n/g, '<br>')}</p>`
+            : '';
+
+        const recipient = recipientName.trim() ||
+            `${assessment.first_name} ${assessment.last_name}`;
+
+        return `<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; color: #1e293b; margin:0; padding:16px;">
+    <p>Dear ${escapeHtml(recipient)},</p>
+    <p>
+        Please find attached your Statement of Account
+        (Reference No. <strong>${escapeHtml(assessment.reference_number)}</strong>)
+        for ${escapeHtml(assessment.enrolled_under)} ${escapeHtml(assessment.semester)} ${escapeHtml(assessment.sy_last_attended)}.
+    </p>
+    ${noteHtml}
+    <p>This statement includes your billed charges and payments for the requested term.</p>
+    <p>
+        Regards,<br>
+        NORSU Accounting Office
+    </p>
+</body>
+</html>`;
+    };
+
     const openEmailPreview = () => {
         setEmailSubject(buildDefaultEmailSubject());
         setEmailRecipientName(buildDefaultRecipientName());
@@ -251,13 +286,13 @@ export default function AssessmentEdit({
                         <CardTitle className="text-xl font-bold text-slate-900">
                             Assessment: {assessment.reference_number}
                         </CardTitle>
-                        <Button
-                            variant="outline"
-                            render={<Link href={assessmentsIndex.url()} />}
+                        <Link
+                            href={assessmentsIndex.url()}
+                            className={cn(buttonVariants({ variant: 'outline' }))}
                         >
                             <ArrowLeft className="h-4 w-4" />
                             Back
-                        </Button>
+                        </Link>
                     </CardHeader>
                 </Card>
 
@@ -572,54 +607,69 @@ export default function AssessmentEdit({
 
             {/* Email Preview Modal */}
             <Dialog open={isEmailPreviewOpen} onOpenChange={setIsEmailPreviewOpen}>
-                <DialogContent className="sm:max-w-[480px]">
+                <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Email Statement of Account</DialogTitle>
                         <DialogDescription>
                             Review and customize the email before sending the Statement of Account PDF.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <label className="block text-sm font-medium text-slate-700">
-                                To
-                            </label>
-                            <Input
-                                value={assessment.email}
-                                disabled
-                                className="bg-slate-50 text-slate-600"
-                            />
+                    <div className="grid gap-6 md:grid-cols-[2fr_1fr]">
+                        <div className="space-y-4 overflow-y-auto">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-slate-700">
+                                    To
+                                </label>
+                                <Input
+                                    value={assessment.email}
+                                    disabled
+                                    className="bg-slate-50 text-slate-600"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-slate-700">
+                                    Recipient Name
+                                </label>
+                                <Input
+                                    value={emailRecipientName}
+                                    onChange={(e) => setEmailRecipientName(e.target.value)}
+                                    placeholder="Recipient name"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-slate-700">
+                                    Subject
+                                </label>
+                                <Input
+                                    value={emailSubject}
+                                    onChange={(e) => setEmailSubject(e.target.value)}
+                                    placeholder="Email subject"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-slate-700">
+                                    Additional Note (optional)
+                                </label>
+                                <Textarea
+                                    value={emailNote}
+                                    onChange={(e) => setEmailNote(e.target.value)}
+                                    placeholder="Add a personal note..."
+                                    rows={4}
+                                />
+                            </div>
                         </div>
-                        <div className="space-y-2">
-                            <label className="block text-sm font-medium text-slate-700">
-                                Recipient Name
+
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                Live Preview
                             </label>
-                            <Input
-                                value={emailRecipientName}
-                                onChange={(e) => setEmailRecipientName(e.target.value)}
-                                placeholder="Recipient name"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="block text-sm font-medium text-slate-700">
-                                Subject
-                            </label>
-                            <Input
-                                value={emailSubject}
-                                onChange={(e) => setEmailSubject(e.target.value)}
-                                placeholder="Email subject"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="block text-sm font-medium text-slate-700">
-                                Additional Note (optional)
-                            </label>
-                            <Textarea
-                                value={emailNote}
-                                onChange={(e) => setEmailNote(e.target.value)}
-                                placeholder="Add a personal note..."
-                                rows={4}
-                            />
+                            <div className="overflow-hidden rounded-xl border border-slate-200">
+                                <iframe
+                                    title="Email preview"
+                                    srcDoc={buildEmailPreviewHtml(emailRecipientName, emailNote)}
+                                    className="h-[28rem] w-[400px] bg-white"
+                                />
+                            </div>
                         </div>
                     </div>
                     <DialogFooter className="gap-2">
