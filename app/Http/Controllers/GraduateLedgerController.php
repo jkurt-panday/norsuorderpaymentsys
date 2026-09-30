@@ -231,12 +231,12 @@ class GraduateLedgerController extends Controller
         $records = GraduateLedger::query()
             ->with(['student', 'course', 'academicTerm', 'inputByUser:id,name'])
             ->where('student_id', $student->id)
-            ->orderBy('transaction_date')
-            ->orderBy('id')
+            ->orderByDesc('transaction_date')
+            ->orderByDesc('id')
             ->get();
 
         $termBalances = $this->calculateTermBalancesForRecords($records);
-        $latestRecord = $records->last();
+        $latestRecord = $records->first();
 
         return response()->json([
             'student' => [
@@ -741,24 +741,47 @@ class GraduateLedgerController extends Controller
      */
     public function printSelect(Request $request): Response
     {
-        $students = Student::orderBy('last_name')
+        $students = Student::query()
+            ->whereHas('graduateLedgers')
+            ->orderBy('last_name')
+            ->orderBy('first_name')
             ->get(['id', 'last_name', 'first_name', 'middle_name'])
-            ->map(fn ($s) => ['id' => $s->id, 'full_name' => $s->full_name]);
+            ->map(fn ($s) => ['id' => $s->id, 'full_name' => $s->full_name])
+            ->values()
+            ->all();
 
         $selectedStudentId = $request->input('student_id') ? (int) $request->input('student_id') : null;
 
-        // Fallback: if a name string was passed instead, resolve to ID
-        if (! $selectedStudentId && $request->input('student')) {
-            $raw = $request->input('student');
-            $parsed = Student::parseRawName($raw);
-            $selectedStudentId = Student::query()
-                ->where('last_name', $parsed['last_name'])
-                ->where('first_name', $parsed['first_name'])
-                ->value('id');
+        // Fallback: if a name string or numeric student parameter was passed instead, resolve to ID
+        if (! $selectedStudentId && $request->filled('student')) {
+            $raw = (string) $request->input('student');
+            if (is_numeric($raw)) {
+                $selectedStudentId = (int) $raw;
+            } else {
+                $parsed = Student::parseRawName($raw);
+                $selectedStudentId = Student::query()
+                    ->where('last_name', $parsed['last_name'])
+                    ->where(function ($q) use ($parsed) {
+                        $q->where('first_name', $parsed['first_name'])
+                            ->orWhere('first_name', 'like', $parsed['first_name'] . '%');
+                    })
+                    ->value('id');
+
+                if (! $selectedStudentId) {
+                    $selectedStudentId = Student::query()
+                        ->where('student_number', $raw)
+                        ->value('id');
+                }
+            }
         }
 
         $studentRecords = collect();
-        $balanceSummary = ['totalCharges' => 0, 'totalPayments' => 0, 'outstandingBalance' => 0];
+        $balanceSummary = [
+            'totalCharges' => 0,
+            'totalPayments' => 0,
+            'totalAdjustments' => 0,
+            'outstandingBalance' => 0,
+        ];
 
         if ($selectedStudentId) {
             $studentRecords = GraduateLedger::with(['student', 'course', 'academicTerm', 'inputByUser:id,name'])
@@ -772,7 +795,7 @@ class GraduateLedgerController extends Controller
         return Inertia::render('graduate-ledger/PrintSelect', [
             'students' => $students,
             'selectedStudent' => $selectedStudentId,
-            'records' => $studentRecords->map(fn ($r) => $this->transformRecord($r)),
+            'records' => $studentRecords->map(fn ($r) => $this->transformRecord($r))->values(),
             'summary' => $balanceSummary,
         ]);
     }
@@ -783,11 +806,37 @@ class GraduateLedgerController extends Controller
     public function generatePdf(Request $request): PdfBuilder
     {
         $validated = $request->validate([
-            'student_id' => ['required', 'integer', 'exists:students,id'],
+            'student' => ['nullable', 'string'],
+            'student_id' => ['nullable', 'integer', 'exists:students,id'],
             'school_year' => ['nullable', 'string', 'max:20'],
             'semester' => ['nullable', 'in:First Semester,Second Semester,Summer'],
         ]);
-        $studentId = (int) $validated['student_id'];
+
+        $studentId = $validated['student_id'] ?? null;
+
+        if (! $studentId && filled($validated['student'] ?? null)) {
+            $raw = (string) $validated['student'];
+            if (is_numeric($raw)) {
+                $studentId = (int) $raw;
+            } else {
+                $parsed = Student::parseRawName($raw);
+                $studentId = Student::query()
+                    ->where('last_name', $parsed['last_name'])
+                    ->where(function ($q) use ($parsed) {
+                        $q->where('first_name', $parsed['first_name'])
+                            ->orWhere('first_name', 'like', $parsed['first_name'] . '%');
+                    })
+                    ->value('id');
+
+                if (! $studentId) {
+                    $studentId = Student::query()
+                        ->where('student_number', $raw)
+                        ->value('id');
+                }
+            }
+        }
+
+        abort_if(! $studentId, 404, 'Student not found.');
         $student = Student::query()->findOrFail($studentId);
 
         $rawRecords = GraduateLedger::query()
@@ -1037,6 +1086,11 @@ class GraduateLedgerController extends Controller
         $semester = $r->academicTerm->semester ?? '';
         $entryTypeLower = strtolower(trim((string) $r->entry_type));
         $arPayment = $this->entryTypeToLabel($entryTypeLower);
+
+        // Append membership to adjustment label when present
+        if ($entryTypeLower === 'adjustment' && filled($r->membership)) {
+            $arPayment = 'Adjustment (' . strtoupper(trim($r->membership)) . ')';
+        }
 
         $studentId = $r->student_id;
         $termId = $r->academic_term_id;
@@ -1732,6 +1786,7 @@ class GraduateLedgerController extends Controller
     {
         $totalCharges = 0.0;
         $totalPayments = 0.0;
+        $totalAdjustments = 0.0;
 
         foreach ($records as $record) {
             $cleanAmount = $this->cleanAmount($record->amount);
@@ -1739,6 +1794,8 @@ class GraduateLedgerController extends Controller
 
             if ($type === 'ar') {
                 $totalCharges += $cleanAmount;
+            } elseif ($type === 'adjustment') {
+                $totalAdjustments += $cleanAmount;
             } else {
                 $totalPayments += $cleanAmount;
             }
@@ -1747,7 +1804,8 @@ class GraduateLedgerController extends Controller
         return [
             'totalCharges' => $totalCharges,
             'totalPayments' => $totalPayments,
-            'outstandingBalance' => $totalCharges - $totalPayments,
+            'totalAdjustments' => $totalAdjustments,
+            'outstandingBalance' => $totalCharges - $totalPayments - $totalAdjustments,
         ];
     }
 
@@ -1768,8 +1826,12 @@ class GraduateLedgerController extends Controller
             return back()->with('error', 'Membership scholarship discounts can only be applied to AR (Assessment) entries.');
         }
 
-        $membership = $validated['membership'];
         $discountAmount = abs((float) $record->amount);
+        if ($discountAmount <= 0) {
+            return back()->with('error', 'Cannot apply a scholarship to an assessment with an amount of ₱0.00.');
+        }
+
+        $membership = $validated['membership'];
 
         $membershipFullName = $membership === 'NAPU'
             ? 'NORSU Administrative Personnel Union'
@@ -1782,13 +1844,13 @@ class GraduateLedgerController extends Controller
                 'course_id'       => $record->course_id,
                 'academic_term_id'=> $record->academic_term_id,
                 'entry_type'      => 'adjustment',
-                'units'           => null,
+                'units'           => $record->units,
                 'transaction_date'=> now()->toDateString(),
-                'reference_number'=> null,
+                'reference_number'=> $record->reference_number,
                 'particulars'     => $record->particulars ?? 'Tuition',
-                'rate'            => 0,
+                'rate'            => $record->rate,
                 'amount'          => $discountAmount,
-                'remarks'         => null,
+                'remarks'         => $record->remarks,
                 'status'          => 'ADJUSTMENT',
                 'membership'      => $membership,
                 'input_by'        => auth()->id(),

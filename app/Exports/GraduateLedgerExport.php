@@ -59,7 +59,11 @@ class GraduateLedgerExport implements FromQuery, ShouldAutoSize, WithCustomChunk
         $schoolYear = $row->academicTerm->school_year ?? '';
         $semShort = '';
         $semFull = $row->academicTerm->semester ?? '';
-        $type = strtoupper($row->entry_type ?? 'AR');
+        $entryTypeUpper = strtoupper(trim((string) ($row->entry_type ?? 'AR')));
+        $type = $entryTypeUpper;
+        if ($entryTypeUpper === 'ADJUSTMENT' && filled($row->membership)) {
+            $type = 'ADJUSTMENT (' . strtoupper(trim($row->membership)) . ')';
+        }
         $remark = $this->resolveRemark($row);
 
         return [

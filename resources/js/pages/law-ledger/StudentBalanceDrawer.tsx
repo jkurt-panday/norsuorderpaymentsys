@@ -1,15 +1,14 @@
 import { router } from '@inertiajs/react';
 import {
     AlertCircle,
-    ArrowDownUp,
     CalendarDays,
     FileText,
-    GraduationCap,
     Mail,
     Pencil,
     Phone,
     PlusCircle,
     ReceiptText,
+    Scale,
     Wallet,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -18,7 +17,7 @@ import {
     edit,
     generatePdf,
     studentBalance,
-} from '@/actions/App/Http/Controllers/GraduateLedgerController';
+} from '@/actions/App/Http/Controllers/LawSchoolLedgerController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,10 +34,12 @@ interface DrawerTransaction {
     transactionDate: string;
     referenceNo?: string | null;
     particulars?: string | null;
-    arPayment: string;
+    arPayment?: string | null;
+    arOrPayment?: string | null;
+    entryType?: string | null;
     amount: number;
     schoolYear?: string;
-    semester?: string;
+    semesterOrSummer?: string;
 }
 
 interface StudentBalanceData {
@@ -53,7 +54,6 @@ interface StudentBalanceData {
     summary: {
         totalCharges: number;
         totalPayments: number;
-        totalAdjustments?: number;
         outstandingBalance: number;
     };
     transactions: DrawerTransaction[];
@@ -75,8 +75,8 @@ function currency(value: number): string {
 
 function formatDate(value?: string | null): string {
     if (!value) {
-return 'No date';
-}
+        return 'No date';
+    }
 
     const datePart = String(value).split('T')[0].split(' ')[0];
     const date = new Date(`${datePart}T00:00:00`);
@@ -84,20 +84,18 @@ return 'No date';
     return Number.isNaN(date.getTime())
         ? datePart
         : date.toLocaleDateString('en-PH', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-          });
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+        });
 }
 
-function isPayment(type: string): boolean {
-    const normalized = (type ?? '').trim().toLowerCase();
-    return ['payment', 'p'].includes(normalized);
-}
+function isCredit(transaction: DrawerTransaction): boolean {
+    const type = (transaction.entryType || transaction.arPayment || transaction.arOrPayment || '')
+        .trim()
+        .toLowerCase();
 
-function isAdjustment(type: string): boolean {
-    const normalized = (type ?? '').trim().toLowerCase();
-    return normalized.includes('adjust');
+    return ['payment', 'p', 'adjustment', 'adj'].includes(type);
 }
 
 export default function StudentBalanceDrawer({
@@ -112,8 +110,8 @@ export default function StudentBalanceDrawer({
 
     useEffect(() => {
         if (!open || studentId === null) {
-return;
-}
+            return;
+        }
 
         const controller = new AbortController();
         Promise.resolve()
@@ -129,8 +127,8 @@ return;
             })
             .then((response) => {
                 if (!response.ok) {
-throw new Error('Unable to load this ledger.');
-}
+                    throw new Error('Unable to load this ledger.');
+                }
 
                 return response.json() as Promise<StudentBalanceData>;
             })
@@ -142,8 +140,8 @@ throw new Error('Unable to load this ledger.');
             })
             .finally(() => {
                 if (!controller.signal.aborted) {
-setLoading(false);
-}
+                    setLoading(false);
+                }
             });
 
         return () => controller.abort();
@@ -191,7 +189,7 @@ setLoading(false);
                             <section className="rounded-xl border border-[#CFE3FF] bg-white p-4 shadow-xs">
                                 <div className="flex items-start gap-3">
                                     <div className="rounded-full bg-[#EAF2FF] p-2.5 text-[#0F6FFF]">
-                                        <GraduationCap className="h-5 w-5" />
+                                        <Scale className="h-5 w-5" />
                                     </div>
                                     <div className="min-w-0 flex-1">
                                         <p className="truncate font-bold text-[#0B3D91]">{data.student.name}</p>
@@ -213,7 +211,7 @@ setLoading(false);
                                 )}
                             </section>
 
-                            <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                                 <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3">
                                     <ReceiptText className="h-4 w-4 text-blue-600" />
                                     <p className="mt-2 text-[11px] font-medium text-blue-700">Assessments</p>
@@ -224,13 +222,6 @@ setLoading(false);
                                     <p className="mt-2 text-[11px] font-medium text-emerald-700">Payments</p>
                                     <p className="mt-0.5 font-bold text-emerald-900">{currency(data.summary.totalPayments)}</p>
                                 </div>
-                                {(data.summary.totalAdjustments ?? 0) > 0 && (
-                                    <div className="rounded-lg border border-purple-200 bg-purple-50/60 p-3">
-                                        <ArrowDownUp className="h-4 w-4 text-purple-600" />
-                                        <p className="mt-2 text-[11px] font-medium text-purple-700">Adjustments</p>
-                                        <p className="mt-0.5 font-bold text-purple-900">{currency(data.summary.totalAdjustments ?? 0)}</p>
-                                    </div>
-                                )}
                                 <div className={`rounded-lg border p-3 ${balance > 0 ? 'border-amber-200 bg-amber-50/70' : 'border-emerald-200 bg-emerald-50/60'}`}>
                                     <AlertCircle className={`h-4 w-4 ${balance > 0 ? 'text-amber-600' : 'text-emerald-600'}`} />
                                     <p className={`mt-2 text-[11px] font-medium ${balance > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>Current balance</p>
@@ -250,20 +241,23 @@ setLoading(false);
                                 ) : (
                                     <ol className="relative ml-2 border-l border-[#CFE3FF]">
                                         {data.transactions.map((transaction) => {
-                                            const payment = isPayment(transaction.arPayment);
-                                            const adjustment = isAdjustment(transaction.arPayment);
+                                            const credit = isCredit(transaction);
+                                            const label = transaction.particulars
+                                                || transaction.arPayment
+                                                || transaction.arOrPayment
+                                                || 'Transaction';
 
                                             return (
                                                 <li key={transaction.id} className="relative pb-5 pl-6 last:pb-0">
-                                                    <span className={`absolute -left-2 top-1 flex h-4 w-4 rounded-full border-2 border-white ${adjustment ? 'bg-purple-500' : payment ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+                                                    <span className={`absolute -left-2 top-1 flex h-4 w-4 rounded-full border-2 border-white ${credit ? 'bg-emerald-500' : 'bg-blue-500'}`} />
                                                     <div className={`rounded-lg border p-3 ${String(transaction.id) === String(selectedTransactionId) ? 'border-[#0F6FFF] bg-[#F3F8FF] ring-1 ring-[#0F6FFF]/20' : 'border-[#E1ECFA] bg-white'}`}>
                                                         <div className="flex items-start justify-between gap-3">
                                                             <div className="min-w-0">
-                                                                <p className="font-medium text-[#334E68]">{transaction.particulars || transaction.arPayment}</p>
+                                                                <p className="font-medium text-[#334E68]">{label}</p>
                                                                 <p className="mt-1 flex items-center gap-1 text-[11px] text-[#7FA6D6]"><CalendarDays className="h-3 w-3" />{formatDate(transaction.transactionDate)}</p>
                                                             </div>
-                                                            <p className={`shrink-0 font-bold ${adjustment ? 'text-purple-700' : payment ? 'text-emerald-700' : 'text-blue-700'}`}>
-                                                                {(payment || adjustment) ? '−' : '+'}{currency(transaction.amount)}
+                                                            <p className={`shrink-0 font-bold ${credit ? 'text-emerald-700' : 'text-blue-700'}`}>
+                                                                {credit ? '−' : '+'}{currency(Math.abs(transaction.amount))}
                                                             </p>
                                                         </div>
                                                         <div className="mt-2 flex items-center justify-between gap-3 border-t border-[#EDF3FB] pt-2 text-[11px] text-[#7FA6D6]">
@@ -284,34 +278,16 @@ setLoading(false);
                 </div>
 
                 {data && (
-                    <SheetFooter className="flex flex-row items-center justify-between gap-2 border-t border-[#CFE3FF] bg-white px-6 py-3">
-                        <Button
-                            onClick={() => router.get(create.url({ query: { student_id: data.student.id, entry_type: 'payment' } }))}
-                            className="flex-1 bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
-                        >
+                    <SheetFooter className="flex flex-row flex-wrap items-center gap-2 border-t border-[#CFE3FF] bg-white px-6 py-4">
+                        <Button onClick={() => router.get(create['/law-ledger/add'].url({ query: { student_id: data.student.id, entry_type: 'payment' } }))} className="flex-1 bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]">
                             <PlusCircle className="h-4 w-4" /> Add payment
                         </Button>
-                        <div className="flex items-center gap-1">
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                title="Edit selected transaction"
-                                disabled={selectedTransactionId === null}
-                                onClick={() => selectedTransactionId !== null && router.get(edit.url(selectedTransactionId))}
-                                className="border-[#CFE3FF] text-[#0B3D91] hover:bg-[#EAF2FF]"
-                            >
-                                <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                title="Print statement"
-                                onClick={() => window.open(generatePdf.url({ query: { student_id: data.student.id } }), '_blank', 'noopener,noreferrer')}
-                                className="border-[#CFE3FF] text-[#0B3D91] hover:bg-[#EAF2FF]"
-                            >
-                                <FileText className="h-4 w-4" />
-                            </Button>
-                        </div>
+                        <Button variant="outline" disabled={selectedTransactionId === null} onClick={() => selectedTransactionId !== null && router.get(edit.url(selectedTransactionId))} className="flex-1 border-[#CFE3FF] text-[#0B3D91]">
+                            <Pencil className="h-4 w-4" /> Edit selected
+                        </Button>
+                        <Button variant="outline" onClick={() => window.open(generatePdf.url({ query: { student_id: data.student.id } }), '_blank', 'noopener,noreferrer')} className="flex-1 border-[#CFE3FF] text-[#0B3D91]">
+                            <FileText className="h-4 w-4" /> Print statement
+                        </Button>
                     </SheetFooter>
                 )}
             </SheetContent>

@@ -47,7 +47,9 @@
             // Payment determination logic
             $isPayment = static function ($record) use ($getProp) {
                 $rawType = strtoupper(trim((string) ($getProp($record, ['arOrPayment', 'ar_or_payment', 'arPayment', 'entry_type']) ?? '')));
-                return in_array($rawType, ['PAYMENT', 'P', 'PAYMENR', 'SETTLED', 'ADJUSTMENT', 'ADJ']);
+                return in_array($rawType, ['PAYMENT', 'P', 'PAYMENR', 'SETTLED', 'ADJUSTMENT', 'ADJ'])
+                    || str_contains($rawType, 'ADJUST')
+                    || str_contains($rawType, 'PAY');
             };
 
             // Amount formatting logic
@@ -137,10 +139,13 @@
         <tbody>
             @forelse($records as $r)
                 @php
-                    $txDate = $getProp($r, ['transactionDate', 'transaction_date']);
-                    $refNo  = $getProp($r, ['referenceNo', 'reference_jev_or_number']) ?? '';
-                    $part   = $getProp($r, ['particulars']) ?? '—';
-                    $type   = $isPayment($r) ? 'Payment' : ($getProp($r, ['type', 'entry_type', 'arOrPayment']) ?? 'Charge');
+                    $txDate  = $getProp($r, ['transactionDate', 'transaction_date']);
+                    $refNo   = $getProp($r, ['referenceNo', 'reference_jev_or_number']) ?? '';
+                    $part    = $getProp($r, ['particulars']) ?? '—';
+                    $rawType = (string) ($getProp($r, ['arOrPayment', 'ar_or_payment', 'arPayment', 'type', 'entry_type']) ?? '');
+                    $isAdj   = str_contains(strtoupper($rawType), 'ADJUST');
+                    $isPay   = $isPayment($r);
+                    $type    = $isAdj ? $rawType : ($isPay ? 'Payment' : ($rawType ?: 'Charge'));
                 @endphp
                 <tr class="border-b">
                     <td class="px-1.5 py-1">{{ $normalizeText($txDate ? \Carbon\Carbon::parse($txDate)->format('m/d/Y') : '—') }}</td>
