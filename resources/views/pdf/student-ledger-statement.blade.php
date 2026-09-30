@@ -59,9 +59,10 @@
 
             // Payment determination logic
             $isPayment = static function ($record) use ($getProp) {
-                $rawType = $getProp($record, ['arPayment', 'entry_type', 'ar_payment', 'type']) ?? '';
-                $type = strtoupper(trim((string) $rawType));
-                return in_array($type, ['PAYMENT', 'P', 'PAYMENR', 'SETTLED', 'ADJUSTMENT', 'ADJ']);
+                $rawType = strtoupper(trim((string) ($getProp($record, ['arPayment', 'entry_type', 'ar_payment', 'type']) ?? '')));
+                return in_array($rawType, ['PAYMENT', 'P', 'PAYMENR', 'SETTLED', 'ADJUSTMENT', 'ADJ'])
+                    || str_contains($rawType, 'ADJUST')
+                    || str_contains($rawType, 'PAY');
             };
 
             // Amount formatting logic
@@ -151,10 +152,13 @@
         <tbody>
             @forelse($records as $r)
                 @php
-                    $txDate = $getProp($r, ['transactionDate', 'transaction_date']);
-                    $refNo  = $getProp($r, ['referenceNo', 'reference_or_jev_number']) ?? '';
-                    $part   = $getProp($r, ['particulars']) ?? '—';
-                    $type   = $isPayment($r) ? 'Payment' : ($getProp($r, ['type', 'entry_type']) ?? 'Charge');
+                    $txDate  = $getProp($r, ['transactionDate', 'transaction_date']);
+                    $refNo   = $getProp($r, ['referenceNo', 'reference_or_jev_number']) ?? '';
+                    $part    = $getProp($r, ['particulars']) ?? '—';
+                    $rawType = (string) ($getProp($r, ['arPayment', 'entry_type', 'ar_payment', 'type']) ?? '');
+                    $isAdj   = str_contains(strtoupper($rawType), 'ADJUST');
+                    $isPay   = $isPayment($r);
+                    $type    = $isAdj ? $rawType : ($isPay ? 'Payment' : ($rawType ?: 'Charge'));
                 @endphp
                 <tr class="border-b">
                     <td class="px-1.5 py-1">{{ $normalizeText($txDate ? \Carbon\Carbon::parse($txDate)->format('m/d/Y') : '—') }}</td>

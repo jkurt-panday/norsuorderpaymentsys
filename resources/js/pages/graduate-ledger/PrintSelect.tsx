@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { ArrowLeft, Filter, Printer, Search, X } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,12 +35,29 @@ interface Props {
     summary: {
         totalCharges: number;
         totalPayments: number;
+        totalAdjustments?: number;
         outstandingBalance: number;
     };
 }
 
 function currency(n: number) {
     return `₱${(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function getEntryTypeBadge(type?: string | null): string {
+    const normalized = (type ?? '').trim().toUpperCase();
+    if (normalized === 'PAYMENT' || normalized === 'P') {
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold';
+    }
+    if (normalized.includes('ADJUST')) {
+        return 'bg-purple-50 text-purple-700 border-purple-200 font-semibold';
+    }
+    return 'bg-[#EAF2FF] text-[#0B62E0] border-[#B9D8FF] font-semibold';
+}
+
+function isDeduction(type?: string | null): boolean {
+    const normalized = (type ?? '').trim().toUpperCase();
+    return normalized === 'PAYMENT' || normalized === 'P' || normalized.includes('ADJUST');
 }
 
 function absAmount(val: unknown): number {
@@ -104,6 +121,12 @@ export default function PrintSelect({
     const [semesterFilter, setSemesterFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
     const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
+
+    useEffect(() => {
+        if (selectedStudent !== undefined && selectedStudent !== null && selectedStudent !== '') {
+            setSelected(selectedStudent);
+        }
+    }, [selectedStudent]);
 
     const isNumericId =
         typeof selected === 'number' ||
@@ -358,6 +381,7 @@ return;
                                         <div>
                                             <CardTitle className="text-lg font-bold text-[#0B3D91]">
                                                 {records[0]?.name ||
+                                                    students.find((s) => String(s.id) === String(selected))?.full_name ||
                                                     'Student Record'}
                                             </CardTitle>
                                             <CardDescription className="text-xs text-[#7FA6D6]">
@@ -377,7 +401,7 @@ return;
                                 </Card>
 
                                 {/* Stats Row */}
-                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                                <div className={`grid grid-cols-1 gap-4 ${(summary.totalAdjustments ?? 0) > 0 ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
                                     <Card className="border-[#CFE3FF] bg-white p-4">
                                         <p className="text-xs text-[#5C7A9E]">
                                             Total Billed Charges (AR)
@@ -394,6 +418,16 @@ return;
                                             {currency(summary.totalPayments)}
                                         </h3>
                                     </Card>
+                                    {(summary.totalAdjustments ?? 0) > 0 && (
+                                        <Card className="border-purple-200 bg-purple-50/40 p-4">
+                                            <p className="text-xs font-medium text-purple-700">
+                                                Total Adjustments
+                                            </p>
+                                            <h3 className="mt-1 text-base font-bold text-purple-900">
+                                                {currency(summary.totalAdjustments ?? 0)}
+                                            </h3>
+                                        </Card>
+                                    )}
                                     <Card className="border-[#CFE3FF] bg-white p-4">
                                         <p className="text-xs text-[#5C7A9E]">
                                             Outstanding Balance
@@ -617,24 +651,16 @@ return;
                                                                     </td>
                                                                     <td className="px-3 py-2">
                                                                         <Badge
-                                                                            variant={
-                                                                                r.arPayment ===
-                                                                                'AR'
-                                                                                    ? 'outline'
-                                                                                    : r.arPayment ===
-                                                                                        'Payment'
-                                                                                      ? 'secondary'
-                                                                                      : 'destructive'
-                                                                            }
-                                                                            className="text-[10px]"
+                                                                            variant="outline"
+                                                                            className={`text-[10px] ${getEntryTypeBadge(r.arPayment)}`}
                                                                         >
                                                                             {
                                                                                 r.arPayment
                                                                             }
                                                                         </Badge>
                                                                     </td>
-                                                                    <td className="px-3 py-2 text-right font-medium text-[#0B3D91]">
-                                                                        {currency(
+                                                                    <td className={`px-3 py-2 text-right font-medium ${isDeduction(r.arPayment) ? (r.arPayment?.toUpperCase().includes('ADJUST') ? 'text-purple-700' : 'text-emerald-700') : 'text-[#0B3D91]'}`}>
+                                                                        {isDeduction(r.arPayment) ? '−' : ''}{currency(
                                                                             absAmount(
                                                                                 r.amount,
                                                                             ),
