@@ -14,6 +14,9 @@ import { Field, FieldLabel } from './ui/field';
 
 type CollegeOffice = { id: number; name: string };
 
+const enlarge =
+    'h-12 rounded-xl border-slate-300 bg-white px-4 text-base shadow-sm transition-all duration-200';
+
 interface AddCollegeOfficeModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -93,6 +96,7 @@ export default function AddCollegeOfficeModal({
                         id="new-college-office-name"
                         type="text"
                         placeholder="College of Arts and Sciences"
+                        className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                         value={name}
                         onChange={(e) => {
                             setName(e.target.value);
@@ -123,6 +127,7 @@ export default function AddCollegeOfficeModal({
                         type="button"
                         onClick={handleSubmit}
                         disabled={processing}
+                        className='bg-blue-500'
                     >
                         {processing ? 'Adding...' : 'Add'}
                     </Button>

@@ -21,10 +21,22 @@ import {
   CheckSquare,
   Square,
   Calendar as CalendarIcon,
+  Users,
 } from 'lucide-react';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import StudentBalanceDrawer from './StudentBalanceDrawer';
 import { emailRecipients, sendBulkEmail } from '@/actions/App/Http/Controllers/GraduateLedgerController';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -48,7 +60,6 @@ import { Input } from '@/components/ui/input';
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
@@ -86,6 +97,8 @@ export interface LedgerRecord {
   amount: number;
   remark: string;
   inputBy: string;
+  membership?: string | null;
+  discountAmount?: number;
 }
 
 export interface LedgerPaginator {
@@ -253,6 +266,9 @@ export default function Index({ records, filters, stats, filterOptions, courses 
     preset_academic_term_id: '',
   });
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [membershipTarget, setMembershipTarget] = useState<LedgerRecord | null>(null);
+  const [selectedMembership, setSelectedMembership] = useState<'NAPU' | 'NORSUFFA' | ''>('');
+  const [isApplyingMembership, setIsApplyingMembership] = useState(false);
   const [drawerSelection, setDrawerSelection] = useState<{
     studentId: number;
     transactionId: string | number;
@@ -682,6 +698,24 @@ throw new Error('Export failed');
     }
   };
 
+  const applyMembershipDiscount = () => {
+    if (!membershipTarget || !selectedMembership || isApplyingMembership) {
+      return;
+    }
+
+    setIsApplyingMembership(true);
+    router.post(`/graduate-ledger/${membershipTarget.id}/apply-membership`, {
+      membership: selectedMembership,
+    }, {
+      preserveScroll: true,
+      onFinish: () => {
+        setIsApplyingMembership(false);
+        setMembershipTarget(null);
+        setSelectedMembership('');
+      },
+    });
+  };
+
   // Convenience aliases for the template
   const searchQuery   = filterState.search;
   const schoolYear    = filterState.school_year;
@@ -755,12 +789,12 @@ throw new Error('Export failed');
     });
   };
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const handleSearchSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault();
     applyFilters();
   };
 
-  const handleGoToPage = (e: React.FormEvent) => {
+  const handleGoToPage = (e: React.SyntheticEvent) => {
     e.preventDefault();
     const pageNum = parseInt(goToPage, 10);
     const last = records?.meta?.last_page ?? records?.last_page ?? 1;
@@ -1208,7 +1242,26 @@ throw new Error('Export failed');
                         <td className="py-2 pr-4 text-right text-[#334E68]">{currency(r.tuitionPerUnitOrFeePerSemester)}</td>
                       )}
                       {visibleColumns.entryType && <td className="py-2 pr-4">
-                        <Badge variant="outline" className={getEntryTypeBadge(r.arPayment)}>
+                        <Badge
+                          variant="outline"
+                          className={`${getEntryTypeBadge(r.arPayment)} ${
+                            r.arPayment?.toUpperCase() === 'AR'
+                              ? 'cursor-pointer hover:ring-2 hover:ring-[#0F6FFF]'
+                              : ''
+                          }`}
+                          onClick={(e) => {
+                            if (r.arPayment?.toUpperCase() === 'AR') {
+                              e.stopPropagation();
+                              setMembershipTarget(r);
+                              setSelectedMembership('');
+                            }
+                          }}
+                          title={
+                            r.arPayment?.toUpperCase() === 'AR'
+                              ? 'Click to apply Membership Scholarship'
+                              : undefined
+                          }
+                        >
                           {r.arPayment}
                         </Badge>
                       </td>}

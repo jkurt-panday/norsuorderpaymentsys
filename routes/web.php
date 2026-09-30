@@ -33,8 +33,8 @@ Route::name('public.')->prefix('public')->group(function () {
     Route::post('/college-offices', [CollegeOfficeController::class, 'store'])
            ->name('college-offices.store');
 
-    Route::get('/success/{reference_number}', [FormInputController::class, 'success'])->name('success');
-    Route::get('/success/{reference_number}/print', [FormInputController::class, 'printReceipt'])->name('print');
+    Route::get('/success/{formInput:reference_number}', [FormInputController::class, 'success'])->name('success');
+    Route::get('/success/{formInput:reference_number}/print', [FormInputController::class, 'printReceipt'])->name('print');
 
     Route::get('/assessmentform', [AssessmentFormController::class, 'create'])->name('assessmentform');
     Route::post('/assessmentform', [AssessmentFormController::class, 'store']);
@@ -84,6 +84,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/add',          [GraduateLedgerController::class, 'create'])->name('create');
         Route::post('/',            [GraduateLedgerController::class, 'store'])->name('store');
         Route::post('/import',      [GraduateLedgerController::class, 'import'])->name('import');
+        Route::post('/{id}/apply-membership', [GraduateLedgerController::class, 'applyMembership'])->name('apply-membership');
         Route::get('/',             [GraduateLedgerController::class, 'index'])->name('index');
         Route::get('/{id}/edit',    [GraduateLedgerController::class, 'edit'])->name('edit');
         Route::put('/{id}',         [GraduateLedgerController::class, 'update'])->name('update');
@@ -103,6 +104,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/new-transaction', [LawSchoolLedgerController::class, 'create']);
         Route::post('/',               [LawSchoolLedgerController::class, 'store'])->name('store');
         Route::post('/import',         [LawSchoolLedgerController::class, 'import'])->name('import');
+        Route::post('/{id}/apply-honor', [LawSchoolLedgerController::class, 'applyLatinHonor'])->name('apply-honor');
         Route::get('/',                [LawSchoolLedgerController::class, 'index'])->name('index');
         Route::get('/{id}/edit',       [LawSchoolLedgerController::class, 'edit'])->name('edit');
         Route::put('/{id}',            [LawSchoolLedgerController::class, 'update'])->name('update');
@@ -219,6 +221,7 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
         Route::get('/', [AssessmentController::class, 'index'])->name('index');
         Route::get('/dashboard', [AssessmentController::class, 'dashboard'])->name('dashboard');
         Route::get('/edit/{assessment}', [AssessmentController::class, 'edit'])->name('edit');
+        Route::patch('/edit/{assessment}', [AssessmentController::class, 'update'])->name('assessments.update');
         Route::get('/print_soa/{assessment}', [AssessmentController::class, 'print'])->name('print_soa');
         Route::post('/email_soa/{assessment}', [AssessmentController::class, 'emailSoa'])->name('email_soa');
         Route::delete('/delete/{assessment}', [AssessmentController::class, 'destroy'])->name('delete_assessment');

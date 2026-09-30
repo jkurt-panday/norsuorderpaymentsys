@@ -28,12 +28,15 @@ class GraduateLedger extends Model
         'input_by',
         'imported_input_by',
         'status',
+        'membership',
+        'discount_amount',
     ];
 
     protected $casts = [
         'units' => 'integer',
         'rate' => 'decimal:2',
         'amount' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
         'transaction_date' => 'date:Y-m-d',
     ];
 

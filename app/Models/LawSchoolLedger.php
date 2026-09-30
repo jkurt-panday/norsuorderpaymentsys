@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Foundation\Auth\User;
 
 class LawSchoolLedger extends Model
 {
@@ -25,13 +26,17 @@ class LawSchoolLedger extends Model
         'amount',
         'remarks',
         'status',
+        'latin_honor',
+        'discount_amount',
         'input_by',
+        'imported_input_by',
     ];
 
     protected $casts = [
         'units' => 'decimal:2',
         'rate' => 'decimal:2',
         'amount' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
         'transaction_date' => 'date:Y-m-d',
     ];
 
@@ -68,6 +73,25 @@ class LawSchoolLedger extends Model
     public function lawAcademicTerm(): BelongsTo
     {
         return $this->academicTerm();
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function inputByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'input_by');
+    }
+
+    /**
+     * Returns the display name for who input this record.
+     * Prioritizes imported attribution over manual user entry.
+     */
+    public function inputByDisplay(): ?string
+    {
+        if ($this->imported_input_by !== null) {
+            return $this->imported_input_by;
+        }
+
+        return $this->inputByUser?->name;
     }
 
     public function getStudentIdFkAttribute(): ?int

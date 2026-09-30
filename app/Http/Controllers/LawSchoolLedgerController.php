@@ -11,6 +11,7 @@ use App\Models\ActivityLog;
 use App\Models\Course as LawCourse;
 use App\Models\LawSchoolLedger;
 use App\Models\Student as LawStudent;
+use App\Services\LawLedgerImportClassifier;
 // use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -45,6 +46,13 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
  */
 class LawSchoolLedgerController extends Controller
 {
+    private LawLedgerImportClassifier $classifier;
+
+    public function __construct(LawLedgerImportClassifier $classifier)
+    {
+        $this->classifier = $classifier;
+    }
+
     /**
      * Display the Law School Ledger overview index page.
      */
@@ -302,6 +310,12 @@ class LawSchoolLedgerController extends Controller
                 $data['status'] ?? null,
             );
 
+            // Preserve imported attribution - don't overwrite with current user
+            if ($record->imported_input_by !== null) {
+                $attributes['input_by'] = $record->input_by;
+                $attributes['imported_input_by'] = $record->imported_input_by;
+            }
+
             $record->update($attributes);
         });
 
@@ -338,6 +352,8 @@ class LawSchoolLedgerController extends Controller
                     }
                 },
             ],
+            'preset_course_id' => ['nullable', 'integer', 'exists:courses,id'],
+            'preset_academic_term_id' => ['nullable', 'integer', 'exists:academic_terms,id'],
         ]);
 
         set_time_limit(0);
@@ -356,14 +372,18 @@ class LawSchoolLedgerController extends Controller
 
         $imported = 0;
         $skipped = 0;
+        $duplicates = 0;
         $warnings = $this->emptyImportWarnings();
         $now = now();
 
+        $presetCourseId = $request->input('preset_course_id') ? (int) $request->input('preset_course_id') : null;
+        $presetTermId = $request->input('preset_academic_term_id') ? (int) $request->input('preset_academic_term_id') : null;
+
         if ($extension === 'csv') {
-            return $this->importCsv($path, $imported, $skipped, $warnings, $now);
+            return $this->importCsv($path, $imported, $skipped, $warnings, $now, $presetCourseId, $presetTermId, $duplicates);
         }
 
-        return $this->importExcel($path, $imported, $skipped, $warnings, $now);
+        return $this->importExcel($path, $imported, $skipped, $warnings, $now, $presetCourseId, $presetTermId, $duplicates);
     }
 
     /**
@@ -376,7 +396,16 @@ class LawSchoolLedgerController extends Controller
      *
      * @param-out WarningCounts $warnings
      */
-    private function importCsv(string $path, int &$imported, int &$skipped, array &$warnings, CarbonInterface $now): RedirectResponse
+    private function importCsv(
+        string $path,
+        int &$imported,
+        int &$skipped,
+        array &$warnings,
+        CarbonInterface $now,
+        ?int $presetCourseId,
+        ?int $presetTermId,
+        int &$duplicates
+    ): RedirectResponse
     {
         // ── Pass 1: collect distinct courses + terms + students ───────────────
         $handle = fopen($path, 'r');
@@ -477,14 +506,10 @@ class LawSchoolLedgerController extends Controller
             $data = $this->mapImportRow($rowData, $warnings);
 
             if ($data !== null) {
-                $resolved = $this->resolveImportRowFks($data, $courseMap, $termMap, $studentMap);
-                if ($resolved !== null) {
-                    $resolved['created_at'] = $now;
-                    $resolved['updated_at'] = $now;
-                    $insertData[] = $resolved;
-                } else {
-                    $skipped++;
-                }
+                $resolved = $this->resolveImportRowFks($data, $courseMap, $termMap, $studentMap, $presetCourseId, $presetTermId);
+                $resolved['created_at'] = $now;
+                $resolved['updated_at'] = $now;
+                $insertData[] = $resolved;
             } else {
                 $skipped++;
             }
@@ -505,7 +530,7 @@ class LawSchoolLedgerController extends Controller
         ActivityLog::recordImport(LawSchoolLedger::class, $imported, 'Law School Ledger');
 
         return redirect()->route('law-ledger.index')
-            ->with('success', $this->importSummary($imported, $skipped, $warnings));
+            ->with('success', $this->importSummary($imported, $skipped, $warnings, $duplicates));
     }
 
     /**
@@ -516,7 +541,16 @@ class LawSchoolLedgerController extends Controller
      *
      * @param-out WarningCounts $warnings
      */
-    private function importExcel(string $path, int &$imported, int &$skipped, array &$warnings, CarbonInterface $now): RedirectResponse
+    private function importExcel(
+        string $path,
+        int &$imported,
+        int &$skipped,
+        array &$warnings,
+        CarbonInterface $now,
+        ?int $presetCourseId,
+        ?int $presetTermId,
+        int &$duplicates
+    ): RedirectResponse
     {
         $reader = IOFactory::createReaderForFile($path);
         $reader->setReadDataOnly(false);
@@ -628,14 +662,10 @@ class LawSchoolLedgerController extends Controller
             $data = $this->mapImportRow($rowData, $warnings);
 
             if ($data !== null) {
-                $resolved = $this->resolveImportRowFks($data, $courseMap, $termMap, $studentMap);
-                if ($resolved !== null) {
-                    $resolved['created_at'] = $now;
-                    $resolved['updated_at'] = $now;
-                    $insertData[] = $resolved;
-                } else {
-                    $skipped++;
-                }
+                $resolved = $this->resolveImportRowFks($data, $courseMap, $termMap, $studentMap, $presetCourseId, $presetTermId);
+                $resolved['created_at'] = $now;
+                $resolved['updated_at'] = $now;
+                $insertData[] = $resolved;
             } else {
                 $skipped++;
             }
@@ -658,7 +688,7 @@ class LawSchoolLedgerController extends Controller
         ActivityLog::recordImport(LawSchoolLedger::class, $imported, 'Law School Ledger');
 
         return redirect()->route('law-ledger.index')
-            ->with('success', $this->importSummary($imported, $skipped, $warnings));
+            ->with('success', $this->importSummary($imported, $skipped, $warnings, $duplicates));
     }
 
     /**
@@ -682,6 +712,7 @@ class LawSchoolLedgerController extends Controller
     /**
      * Bulk-resolves lookup maps for courses, academic terms, and students.
      * Avoids N+1 INSERTs by chunking new rows at 500 per insert.
+     * Creates guaranteed fallback records (UNASSIGNED course and term) so imports never fail.
      *
      * @param  array<string, true>  $distinctCourses
      * @param  array<string, array{school_year:string, semester:string}>  $distinctTerms
@@ -694,8 +725,26 @@ class LawSchoolLedgerController extends Controller
         array $distinctStudents,
         CarbonInterface $now,
     ): array {
-        // Courses
-        $courseMap = LawCourse::query()->pluck('id', 'course_code')->all();
+        // Courses - ensure UNASSIGNED exists as fallback
+        $courseMap = LawCourse::query()
+            ->where('course_college', 'School of Law')
+            ->pluck('id', 'course_code')
+            ->all();
+        
+        // Create UNASSIGNED fallback course if it doesn't exist
+        $unassignedCourse = LawCourse::firstOrCreate(
+            [
+                'course_code' => 'UNASSIGNED',
+                'course_college' => 'School of Law',
+            ],
+            [
+                'course_desc' => 'Unassigned / Pending Course Assignment',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]
+        );
+        $courseMap['__DEFAULT__'] = (int) $unassignedCourse->id;
+        
         $newCourses = [];
         foreach (array_keys($distinctCourses) as $code) {
             if (! isset($courseMap[$code])) {
@@ -712,15 +761,33 @@ class LawSchoolLedgerController extends Controller
             foreach (array_chunk($newCourses, 500) as $chunk) {
                 LawCourse::insert($chunk);
             }
-            $courseMap = LawCourse::query()->pluck('id', 'course_code')->all();
+            $courseMap = LawCourse::query()
+                ->where('course_college', 'School of Law')
+                ->pluck('id', 'course_code')
+                ->all();
+            $courseMap['__DEFAULT__'] = (int) $unassignedCourse->id;
         }
 
-        // Academic terms
+        // Academic terms - ensure fallback exists
         $termsInDb = LawAcademicTerm::get(['id', 'school_year', 'semester'])->toArray();
         $termMap = [];
         foreach ($termsInDb as $t) {
             $termMap["{$t['school_year']}|||{$t['semester']}"] = (int) $t['id'];
         }
+        
+        // Create UNASSIGNED fallback term if it doesn't exist
+        $unassignedTerm = LawAcademicTerm::firstOrCreate(
+            [
+                'school_year' => 'Unassigned',
+                'semester' => 'First Semester',
+            ],
+            [
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]
+        );
+        $termMap['__DEFAULT__'] = (int) $unassignedTerm->id;
+        
         $newTerms = [];
         foreach ($distinctTerms as $key => $pair) {
             if (! isset($termMap[$key])) {
@@ -739,6 +806,7 @@ class LawSchoolLedgerController extends Controller
             foreach ($termsInDb as $t) {
                 $termMap["{$t['school_year']}|||{$t['semester']}"] = (int) $t['id'];
             }
+            $termMap['__DEFAULT__'] = (int) $unassignedTerm->id;
         }
 
         // Students
@@ -821,21 +889,42 @@ class LawSchoolLedgerController extends Controller
     /**
      * Resolves course_id / academic_term_id / student_id on an import row
      * using the bulk-built lookup maps.
+     * Supports preset fields and guaranteed fallback records - never returns null.
      *
      * @param  array<string, mixed>  $data
      * @param  array<string, int>  $courseMap
      * @param  array<string, int>  $termMap
      * @param  array<string, int>  $studentMap
-     * @return array<string, mixed>|null
+     * @param  int|null  $presetCourseId
+     * @param  int|null  $presetTermId
+     * @return array<string, mixed>
      */
-    private function resolveImportRowFks(array $data, array $courseMap, array $termMap, array $studentMap): ?array
-    {
+    private function resolveImportRowFks(
+        array $data,
+        array $courseMap,
+        array $termMap,
+        array $studentMap,
+        ?int $presetCourseId = null,
+        ?int $presetTermId = null
+    ): array {
+        // Course resolution with preset fallback
         $code = trim((string) ($data['course'] ?? ''));
-        $courseId = ($code !== '' && isset($courseMap[$code])) ? $courseMap[$code] : null;
+        $courseId = null;
+        
+        if ($code !== '' && isset($courseMap[$code])) {
+            $courseId = $courseMap[$code];
+        } elseif ($presetCourseId !== null) {
+            $courseId = $presetCourseId;
+        } else {
+            // Guaranteed fallback
+            $courseId = $courseMap['__DEFAULT__'] ?? null;
+        }
 
+        // Term resolution with preset fallback
         $sy = trim((string) ($data['school_year'] ?? ''));
         $semRaw = (string) ($data['semester_or_summer'] ?? '');
         $academicTermId = null;
+        
         if ($sy !== '' && $semRaw !== '') {
             $sem = LawAcademicTerm::normalizeSemester($semRaw);
             $key = "{$sy}|||{$sem}";
@@ -845,7 +934,15 @@ class LawSchoolLedgerController extends Controller
                 $data['semester_or_summer'] = $sem;
             }
         }
+        
+        if ($academicTermId === null && $presetTermId !== null) {
+            $academicTermId = $presetTermId;
+        } elseif ($academicTermId === null) {
+            // Guaranteed fallback
+            $academicTermId = $termMap['__DEFAULT__'] ?? null;
+        }
 
+        // Student resolution (unchanged logic)
         $last = trim((string) ($data['last_name'] ?? ''));
         $first = trim((string) ($data['first_name'] ?? ''));
         $mi = trim((string) ($data['middle_name'] ?? ($data['middle_initial'] ?? '')));
@@ -864,15 +961,10 @@ class LawSchoolLedgerController extends Controller
             $studentId = $studentMap[$kFull] ?? $studentMap[$kInitial] ?? $studentMap[$kNoMid] ?? null;
         }
 
-        if ($courseId === null || $academicTermId === null) {
-            return null;
-        }
-
-        $entryType = match (strtoupper(trim((string) ($data['ar_or_payment'] ?? 'AR')))) {
-            'AR', 'ASSESSMENT' => 'ar',
-            'ADJ', 'ADJUSTMENT' => 'adjustment',
-            default => 'payment',
-        };
+        // Use classifier for entry_type determination
+        $arOrPaymentRaw = $data['ar_or_payment'] ?? 'AR';
+        $classification = $this->classifier->classify((string) $arOrPaymentRaw, $data['amount'] ?? 0);
+        $entryType = $classification['entry_type'];
 
         $particulars = trim((string) ($data['particulars'] ?? ''));
         if ($particulars === '') {
@@ -893,6 +985,7 @@ class LawSchoolLedgerController extends Controller
             'remarks' => $data['remarks'] ?? null,
             'status' => $data['status'] ?? 'Pending',
             'input_by' => auth()->id(),
+            'imported_input_by' => auth()->user()?->name ?? 'System Import',
         ];
     }
 
@@ -1339,7 +1432,7 @@ class LawSchoolLedgerController extends Controller
         $dateTo = $request->input('date_to');
 
         return LawSchoolLedger::query()
-            ->with(['lawStudent', 'lawCourse', 'lawAcademicTerm'])
+            ->with(['lawStudent', 'lawCourse', 'lawAcademicTerm', 'inputByUser'])
             ->when($request->input('search'), function ($query, $search) {
                 // Lowercase the search term to match the LOWER() applied to columns.
                 // PostgreSQL's LIKE is case-sensitive, so "Juan" won't match "juan"
@@ -1471,6 +1564,8 @@ class LawSchoolLedgerController extends Controller
             'status' => $r->status,
             'remark' => $r->remarks,
             'inputBy' => $r->input_by,
+            'latinHonor' => $r->latin_honor,
+            'discountAmount' => (float) ($r->discount_amount ?? 0),
         ];
     }
 
@@ -1899,9 +1994,19 @@ class LawSchoolLedgerController extends Controller
     }
 
     /** @param  WarningCounts  $warnings */
-    private function importSummary(int $imported, int $skipped, array $warnings): string
+    private function importSummary(int $imported, int $skipped, array $warnings, int $duplicates = 0): string
     {
-        $summary = "Import complete: {$imported} records imported, {$skipped} blank rows skipped.";
+        $parts = ["{$imported} records imported"];
+        
+        if ($skipped > 0) {
+            $parts[] = "{$skipped} blank rows skipped";
+        }
+        
+        if ($duplicates > 0) {
+            $parts[] = "{$duplicates} duplicates skipped";
+        }
+        
+        $summary = "Import complete: ".implode(', ', $parts).".";
         $details = [];
 
         if ($warnings[self::WARNING_NEGATIVE_BLANK_TYPE] > 0) {
@@ -1922,5 +2027,223 @@ class LawSchoolLedgerController extends Controller
         return $details === []
             ? $summary
             : $summary.' Warnings: '.implode('; ', $details).'.';
+    }
+
+    /**
+     * Create a file-side fingerprint for a raw import row (before FK resolution).
+     * Uses unit separator (\x1F) to avoid collisions from names containing pipes.
+     * Returns null if the row lacks essential identifying data.
+     *
+     * @param  array<string, mixed>  $row
+     */
+    private function headerlessIdentity(array $row): ?string
+    {
+        $studentId = $row['student_id'] ?? null;
+        $lastName = trim((string) ($row['last_name'] ?? ''));
+        $firstName = trim((string) ($row['first_name'] ?? ''));
+        $course = trim((string) ($row['course'] ?? ''));
+        $schoolYear = trim((string) ($row['school_year'] ?? ''));
+        $semester = trim((string) ($row['semester_or_summer'] ?? ''));
+        $amount = $row['amount'] ?? null;
+        $date = $row['transaction_date'] ?? null;
+
+        // Must have student identifier
+        if ($studentId === null && $lastName === '' && $firstName === '') {
+            return null;
+        }
+
+        // Must have core transaction data
+        if ($amount === null || $schoolYear === '' || $semester === '') {
+            return null;
+        }
+
+        $parts = [
+            $studentId ?? '',
+            strtolower($lastName),
+            strtolower($firstName),
+            strtolower($course),
+            $schoolYear,
+            $semester,
+            (string) $amount,
+            (string) $date,
+        ];
+
+        return implode("\x1F", $parts);
+    }
+
+    /**
+     * Create a DB-side fingerprint for a resolved ledger row.
+     * Must match the structure of headerlessIdentity().
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function ledgerFingerprint(array $data): string
+    {
+        $parts = [
+            $data['student_id'] ?? '',
+            '', // last_name not stored in resolved data
+            '', // first_name not stored in resolved data
+            '', // course code not directly in resolved data
+            '', // school_year pulled from academic_term_id
+            '', // semester pulled from academic_term_id
+            (string) ($data['amount'] ?? ''),
+            (string) ($data['transaction_date'] ?? ''),
+        ];
+
+        return implode("\x1F", $parts);
+    }
+
+    /**
+     * Query existing ledger fingerprints in a single round-trip.
+     * Returns a map of fingerprint => count.
+     *
+     * @param  array<string>  $fileIdentities
+     * @param  array<string, int>  $studentMap
+     * @return array<string, int>
+     */
+    private function existingLedgerFingerprints(array $fileIdentities, array $studentMap): array
+    {
+        if (empty($fileIdentities)) {
+            return [];
+        }
+
+        // Parse file identities to build WHERE conditions
+        $conditions = [];
+        foreach ($fileIdentities as $identity) {
+            $parts = explode("\x1F", $identity);
+            if (count($parts) >= 8) {
+                $conditions[] = [
+                    'student_id' => $parts[0] !== '' ? (int) $parts[0] : null,
+                    'amount' => (float) $parts[6],
+                    'transaction_date' => $parts[7] !== '' ? $parts[7] : null,
+                ];
+            }
+        }
+
+        if (empty($conditions)) {
+            return [];
+        }
+
+        // Query for potential duplicates
+        $existing = LawSchoolLedger::query()
+            ->select(['student_id', 'academic_term_id', 'amount', 'transaction_date'])
+            ->where(function ($query) use ($conditions) {
+                foreach ($conditions as $condition) {
+                    $query->orWhere(function ($q) use ($condition) {
+                        if ($condition['student_id'] !== null) {
+                            $q->where('student_id', $condition['student_id']);
+                        }
+                        $q->where('amount', $condition['amount']);
+                        if ($condition['transaction_date'] !== null) {
+                            $q->where('transaction_date', $condition['transaction_date']);
+                        }
+                    });
+                }
+            })
+            ->with('academicTerm')
+            ->get();
+
+        // Build fingerprint map
+        $fingerprintMap = [];
+        foreach ($existing as $record) {
+            // Reconstruct fingerprint from DB record
+            $fp = implode("\x1F", [
+                $record->student_id ?? '',
+                '', // last_name
+                '', // first_name
+                '', // course
+                $record->academicTerm?->school_year ?? '',
+                $record->academicTerm?->semester ?? '',
+                (string) $record->amount,
+                (string) $record->transaction_date,
+            ]);
+            
+            $fingerprintMap[$fp] = ($fingerprintMap[$fp] ?? 0) + 1;
+        }
+
+        return $fingerprintMap;
+    }
+
+    /**
+     * Applies a Latin honor discount to an AR transaction.
+     */
+    public function applyLatinHonor(Request $request, int $id): RedirectResponse
+    {
+        $validated = $request->validate([
+            'latin_honor' => ['required', 'in:SUMMA,MAGNA,CUM_LAUDE'],
+        ]);
+
+        $record = LawSchoolLedger::findOrFail($id);
+
+        // Only apply to AR entries
+        if ($record->entry_type !== 'ar') {
+            return back()->with('error', 'Latin honor discounts can only be applied to AR (Assessment) entries.');
+        }
+
+        $latinHonor = $validated['latin_honor'];
+        $originalAmount = abs((float) $record->amount);
+
+        // Calculate discount based on honor type
+        $discountPercentage = match ($latinHonor) {
+            'SUMMA' => 100,      // 100% discount
+            'MAGNA' => 100,      // 100% discount
+            'CUM_LAUDE' => 50,   // 50% discount
+            default => 0,
+        };
+
+        $discountAmount = ($originalAmount * $discountPercentage) / 100;
+        $newAmount = $originalAmount - $discountAmount;
+
+        // Update the record
+        DB::transaction(function () use ($record, $latinHonor, $discountAmount, $newAmount): void {
+            $record->update([
+                'latin_honor' => $latinHonor,
+                'discount_amount' => $discountAmount,
+                'amount' => $newAmount,
+                'status' => $newAmount <= 0 ? 'Paid' : 'Pending',
+            ]);
+
+            // Create a corresponding adjustment entry for the discount
+            $particulars = match ($latinHonor) {
+                'SUMMA' => 'Summa Cum Laude Scholarship (100%)',
+                'MAGNA' => 'Magna Cum Laude Scholarship (100%)',
+                'CUM_LAUDE' => 'Cum Laude Scholarship (50%)',
+                default => 'Latin Honor Scholarship',
+            };
+
+            $referencePrefix = match ($latinHonor) {
+                'SUMMA' => 'SUM',
+                'MAGNA' => 'MAG',
+                'CUM_LAUDE' => 'CUM',
+                default => 'HON',
+            };
+
+            LawSchoolLedger::create([
+                'student_id' => $record->student_id,
+                'course_id' => $record->course_id,
+                'academic_term_id' => $record->academic_term_id,
+                'entry_type' => 'adjustment',
+                'units' => null,
+                'transaction_date' => now()->toDateString(),
+                'reference_number' => 'HONOR-'.$referencePrefix.'-'.$record->id,
+                'particulars' => $particulars,
+                'rate' => 0,
+                'amount' => $discountAmount,
+                'remarks' => 'Latin honor discount applied to AR #'.$record->id,
+                'status' => 'Applied',
+                'latin_honor' => $latinHonor,
+                'discount_amount' => 0,
+                'input_by' => auth()->id(),
+            ]);
+        });
+
+        $honorName = match ($latinHonor) {
+            'SUMMA' => 'Summa Cum Laude',
+            'MAGNA' => 'Magna Cum Laude',
+            'CUM_LAUDE' => 'Cum Laude',
+            default => 'Latin Honor',
+        };
+        
+        return back()->with('success', "{$honorName} discount of ₱".number_format($discountAmount, 2)." applied successfully.");
     }
 }

@@ -94,10 +94,13 @@ export interface LawLedgerRecord {
   particulars: string;
   tuitionPerUnitOrFeePerSemester: number;
   arOrPayment: string;
+  entryType: string;
   amount: number;
   status: string;
   remark: string;
   inputBy: string;
+  latinHonor?: string | null;
+  discountAmount?: number;
 }
 
 export interface LawLedgerPaginator {
@@ -247,6 +250,9 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const [importSuccess, setImportSuccess] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<LawLedgerRecord | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [honorTarget, setHonorTarget] = useState<LawLedgerRecord | null>(null);
+  const [selectedHonor, setSelectedHonor] = useState<'SUMMA' | 'MAGNA' | 'CUM_LAUDE' | ''>('');
+  const [isApplyingHonor, setIsApplyingHonor] = useState(false);
 
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [emailTarget, setEmailTarget] = useState<'all_matching' | 'specific' | 'all_outstanding'>('all_matching');
@@ -596,6 +602,24 @@ return 90;
       onFinish: () => {
         setIsDeleting(false);
         setDeleteTarget(null);
+      },
+    });
+  };
+
+  const applyHonorDiscount = () => {
+    if (!honorTarget || !selectedHonor || isApplyingHonor) {
+      return;
+    }
+
+    setIsApplyingHonor(true);
+    router.post(`/law-ledger/${honorTarget.id}/apply-honor`, {
+      latin_honor: selectedHonor,
+    }, {
+      preserveScroll: true,
+      onFinish: () => {
+        setIsApplyingHonor(false);
+        setHonorTarget(null);
+        setSelectedHonor('');
       },
     });
   };
@@ -977,11 +1001,35 @@ return 90;
                         <td className="py-2 pr-4 text-[#334E68]">{r.particulars}</td>
                         <td className="py-2 pr-4 text-right text-[#334E68]">{currency(r.tuitionPerUnitOrFeePerSemester)}</td>
                       <td className="py-2 pr-4">
-                        <Badge variant="outline" className={typeBadgeVariant(r.arOrPayment)}>
+                        <Badge 
+                          variant="outline" 
+                          className={`${typeBadgeVariant(r.arOrPayment)} ${
+                            r.entryType === 'ar' && !r.latinHonor ? 'cursor-pointer hover:ring-2 hover:ring-[#0F6FFF]' : ''
+                          }`}
+                          onClick={() => {
+                            if (r.entryType === 'ar' && !r.latinHonor) {
+                              setHonorTarget(r);
+                              setSelectedHonor('');
+                            }
+                          }}
+                          title={r.entryType === 'ar' && !r.latinHonor ? 'Click to apply Latin Honor discount' : undefined}
+                        >
                           {r.arOrPayment}
+                          {r.latinHonor && (
+                            <span className="ml-1 text-xs">({r.latinHonor})</span>
+                          )}
                         </Badge>
                       </td>
-                        <td className="py-2 pr-4 text-right font-medium text-[#0B3D91]">{currency(r.amount)}</td>
+                        <td className="py-2 pr-4 text-right">
+                          <div className="flex flex-col items-end">
+                            <span className="font-medium text-[#0B3D91]">{currency(r.amount)}</span>
+                            {r.discountAmount && r.discountAmount > 0 && (
+                              <span className="text-xs text-emerald-600">
+                                (Discount: -{currency(r.discountAmount)})
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="py-2 pr-4">
                           <Badge variant="outline" className={statusBadgeVariant(r.status)}>
                             {r.status}
@@ -1657,6 +1705,143 @@ return 90;
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Latin Honor Discount Dialog */}
+      <AlertDialog
+        open={honorTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !isApplyingHonor) {
+            setHonorTarget(null);
+            setSelectedHonor('');
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-md gap-0 overflow-hidden border border-[#CFE3FF] bg-white p-0 shadow-xl sm:max-w-md">
+          <AlertDialogHeader className="gap-3 p-5 sm:place-items-start sm:text-left">
+            <AlertDialogMedia className="mb-0 size-11 rounded-full bg-blue-50 text-[#0F6FFF]">
+              <GraduationCap className="size-5" />
+            </AlertDialogMedia>
+            <AlertDialogTitle className="text-lg font-semibold text-[#0B3D91]">
+              Apply Latin Honor Discount
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-[#5C7A9E]">
+              Select the student's Latin Honor to automatically apply the corresponding discount to the assessment amount.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {honorTarget && (
+            <div className="mx-5 mb-5 space-y-4">
+              <div className="rounded-lg border border-[#EAF2FF] bg-[#F8FBFF] p-3">
+                <p className="text-sm font-semibold text-[#0B3D91]">{honorTarget.name}</p>
+                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-[#5C7A9E]">
+                  <div>
+                    <span className="block text-[11px] uppercase tracking-wide text-[#8AA8CC]">Original Amount</span>
+                    <span className="font-medium text-[#334E68]">{currency(honorTarget.amount)}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] uppercase tracking-wide text-[#8AA8CC]">Term</span>
+                    <span className="font-medium text-[#334E68]">{honorTarget.schoolYear} {honorTarget.semesterOrSummer}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-[#0B3D91]">Select Latin Honor</label>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedHonor('SUMMA')}
+                    className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
+                      selectedHonor === 'SUMMA'
+                        ? 'border-[#0F6FFF] bg-[#EAF2FF]'
+                        : 'border-[#CFE3FF] bg-white hover:border-[#B9D8FF]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-[#0B3D91]">Summa Cum Laude</p>
+                        <p className="text-xs text-[#5C7A9E]">100% discount – Full scholarship</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-emerald-600">-{currency(honorTarget.amount)}</p>
+                        <p className="text-xs text-[#8AA8CC]">New: {currency(0)}</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedHonor('MAGNA')}
+                    className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
+                      selectedHonor === 'MAGNA'
+                        ? 'border-[#0F6FFF] bg-[#EAF2FF]'
+                        : 'border-[#CFE3FF] bg-white hover:border-[#B9D8FF]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-[#0B3D91]">Magna Cum Laude</p>
+                        <p className="text-xs text-[#5C7A9E]">100% discount – Full scholarship</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-emerald-600">-{currency(honorTarget.amount)}</p>
+                        <p className="text-xs text-[#8AA8CC]">New: {currency(0)}</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedHonor('CUM_LAUDE')}
+                    className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
+                      selectedHonor === 'CUM_LAUDE'
+                        ? 'border-[#0F6FFF] bg-[#EAF2FF]'
+                        : 'border-[#CFE3FF] bg-white hover:border-[#B9D8FF]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-[#0B3D91]">Cum Laude</p>
+                        <p className="text-xs text-[#5C7A9E]">50% discount – Half scholarship</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-emerald-600">-{currency(honorTarget.amount * 0.5)}</p>
+                        <p className="text-xs text-[#8AA8CC]">New: {currency(honorTarget.amount * 0.5)}</p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <AlertDialogFooter className="mx-0 mb-0 rounded-none border-[#EAF2FF] bg-[#F8FBFF] px-5 py-4">
+            <AlertDialogCancel
+              disabled={isApplyingHonor}
+              className="border-[#CFE3FF] text-[#0B3D91] hover:bg-white"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isApplyingHonor || !selectedHonor}
+              onClick={applyHonorDiscount}
+              className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB] disabled:opacity-50"
+            >
+              {isApplyingHonor ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Applying...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  Apply Discount
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       </div>
   );

@@ -298,7 +298,7 @@ export default function AddTransaction({
         }));
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = (e: React.SyntheticEvent) => {
         e.preventDefault();
         const finalAmount = autoAmount ? computedAmt.toFixed(2) : data.amount;
         const finalDate =
