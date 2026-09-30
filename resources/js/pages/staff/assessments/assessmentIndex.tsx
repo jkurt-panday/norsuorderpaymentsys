@@ -23,12 +23,14 @@ type AssessmentProps = {
         enrolled_under?: string;
         sy_last_attended?: string;
         semester?: string;
+        status?: string;
     };
     filterOptions: {
         courses: { id: number; course_code: string }[];
         enrolledUnder: string[];
         syLastAttended: string[];
         semesters: string[];
+        statuses: string[];
     };
 };
 
@@ -65,6 +67,7 @@ export default function AssessmentIndex({ assessments, filters, filterOptions }:
                             enrolledUnderOptions={filterOptions.enrolledUnder}
                             syOptions={filterOptions.syLastAttended}
                             semesterOptions={filterOptions.semesters}
+                            statusOptions={filterOptions.statuses}
                         />
                     )}
                 />
