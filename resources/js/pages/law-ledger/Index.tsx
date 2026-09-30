@@ -1052,11 +1052,11 @@ return 90;
                         <td className="py-2 pr-4 text-right">
                           <div className="flex flex-col items-end">
                             <span className="font-medium text-[#0B3D91]">{currency(r.amount)}</span>
-                            {r.discountAmount && r.discountAmount > 0 && (
+                            {(r.discountAmount ?? 0) > 0 ? (
                               <span className="text-xs text-emerald-600">
-                                (Discount: -{currency(r.discountAmount)})
+                                (Discount: -{currency(r.discountAmount!)})
                               </span>
-                            )}
+                            ) : null}
                           </div>
                         </td>
                         <td className="py-2 pr-4">

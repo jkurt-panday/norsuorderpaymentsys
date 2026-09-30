@@ -11,6 +11,7 @@ use App\Models\ActivityLog;
 use App\Models\Course as LawCourse;
 use App\Models\LawSchoolLedger;
 use App\Models\Student as LawStudent;
+use App\Models\User;
 use App\Services\LawLedgerImportClassifier;
 // use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -182,6 +183,7 @@ class LawSchoolLedgerController extends Controller
             'academicTerms' => $this->academicTermList(),
             'statuses' => $statuses,
             'authUserName' => optional(auth()->user())->name ?? '',
+            'users' => User::query()->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -235,6 +237,10 @@ class LawSchoolLedgerController extends Controller
                 $data['status'] ?? null,
             );
 
+            $attribution = $this->resolveInputBy($data['input_by'] ?? null);
+            $attributes['input_by'] = $attribution['input_by'];
+            $attributes['imported_input_by'] = $attribution['imported_input_by'];
+
             LawSchoolLedger::create($attributes);
         });
 
@@ -246,7 +252,7 @@ class LawSchoolLedgerController extends Controller
      */
     public function edit(int $id): Response
     {
-        $record = LawSchoolLedger::with(['lawStudent', 'lawCourse', 'lawAcademicTerm'])->findOrFail($id);
+        $record = LawSchoolLedger::with(['lawStudent', 'lawCourse', 'lawAcademicTerm', 'inputByUser'])->findOrFail($id);
 
         return Inertia::render('law-ledger/EditTransaction', [
             'record' => $this->recordForForm($record),
@@ -254,6 +260,7 @@ class LawSchoolLedgerController extends Controller
             'courses' => $this->courseList(),
             'academicTerms' => $this->academicTermList(),
             'filterOptions' => $this->getFilterOptions(),
+            'users' => User::query()->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -284,7 +291,7 @@ class LawSchoolLedgerController extends Controller
                 'tuition_per_unit_or_fee_per_semester' => $record->tuition_per_unit_or_fee_per_semester,
                 'amount' => $record->amount,
                 'remarks' => $record->remarks,
-                'input_by' => $record->input_by,
+                'input_by' => $record->inputByDisplay(),
             ], $data);
 
             $studentId = isset($data['student_id'])
@@ -310,11 +317,10 @@ class LawSchoolLedgerController extends Controller
                 $data['status'] ?? null,
             );
 
-            // Preserve imported attribution - don't overwrite with current user
-            if ($record->imported_input_by !== null) {
-                $attributes['input_by'] = $record->input_by;
-                $attributes['imported_input_by'] = $record->imported_input_by;
-            }
+            // Resolve input_by and imported_input_by from user input
+            $attribution = $this->resolveInputBy($data['input_by'] ?? null);
+            $attributes['input_by'] = $attribution['input_by'];
+            $attributes['imported_input_by'] = $attribution['imported_input_by'];
 
             $record->update($attributes);
         });
@@ -1563,10 +1569,10 @@ class LawSchoolLedgerController extends Controller
             'arOrPayment' => $r->ar_or_payment,
             'arPayment' => $this->entryTypeToLabel($r->entry_type),
             'entryType' => $r->entry_type,
-            'amount' => $this->cleanAmount($r->amount),
+            'amount' => (float) ($r->amount ?? 0),
             'status' => $r->status,
             'remark' => $r->remarks,
-            'inputBy' => $r->input_by,
+            'inputBy' => $r->inputByDisplay() ?? '',
             'latinHonor' => $r->latin_honor,
             'discountAmount' => (float) ($r->discount_amount ?? 0),
         ];
@@ -1740,7 +1746,53 @@ class LawSchoolLedgerController extends Controller
             'amount' => $r->amount,
             'status' => $r->status,
             'remarks' => $r->remarks ?? '',
-            'input_by' => $r->input_by ?? '',
+            'input_by' => $r->inputByDisplay() ?? '',
+        ];
+    }
+
+    /**
+     * Resolves user attribution from form input into [input_by (FK), imported_input_by (string)].
+     *
+     * @return array{input_by: int|null, imported_input_by: string|null}
+     */
+    private function resolveInputBy(?string $inputBy): array
+    {
+        $input = trim((string) $inputBy);
+
+        if ($input === '') {
+            return [
+                'input_by' => null,
+                'imported_input_by' => null,
+            ];
+        }
+
+        // If numeric ID given, check if User exists with that ID
+        if (ctype_digit($input)) {
+            $user = User::find((int) $input);
+            if ($user) {
+                return [
+                    'input_by' => $user->id,
+                    'imported_input_by' => null,
+                ];
+            }
+        }
+
+        // Check if a User exists with this exact name (case-insensitive)
+        $user = User::query()
+            ->whereRaw('LOWER(name) = ?', [strtolower($input)])
+            ->first();
+
+        if ($user) {
+            return [
+                'input_by' => $user->id,
+                'imported_input_by' => null,
+            ];
+        }
+
+        // If no matching User found, store as text attribution
+        return [
+            'input_by' => null,
+            'imported_input_by' => $input,
         ];
     }
 
