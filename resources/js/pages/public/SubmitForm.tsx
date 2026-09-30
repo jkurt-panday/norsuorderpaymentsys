@@ -1113,7 +1113,7 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                 files,
                                             );
                                         }}
-                                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.svg"
+                                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,"
                                         maxSize={10 * 1024 * 1024} // 10MB
                                         allowsMultiple={true}
                                     />

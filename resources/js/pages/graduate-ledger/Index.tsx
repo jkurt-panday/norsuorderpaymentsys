@@ -21,7 +21,6 @@ import {
   CheckSquare,
   Square,
   Calendar as CalendarIcon,
-  Users,
 } from 'lucide-react';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import StudentBalanceDrawer from './StudentBalanceDrawer';
@@ -350,6 +349,22 @@ export default function Index({ records, filters, stats, filterOptions, courses 
   const [examPeriod, setExamPeriod] = useState<'Midterm' | 'Final' | ''>('');
   const [examDeadline, setExamDeadline] = useState('');
   const [isSendingEmails, setIsSendingEmails] = useState(false);
+  const [showEmailProcessingModal, setShowEmailProcessingModal] = useState(false);
+  const [isEmailProcessingDone, setIsEmailProcessingDone] = useState(false);
+  const [emailProcessingSeconds, setEmailProcessingSeconds] = useState(0);
+  const [emailProcessingMessage, setEmailProcessingMessage] = useState('');
+
+  useEffect(() => {
+    if (!showEmailProcessingModal || isEmailProcessingDone) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setEmailProcessingSeconds((seconds) => seconds + 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [showEmailProcessingModal, isEmailProcessingDone]);
 
   useEffect(() => {
     if (!isEmailModalOpen) {
@@ -543,6 +558,11 @@ export default function Index({ records, filters, stats, filterOptions, courses 
     }
 
     setIsSendingEmails(true);
+    setShowEmailProcessingModal(true);
+    setIsEmailProcessingDone(false);
+    setEmailProcessingSeconds(0);
+    setEmailProcessingMessage(`Sending statement of account to ${targetIds.length} student(s). Please do not close this window.`);
+    setIsEmailModalOpen(false);
     router.post(sendBulkEmail.url(), params, {
       preserveScroll: true,
       preserveState: true,
@@ -550,21 +570,29 @@ export default function Index({ records, filters, stats, filterOptions, courses 
         const flash = page.props.flash as { success?: string; error?: string } | undefined;
 
         if (flash?.success) {
+          setEmailProcessingMessage(flash.success);
           flashToast('success', flash.success);
         } else if (flash?.error) {
+          setEmailProcessingMessage(flash.error);
           flashToast('error', flash.error);
         } else {
+          setEmailProcessingMessage('Emails sent successfully.');
           flashToast('success', 'Emails sent successfully.');
         }
 
-        setIsEmailModalOpen(false);
+        setIsEmailProcessingDone(true);
         setEmailSubject('');
         setEmailNote('');
         setExamPeriod('');
         setExamDeadline('');
       },
-      onError: () => {
-        flashToast('error', 'Failed to send emails. Please try again.');
+      onError: (errors) => {
+        const firstError = Object.values(errors ?? {})[0];
+        const message = typeof firstError === 'string' ? firstError : 'Failed to send emails. Please try again.';
+
+        setEmailProcessingMessage(message);
+        setIsEmailProcessingDone(true);
+        flashToast('error', message);
       },
       onFinish: () => setIsSendingEmails(false),
     });
@@ -2033,6 +2061,182 @@ throw new Error('Export failed');
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Email Processing Modal */}
+      <Dialog
+        open={showEmailProcessingModal}
+        onOpenChange={(open) => {
+          if (!open && isEmailProcessingDone) {
+            setShowEmailProcessingModal(false);
+          }
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-md"
+          showCloseButton={false}
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {isEmailProcessingDone ? (
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              ) : (
+                <Loader2 className="h-5 w-5 animate-spin text-[#0F6FFF]" />
+              )}
+              {isEmailProcessingDone ? 'Email Sending Complete' : 'Sending Emails...'}
+            </DialogTitle>
+            <DialogDescription>
+              {isEmailProcessingDone
+                ? 'The statement of account emails have finished processing.'
+                : 'Please wait while the statement of account PDFs are generated and emailed. Do not close or refresh this page.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-[#E8F0FE]">
+              <div
+                className={
+                  isEmailProcessingDone
+                    ? 'h-full w-full rounded-full bg-emerald-600'
+                    : 'h-full w-full animate-pulse rounded-full bg-[#0F6FFF]'
+                }
+              />
+            </div>
+
+            <p className="text-sm text-slate-600">{emailProcessingMessage}</p>
+            <p className="text-xs text-slate-400">
+              Elapsed time: {Math.floor(emailProcessingSeconds / 60)}m {emailProcessingSeconds % 60}s
+            </p>
+          </div>
+
+          {isEmailProcessingDone && (
+            <DialogFooter>
+              <Button
+                type="button"
+                className="w-full gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
+                onClick={() => {
+                  setShowEmailProcessingModal(false);
+                  setEmailProcessingMessage('');
+                  setEmailProcessingSeconds(0);
+                }}
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Done
+              </Button>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Membership Scholarship Dialog */}
+      <AlertDialog
+        open={membershipTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !isApplyingMembership) {
+            setMembershipTarget(null);
+            setSelectedMembership('');
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-md gap-0 overflow-hidden border border-[#CFE3FF] bg-white p-0 shadow-xl sm:max-w-md">
+          <AlertDialogHeader className="gap-3 p-5 sm:place-items-start sm:text-left">
+            <AlertDialogMedia className="mb-0 size-11 rounded-full bg-purple-50 text-purple-600">
+              <GraduationCap className="size-5" />
+            </AlertDialogMedia>
+            <AlertDialogTitle className="text-lg font-semibold text-[#0B3D91]">
+              Apply Membership Scholarship
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-[#5C7A9E]">
+              Select the faculty or personnel union membership to apply a 100% scholarship adjustment to this assessment.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {membershipTarget && (
+            <div className="mx-5 mb-5 space-y-4">
+              <div className="rounded-lg border border-[#EAF2FF] bg-[#F8FBFF] p-3">
+                <p className="text-sm font-semibold text-[#0B3D91]">{membershipTarget.name}</p>
+                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-[#5C7A9E]">
+                  <div>
+                    <span className="block text-[11px] uppercase tracking-wide text-[#8AA8CC]">Assessment Amount</span>
+                    <span className="font-medium text-[#334E68]">{currency(membershipTarget.amount)}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] uppercase tracking-wide text-[#8AA8CC]">Term</span>
+                    <span className="font-medium text-[#334E68]">{membershipTarget.schoolYear} {membershipTarget.semester}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-[#0B3D91]">Select Membership</label>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMembership('NAPU')}
+                    className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
+                      selectedMembership === 'NAPU'
+                        ? 'border-purple-600 bg-purple-50/60'
+                        : 'border-[#CFE3FF] bg-white hover:border-purple-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-[#0B3D91]">NAPU</p>
+                        <p className="text-xs text-[#5C7A9E]">NORSU Administrative Personnel Union (100%)</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-purple-700">−{currency(membershipTarget.amount)}</p>
+                        <p className="text-xs text-[#8AA8CC]">Adjustment</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMembership('NORSUFFA')}
+                    className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
+                      selectedMembership === 'NORSUFFA'
+                        ? 'border-purple-600 bg-purple-50/60'
+                        : 'border-[#CFE3FF] bg-white hover:border-purple-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-[#0B3D91]">NORSUFFA</p>
+                        <p className="text-xs text-[#5C7A9E]">NORSU Federated Faculty Association (100%)</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-purple-700">−{currency(membershipTarget.amount)}</p>
+                        <p className="text-xs text-[#8AA8CC]">Adjustment</p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <AlertDialogFooter className="border-t border-[#CFE3FF] bg-[#F8FBFF] px-5 py-3">
+            <AlertDialogCancel
+              disabled={isApplyingMembership}
+              onClick={() => {
+                setMembershipTarget(null);
+                setSelectedMembership('');
+              }}
+              className="border-[#CFE3FF] text-[#0B3D91]"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!selectedMembership || isApplyingMembership}
+              onClick={applyMembershipDiscount}
+              className="bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50"
+            >
+              {isApplyingMembership && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              {isApplyingMembership ? 'Applying...' : 'Apply Scholarship'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

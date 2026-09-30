@@ -1199,6 +1199,9 @@ class LawSchoolLedgerController extends Controller
      */
     public function sendBulkEmail(Request $request): RedirectResponse
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $validated = $request->validate([
             'school_year' => ['nullable', 'string', 'max:20'],
             'semester' => ['nullable', 'in:First Semester,Second Semester,Summer'],

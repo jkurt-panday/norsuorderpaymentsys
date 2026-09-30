@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import {
     AlertCircle,
+    ArrowDownUp,
     CalendarDays,
     FileText,
     GraduationCap,
@@ -52,6 +53,7 @@ interface StudentBalanceData {
     summary: {
         totalCharges: number;
         totalPayments: number;
+        totalAdjustments?: number;
         outstandingBalance: number;
     };
     transactions: DrawerTransaction[];
@@ -89,7 +91,13 @@ return 'No date';
 }
 
 function isPayment(type: string): boolean {
-    return ['payment', 'p'].includes(type.trim().toLowerCase());
+    const normalized = (type ?? '').trim().toLowerCase();
+    return ['payment', 'p'].includes(normalized);
+}
+
+function isAdjustment(type: string): boolean {
+    const normalized = (type ?? '').trim().toLowerCase();
+    return normalized.includes('adjust');
 }
 
 export default function StudentBalanceDrawer({
@@ -205,7 +213,7 @@ setLoading(false);
                                 )}
                             </section>
 
-                            <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3">
                                     <ReceiptText className="h-4 w-4 text-blue-600" />
                                     <p className="mt-2 text-[11px] font-medium text-blue-700">Assessments</p>
@@ -216,6 +224,13 @@ setLoading(false);
                                     <p className="mt-2 text-[11px] font-medium text-emerald-700">Payments</p>
                                     <p className="mt-0.5 font-bold text-emerald-900">{currency(data.summary.totalPayments)}</p>
                                 </div>
+                                {(data.summary.totalAdjustments ?? 0) > 0 && (
+                                    <div className="rounded-lg border border-purple-200 bg-purple-50/60 p-3">
+                                        <ArrowDownUp className="h-4 w-4 text-purple-600" />
+                                        <p className="mt-2 text-[11px] font-medium text-purple-700">Adjustments</p>
+                                        <p className="mt-0.5 font-bold text-purple-900">{currency(data.summary.totalAdjustments ?? 0)}</p>
+                                    </div>
+                                )}
                                 <div className={`rounded-lg border p-3 ${balance > 0 ? 'border-amber-200 bg-amber-50/70' : 'border-emerald-200 bg-emerald-50/60'}`}>
                                     <AlertCircle className={`h-4 w-4 ${balance > 0 ? 'text-amber-600' : 'text-emerald-600'}`} />
                                     <p className={`mt-2 text-[11px] font-medium ${balance > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>Current balance</p>
@@ -236,18 +251,19 @@ setLoading(false);
                                     <ol className="relative ml-2 border-l border-[#CFE3FF]">
                                         {data.transactions.map((transaction) => {
                                             const payment = isPayment(transaction.arPayment);
+                                            const adjustment = isAdjustment(transaction.arPayment);
 
                                             return (
                                                 <li key={transaction.id} className="relative pb-5 pl-6 last:pb-0">
-                                                    <span className={`absolute -left-2 top-1 flex h-4 w-4 rounded-full border-2 border-white ${payment ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+                                                    <span className={`absolute -left-2 top-1 flex h-4 w-4 rounded-full border-2 border-white ${adjustment ? 'bg-purple-500' : payment ? 'bg-emerald-500' : 'bg-blue-500'}`} />
                                                     <div className={`rounded-lg border p-3 ${String(transaction.id) === String(selectedTransactionId) ? 'border-[#0F6FFF] bg-[#F3F8FF] ring-1 ring-[#0F6FFF]/20' : 'border-[#E1ECFA] bg-white'}`}>
                                                         <div className="flex items-start justify-between gap-3">
                                                             <div className="min-w-0">
                                                                 <p className="font-medium text-[#334E68]">{transaction.particulars || transaction.arPayment}</p>
                                                                 <p className="mt-1 flex items-center gap-1 text-[11px] text-[#7FA6D6]"><CalendarDays className="h-3 w-3" />{formatDate(transaction.transactionDate)}</p>
                                                             </div>
-                                                            <p className={`shrink-0 font-bold ${payment ? 'text-emerald-700' : 'text-blue-700'}`}>
-                                                                {payment ? '−' : '+'}{currency(transaction.amount)}
+                                                            <p className={`shrink-0 font-bold ${adjustment ? 'text-purple-700' : payment ? 'text-emerald-700' : 'text-blue-700'}`}>
+                                                                {(payment || adjustment) ? '−' : '+'}{currency(transaction.amount)}
                                                             </p>
                                                         </div>
                                                         <div className="mt-2 flex items-center justify-between gap-3 border-t border-[#EDF3FB] pt-2 text-[11px] text-[#7FA6D6]">
@@ -268,16 +284,34 @@ setLoading(false);
                 </div>
 
                 {data && (
-                    <SheetFooter className="grid grid-cols-1 border-t border-[#CFE3FF] bg-white px-6 py-4 sm:grid-cols-3">
-                        <Button onClick={() => router.get(create.url({ query: { student_id: data.student.id, entry_type: 'payment' } }))} className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]">
+                    <SheetFooter className="flex flex-row items-center justify-between gap-2 border-t border-[#CFE3FF] bg-white px-6 py-3">
+                        <Button
+                            onClick={() => router.get(create.url({ query: { student_id: data.student.id, entry_type: 'payment' } }))}
+                            className="flex-1 bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
+                        >
                             <PlusCircle className="h-4 w-4" /> Add payment
                         </Button>
-                        <Button variant="outline" disabled={selectedTransactionId === null} onClick={() => selectedTransactionId !== null && router.get(edit.url(selectedTransactionId))} className="border-[#CFE3FF] text-[#0B3D91]">
-                            <Pencil className="h-4 w-4" /> Edit selected
-                        </Button>
-                        <Button variant="outline" onClick={() => window.open(generatePdf.url({ query: { student_id: data.student.id } }), '_blank', 'noopener,noreferrer')} className="border-[#CFE3FF] text-[#0B3D91]">
-                            <FileText className="h-4 w-4" /> Print statement
-                        </Button>
+                        <div className="flex items-center gap-1">
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                title="Edit selected transaction"
+                                disabled={selectedTransactionId === null}
+                                onClick={() => selectedTransactionId !== null && router.get(edit.url(selectedTransactionId))}
+                                className="border-[#CFE3FF] text-[#0B3D91] hover:bg-[#EAF2FF]"
+                            >
+                                <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                title="Print statement"
+                                onClick={() => window.open(generatePdf.url({ query: { student_id: data.student.id } }), '_blank', 'noopener,noreferrer')}
+                                className="border-[#CFE3FF] text-[#0B3D91] hover:bg-[#EAF2FF]"
+                            >
+                                <FileText className="h-4 w-4" />
+                            </Button>
+                        </div>
                     </SheetFooter>
                 )}
             </SheetContent>

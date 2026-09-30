@@ -277,6 +277,22 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
   const [examPeriod, setExamPeriod] = useState<'Midterm' | 'Final' | ''>('');
   const [examDeadline, setExamDeadline] = useState('');
   const [isSendingEmails, setIsSendingEmails] = useState(false);
+  const [showEmailProcessingModal, setShowEmailProcessingModal] = useState(false);
+  const [isEmailProcessingDone, setIsEmailProcessingDone] = useState(false);
+  const [emailProcessingSeconds, setEmailProcessingSeconds] = useState(0);
+  const [emailProcessingMessage, setEmailProcessingMessage] = useState('');
+
+  useEffect(() => {
+    if (!showEmailProcessingModal || isEmailProcessingDone) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setEmailProcessingSeconds((seconds) => seconds + 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [showEmailProcessingModal, isEmailProcessingDone]);
 
   useEffect(() => {
     if (!isEmailModalOpen) {
@@ -470,6 +486,11 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
     }
 
     setIsSendingEmails(true);
+    setShowEmailProcessingModal(true);
+    setIsEmailProcessingDone(false);
+    setEmailProcessingSeconds(0);
+    setEmailProcessingMessage(`Sending statement of account to ${targetIds.length} student(s). Please do not close this window.`);
+    setIsEmailModalOpen(false);
     router.post(sendBulkEmail.url(), params, {
       preserveScroll: true,
       preserveState: true,
@@ -477,21 +498,29 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
         const flash = page.props.flash as { success?: string; error?: string } | undefined;
 
         if (flash?.success) {
+          setEmailProcessingMessage(flash.success);
           flashToast('success', flash.success);
         } else if (flash?.error) {
+          setEmailProcessingMessage(flash.error);
           flashToast('error', flash.error);
         } else {
+          setEmailProcessingMessage('Emails sent successfully.');
           flashToast('success', 'Emails sent successfully.');
         }
 
-        setIsEmailModalOpen(false);
+        setIsEmailProcessingDone(true);
         setEmailSubject('');
         setEmailNote('');
         setExamPeriod('');
         setExamDeadline('');
       },
-      onError: () => {
-        flashToast('error', 'Failed to send emails. Please try again.');
+      onError: (errors) => {
+        const firstError = Object.values(errors ?? {})[0];
+        const message = typeof firstError === 'string' ? firstError : 'Failed to send emails. Please try again.';
+
+        setEmailProcessingMessage(message);
+        setIsEmailProcessingDone(true);
+        flashToast('error', message);
       },
       onFinish: () => setIsSendingEmails(false),
     });
@@ -1747,6 +1776,71 @@ return 90;
               {isSendingEmails ? 'Sending...' : `Send (${getEffectiveRecipientIds().length})`}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Processing Modal */}
+      <Dialog
+        open={showEmailProcessingModal}
+        onOpenChange={(open) => {
+          if (!open && isEmailProcessingDone) {
+            setShowEmailProcessingModal(false);
+          }
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-md"
+          showCloseButton={false}
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {isEmailProcessingDone ? (
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              ) : (
+                <Loader2 className="h-5 w-5 animate-spin text-[#0F6FFF]" />
+              )}
+              {isEmailProcessingDone ? 'Email Sending Complete' : 'Sending Emails...'}
+            </DialogTitle>
+            <DialogDescription>
+              {isEmailProcessingDone
+                ? 'The statement of account emails have finished processing.'
+                : 'Please wait while the statement of account PDFs are generated and emailed. Do not close or refresh this page.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-[#E8F0FE]">
+              <div
+                className={
+                  isEmailProcessingDone
+                    ? 'h-full w-full rounded-full bg-emerald-600'
+                    : 'h-full w-full animate-pulse rounded-full bg-[#0F6FFF]'
+                }
+              />
+            </div>
+
+            <p className="text-sm text-slate-600">{emailProcessingMessage}</p>
+            <p className="text-xs text-slate-400">
+              Elapsed time: {Math.floor(emailProcessingSeconds / 60)}m {emailProcessingSeconds % 60}s
+            </p>
+          </div>
+
+          {isEmailProcessingDone && (
+            <DialogFooter>
+              <Button
+                type="button"
+                className="w-full gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
+                onClick={() => {
+                  setShowEmailProcessingModal(false);
+                  setEmailProcessingMessage('');
+                  setEmailProcessingSeconds(0);
+                }}
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Done
+              </Button>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
 
