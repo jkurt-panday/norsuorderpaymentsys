@@ -72,6 +72,7 @@ interface Props {
     academicTerms: AcademicTermOption[];
     statuses: string[];
     authUserName: string;
+    users?: Array<{ id: number | string; name: string }>;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -253,6 +254,7 @@ export default function AddTransaction({
     academicTerms,
     statuses,
     authUserName,
+    users = [],
 }: Props) {
     const [showNewStudent, setShowNewStudent] = useState(false);
     const [availableStudents, setAvailableStudents] = useState<StudentOption[]>(students);
@@ -848,10 +850,22 @@ export default function AddTransaction({
                             </label>
                             <Input
                                 value={data.input_by}
+                                list="users-list-add"
                                 onChange={(e) =>
                                     setData('input_by', e.target.value)
                                 }
+                                className={
+                                    (errors as any).input_by ? 'border-red-400' : ''
+                                }
                             />
+                            {users.length > 0 && (
+                                <datalist id="users-list-add">
+                                    {users.map((u) => (
+                                        <option key={u.id} value={u.name} />
+                                    ))}
+                                </datalist>
+                            )}
+                            <FieldError message={(errors as any).input_by} />
                         </div>
 
                         {/* ── Remarks ─────────────────────────────────────── */}

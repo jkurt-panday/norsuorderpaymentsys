@@ -9,6 +9,7 @@
         
         <meta charset="utf-8">
         <title>Statement of Account - {{ $studentName }}</title>
+        <base href="{{ config('app.url') }}">
         @vite(['resources/css/app.css'])
     </head>
 <body class="text-[11px] w-full min-w-[800px] text-gray-900 font-sans">
