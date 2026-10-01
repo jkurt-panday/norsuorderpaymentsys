@@ -25,6 +25,7 @@ class LawSchoolLedgerExport implements FromQuery, ShouldAutoSize, WithHeadings, 
     public function headings(): array
     {
         return [
+            'Student ID Number',
             'Student Name',
             'Last Name',
             'First Name',
@@ -48,11 +49,13 @@ class LawSchoolLedgerExport implements FromQuery, ShouldAutoSize, WithHeadings, 
     public function map($row): array
     {
         // Use accessor methods and relationships to get the correct data
+        $studentNumber = $row->lawStudent?->student_number ?? '';
         $lastName = $row->lawStudent?->last_name ?? '';
         $firstName = $row->lawStudent?->first_name ?? '';
         $middleInitial = $row->lawStudent?->middle_name ? substr($row->lawStudent->middle_name, 0, 1) : '';
         
         return [
+            $studentNumber,
             trim("$lastName, $firstName ".($middleInitial ? "$middleInitial" : '')),
             $lastName,
             $firstName,
