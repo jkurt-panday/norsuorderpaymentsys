@@ -305,6 +305,7 @@ class LedgerMatchingService
             'id' => $record->id,
             'name' => $this->lawStudentName($record),
             'course' => $record->course?->code,
+            'units' => $record->units, // ← added
             'schoolYear' => $record->school_year,
             'semester' => AcademicTerm::normalizeSemester((string) $record->semester_or_summer) ?? 'First Semester',
             'transactionDate' => $record->transaction_date?->format('Y-m-d'),
