@@ -488,9 +488,11 @@ class LawSchoolLedgerController extends Controller
             $lastName = trim((string) Arr::get($rowData, 'last_name', ''));
             $firstName = trim((string) Arr::get($rowData, 'first_name', ''));
             $middleInitial = trim((string) (Arr::get($rowData, 'middle_initial') ?? Arr::get($rowData, 'middle_name') ?? ''));
+            $studentNumber = $this->extractImportStudentNumber($rowData);
 
             if ($lastName !== '' || $firstName !== '') {
                 $parsed = [
+                    'student_number' => $studentNumber,
                     'last_name' => $lastName,
                     'first_name' => $firstName,
                     'middle_name' => $middleInitial !== '' ? rtrim($middleInitial, '.') : null,
@@ -505,6 +507,7 @@ class LawSchoolLedgerController extends Controller
                 $rawName = is_string($rawName) ? trim(str_replace(['−', '–', '—'], '-', $rawName)) : '';
                 if ($rawName !== '' && ! in_array(strtolower($rawName), ['name (last name, first name, m.i.)', 'student name', 'student', 'name', 'last name', 'first name'])) {
                     $parsed = LawStudent::parseRawName($rawName);
+                    $parsed['student_number'] = $studentNumber;
                 } else {
                     $parsed = null;
                 }
@@ -618,6 +621,7 @@ class LawSchoolLedgerController extends Controller
         $courseIdx = $this->headerIndex($headerRow, ['course', 'program']);
         $syIdx = $this->headerIndex($headerRow, ['school_year', 'academic_year', 'sy']);
         $semIdx = $this->headerIndex($headerRow, ['semester_or_summer', 'semester_summer', 'semester', 'term']);
+        $studentNumberIdx = $this->headerIndex($headerRow, ['student_id_number', 'student_number', 'student_no', 'student_id_no', 'student_id']);
         $lastIdx = $this->headerIndex($headerRow, ['last_name']);
         $firstIdx = $this->headerIndex($headerRow, ['first_name']);
         $miIdx = $this->headerIndex($headerRow, ['middle_initial', 'middle_name']);
@@ -644,9 +648,13 @@ class LawSchoolLedgerController extends Controller
             $last = $lastIdx ? trim((string) $sheet->getCell(Coordinate::stringFromColumnIndex($lastIdx).$r)->getValue()) : '';
             $first = $firstIdx ? trim((string) $sheet->getCell(Coordinate::stringFromColumnIndex($firstIdx).$r)->getValue()) : '';
             $mi = $miIdx ? trim((string) $sheet->getCell(Coordinate::stringFromColumnIndex($miIdx).$r)->getValue()) : '';
+            $studentNumber = $studentNumberIdx
+                ? $this->normalizeImportedStudentNumber($this->spreadsheetCellValue($sheet->getCell(Coordinate::stringFromColumnIndex($studentNumberIdx).$r)))
+                : null;
 
             if ($last !== '' || $first !== '') {
                 $parsed = [
+                    'student_number' => $studentNumber,
                     'last_name' => $last,
                     'first_name' => $first,
                     'middle_name' => $mi !== '' ? rtrim($mi, '.') : null,
@@ -655,6 +663,7 @@ class LawSchoolLedgerController extends Controller
                 $rawName = trim(str_replace(['−', '–', '—'], '-', (string) $sheet->getCell(Coordinate::stringFromColumnIndex($nameIdx).$r)->getValue()));
                 if ($rawName !== '' && ! in_array(strtolower($rawName), ['name (last name, first name, m.i.)', 'student name', 'student', 'name', 'last name', 'first name'])) {
                     $parsed = LawStudent::parseRawName($rawName);
+                    $parsed['student_number'] = $studentNumber;
                 } else {
                     $parsed = null;
                 }
@@ -756,7 +765,7 @@ class LawSchoolLedgerController extends Controller
      *
      * @param  array<string, true>  $distinctCourses
      * @param  array<string, array{school_year:string, semester:string}>  $distinctTerms
-     * @param  array<string, array{last_name:string, first_name:string, middle_name:string|null}>  $distinctStudents
+     * @param  array<string, array{student_number?:string|null, last_name:string, first_name:string, middle_name:string|null}>  $distinctStudents
      * @return array{0: array<string, int>, 1: array<string, int>, 2: array<string, int>}
      */
     private function buildImportLookupMaps(
@@ -850,37 +859,40 @@ class LawSchoolLedgerController extends Controller
         }
 
         // Students
-        $existingStudents = LawStudent::get(['id', 'last_name', 'first_name', 'middle_name']);
+        $existingStudents = LawStudent::get(['id', 'student_number', 'last_name', 'first_name', 'middle_name']);
         $studentMap = [];
         $studentsByName = [];
+        $studentsByNumber = [];
         foreach ($existingStudents as $s) {
-            $id = (int) $s->id;
-            $kFull = $this->studentImportKey($s->last_name, $s->first_name, $s->middle_name);
-            $studentsByName[$kFull] = $id;
-            if ($s->middle_name) {
-                $kInitial = $this->studentImportKey($s->last_name, $s->first_name, substr($s->middle_name, 0, 1));
-                $studentsByName[$kInitial] = $id;
-            }
-            $kNoMid = $this->studentImportKey($s->last_name, $s->first_name, null);
-            if (! isset($studentsByName[$kNoMid])) {
-                $studentsByName[$kNoMid] = $id;
-            }
+            $this->indexImportStudent($s, $studentsByName, $studentsByNumber);
         }
 
         $newStudents = [];
+        $studentNumberUpdates = [];
         foreach ($distinctStudents as $parsed) {
+            $studentNumber = $parsed['student_number'] ?? null;
             $kFull = $this->studentImportKey($parsed['last_name'], $parsed['first_name'], $parsed['middle_name']);
             $kInitial = $parsed['middle_name'] ? $this->studentImportKey($parsed['last_name'], $parsed['first_name'], substr($parsed['middle_name'], 0, 1)) : $kFull;
             $kNoMid = $this->studentImportKey($parsed['last_name'], $parsed['first_name'], null);
 
-            $matchedId = $studentsByName[$kFull] ?? $studentsByName[$kInitial] ?? $studentsByName[$kNoMid] ?? null;
+            $matchedId = ($studentNumber !== null ? ($studentsByNumber[$studentNumber] ?? null) : null)
+                ?? $studentsByName[$kFull]
+                ?? $studentsByName[$kInitial]
+                ?? $studentsByName[$kNoMid]
+                ?? null;
 
             if ($matchedId !== null) {
                 $studentMap[$kFull] = $matchedId;
                 $studentMap[$kInitial] = $matchedId;
                 $studentMap[$kNoMid] = $matchedId;
+
+                if ($studentNumber !== null && ! isset($studentsByNumber[$studentNumber])) {
+                    $studentNumberUpdates[$matchedId] = $studentNumber;
+                    $studentsByNumber[$studentNumber] = $matchedId;
+                }
             } else {
                 $newStudents[] = [
+                    'student_number' => $studentNumber,
                     'last_name' => $parsed['last_name'],
                     'first_name' => $parsed['first_name'],
                     'middle_name' => $parsed['middle_name'] ?: null,
@@ -890,31 +902,35 @@ class LawSchoolLedgerController extends Controller
             }
         }
 
+        foreach ($studentNumberUpdates as $id => $studentNumber) {
+            LawStudent::query()
+                ->whereKey($id)
+                ->whereNull('student_number')
+                ->update(['student_number' => $studentNumber, 'updated_at' => $now]);
+        }
+
         if (! empty($newStudents)) {
             foreach (array_chunk($newStudents, 500) as $chunk) {
                 LawStudent::insert($chunk);
             }
-            $existingStudents = LawStudent::get(['id', 'last_name', 'first_name', 'middle_name']);
+            $existingStudents = LawStudent::get(['id', 'student_number', 'last_name', 'first_name', 'middle_name']);
+            $studentsByName = [];
+            $studentsByNumber = [];
             foreach ($existingStudents as $s) {
-                $id = (int) $s->id;
-                $kFull = $this->studentImportKey($s->last_name, $s->first_name, $s->middle_name);
-                $studentsByName[$kFull] = $id;
-                if ($s->middle_name) {
-                    $kInitial = $this->studentImportKey($s->last_name, $s->first_name, substr($s->middle_name, 0, 1));
-                    $studentsByName[$kInitial] = $id;
-                }
-                $kNoMid = $this->studentImportKey($s->last_name, $s->first_name, null);
-                if (! isset($studentsByName[$kNoMid])) {
-                    $studentsByName[$kNoMid] = $id;
-                }
+                $this->indexImportStudent($s, $studentsByName, $studentsByNumber);
             }
 
             foreach ($distinctStudents as $parsed) {
+                $studentNumber = $parsed['student_number'] ?? null;
                 $kFull = $this->studentImportKey($parsed['last_name'], $parsed['first_name'], $parsed['middle_name']);
                 $kInitial = $parsed['middle_name'] ? $this->studentImportKey($parsed['last_name'], $parsed['first_name'], substr($parsed['middle_name'], 0, 1)) : $kFull;
                 $kNoMid = $this->studentImportKey($parsed['last_name'], $parsed['first_name'], null);
 
-                $matchedId = $studentsByName[$kFull] ?? $studentsByName[$kInitial] ?? $studentsByName[$kNoMid] ?? null;
+                $matchedId = ($studentNumber !== null ? ($studentsByNumber[$studentNumber] ?? null) : null)
+                    ?? $studentsByName[$kFull]
+                    ?? $studentsByName[$kInitial]
+                    ?? $studentsByName[$kNoMid]
+                    ?? null;
                 if ($matchedId !== null) {
                     $studentMap[$kFull] = $matchedId;
                     $studentMap[$kInitial] = $matchedId;
@@ -982,18 +998,14 @@ class LawSchoolLedgerController extends Controller
             $academicTermId = $termMap['__DEFAULT__'] ?? null;
         }
 
-        // Student resolution (unchanged logic)
+        // Student resolution
         $last = trim((string) ($data['last_name'] ?? ''));
         $first = trim((string) ($data['first_name'] ?? ''));
         $mi = trim((string) ($data['middle_name'] ?? ($data['middle_initial'] ?? '')));
 
         $studentId = null;
-        $rawStudentId = ($data['student_id'] ?? null);
-        if ($rawStudentId !== null && $rawStudentId !== '' && is_numeric($rawStudentId)) {
-            $studentId = (int) $rawStudentId;
-        }
 
-        if ($studentId === null && ($last !== '' || $first !== '')) {
+        if ($last !== '' || $first !== '') {
             $kFull = $this->studentImportKey($last, $first, $mi);
             $kInitial = $mi !== '' ? $this->studentImportKey($last, $first, substr($mi, 0, 1)) : $kFull;
             $kNoMid = $this->studentImportKey($last, $first, null);
@@ -1011,6 +1023,8 @@ class LawSchoolLedgerController extends Controller
             $particulars = 'Tuition';
         }
 
+        $importedInputBy = $this->normalizeImportedInputBy($data['input_by'] ?? null);
+
         return [
             'student_id' => $studentId,
             'course_id' => $courseId,
@@ -1019,13 +1033,13 @@ class LawSchoolLedgerController extends Controller
             'rate' => ($data['tuition_per_unit_or_fee_per_semester'] ?? 0) > 0 ? (float) $data['tuition_per_unit_or_fee_per_semester'] : 0,
             'entry_type' => $entryType,
             'amount' => abs((float) ($data['amount'] ?? 0)),
-            'transaction_date' => $data['transaction_date'] ?? now()->toDateString(),
+            'transaction_date' => $data['transaction_date'] ?? null,
             'reference_number' => $data['reference_jev_or_number'] ?? null,
             'particulars' => $particulars,
             'remarks' => $data['remarks'] ?? null,
             'status' => $data['status'] ?? 'Pending',
             'input_by' => auth()->id(),
-            'imported_input_by' => auth()->user()?->name ?? 'System Import',
+            'imported_input_by' => $importedInputBy ?? auth()->user()?->name ?? 'System Import',
         ];
     }
 
@@ -1422,6 +1436,7 @@ class LawSchoolLedgerController extends Controller
             'first_name' => $nameParts['first_name'],
             'middle_initial' => $nameParts['middle_initial'],
             'middle_name' => $nameParts['middle_name'],
+            'student_number' => $this->extractImportStudentNumber($normalized),
             'student_id' => Arr::get($normalized, 'student_id'),
             'student_id_fk' => null,
             'course' => Arr::get($normalized, 'course') ?? Arr::get($normalized, 'program'),
@@ -1446,7 +1461,7 @@ class LawSchoolLedgerController extends Controller
             'amount' => $amount,
             'status' => $this->determineStatus($amount, is_string($rawStatus) && filled($rawStatus) ? trim($rawStatus) : null),
             'remarks' => $remarks,
-            'input_by' => Arr::get($normalized, 'input_by'),
+            'input_by' => $this->extractImportedInputBy($normalized),
         ];
     }
 
@@ -1457,6 +1472,122 @@ class LawSchoolLedgerController extends Controller
             $firstName,
             $middleName,
         ])) ?? '');
+    }
+
+    /**
+     * Spreadsheet apps often export identifier columns as numeric-looking values
+     * (for example "202600001.0"). Student numbers are identifiers, not numbers,
+     * so normalize only the spreadsheet artifact while preserving meaningful text.
+     */
+    private function normalizeImportedStudentNumber(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $studentNumber = trim((string) $value);
+        if ($studentNumber === '') {
+            return null;
+        }
+
+        // Broken Excel formulas are not valid identifiers and can exceed the
+        // database column length (example: =IFERROR(INDEX(#REF!,...)).
+        if (str_starts_with($studentNumber, '=')) {
+            return null;
+        }
+
+        if (preg_match('/^\d+\.0+$/', $studentNumber) === 1) {
+            $studentNumber = preg_replace('/\.0+$/', '', $studentNumber) ?: '';
+        }
+
+        if ($studentNumber === '' || strlen($studentNumber) > 50) {
+            return null;
+        }
+
+        // Student numbers should contain at least one digit. This prevents
+        // headers, formula errors, and arbitrary cell text from being persisted.
+        if (preg_match('/\d/', $studentNumber) !== 1) {
+            return null;
+        }
+
+        return $studentNumber;
+    }
+
+    private function spreadsheetCellValue(\PhpOffice\PhpSpreadsheet\Cell\Cell $cell): mixed
+    {
+        if (! $cell->isFormula()) {
+            return $cell->getValue();
+        }
+
+        try {
+            return $cell->getCalculatedValue();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /** @param array<string, mixed> $rowData */
+    private function extractImportStudentNumber(array $rowData): ?string
+    {
+        return $this->normalizeImportedStudentNumber(
+            Arr::get($rowData, 'student_id_number')
+            ?? Arr::get($rowData, 'student_number')
+            ?? Arr::get($rowData, 'student_no')
+            ?? Arr::get($rowData, 'student_id_no')
+            ?? Arr::get($rowData, 'student_id')
+        );
+    }
+
+    /** @param array<string, mixed> $rowData */
+    private function extractImportedInputBy(array $rowData): ?string
+    {
+        return $this->normalizeImportedInputBy(
+            Arr::get($rowData, 'input_by')
+            ?? Arr::get($rowData, 'input_by_')
+            ?? Arr::get($rowData, 'encoded_by')
+            ?? Arr::get($rowData, 'prepared_by')
+        );
+    }
+
+    private function normalizeImportedInputBy(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $inputBy = Str::squish(trim((string) $value));
+
+        if ($inputBy === '' || str_starts_with($inputBy, '=') || strlen($inputBy) > 255) {
+            return null;
+        }
+
+        return $inputBy;
+    }
+
+    /**
+     * @param  array<string, int>  $studentsByName
+     * @param  array<string, int>  $studentsByNumber
+     */
+    private function indexImportStudent(LawStudent $student, array &$studentsByName, array &$studentsByNumber): void
+    {
+        $id = (int) $student->id;
+
+        if ($student->student_number !== null && $student->student_number !== '') {
+            $studentsByNumber[$student->student_number] = $id;
+        }
+
+        $kFull = $this->studentImportKey($student->last_name, $student->first_name, $student->middle_name);
+        $studentsByName[$kFull] = $id;
+
+        if ($student->middle_name) {
+            $kInitial = $this->studentImportKey($student->last_name, $student->first_name, substr($student->middle_name, 0, 1));
+            $studentsByName[$kInitial] = $id;
+        }
+
+        $kNoMid = $this->studentImportKey($student->last_name, $student->first_name, null);
+        if (! isset($studentsByName[$kNoMid])) {
+            $studentsByName[$kNoMid] = $id;
+        }
     }
 
     /**
