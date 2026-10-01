@@ -7,21 +7,36 @@
             $firstRecord   = $records->first();
             $cleanAmount   = static fn ($val) => abs((float) preg_replace('/[^\d.]/', '', (string) ($val ?? 0)));
 
-            // Universal property extractor
+            // Universal property extractor. Only scalar values are ever returned:
+            // key names like 'course' also match Eloquent relationships, and
+            // echoing a model would dump its JSON instead of the field value.
             $getProp = static function ($obj, array $keys) {
                 if (!$obj) return null;
                 foreach ($keys as $key) {
                     if (is_object($obj) && isset($obj->{$key}) && $obj->{$key} !== '') {
-                        return $obj->{$key};
+                        $value = $obj->{$key};
+                        return (is_scalar($value) || $value === null) ? $value : null;
                     }
                     if (is_array($obj) && isset($obj[$key]) && $obj[$key] !== '') {
-                        return $obj[$key];
+                        $value = $obj[$key];
+                        return (is_scalar($value) || $value === null) ? $value : null;
                     }
                 }
                 return null;
             };
 
-            $courseCode    = $firstRecord ? ($getProp($firstRecord, ['course', 'course_code', 'code']) ?? '—') : '—';
+            $courseCode = static function ($record) use ($getProp) {
+                if (! $record) return '—';
+
+                // 'course' is a BelongsTo relation, so read the code off the model.
+                if (isset($record->course) && is_object($record->course)) {
+                    return $record->course->course_code ?? $record->course->code ?? '—';
+                }
+
+                return $getProp($record, ['course_code', 'code']) ?? '—';
+            };
+
+            $courseCode    = $courseCode($firstRecord);
             $schoolYear    = $firstRecord ? ($getProp($firstRecord, ['schoolYear', 'school_year']) ?? '—') : '—';
             $semesterLabel = $firstRecord ? ($getProp($firstRecord, ['semesterOrSummer', 'semester_or_summer', 'semester']) ?? '—') : '—';
             $units         = $firstRecord ? ($getProp($firstRecord, ['units']) ?? '—') : '—';

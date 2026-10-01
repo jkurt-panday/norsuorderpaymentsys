@@ -33,6 +33,7 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 // use Spatie\LaravelPdf\Facades\Pdf;
+use Spatie\Browsershot\Browsershot;
 use Spatie\LaravelPdf\Facades\Pdf;
 use Spatie\LaravelPdf\PdfBuilder;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -1144,7 +1145,12 @@ class LawSchoolLedgerController extends Controller
             'summary' => $summary,
             'generatedAt' => now()->timezone('Asia/Manila')->format('Y-m-d h:i A'),
             // 'logoDataUri' => $logoDataUri,
-        ])->format('a4');
+        ])
+            ->driver('browsershot')
+            ->withBrowsershot(function (Browsershot $browsershot): void {
+                $this->configureBrowsershot($browsershot);
+            })
+            ->format('a4');
         // ->setPaper('a4', 'portrait')
         // ->setOption('defaultFont', 'DejaVu Sans')
         // ->setOption('isHtml5ParserEnabled', true)
@@ -1710,6 +1716,24 @@ class LawSchoolLedgerController extends Controller
         }
 
         return $amount > 0 ? 'Pending' : 'Paid';
+    }
+
+    /**
+     * Applies the shared Browsershot hardening used by the Chrome-rendered
+     * statements. The statement templates are styled entirely with Tailwind via
+     * @vite, so they must go through Chrome - dompdf cannot parse the built
+     * stylesheet and renders them unstyled.
+     */
+    private function configureBrowsershot(Browsershot $browsershot): void
+    {
+        // Full Chrome's new headless mode retains CSS (unlike the
+        // chrome-headless-shell build) while avoiding the Windows shell IO.read
+        // failure, and gets explicit timeouts so slow renders fail loudly instead
+        // of hanging until the PHP execution limit.
+        $browsershot
+            ->newHeadless()
+            ->timeout(300)
+            ->setOption('protocolTimeout', 300_000);
     }
 
     /** @return array<string, mixed> */

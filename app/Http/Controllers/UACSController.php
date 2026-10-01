@@ -28,7 +28,7 @@ class UACSController extends BaseResourceController
 
     protected int $perPage = 10;
 
-    protected string $orderBy = 'object_code';
+    protected string $orderBy = 'id';
 
     /** @var 'asc'|'desc' */
     protected string $orderDirection = 'asc';
