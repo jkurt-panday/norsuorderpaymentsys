@@ -12,10 +12,12 @@
                 if (!$obj) return null;
                 foreach ($keys as $key) {
                     if (is_object($obj) && isset($obj->{$key}) && $obj->{$key} !== '') {
-                        return $obj->{$key};
+                        $value = $obj->{$key};
+                        return (is_scalar($value) || $value === null) ? $value : null;
                     }
                     if (is_array($obj) && isset($obj[$key]) && $obj[$key] !== '') {
-                        return $obj[$key];
+                        $value = $obj[$key];
+                        return (is_scalar($value) || $value === null) ? $value : null;
                     }
                 }
                 return null;

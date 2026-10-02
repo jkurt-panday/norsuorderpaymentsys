@@ -33,6 +33,7 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 // use Spatie\LaravelPdf\Facades\Pdf;
+use Spatie\Browsershot\Browsershot;
 use Spatie\LaravelPdf\Facades\Pdf;
 use Spatie\LaravelPdf\PdfBuilder;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -169,7 +170,7 @@ class LawSchoolLedgerController extends Controller
     /**
      * Renders the form for creating a new law ledger transaction.
      */
-    public function create(): Response
+    public function create(Request $request): Response
     {
         $statuses = $this->deduplicatedOptions('status');
 
@@ -184,6 +185,40 @@ class LawSchoolLedgerController extends Controller
             'statuses' => $statuses,
             'authUserName' => optional(auth()->user())->name ?? '',
             'users' => User::query()->orderBy('name')->get(['id', 'name']),
+            'selectedStudentId' => $request->integer('student_id') ?: null,
+            'defaultEntryType' => in_array($request->input('entry_type'), ['ar', 'payment', 'adjustment'], true)
+                ? $request->input('entry_type')
+                : 'ar',
+        ]);
+    }
+
+    /**
+     * Return a student's complete law-ledger history and balance summary.
+     */
+    public function studentBalance(LawStudent $student): JsonResponse
+    {
+        $records = LawSchoolLedger::query()
+            ->with(['lawStudent', 'lawCourse', 'lawAcademicTerm', 'inputByUser:id,name'])
+            ->where('student_id', $student->id)
+            ->orderBy('transaction_date')
+            ->orderBy('id')
+            ->get();
+
+        $latestRecord = $records->last();
+
+        return response()->json([
+            'student' => [
+                'id' => $student->id,
+                'studentNumber' => $student->student_number,
+                'name' => $student->full_name,
+                'email' => $student->email,
+                'contactNumber' => $student->contact_num,
+                'course' => $latestRecord?->lawCourse?->code,
+            ],
+            'summary' => $this->calculateStudentBalanceNormalized($records),
+            'transactions' => $records
+                ->map(fn (LawSchoolLedger $record) => $this->transformRecord($record))
+                ->values(),
         ]);
     }
 
@@ -454,9 +489,11 @@ class LawSchoolLedgerController extends Controller
             $lastName = trim((string) Arr::get($rowData, 'last_name', ''));
             $firstName = trim((string) Arr::get($rowData, 'first_name', ''));
             $middleInitial = trim((string) (Arr::get($rowData, 'middle_initial') ?? Arr::get($rowData, 'middle_name') ?? ''));
+            $studentNumber = $this->extractImportStudentNumber($rowData);
 
             if ($lastName !== '' || $firstName !== '') {
                 $parsed = [
+                    'student_number' => $studentNumber,
                     'last_name' => $lastName,
                     'first_name' => $firstName,
                     'middle_name' => $middleInitial !== '' ? rtrim($middleInitial, '.') : null,
@@ -471,6 +508,7 @@ class LawSchoolLedgerController extends Controller
                 $rawName = is_string($rawName) ? trim(str_replace(['−', '–', '—'], '-', $rawName)) : '';
                 if ($rawName !== '' && ! in_array(strtolower($rawName), ['name (last name, first name, m.i.)', 'student name', 'student', 'name', 'last name', 'first name'])) {
                     $parsed = LawStudent::parseRawName($rawName);
+                    $parsed['student_number'] = $studentNumber;
                 } else {
                     $parsed = null;
                 }
@@ -584,6 +622,7 @@ class LawSchoolLedgerController extends Controller
         $courseIdx = $this->headerIndex($headerRow, ['course', 'program']);
         $syIdx = $this->headerIndex($headerRow, ['school_year', 'academic_year', 'sy']);
         $semIdx = $this->headerIndex($headerRow, ['semester_or_summer', 'semester_summer', 'semester', 'term']);
+        $studentNumberIdx = $this->headerIndex($headerRow, ['student_id_number', 'student_number', 'student_no', 'student_id_no', 'student_id']);
         $lastIdx = $this->headerIndex($headerRow, ['last_name']);
         $firstIdx = $this->headerIndex($headerRow, ['first_name']);
         $miIdx = $this->headerIndex($headerRow, ['middle_initial', 'middle_name']);
@@ -610,9 +649,13 @@ class LawSchoolLedgerController extends Controller
             $last = $lastIdx ? trim((string) $sheet->getCell(Coordinate::stringFromColumnIndex($lastIdx).$r)->getValue()) : '';
             $first = $firstIdx ? trim((string) $sheet->getCell(Coordinate::stringFromColumnIndex($firstIdx).$r)->getValue()) : '';
             $mi = $miIdx ? trim((string) $sheet->getCell(Coordinate::stringFromColumnIndex($miIdx).$r)->getValue()) : '';
+            $studentNumber = $studentNumberIdx
+                ? $this->normalizeImportedStudentNumber($this->spreadsheetCellValue($sheet->getCell(Coordinate::stringFromColumnIndex($studentNumberIdx).$r)))
+                : null;
 
             if ($last !== '' || $first !== '') {
                 $parsed = [
+                    'student_number' => $studentNumber,
                     'last_name' => $last,
                     'first_name' => $first,
                     'middle_name' => $mi !== '' ? rtrim($mi, '.') : null,
@@ -621,6 +664,7 @@ class LawSchoolLedgerController extends Controller
                 $rawName = trim(str_replace(['−', '–', '—'], '-', (string) $sheet->getCell(Coordinate::stringFromColumnIndex($nameIdx).$r)->getValue()));
                 if ($rawName !== '' && ! in_array(strtolower($rawName), ['name (last name, first name, m.i.)', 'student name', 'student', 'name', 'last name', 'first name'])) {
                     $parsed = LawStudent::parseRawName($rawName);
+                    $parsed['student_number'] = $studentNumber;
                 } else {
                     $parsed = null;
                 }
@@ -722,7 +766,7 @@ class LawSchoolLedgerController extends Controller
      *
      * @param  array<string, true>  $distinctCourses
      * @param  array<string, array{school_year:string, semester:string}>  $distinctTerms
-     * @param  array<string, array{last_name:string, first_name:string, middle_name:string|null}>  $distinctStudents
+     * @param  array<string, array{student_number?:string|null, last_name:string, first_name:string, middle_name:string|null}>  $distinctStudents
      * @return array{0: array<string, int>, 1: array<string, int>, 2: array<string, int>}
      */
     private function buildImportLookupMaps(
@@ -816,37 +860,40 @@ class LawSchoolLedgerController extends Controller
         }
 
         // Students
-        $existingStudents = LawStudent::get(['id', 'last_name', 'first_name', 'middle_name']);
+        $existingStudents = LawStudent::get(['id', 'student_number', 'last_name', 'first_name', 'middle_name']);
         $studentMap = [];
         $studentsByName = [];
+        $studentsByNumber = [];
         foreach ($existingStudents as $s) {
-            $id = (int) $s->id;
-            $kFull = $this->studentImportKey($s->last_name, $s->first_name, $s->middle_name);
-            $studentsByName[$kFull] = $id;
-            if ($s->middle_name) {
-                $kInitial = $this->studentImportKey($s->last_name, $s->first_name, substr($s->middle_name, 0, 1));
-                $studentsByName[$kInitial] = $id;
-            }
-            $kNoMid = $this->studentImportKey($s->last_name, $s->first_name, null);
-            if (! isset($studentsByName[$kNoMid])) {
-                $studentsByName[$kNoMid] = $id;
-            }
+            $this->indexImportStudent($s, $studentsByName, $studentsByNumber);
         }
 
         $newStudents = [];
+        $studentNumberUpdates = [];
         foreach ($distinctStudents as $parsed) {
+            $studentNumber = $parsed['student_number'] ?? null;
             $kFull = $this->studentImportKey($parsed['last_name'], $parsed['first_name'], $parsed['middle_name']);
             $kInitial = $parsed['middle_name'] ? $this->studentImportKey($parsed['last_name'], $parsed['first_name'], substr($parsed['middle_name'], 0, 1)) : $kFull;
             $kNoMid = $this->studentImportKey($parsed['last_name'], $parsed['first_name'], null);
 
-            $matchedId = $studentsByName[$kFull] ?? $studentsByName[$kInitial] ?? $studentsByName[$kNoMid] ?? null;
+            $matchedId = ($studentNumber !== null ? ($studentsByNumber[$studentNumber] ?? null) : null)
+                ?? $studentsByName[$kFull]
+                ?? $studentsByName[$kInitial]
+                ?? $studentsByName[$kNoMid]
+                ?? null;
 
             if ($matchedId !== null) {
                 $studentMap[$kFull] = $matchedId;
                 $studentMap[$kInitial] = $matchedId;
                 $studentMap[$kNoMid] = $matchedId;
+
+                if ($studentNumber !== null && ! isset($studentsByNumber[$studentNumber])) {
+                    $studentNumberUpdates[$matchedId] = $studentNumber;
+                    $studentsByNumber[$studentNumber] = $matchedId;
+                }
             } else {
                 $newStudents[] = [
+                    'student_number' => $studentNumber,
                     'last_name' => $parsed['last_name'],
                     'first_name' => $parsed['first_name'],
                     'middle_name' => $parsed['middle_name'] ?: null,
@@ -856,31 +903,35 @@ class LawSchoolLedgerController extends Controller
             }
         }
 
+        foreach ($studentNumberUpdates as $id => $studentNumber) {
+            LawStudent::query()
+                ->whereKey($id)
+                ->whereNull('student_number')
+                ->update(['student_number' => $studentNumber, 'updated_at' => $now]);
+        }
+
         if (! empty($newStudents)) {
             foreach (array_chunk($newStudents, 500) as $chunk) {
                 LawStudent::insert($chunk);
             }
-            $existingStudents = LawStudent::get(['id', 'last_name', 'first_name', 'middle_name']);
+            $existingStudents = LawStudent::get(['id', 'student_number', 'last_name', 'first_name', 'middle_name']);
+            $studentsByName = [];
+            $studentsByNumber = [];
             foreach ($existingStudents as $s) {
-                $id = (int) $s->id;
-                $kFull = $this->studentImportKey($s->last_name, $s->first_name, $s->middle_name);
-                $studentsByName[$kFull] = $id;
-                if ($s->middle_name) {
-                    $kInitial = $this->studentImportKey($s->last_name, $s->first_name, substr($s->middle_name, 0, 1));
-                    $studentsByName[$kInitial] = $id;
-                }
-                $kNoMid = $this->studentImportKey($s->last_name, $s->first_name, null);
-                if (! isset($studentsByName[$kNoMid])) {
-                    $studentsByName[$kNoMid] = $id;
-                }
+                $this->indexImportStudent($s, $studentsByName, $studentsByNumber);
             }
 
             foreach ($distinctStudents as $parsed) {
+                $studentNumber = $parsed['student_number'] ?? null;
                 $kFull = $this->studentImportKey($parsed['last_name'], $parsed['first_name'], $parsed['middle_name']);
                 $kInitial = $parsed['middle_name'] ? $this->studentImportKey($parsed['last_name'], $parsed['first_name'], substr($parsed['middle_name'], 0, 1)) : $kFull;
                 $kNoMid = $this->studentImportKey($parsed['last_name'], $parsed['first_name'], null);
 
-                $matchedId = $studentsByName[$kFull] ?? $studentsByName[$kInitial] ?? $studentsByName[$kNoMid] ?? null;
+                $matchedId = ($studentNumber !== null ? ($studentsByNumber[$studentNumber] ?? null) : null)
+                    ?? $studentsByName[$kFull]
+                    ?? $studentsByName[$kInitial]
+                    ?? $studentsByName[$kNoMid]
+                    ?? null;
                 if ($matchedId !== null) {
                     $studentMap[$kFull] = $matchedId;
                     $studentMap[$kInitial] = $matchedId;
@@ -948,18 +999,14 @@ class LawSchoolLedgerController extends Controller
             $academicTermId = $termMap['__DEFAULT__'] ?? null;
         }
 
-        // Student resolution (unchanged logic)
+        // Student resolution
         $last = trim((string) ($data['last_name'] ?? ''));
         $first = trim((string) ($data['first_name'] ?? ''));
         $mi = trim((string) ($data['middle_name'] ?? ($data['middle_initial'] ?? '')));
 
         $studentId = null;
-        $rawStudentId = ($data['student_id'] ?? null);
-        if ($rawStudentId !== null && $rawStudentId !== '' && is_numeric($rawStudentId)) {
-            $studentId = (int) $rawStudentId;
-        }
 
-        if ($studentId === null && ($last !== '' || $first !== '')) {
+        if ($last !== '' || $first !== '') {
             $kFull = $this->studentImportKey($last, $first, $mi);
             $kInitial = $mi !== '' ? $this->studentImportKey($last, $first, substr($mi, 0, 1)) : $kFull;
             $kNoMid = $this->studentImportKey($last, $first, null);
@@ -977,6 +1024,8 @@ class LawSchoolLedgerController extends Controller
             $particulars = 'Tuition';
         }
 
+        $importedInputBy = $this->normalizeImportedInputBy($data['input_by'] ?? null);
+
         return [
             'student_id' => $studentId,
             'course_id' => $courseId,
@@ -985,13 +1034,13 @@ class LawSchoolLedgerController extends Controller
             'rate' => ($data['tuition_per_unit_or_fee_per_semester'] ?? 0) > 0 ? (float) $data['tuition_per_unit_or_fee_per_semester'] : 0,
             'entry_type' => $entryType,
             'amount' => abs((float) ($data['amount'] ?? 0)),
-            'transaction_date' => $data['transaction_date'] ?? now()->toDateString(),
+            'transaction_date' => $data['transaction_date'] ?? null,
             'reference_number' => $data['reference_jev_or_number'] ?? null,
             'particulars' => $particulars,
             'remarks' => $data['remarks'] ?? null,
             'status' => $data['status'] ?? 'Pending',
             'input_by' => auth()->id(),
-            'imported_input_by' => auth()->user()?->name ?? 'System Import',
+            'imported_input_by' => $importedInputBy ?? auth()->user()?->name ?? 'System Import',
         ];
     }
 
@@ -1096,7 +1145,12 @@ class LawSchoolLedgerController extends Controller
             'summary' => $summary,
             'generatedAt' => now()->timezone('Asia/Manila')->format('Y-m-d h:i A'),
             // 'logoDataUri' => $logoDataUri,
-        ])->format('a4');
+        ])
+            ->driver('browsershot')
+            ->withBrowsershot(function (Browsershot $browsershot): void {
+                $this->configureBrowsershot($browsershot);
+            })
+            ->format('a4');
         // ->setPaper('a4', 'portrait')
         // ->setOption('defaultFont', 'DejaVu Sans')
         // ->setOption('isHtml5ParserEnabled', true)
@@ -1388,6 +1442,7 @@ class LawSchoolLedgerController extends Controller
             'first_name' => $nameParts['first_name'],
             'middle_initial' => $nameParts['middle_initial'],
             'middle_name' => $nameParts['middle_name'],
+            'student_number' => $this->extractImportStudentNumber($normalized),
             'student_id' => Arr::get($normalized, 'student_id'),
             'student_id_fk' => null,
             'course' => Arr::get($normalized, 'course') ?? Arr::get($normalized, 'program'),
@@ -1412,7 +1467,7 @@ class LawSchoolLedgerController extends Controller
             'amount' => $amount,
             'status' => $this->determineStatus($amount, is_string($rawStatus) && filled($rawStatus) ? trim($rawStatus) : null),
             'remarks' => $remarks,
-            'input_by' => Arr::get($normalized, 'input_by'),
+            'input_by' => $this->extractImportedInputBy($normalized),
         ];
     }
 
@@ -1423,6 +1478,122 @@ class LawSchoolLedgerController extends Controller
             $firstName,
             $middleName,
         ])) ?? '');
+    }
+
+    /**
+     * Spreadsheet apps often export identifier columns as numeric-looking values
+     * (for example "202600001.0"). Student numbers are identifiers, not numbers,
+     * so normalize only the spreadsheet artifact while preserving meaningful text.
+     */
+    private function normalizeImportedStudentNumber(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $studentNumber = trim((string) $value);
+        if ($studentNumber === '') {
+            return null;
+        }
+
+        // Broken Excel formulas are not valid identifiers and can exceed the
+        // database column length (example: =IFERROR(INDEX(#REF!,...)).
+        if (str_starts_with($studentNumber, '=')) {
+            return null;
+        }
+
+        if (preg_match('/^\d+\.0+$/', $studentNumber) === 1) {
+            $studentNumber = preg_replace('/\.0+$/', '', $studentNumber) ?: '';
+        }
+
+        if ($studentNumber === '' || strlen($studentNumber) > 50) {
+            return null;
+        }
+
+        // Student numbers should contain at least one digit. This prevents
+        // headers, formula errors, and arbitrary cell text from being persisted.
+        if (preg_match('/\d/', $studentNumber) !== 1) {
+            return null;
+        }
+
+        return $studentNumber;
+    }
+
+    private function spreadsheetCellValue(\PhpOffice\PhpSpreadsheet\Cell\Cell $cell): mixed
+    {
+        if (! $cell->isFormula()) {
+            return $cell->getValue();
+        }
+
+        try {
+            return $cell->getCalculatedValue();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /** @param array<string, mixed> $rowData */
+    private function extractImportStudentNumber(array $rowData): ?string
+    {
+        return $this->normalizeImportedStudentNumber(
+            Arr::get($rowData, 'student_id_number')
+            ?? Arr::get($rowData, 'student_number')
+            ?? Arr::get($rowData, 'student_no')
+            ?? Arr::get($rowData, 'student_id_no')
+            ?? Arr::get($rowData, 'student_id')
+        );
+    }
+
+    /** @param array<string, mixed> $rowData */
+    private function extractImportedInputBy(array $rowData): ?string
+    {
+        return $this->normalizeImportedInputBy(
+            Arr::get($rowData, 'input_by')
+            ?? Arr::get($rowData, 'input_by_')
+            ?? Arr::get($rowData, 'encoded_by')
+            ?? Arr::get($rowData, 'prepared_by')
+        );
+    }
+
+    private function normalizeImportedInputBy(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $inputBy = Str::squish(trim((string) $value));
+
+        if ($inputBy === '' || str_starts_with($inputBy, '=') || strlen($inputBy) > 255) {
+            return null;
+        }
+
+        return $inputBy;
+    }
+
+    /**
+     * @param  array<string, int>  $studentsByName
+     * @param  array<string, int>  $studentsByNumber
+     */
+    private function indexImportStudent(LawStudent $student, array &$studentsByName, array &$studentsByNumber): void
+    {
+        $id = (int) $student->id;
+
+        if ($student->student_number !== null && $student->student_number !== '') {
+            $studentsByNumber[$student->student_number] = $id;
+        }
+
+        $kFull = $this->studentImportKey($student->last_name, $student->first_name, $student->middle_name);
+        $studentsByName[$kFull] = $id;
+
+        if ($student->middle_name) {
+            $kInitial = $this->studentImportKey($student->last_name, $student->first_name, substr($student->middle_name, 0, 1));
+            $studentsByName[$kInitial] = $id;
+        }
+
+        $kNoMid = $this->studentImportKey($student->last_name, $student->first_name, null);
+        if (! isset($studentsByName[$kNoMid])) {
+            $studentsByName[$kNoMid] = $id;
+        }
     }
 
     /**
@@ -1547,13 +1718,31 @@ class LawSchoolLedgerController extends Controller
         return $amount > 0 ? 'Pending' : 'Paid';
     }
 
-    /** @return array<string, mixed> */
-    private function transformRecord(LawSchoolLedger $r): array
+    /**
+     * Applies the shared Browsershot hardening used by the Chrome-rendered
+     * statements. The statement templates are styled entirely with Tailwind via
+     * @vite, so they must go through Chrome - dompdf cannot parse the built
+     * stylesheet and renders them unstyled.
+     */
+    private function configureBrowsershot(Browsershot $browsershot): void
     {
-        return [
-            'id' => $r->id,
-            'studentId' => $r->student_id_fk,
-            'studentNumber' => $r->lawStudent?->student_number,
+        // Full Chrome's new headless mode retains CSS (unlike the
+        // chrome-headless-shell build) while avoiding the Windows shell IO.read
+        // failure, and gets explicit timeouts so slow renders fail loudly instead
+        // of hanging until the PHP execution limit.
+        $browsershot
+            ->newHeadless()
+            ->timeout(300)
+            ->setOption('protocolTimeout', 300_000);
+    }
+
+    /** @return array<string, mixed> */
+     private function transformRecord(LawSchoolLedger $r): array
+     {
+         return [
+             'id' => $r->id,
+             'studentId' => $r->student_id,
+             'studentNumber' => $r->lawStudent?->student_number,
             'lastName' => $r->last_name,
             'firstName' => $r->first_name,
             'middleInitial' => $this->normalizeMiddleInitial($r->middle_initial),
@@ -1738,7 +1927,7 @@ class LawSchoolLedgerController extends Controller
             'semester_or_summer' => $r->semester_or_summer,
             'entry_type' => $r->entry_type ?? 'ar',
             'units' => $r->units,
-            'transaction_date' => $r->transaction_date ? (string) $r->transaction_date : '',
+            'transaction_date' => $r->transaction_date ? $r->transaction_date->format('Y-m-d') : '',
             'reference_jev_or_number' => $r->reference_jev_or_number ?? '',
             'particulars' => $r->particulars ?? 'Tuition',
             'tuition_per_unit_or_fee_per_semester' => $r->tuition_per_unit_or_fee_per_semester,
@@ -2238,6 +2427,22 @@ class LawSchoolLedgerController extends Controller
         $latinHonor = $validated['latin_honor'];
         $originalAmount = abs((float) $record->amount);
 
+        if ($originalAmount <= 0) {
+            return back()->with('error', 'Cannot apply a Latin honor discount to a zero-amount assessment.');
+        }
+
+        // Prevent duplicate discount credits for the same assessment. The honor
+        // adjustment is the accounting entry that reduces the balance; applying
+        // it twice would double-count the discount.
+        $existingHonorAdjustment = LawSchoolLedger::query()
+            ->where('entry_type', 'adjustment')
+            ->where('reference_number', 'like', 'HONOR-%-'.$record->id)
+            ->exists();
+
+        if ($existingHonorAdjustment) {
+            return back()->with('error', 'A Latin honor discount has already been applied to this assessment.');
+        }
+
         // Calculate discount based on honor type
         $discountPercentage = match ($latinHonor) {
             'SUMMA' => 100,      // 100% discount
@@ -2246,16 +2451,14 @@ class LawSchoolLedgerController extends Controller
             default => 0,
         };
 
-        $discountAmount = ($originalAmount * $discountPercentage) / 100;
-        $newAmount = $originalAmount - $discountAmount;
+        $discountAmount = round(($originalAmount * $discountPercentage) / 100, 2);
 
-        // Update the record
-        DB::transaction(function () use ($record, $latinHonor, $discountAmount, $newAmount): void {
+        // Keep the original AR amount unchanged for auditability. The separate
+        // adjustment transaction is what reduces the student's outstanding balance.
+        DB::transaction(function () use ($record, $latinHonor, $discountAmount): void {
             $record->update([
                 'latin_honor' => $latinHonor,
                 'discount_amount' => $discountAmount,
-                'amount' => $newAmount,
-                'status' => $newAmount <= 0 ? 'Paid' : 'Pending',
             ]);
 
             // Create a corresponding adjustment entry for the discount

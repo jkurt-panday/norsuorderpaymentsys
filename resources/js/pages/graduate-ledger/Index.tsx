@@ -21,7 +21,6 @@ import {
   CheckSquare,
   Square,
   Calendar as CalendarIcon,
-  Users,
 } from 'lucide-react';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import StudentBalanceDrawer from './StudentBalanceDrawer';
@@ -2127,6 +2126,117 @@ throw new Error('Export failed');
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Membership Scholarship Dialog */}
+      <AlertDialog
+        open={membershipTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !isApplyingMembership) {
+            setMembershipTarget(null);
+            setSelectedMembership('');
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-md gap-0 overflow-hidden border border-[#CFE3FF] bg-white p-0 shadow-xl sm:max-w-md">
+          <AlertDialogHeader className="gap-3 p-5 sm:place-items-start sm:text-left">
+            <AlertDialogMedia className="mb-0 size-11 rounded-full bg-purple-50 text-purple-600">
+              <GraduationCap className="size-5" />
+            </AlertDialogMedia>
+            <AlertDialogTitle className="text-lg font-semibold text-[#0B3D91]">
+              Apply Membership Scholarship
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-[#5C7A9E]">
+              Select the faculty or personnel union membership to apply a 100% scholarship adjustment to this assessment.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {membershipTarget && (
+            <div className="mx-5 mb-5 space-y-4">
+              <div className="rounded-lg border border-[#EAF2FF] bg-[#F8FBFF] p-3">
+                <p className="text-sm font-semibold text-[#0B3D91]">{membershipTarget.name}</p>
+                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-[#5C7A9E]">
+                  <div>
+                    <span className="block text-[11px] uppercase tracking-wide text-[#8AA8CC]">Assessment Amount</span>
+                    <span className="font-medium text-[#334E68]">{currency(membershipTarget.amount)}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] uppercase tracking-wide text-[#8AA8CC]">Term</span>
+                    <span className="font-medium text-[#334E68]">{membershipTarget.schoolYear} {membershipTarget.semester}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-[#0B3D91]">Select Membership</label>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMembership('NAPU')}
+                    className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
+                      selectedMembership === 'NAPU'
+                        ? 'border-purple-600 bg-purple-50/60'
+                        : 'border-[#CFE3FF] bg-white hover:border-purple-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-[#0B3D91]">NAPU</p>
+                        <p className="text-xs text-[#5C7A9E]">NORSU Administrative Personnel Union (100%)</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-purple-700">−{currency(membershipTarget.amount)}</p>
+                        <p className="text-xs text-[#8AA8CC]">Adjustment</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMembership('NORSUFFA')}
+                    className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
+                      selectedMembership === 'NORSUFFA'
+                        ? 'border-purple-600 bg-purple-50/60'
+                        : 'border-[#CFE3FF] bg-white hover:border-purple-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-[#0B3D91]">NORSUFFA</p>
+                        <p className="text-xs text-[#5C7A9E]">NORSU Federated Faculty Association (100%)</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-purple-700">−{currency(membershipTarget.amount)}</p>
+                        <p className="text-xs text-[#8AA8CC]">Adjustment</p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <AlertDialogFooter className="border-t border-[#CFE3FF] bg-[#F8FBFF] px-5 py-3">
+            <AlertDialogCancel
+              disabled={isApplyingMembership}
+              onClick={() => {
+                setMembershipTarget(null);
+                setSelectedMembership('');
+              }}
+              className="border-[#CFE3FF] text-[#0B3D91]"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!selectedMembership || isApplyingMembership}
+              onClick={applyMembershipDiscount}
+              className="bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50"
+            >
+              {isApplyingMembership && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              {isApplyingMembership ? 'Applying...' : 'Apply Scholarship'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

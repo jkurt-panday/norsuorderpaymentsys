@@ -99,6 +99,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/email-recipients', [LawSchoolLedgerController::class, 'emailRecipients'])->name('email-recipients');
         Route::post('/send-emails',    [LawSchoolLedgerController::class, 'sendBulkEmail'])->name('send-emails');
         Route::get('/students/search', [LawSchoolLedgerController::class, 'searchStudents'])->name('students.search');
+        Route::get('/students/{student}/balance', [LawSchoolLedgerController::class, 'studentBalance'])->name('students.balance');
         Route::delete('/students/{id}', [LawSchoolLedgerController::class, 'destroyStudent'])->name('students.destroy');
         Route::get('/add',             [LawSchoolLedgerController::class, 'create'])->name('create');
         Route::get('/new-transaction', [LawSchoolLedgerController::class, 'create']);

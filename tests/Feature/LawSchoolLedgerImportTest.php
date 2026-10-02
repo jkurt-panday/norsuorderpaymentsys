@@ -88,12 +88,14 @@ class LawSchoolLedgerImportTest extends TestCase
 
         $this->assertNotNull($student);
         $this->assertEquals('A', $student->middle_name);
+        $this->assertNull($student->student_number);
 
         $this->assertDatabaseHas('law_school_ledgers', [
             'student_id' => $student->id,
             'entry_type' => 'ar',
             'amount' => '9500.00',
             'particulars' => 'Tuition',
+            'imported_input_by' => 'JVT',
         ]);
 
         $this->assertDatabaseHas('law_school_ledgers', [
@@ -101,6 +103,146 @@ class LawSchoolLedgerImportTest extends TestCase
             'entry_type' => 'payment',
             'amount' => '6000.00',
             'reference_number' => '0654396',
+            'imported_input_by' => 'JVT',
+        ]);
+
+        unlink($file);
+    }
+
+    public function test_broken_excel_formula_is_not_saved_as_student_number(): void
+    {
+        $user = User::factory()->staff()->create();
+
+        $file = tempnam(sys_get_temp_dir(), 'law-ledger-import-formula').'.xlsx';
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->fromArray([
+            [
+                'STUDENT ID NUMBER',
+                'NAME (Last Name, First Name, M.I.)',
+                'COURSE',
+                'SCHOOL YEAR',
+                'SEMESTER/ SUMMER',
+                'UNITS',
+                'TRANSACTION DATE',
+                'Reference JEV / O.R. NUMBER',
+                'PARTICULARS',
+                'TUITION per UNIT/ Reg. and Miscellaneous per semester',
+                'AR/PAYMENT',
+                'AMOUNT',
+                'REMARKS',
+                'STATUS',
+                'INPUT BY:',
+            ],
+            [
+                '=IFERROR(INDEX(#REF!,MATCH(TRIM(B2),$A$2:$A$400,0)),"")',
+                'FORMULA, BROKEN A.',
+                'JD',
+                '2025-2026',
+                '1st Sem',
+                10,
+                '2025-07-30',
+                null,
+                'Tuition',
+                950,
+                'AR',
+                9500,
+                null,
+                null,
+                'JVT',
+            ],
+        ], null, 'A1');
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($file);
+
+        $response = $this->actingAs($user)->post('/law-ledger/import', [
+            'file' => new UploadedFile($file, 'import.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ]);
+
+        $response->assertRedirect('/law-ledger');
+
+        $student = Student::query()
+            ->where('last_name', 'FORMULA')
+            ->where('first_name', 'BROKEN')
+            ->first();
+
+        $this->assertNotNull($student);
+        $this->assertNull($student->student_number);
+
+        $this->assertDatabaseHas('law_school_ledgers', [
+            'student_id' => $student->id,
+            'entry_type' => 'ar',
+            'amount' => '9500.00',
+            'imported_input_by' => 'JVT',
+        ]);
+
+        unlink($file);
+    }
+
+    public function test_blank_excel_transaction_date_stays_null(): void
+    {
+        $user = User::factory()->staff()->create();
+
+        $file = tempnam(sys_get_temp_dir(), 'law-ledger-import-blank-date').'.xlsx';
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->fromArray([
+            [
+                'NAME (Last Name, First Name, M.I.)',
+                'COURSE',
+                'SCHOOL YEAR',
+                'SEMESTER/ SUMMER',
+                'UNITS',
+                'TRANSACTION DATE',
+                'Reference JEV / O.R. NUMBER',
+                'PARTICULARS',
+                'TUITION per UNIT/ Reg. and Miscellaneous per semester',
+                'AR/PAYMENT',
+                'AMOUNT',
+                'REMARKS',
+                'STATUS',
+                'INPUT BY:',
+            ],
+            [
+                'DATELESS, STUDENT A.',
+                'JD',
+                '2025-2026',
+                '1st Sem',
+                10,
+                null,
+                null,
+                'Tuition',
+                950,
+                'AR',
+                9500,
+                null,
+                null,
+                'JVT',
+            ],
+        ], null, 'A1');
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($file);
+
+        $response = $this->actingAs($user)->post('/law-ledger/import', [
+            'file' => new UploadedFile($file, 'import.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ]);
+
+        $response->assertRedirect('/law-ledger');
+
+        $student = Student::query()
+            ->where('last_name', 'DATELESS')
+            ->where('first_name', 'STUDENT')
+            ->first();
+
+        $this->assertNotNull($student);
+
+        $this->assertDatabaseHas('law_school_ledgers', [
+            'student_id' => $student->id,
+            'entry_type' => 'ar',
+            'amount' => '9500.00',
+            'transaction_date' => null,
         ]);
 
         unlink($file);
@@ -113,6 +255,7 @@ class LawSchoolLedgerImportTest extends TestCase
         $file = tempnam(sys_get_temp_dir(), 'law-ledger-import').'.csv';
         $handle = fopen($file, 'w');
         fputcsv($handle, [
+            'STUDENT ID NUMBER',
             'NAME (Last Name, First Name, M.I.)',
             'COURSE',
             'SCHOOL YEAR',
@@ -129,6 +272,7 @@ class LawSchoolLedgerImportTest extends TestCase
             'INPUT BY:',
         ]);
         fputcsv($handle, [
+            '202600002.0',
             'ACHARON, MARIA RIZA A.',
             'JD',
             '2025-2026',
@@ -145,6 +289,7 @@ class LawSchoolLedgerImportTest extends TestCase
             'JVT',
         ]);
         fputcsv($handle, [
+            '202600002.0',
             'ACHARON, MARIA RIZA A.',
             'JD',
             '2025-2026',
@@ -175,6 +320,7 @@ class LawSchoolLedgerImportTest extends TestCase
 
         $this->assertNotNull($student);
         $this->assertEquals('A', $student->middle_name);
+        $this->assertSame('202600002', $student->student_number);
 
         $this->assertDatabaseHas('law_school_ledgers', [
             'student_id' => $student->id,
@@ -199,6 +345,7 @@ class LawSchoolLedgerImportTest extends TestCase
         $file = tempnam(sys_get_temp_dir(), 'law-ledger-sep').'.csv';
         $handle = fopen($file, 'w');
         fputcsv($handle, [
+            'student_number',
             'last_name',
             'first_name',
             'middle_initial',
@@ -215,6 +362,7 @@ class LawSchoolLedgerImportTest extends TestCase
             'remarks',
         ]);
         fputcsv($handle, [
+            '2026-00003',
             'DELA CRUZ',
             'JUAN',
             'P.',
@@ -244,6 +392,7 @@ class LawSchoolLedgerImportTest extends TestCase
             ->first();
 
         $this->assertNotNull($student);
+        $this->assertSame('2026-00003', $student->student_number);
 
         $this->assertDatabaseHas('law_school_ledgers', [
             'student_id' => $student->id,
