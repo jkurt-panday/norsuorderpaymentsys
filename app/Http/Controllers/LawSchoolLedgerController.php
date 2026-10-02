@@ -1157,7 +1157,7 @@ class LawSchoolLedgerController extends Controller
         // ->setOption('isRemoteEnabled', true);
 
         // $filename = $pdf->stream("Statement_of_Account_{$studentName}.pdf");
-        $filename = 'Statement_of_Account_'.str_replace(['/', '\\', ' '], '_', $studentName).'.pdf';
+        // $filename = 'Statement_of_Account_'.str_replace(['/', '\\', ' '], '_', $studentName).'.pdf';
 
         return $pdf;
     }
