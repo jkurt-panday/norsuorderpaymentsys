@@ -96,4 +96,129 @@ class LawSchoolLedgerTest extends TestCase
             ->where('selectedStudentId', $student->id)
             ->where('defaultEntryType', 'payment'));
     }
+
+    public function test_latin_honor_discount_keeps_assessment_amount_and_creates_adjustment(): void
+    {
+        $user = User::factory()->staff()->create();
+        $student = Student::create([
+            'student_number' => '202600222',
+            'last_name' => 'Santos',
+            'first_name' => 'Ana',
+        ]);
+        $course = Course::create([
+            'course_code' => 'JD',
+            'course_desc' => 'Juris Doctor',
+            'course_college' => 'School of Law',
+        ]);
+        $term = AcademicTerm::create([
+            'school_year' => '2025-2026',
+            'semester' => 'First Semester',
+        ]);
+
+        $assessment = LawSchoolLedger::create([
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $term->id,
+            'entry_type' => 'ar',
+            'units' => 10,
+            'transaction_date' => '2026-01-10',
+            'reference_number' => 'LAW-AR-002',
+            'particulars' => 'Tuition',
+            'rate' => 1000,
+            'amount' => 10000,
+            'status' => 'Pending',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->from('/law-ledger')
+            ->post("/law-ledger/{$assessment->id}/apply-honor", [
+                'latin_honor' => 'CUM_LAUDE',
+            ]);
+
+        $response->assertRedirect('/law-ledger');
+
+        $assessment->refresh();
+        $this->assertSame('CUM_LAUDE', $assessment->latin_honor);
+        $this->assertEquals(5000.00, (float) $assessment->discount_amount);
+        $this->assertEquals(10000.00, (float) $assessment->amount);
+        $this->assertSame('Pending', $assessment->status);
+
+        $this->assertDatabaseHas('law_school_ledgers', [
+            'student_id' => $student->id,
+            'entry_type' => 'adjustment',
+            'reference_number' => 'HONOR-CUM-'.$assessment->id,
+            'amount' => 5000.00,
+            'particulars' => 'Cum Laude Scholarship (50%)',
+            'status' => 'Applied',
+            'latin_honor' => 'CUM_LAUDE',
+        ]);
+
+        $balanceResponse = $this->actingAs($user)
+            ->getJson("/law-ledger/students/{$student->id}/balance");
+
+        $balanceResponse->assertOk()
+            ->assertJsonPath('summary.totalCharges', 10000)
+            ->assertJsonPath('summary.totalPayments', 5000)
+            ->assertJsonPath('summary.outstandingBalance', 5000);
+    }
+
+    public function test_latin_honor_discount_cannot_be_applied_twice_to_same_assessment(): void
+    {
+        $user = User::factory()->staff()->create();
+        $student = Student::create([
+            'student_number' => '202600333',
+            'last_name' => 'Cruz',
+            'first_name' => 'Ben',
+        ]);
+        $course = Course::create([
+            'course_code' => 'JD',
+            'course_desc' => 'Juris Doctor',
+            'course_college' => 'School of Law',
+        ]);
+        $term = AcademicTerm::create([
+            'school_year' => '2025-2026',
+            'semester' => 'First Semester',
+        ]);
+
+        $assessment = LawSchoolLedger::create([
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $term->id,
+            'entry_type' => 'ar',
+            'transaction_date' => '2026-01-10',
+            'reference_number' => 'LAW-AR-003',
+            'particulars' => 'Tuition',
+            'rate' => 1000,
+            'amount' => 10000,
+            'status' => 'Pending',
+        ]);
+
+        LawSchoolLedger::create([
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $term->id,
+            'entry_type' => 'adjustment',
+            'transaction_date' => '2026-01-11',
+            'reference_number' => 'HONOR-CUM-'.$assessment->id,
+            'particulars' => 'Cum Laude Scholarship (50%)',
+            'rate' => 0,
+            'amount' => 5000,
+            'status' => 'Applied',
+            'latin_honor' => 'CUM_LAUDE',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->from('/law-ledger')
+            ->post("/law-ledger/{$assessment->id}/apply-honor", [
+                'latin_honor' => 'CUM_LAUDE',
+            ]);
+
+        $response->assertRedirect('/law-ledger')
+            ->assertSessionHas('error', 'A Latin honor discount has already been applied to this assessment.');
+
+        $this->assertSame(1, LawSchoolLedger::query()
+            ->where('entry_type', 'adjustment')
+            ->where('reference_number', 'HONOR-CUM-'.$assessment->id)
+            ->count());
+    }
 }

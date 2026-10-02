@@ -1927,7 +1927,7 @@ class LawSchoolLedgerController extends Controller
             'semester_or_summer' => $r->semester_or_summer,
             'entry_type' => $r->entry_type ?? 'ar',
             'units' => $r->units,
-            'transaction_date' => $r->transaction_date ? (string) $r->transaction_date : '',
+            'transaction_date' => $r->transaction_date ? $r->transaction_date->format('Y-m-d') : '',
             'reference_jev_or_number' => $r->reference_jev_or_number ?? '',
             'particulars' => $r->particulars ?? 'Tuition',
             'tuition_per_unit_or_fee_per_semester' => $r->tuition_per_unit_or_fee_per_semester,
@@ -2427,6 +2427,22 @@ class LawSchoolLedgerController extends Controller
         $latinHonor = $validated['latin_honor'];
         $originalAmount = abs((float) $record->amount);
 
+        if ($originalAmount <= 0) {
+            return back()->with('error', 'Cannot apply a Latin honor discount to a zero-amount assessment.');
+        }
+
+        // Prevent duplicate discount credits for the same assessment. The honor
+        // adjustment is the accounting entry that reduces the balance; applying
+        // it twice would double-count the discount.
+        $existingHonorAdjustment = LawSchoolLedger::query()
+            ->where('entry_type', 'adjustment')
+            ->where('reference_number', 'like', 'HONOR-%-'.$record->id)
+            ->exists();
+
+        if ($existingHonorAdjustment) {
+            return back()->with('error', 'A Latin honor discount has already been applied to this assessment.');
+        }
+
         // Calculate discount based on honor type
         $discountPercentage = match ($latinHonor) {
             'SUMMA' => 100,      // 100% discount
@@ -2435,16 +2451,14 @@ class LawSchoolLedgerController extends Controller
             default => 0,
         };
 
-        $discountAmount = ($originalAmount * $discountPercentage) / 100;
-        $newAmount = $originalAmount - $discountAmount;
+        $discountAmount = round(($originalAmount * $discountPercentage) / 100, 2);
 
-        // Update the record
-        DB::transaction(function () use ($record, $latinHonor, $discountAmount, $newAmount): void {
+        // Keep the original AR amount unchanged for auditability. The separate
+        // adjustment transaction is what reduces the student's outstanding balance.
+        DB::transaction(function () use ($record, $latinHonor, $discountAmount): void {
             $record->update([
                 'latin_honor' => $latinHonor,
                 'discount_amount' => $discountAmount,
-                'amount' => $newAmount,
-                'status' => $newAmount <= 0 ? 'Paid' : 'Pending',
             ]);
 
             // Create a corresponding adjustment entry for the discount

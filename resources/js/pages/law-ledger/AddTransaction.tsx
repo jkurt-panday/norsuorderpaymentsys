@@ -1,13 +1,13 @@
 import { Head, useForm, router } from '@inertiajs/react';
+import { ArrowLeft, Plus, X } from 'lucide-react';
+import React, { useState } from 'react';
+import SearchableStudentSelect from './components/SearchableStudentSelect';
+import type { StudentOption } from './components/SearchableStudentSelect';
 import {
-    ArrowLeft,
-    Plus,
-    X,
-    Search,
-    Check,
-    ChevronsUpDown,
-} from 'lucide-react';
-import React, { useState, useMemo } from 'react';
+    entryTypeOptions,
+    particularsOptions,
+    semesterOptions,
+} from './constants';
 import {
     index as lawLedgerIndex,
     store as storeLawLedger,
@@ -23,37 +23,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const semesterOptions = [
-    { label: '1st Sem.', value: 'First Semester' },
-    { label: '2nd Sem.', value: 'Second Semester' },
-    { label: 'Summer', value: 'Summer' },
-];
-
-const particularsOptions = [
-    'Registration',
-    'Tuition',
-    'Miscellaneous',
-    'Adjustment',
-];
-
-const entryTypeOptions = [
-    { value: 'ar', label: 'AR' },
-    { value: 'payment', label: 'Payment' },
-    { value: 'adjustment', label: 'Adjustment' },
-];
-
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-interface StudentOption {
-    id: number | string;
-    student_number?: string | null;
-    last_name: string;
-    first_name: string;
-    middle_name?: string | null;
-    last_course_id?: number | string | null;
-}
 
 interface CourseOption {
     id: number | string;
@@ -79,173 +49,12 @@ interface Props {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatStudentLabel(s: StudentOption): string {
-    const studentName = !s.first_name
-        ? String(s.last_name)
-        : `${s.last_name}, ${s.first_name}${s.middle_name ? ` ${s.middle_name.charAt(0).toUpperCase()}.` : ''}`;
-
-    if (s.student_number) {
-        return `${s.student_number} — ${studentName}`;
-    }
-
-    return studentName;
-}
-
 function FieldError({ message }: { message?: string }) {
     if (!message) {
         return null;
     }
 
     return <p className="mt-1 text-xs text-red-500">{message}</p>;
-}
-
-// ─── Searchable Student Select Component ──────────────────────────────────────
-
-function SearchableStudentSelect({
-    students,
-    value,
-    onChange,
-    onClear,
-    onRemove,
-}: {
-    students: StudentOption[];
-    value: string | number;
-    onChange: (id: string | number) => void;
-    onClear?: () => void;
-    onRemove?: (id: string | number) => void;
-}) {
-    const [isOpen, setIsOpen] = useState(false);
-    const [search, setSearch] = useState('');
-
-    const selectedStudent = students.find(
-        (s) => String(s.id) === String(value),
-    );
-
-    const filteredStudents = useMemo(() => {
-        const query = search.toLowerCase().trim();
-
-        if (!query) {
-            return students.slice(0, 80);
-        }
-
-        return students
-            .filter((s) => {
-                const label = formatStudentLabel(s).toLowerCase();
-
-                return label.includes(query);
-            })
-            .slice(0, 80);
-    }, [students, search]);
-
-    return (
-        <div className="relative w-full">
-            <button
-                type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                className="flex w-full items-center justify-between rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
-            >
-                <span
-                    className={
-                        selectedStudent
-                            ? 'font-medium text-[#0B3D91]'
-                            : 'text-[#7FA6D6]'
-                    }
-                >
-                    {selectedStudent
-                        ? formatStudentLabel(selectedStudent)
-                        : '-- Select / Search Student --'}
-                </span>
-                <div className="flex items-center gap-1">
-                    {selectedStudent && onClear && (
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onClear();
-                            }}
-                            className="rounded p-0.5 text-[#8AA8CC] hover:text-[#0B3D91]"
-                        >
-                            <X className="h-4 w-4" />
-                        </button>
-                    )}
-                    <ChevronsUpDown className="h-4 w-4 text-[#7FA6D6]" />
-                </div>
-            </button>
-
-            {isOpen && (
-                <div className="absolute z-50 mt-1 w-full space-y-2 rounded-md border border-[#CFE3FF] bg-white p-2 shadow-lg">
-                    <div className="relative">
-                        <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-[#8AA8CC]" />
-                        <Input
-                            type="text"
-                            placeholder="Type Student ID or name to filter..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="h-9 border-[#CFE3FF] pl-8 text-xs"
-                            autoFocus
-                        />
-                        {search && (
-                            <button
-                                type="button"
-                                onClick={() => setSearch('')}
-                                className="absolute top-2.5 right-2.5 text-xs text-[#8AA8CC] hover:text-[#0B3D91]"
-                            >
-                                <X className="h-4 w-4" />
-                            </button>
-                        )}
-                    </div>
-
-                    <div className="max-h-60 divide-y divide-[#EAF2FF] overflow-y-auto rounded-md border border-[#EAF2FF]">
-                        {filteredStudents.length === 0 ? (
-                            <p className="p-3 text-center text-xs text-[#8AA8CC]">
-                                No students found.
-                            </p>
-                        ) : (
-                            filteredStudents.map((s) => {
-                                const isSelected =
-                                    String(s.id) === String(value);
-
-                                return (
-                                    <button
-                                        key={s.id}
-                                        type="button"
-                                        onClick={() => {
-                                            onChange(s.id);
-                                            setIsOpen(false);
-                                        }}
-                                        className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-[#F3F8FF] ${
-                                            isSelected
-                                                ? 'bg-[#EAF2FF] font-semibold text-[#0B3D91]'
-                                                : 'text-[#334E68]'
-                                        }`}
-                                    >
-                                        <span>{formatStudentLabel(s)}</span>
-                                        <div className="flex items-center gap-2">
-                                            {isSelected && (
-                                                <Check className="h-3.5 w-3.5 text-[#0F6FFF]" />
-                                            )}
-                                            {onRemove && (
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        onRemove(s.id);
-                                                    }}
-                                                    className="rounded p-0.5 text-[#8AA8CC] hover:text-[#0B3D91]"
-                                                >
-                                                    <X className="h-3.5 w-3.5" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </button>
-                                );
-                            })
-                        )}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
 }
 
 // ─── Main Add Transaction Component ──────────────────────────────────────────
@@ -261,7 +70,8 @@ export default function AddTransaction({
     defaultEntryType = 'ar',
 }: Props) {
     const [showNewStudent, setShowNewStudent] = useState(false);
-    const [availableStudents, setAvailableStudents] = useState<StudentOption[]>(students);
+    const [availableStudents, setAvailableStudents] =
+        useState<StudentOption[]>(students);
 
     const todayStr = new Date().toISOString().slice(0, 10);
     const currentYear = new Date().getFullYear();
@@ -394,7 +204,8 @@ export default function AddTransaction({
                         Add New Transaction
                     </h1>
                     <p className="mt-1 text-sm text-[#5C7A9E]">
-                        Create a manual ledger transaction entry for a law school student.
+                        Create a manual ledger transaction entry for a law
+                        school student.
                     </p>
                 </div>
             </div>
@@ -552,35 +363,35 @@ export default function AddTransaction({
                                     </div>
                                 </div>
                             ) : (
-                            <SearchableStudentSelect
-                                students={availableStudents}
-                                value={data.student_id}
-                                onChange={(id) => {
-                                    const selected = availableStudents.find(
-                                        (s) => String(s.id) === String(id),
-                                    );
+                                <SearchableStudentSelect
+                                    students={availableStudents}
+                                    value={data.student_id}
+                                    onChange={(id) => {
+                                        const selected = availableStudents.find(
+                                            (s) => String(s.id) === String(id),
+                                        );
 
-                                    if (selected?.last_course_id) {
+                                        if (selected?.last_course_id) {
+                                            setData((prev) => ({
+                                                ...prev,
+                                                student_id: id,
+                                                course_id: String(
+                                                    selected.last_course_id,
+                                                ),
+                                            }));
+                                        } else {
+                                            setData('student_id', id);
+                                        }
+                                    }}
+                                    onClear={() => {
                                         setData((prev) => ({
                                             ...prev,
-                                            student_id: id,
-                                            course_id: String(
-                                                selected.last_course_id,
-                                            ),
+                                            student_id: '',
+                                            course_id: '',
                                         }));
-                                    } else {
-                                        setData('student_id', id);
-                                    }
-                                }}
-                                onClear={() => {
-                                    setData((prev) => ({
-                                        ...prev,
-                                        student_id: '',
-                                        course_id: '',
-                                    }));
-                                }}
-                                onRemove={removeStudent}
-                            />
+                                    }}
+                                    onRemove={removeStudent}
+                                />
                             )}
                             <FieldError
                                 message={
@@ -859,7 +670,9 @@ export default function AddTransaction({
                                     setData('input_by', e.target.value)
                                 }
                                 className={
-                                    (errors as any).input_by ? 'border-red-400' : ''
+                                    (errors as any).input_by
+                                        ? 'border-red-400'
+                                        : ''
                                 }
                             />
                             {users.length > 0 && (
