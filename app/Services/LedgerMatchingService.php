@@ -282,6 +282,7 @@ class LedgerMatchingService
             'id' => $record->id,
             'name' => $record->student->full_name ?? '',
             'course' => $record->course?->code,
+            'courseDesc' => $record->course?->course_desc, // ← add this
             'units' => $record->units,
             'schoolYear' => $record->academicTerm?->school_year,
             'semester' => $record->academicTerm?->semester,
@@ -305,6 +306,7 @@ class LedgerMatchingService
             'id' => $record->id,
             'name' => $this->lawStudentName($record),
             'course' => $record->course?->code,
+            'courseDesc' => $record->course?->course_desc, // ← add this
             'units' => $record->units, // ← added
             'schoolYear' => $record->school_year,
             'semester' => AcademicTerm::normalizeSemester((string) $record->semester_or_summer) ?? 'First Semester',
@@ -372,6 +374,12 @@ class LedgerMatchingService
 
     private function lawStudentName(LawSchoolLedger $record): string
     {
+        $student = $record->student;
+        
+            if (! $student) {
+                return '';
+            }
+        
         $givenNames = collect([$record->first_name, $record->middle_initial])
             ->filter(fn ($value) => filled($value))
             ->join(' ');
