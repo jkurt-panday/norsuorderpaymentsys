@@ -2,14 +2,14 @@
 <html>
     <head>
         @php
-            // ── Variable & Logic Extraction (Retained from Second Code) ──
+            // ── Variable & Logic Extraction ──
             $normalizeText = static fn ($value) => str_replace(['−', '–', '—'], '-', (string) ($value ?? ''));
             $firstRecord   = $records->first();
             $cleanAmount   = static fn ($val) => abs((float) preg_replace('/[^\d.]/', '', (string) ($val ?? 0)));
-            $studentName   = $studentName ?? (is_object($student ?? null) ? ($student->full_name ?? ($student->name ?? '—')) : '—');
+            $studentName   = $studentName ?? '—';
             $generatedAt   = $generatedAt ?? now()->format('n/j/Y');
 
-            // Universal property extractor
+            // ── Universal property extractor (objects AND arrays) ──
             $getProp = static function ($obj, array $keys) {
                 if (!$obj) return null;
                 foreach ($keys as $key) {
@@ -23,41 +23,55 @@
                 return null;
             };
 
-            // Course code extraction
-            $courseCode = '—';
-            if ($firstRecord) {
-                if (isset($firstRecord->course) && is_object($firstRecord->course)) {
-                    $courseCode = $firstRecord->course->code ?? '—';
-                } else {
-                    $courseCode = $getProp($firstRecord, ['course', 'course_code', 'code']) ?? '—';
-                }
+            // ── FLAT data: everything lives directly on each record ──
+            $studentNumber = $firstRecord ? $getProp($firstRecord, ['studentNumber', 'student_number']) : null;
+            $studentId     = $studentNumber ?? '—';
+
+            $courseCode = $firstRecord ? $getProp($firstRecord, ['course', 'courseCode', 'course_code']) : null;
+            $courseDesc = $firstRecord ? ($getProp($firstRecord, ['courseDesc', 'course_desc']) ?? $courseCode) : null;
+            $courseDesc = $courseDesc ?? '—';
+
+            // ── Collect ALL unique school years & semesters across every record ──
+            $semesterOrder = [
+                'First Semester'  => 1,
+                'Second Semester' => 2,
+                'Summer'          => 3,
+                'Midyear'         => 3,
+            ];
+
+            $schoolYears = [];
+            $semesters   = [];
+            $courses     = [];
+
+            foreach ($records as $r) {
+                $sy   = $getProp($r, ['schoolYear', 'school_year']);
+                $sem  = $getProp($r, ['semester', 'semester_short']);
+                $crs  = $getProp($r, ['course', 'courseCode', 'course_code']);
+
+                if ($sy  && !in_array($sy,  $schoolYears, true)) $schoolYears[] = $sy;
+                if ($sem && !in_array($sem, $semesters,   true)) $semesters[]   = $sem;
+                if ($crs && !in_array($crs, $courses,     true)) $courses[]     = $crs;
             }
 
-            // School year extraction
-            $schoolYear = '—';
-            if ($firstRecord) {
-                if (isset($firstRecord->academicTerm) && is_object($firstRecord->academicTerm)) {
-                    $schoolYear = $firstRecord->academicTerm->school_year ?? '—';
-                } else {
-                    $schoolYear = $getProp($firstRecord, ['schoolYear', 'school_year']) ?? '—';
-                }
-            }
+            usort($semesters, fn ($a, $b) => ($semesterOrder[$a] ?? 99) <=> ($semesterOrder[$b] ?? 99));
+            sort($schoolYears);
+            sort($courses);
 
-            // Semester extraction
-            $semesterLabel = '—';
-            if ($firstRecord) {
-                if (isset($firstRecord->academicTerm) && is_object($firstRecord->academicTerm)) {
-                    $semesterLabel = $firstRecord->academicTerm->semester_short ?? ($firstRecord->academicTerm->semester ?? '—');
-                } else {
-                    $semesterLabel = $getProp($firstRecord, ['semester', 'semester_short']) ?? '—';
-                }
-            }
+            $schoolYear    = $schoolYears ? implode(', ', $schoolYears) : '—';
+            $semesterLabel = $semesters   ? implode(', ', $semesters)   : '—';
 
+            // If multiple courses exist, show them all; otherwise just the description
+            $courseDisplay = count($courses) > 1
+                ? implode(', ', $courses)
+                : $courseDesc;
+
+            // ── Units: sum or take from first record? (using first record's value) ──
             $units = $firstRecord ? ($getProp($firstRecord, ['units']) ?? '—') : '—';
-            $studentId = $assessment['student_id'] ?? ($getProp($firstRecord, ['student_id', 'studentNo']) ?? '—');
-            $formNumber = $assessment->reference_number ?? ($assessment->id ?? '—');
 
-            // Payment determination logic
+            // ── Form number (not present in flat data → fallback) ──
+            $formNumber = $getProp($firstRecord, ['referenceNo', 'reference_no']) ?? '—';
+
+            // ── Payment determination ──
             $isPayment = static function ($record) use ($getProp) {
                 $rawType = strtoupper(trim((string) ($getProp($record, ['arPayment', 'entry_type', 'ar_payment', 'type']) ?? '')));
                 return in_array($rawType, ['PAYMENT', 'P', 'PAYMENR', 'SETTLED', 'ADJUSTMENT', 'ADJ'])
@@ -65,7 +79,7 @@
                     || str_contains($rawType, 'PAY');
             };
 
-            // Amount formatting logic
+            // ── Amount formatting ──
             $formatAmount = static function ($record) use ($cleanAmount, $isPayment, $getProp) {
                 $amountVal = $getProp($record, ['amount']) ?? 0;
                 $amount = $cleanAmount($amountVal);
@@ -76,18 +90,18 @@
                 return number_format($amount, 2);
             };
 
-            // Header image Base64 processing
+            // ── Header image ──
             $headerImagePath = resource_path('views/pdf/norsu header.png');
             $headerImageBase64 = file_exists($headerImagePath)
                 ? base64_encode(file_get_contents($headerImagePath))
                 : null;
 
-            // Signatory and metadata logic (from First Code)
-            $user = $preparedBy ?? '—';
-            $official = activeAuthorizedOfficial();
-            $signatoryName = $official?->name ?? 'Maurice Anaver B. Dordado, CPA';
+            // ── Signatory & user metadata ──
+            $user               = $preparedBy ?? '—';
+            $official           = activeAuthorizedOfficial();
+            $signatoryName      = $official?->name ?? 'Maurice Anaver B. Dordado, CPA';
             $authofficialcourse = $official?->course ?? 'CPA';
-            $signatoryPosition = $official?->position ?? 'Head of Accounting/Division/Unit';
+            $signatoryPosition  = $official?->position ?? 'Head of Accounting/Division/Unit';
         @endphp
 
         <meta charset="utf-8">
@@ -95,8 +109,6 @@
         @vite(['resources/css/app.css'])
     </head>
 <body class="text-[11px] w-full min-w-[800px] text-gray-900 font-sans">
-
-    {{-- <pre>{{ json_encode(get_defined_vars(), JSON_PRETTY_PRINT) }}</pre> --}}
 
     @if($headerImageBase64)
         <div class="flex justify-center mb-2">
@@ -108,9 +120,12 @@
         </div>
     @endif
 
+    {{-- <pre>{{ json_encode(get_defined_vars(), JSON_PRETTY_PRINT) }}</pre> --}}
+    
+
     <h1 class="text-center font-bold text-2xl my-4">Statement of Account</h1>
 
-    <!-- First Code Info Block Table Layout -->
+    <!-- Info Block -->
     <table class="w-full mb-3 text-[16px]">
         <tr>
             <td class="font-bold w-28 align-top py-0.5">Name:</td>
@@ -126,7 +141,7 @@
         </tr>
         <tr>
             <td class="font-bold align-top py-0.5">Course:</td>
-            <td class="italic align-top py-0.5">{{ $normalizeText($courseCode) }}</td>
+            <td class="italic align-top py-0.5">{{ $normalizeText($courseDisplay) }}</td>
             <td class="font-bold align-top py-0.5">School Year:</td>
             <td class="italic align-top py-0.5">{{ $normalizeText($schoolYear) }}</td>
         </tr>
@@ -138,7 +153,7 @@
         </tr>
     </table>
 
-    <!-- First Code Ledger Table Styling with Second Code Data Structure -->
+    <!-- Ledger Table -->
     <table class="w-full border-b border-t border-black border-collapse mt-1.5 text-[1rem]">
         <thead>
             <tr class="border-b-2 border-black">
@@ -153,12 +168,20 @@
             @forelse($records as $r)
                 @php
                     $txDate  = $getProp($r, ['transactionDate', 'transaction_date']);
-                    $refNo   = $getProp($r, ['referenceNo', 'reference_or_jev_number']) ?? '';
+                    $refNo   = $getProp($r, ['referenceNo', 'reference_number']) ?? '';
                     $part    = $getProp($r, ['particulars']) ?? '—';
-                    $rawType = (string) ($getProp($r, ['arPayment', 'entry_type', 'ar_payment', 'type']) ?? '');
-                    $isAdj   = str_contains(strtoupper($rawType), 'ADJUST');
+                    $rawType = strtoupper(trim((string) ($getProp($r, ['arPayment', 'entry_type', 'type']) ?? '')));
+                    $isAdj   = str_contains($rawType, 'ADJUST');
                     $isPay   = $isPayment($r);
-                    $type    = $isAdj ? $rawType : ($isPay ? 'Payment' : ($rawType ?: 'Charge'));
+
+                    // Normalized uppercase type label
+                    $type = match (true) {
+                        $isAdj            => 'ADJUSTMENT',
+                        $isPay            => 'PAYMENT',
+                        $rawType === 'AR' => 'CHARGE',
+                        $rawType === ''   => 'CHARGE',
+                        default           => $rawType,
+                    };
                 @endphp
                 <tr class="border-b">
                     <td class="px-1.5 py-1">{{ $normalizeText($txDate ? \Carbon\Carbon::parse($txDate)->format('m/d/Y') : '—') }}</td>
@@ -181,55 +204,37 @@
         </tbody>
     </table>
 
-    <!-- First Code Signatory Block -->
+    <!-- Signatory Block -->
     <table class="w-full mt-20 text-lg">
         <tr>
             <td class="w-1/2 align-top px-2.5">
                 Prepared By
-    
-                <div class="text-center mt-10">
-                    (SGD)
-                </div>
-    
-                <div class="font-bold mt-6">
-                    {{ $user }}
-                </div>
-    
-                <div class="mt-1">
-                    Accounting Staff
-                </div>
 
-                <div class="">
-                    &nbsp;
-                </div>
-    
-                <div class="mt-3.5">
-                    Date: {{ $generatedAt }}
-                </div>
+                <div class="text-left mt-10">(SGD)</div>
+
+                <div class="font-bold mt-6">{{ $user }}</div>
+
+                <div class="mt-1">Accounting Staff</div>
+
+                <div class="">&nbsp;</div>
+
+                <div class="mt-3.5">Date: {{ $generatedAt }}</div>
             </td>
-    
+
             <td class="w-1/2 align-top px-2.5">
                 Certified Correct
-    
-                <div class="text-center mt-10">
-                    (SGD)
-                </div>
-    
+
+                <div class="text-left mt-10">(SGD)</div>
+
                 <div class="font-bold mt-6">
                     {{ $signatoryName }}, {{ $authofficialcourse }}
                 </div>
 
-                <div class="mt-1">
-                    {{ $signatoryPosition }}
-                </div>
-    
-                <div class="">
-                    Authorized Official
-                </div>
-    
-                <div class="mt-3.5">
-                    Date: {{ $generatedAt }}
-                </div>
+                <div class="mt-1">{{ $signatoryPosition }}</div>
+
+                <div class="">Authorized Official</div>
+
+                <div class="mt-3.5">Date: {{ $generatedAt }}</div>
             </td>
         </tr>
     </table>
