@@ -1143,6 +1143,7 @@ class LawSchoolLedgerController extends Controller
             'studentName' => $studentName,
             'records' => $records,
             'summary' => $summary,
+            'semesterLabel' => $validated['semester'] ?? 'All Terms',
             'generatedAt' => now()->timezone('Asia/Manila')->format('Y-m-d h:i A'),
             // 'logoDataUri' => $logoDataUri,
         ])
@@ -1323,6 +1324,7 @@ class LawSchoolLedgerController extends Controller
             'studentName' => $studentName,
             'records' => $records,
             'summary' => $summary,
+            'semesterLabel' => $semester ?? 'All Terms',
             'generatedAt' => now()->timezone('Asia/Manila')->format('Y-m-d h:i A'),
         ])
             ->driver('dompdf')
