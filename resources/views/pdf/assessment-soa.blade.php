@@ -48,7 +48,7 @@
         // left out of the layout below. Add it back in if you have a real source for it.
         // $studentName = $selectedStudent['name']
             // ?? trim(($assessment->first_name ?? '') . ' ' . ($assessment->last_name ?? '')) ?: '—';
-        $studentId   = $assessment['student_id'] ?? '—';
+        $studentId   = $selectedStudent['studentId'] ?? ($assessment['student_id'] ?? '—');
         $courseTitle = $assessment->course->course_desc ?? $assessment->course->code ?? '—';
 
         // "Units" isn't present in Assessment as loaded (only ->load(['course'])) or in the

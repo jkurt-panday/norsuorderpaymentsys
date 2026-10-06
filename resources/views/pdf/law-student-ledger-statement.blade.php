@@ -41,10 +41,11 @@
             $semesterLabel = $semesterLabel ?? ($firstRecord ? ($getProp($firstRecord, ['semesterOrSummer', 'semester_or_summer', 'semester']) ?? '—') : '—');
             $units         = $firstRecord ? ($getProp($firstRecord, ['units']) ?? '—') : '—';
             $studentObj    = $student ?? null;
-            $studentId     = $getProp($studentObj, ['student_number', 'student_no', 'student_id'])
-                ?? ($studentObj->id ?? null)
+            $recordStudent  = is_object($firstRecord) ? ($firstRecord->lawStudent ?? $firstRecord->student ?? null) : null;
+            $studentId     = $getProp($studentObj, ['student_number', 'student_no'])
+                ?? $getProp($recordStudent, ['student_number', 'student_no'])
                 ?? ($assessment['student_id'] ?? null)
-                ?? ($getProp($firstRecord, ['studentNumber', 'student_number', 'studentNo', 'student_no', 'studentId', 'student_id']) ?? '—');
+                ?? ($getProp($firstRecord, ['studentNumber', 'student_number', 'studentNo', 'student_no']) ?? '—');
             $formNumber    = $assessment->reference_number ?? ($assessment->id ?? '—');
             $studentName   = $studentName ?? (is_object($student ?? null) ? ($student->full_name ?? ($student->name ?? '—')) : '—');
 
@@ -181,7 +182,7 @@
             <td class="w-1/2 align-top px-2.5">
                 Prepared By
     
-                <div class="text-center mt-10">
+                <div class="text-left mt-10">
                     (SGD)
                 </div>
     
@@ -205,7 +206,7 @@
             <td class="w-1/2 align-top px-2.5">
                 Certified Correct
     
-                <div class="text-center mt-10">
+                <div class="text-left mt-10">
                     (SGD)
                 </div>
     
