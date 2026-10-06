@@ -12,7 +12,7 @@ class LawLedgerImportClassifierTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->classifier = new LawLedgerImportClassifier();
+        $this->classifier = new LawLedgerImportClassifier;
     }
 
     public function test_it_classifies_explicit_ar_with_positive_amount()
@@ -80,7 +80,7 @@ class LawLedgerImportClassifierTest extends TestCase
     public function test_it_classifies_various_ar_keywords()
     {
         $keywords = ['AR', 'A/R', 'ASSESSMENT', 'CHARGE', 'BILLING', 'TUITION', 'FEE'];
-        
+
         foreach ($keywords as $keyword) {
             $result = $this->classifier->classify($keyword, 1000);
             $this->assertEquals('ar', $result['entry_type'], "Failed for keyword: {$keyword}");
@@ -90,7 +90,7 @@ class LawLedgerImportClassifierTest extends TestCase
     public function test_it_classifies_various_payment_keywords()
     {
         $keywords = ['PAYMENT', 'PAY', 'P', 'PMT', 'RECEIPT', 'OR', 'CASH', 'CHECK', 'ONLINE'];
-        
+
         foreach ($keywords as $keyword) {
             $result = $this->classifier->classify($keyword, -1000);
             $this->assertEquals('payment', $result['entry_type'], "Failed for keyword: {$keyword}");
@@ -100,7 +100,7 @@ class LawLedgerImportClassifierTest extends TestCase
     public function test_it_classifies_various_adjustment_keywords()
     {
         $keywords = ['ADJ', 'ADJUSTMENT', 'ADJUSTMENTS', 'CREDIT MEMO', 'DEBIT MEMO'];
-        
+
         foreach ($keywords as $keyword) {
             $result = $this->classifier->classify($keyword, 100);
             $this->assertEquals('adjustment', $result['entry_type'], "Failed for keyword: {$keyword}");

@@ -6,6 +6,7 @@ import {
     Check,
     ChevronsUpDown,
     X,
+    Loader2,
 } from 'lucide-react';
 import React, { useState, useMemo } from 'react';
 import {
@@ -15,6 +16,17 @@ import {
 } from '@/actions/App/Http/Controllers/GraduateLedgerController';
 import { Button } from '@/components/ui/button';
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogMedia,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
     Card,
     CardContent,
     CardHeader,
@@ -23,6 +35,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { flashToast } from '@/utils/flashToast';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -136,21 +149,24 @@ function SearchableStudentSelect({
         (s) => String(s.id) === String(value),
     );
 
+    const MATCH_LIMIT = 80;
+
     const filteredStudents = useMemo(() => {
         const query = search.toLowerCase().trim();
 
         if (!query) {
-            return students.slice(0, 80);
+            return students;
         }
 
-        return students
-            .filter((s) => {
-                const label = formatStudentLabel(s).toLowerCase();
+        return students.filter((s) => {
+            const label = formatStudentLabel(s).toLowerCase();
 
-                return label.includes(query);
-            })
-            .slice(0, 80);
+            return label.includes(query);
+        });
     }, [students, search]);
+
+    const visibleStudents = filteredStudents.slice(0, MATCH_LIMIT);
+    const hasMoreStudents = filteredStudents.length > MATCH_LIMIT;
 
     return (
         <div className="relative w-full">
@@ -202,31 +218,40 @@ function SearchableStudentSelect({
                                 No students found.
                             </p>
                         ) : (
-                            filteredStudents.map((s) => {
-                                const isSelected =
-                                    String(s.id) === String(value);
+                            <>
+                                {visibleStudents.map((s) => {
+                                    const isSelected =
+                                        String(s.id) === String(value);
 
-                                return (
-                                    <button
-                                        key={s.id}
-                                        type="button"
-                                        onClick={() => {
-                                            onChange(s.id);
-                                            setIsOpen(false);
-                                        }}
-                                        className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-[#F3F8FF] ${
-                                            isSelected
-                                                ? 'bg-[#EAF2FF] font-semibold text-[#0B3D91]'
-                                                : 'text-[#334E68]'
-                                        }`}
-                                    >
-                                        <span>{formatStudentLabel(s)}</span>
-                                        {isSelected && (
-                                            <Check className="h-3.5 w-3.5 text-[#0F6FFF]" />
-                                        )}
-                                    </button>
-                                );
-                            })
+                                    return (
+                                        <button
+                                            key={s.id}
+                                            type="button"
+                                            onClick={() => {
+                                                onChange(s.id);
+                                                setIsOpen(false);
+                                            }}
+                                            className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-[#F3F8FF] ${
+                                                isSelected
+                                                    ? 'bg-[#EAF2FF] font-semibold text-[#0B3D91]'
+                                                    : 'text-[#334E68]'
+                                            }`}
+                                        >
+                                            <span>{formatStudentLabel(s)}</span>
+                                            {isSelected && (
+                                                <Check className="h-3.5 w-3.5 text-[#0F6FFF]" />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                                {hasMoreStudents && (
+                                    <div className="bg-[#F8FBFF] px-3 py-2 text-center text-[11px] text-[#5C7A9E]">
+                                        Showing first {MATCH_LIMIT} of{' '}
+                                        {filteredStudents.length} students. Type
+                                        to narrow search.
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>
@@ -245,6 +270,8 @@ export default function EditTransaction({
     authUserName,
 }: Props) {
     const isNormalized = record.student_id !== undefined;
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const { data, setData, transform, put, processing, errors } = useForm({
         student_id: record.student_id ?? '',
@@ -318,26 +345,41 @@ export default function EditTransaction({
         });
     };
 
-    const handleDelete = () => {
-        const studentLabel = isNormalized
-            ? students.find((s) => String(s.id) === String(data.student_id))
-                ? formatStudentLabel(
-                      students.find(
-                          (s) => String(s.id) === String(data.student_id),
-                      )!,
-                  )
-                : 'this student'
-            : data.student_name;
+    const studentLabel = useMemo(() => {
+        if (isNormalized) {
+            const found = students.find(
+                (s) => String(s.id) === String(data.student_id),
+            );
+            return found ? formatStudentLabel(found) : 'this student';
+        }
+        return data.student_name || 'this student';
+    }, [isNormalized, students, data.student_id, data.student_name]);
 
-        if (
-            !window.confirm(
-                `Delete this transaction for "${studentLabel}"? This cannot be undone.`,
-            )
-        ) {
+    const handleConfirmDelete = () => {
+        if (isDeleting) {
             return;
         }
 
-        router.delete(destroyGraduateLedger.url(record.id));
+        setIsDeleting(true);
+        router.delete(destroyGraduateLedger.url(record.id), {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                flashToast('success', 'Transaction deleted.');
+            },
+            onError: (errors) => {
+                const firstError = Object.values(errors ?? {})[0];
+                const message =
+                    typeof firstError === 'string'
+                        ? firstError
+                        : 'Failed to delete transaction.';
+                flashToast('error', message);
+            },
+            onFinish: () => {
+                setIsDeleting(false);
+                setShowDeleteDialog(false);
+            },
+        });
     };
 
     const selectClass =
@@ -371,7 +413,7 @@ export default function EditTransaction({
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleDelete}
+                        onClick={() => setShowDeleteDialog(true)}
                         className="border-red-200 text-red-600 hover:bg-red-50"
                     >
                         <Trash2 className="mr-1 h-4 w-4" /> Delete
@@ -740,6 +782,53 @@ export default function EditTransaction({
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog
+                open={showDeleteDialog}
+                onOpenChange={(open) => {
+                    if (!open && !isDeleting) {
+                        setShowDeleteDialog(false);
+                    }
+                }}
+            >
+                <AlertDialogContent className="max-w-md gap-0 overflow-hidden border border-[#CFE3FF] bg-white p-0 shadow-xl sm:max-w-md">
+                    <AlertDialogHeader className="gap-3 p-5 sm:place-items-start sm:text-left">
+                        <AlertDialogMedia className="mb-0 size-11 rounded-full bg-red-50 text-red-600">
+                            <Trash2 className="size-5" />
+                        </AlertDialogMedia>
+                        <AlertDialogTitle className="text-lg font-semibold text-[#0B3D91]">
+                            Delete Transaction
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-sm text-[#5C7A9E]">
+                            Are you sure you want to delete the transaction for{' '}
+                            <strong className="text-[#0B3D91]">
+                                "{studentLabel}"
+                            </strong>
+                            ? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="border-t border-[#CFE3FF] bg-[#F8FBFF] px-5 py-3">
+                        <AlertDialogCancel
+                            disabled={isDeleting}
+                            onClick={() => setShowDeleteDialog(false)}
+                            className="border-[#CFE3FF] text-[#0B3D91]"
+                        >
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={isDeleting}
+                            onClick={handleConfirmDelete}
+                            className="bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                        >
+                            {isDeleting && (
+                                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                            )}
+                            {isDeleting ? 'Deleting...' : 'Delete'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

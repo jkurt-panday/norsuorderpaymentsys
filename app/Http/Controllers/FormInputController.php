@@ -184,9 +184,9 @@ class FormInputController extends Controller
     public function printReceipt(FormInput $formInput): PdfBuilder
     {
         if (session('success_reference_number') !== $formInput->reference_number) {
-                abort(404);
-            }
-        
+            abort(404);
+        }
+
         // $formInput = FormInput::query()->where('reference_number', $referenceNumber)->firstOrFail();
 
         // dd($formInput);
@@ -202,9 +202,9 @@ class FormInputController extends Controller
     public function downloadReceipt(FormInput $formInput): PdfBuilder
     {
         if (session('success_reference_number') !== $formInput->reference_number) {
-               abort(404);
-           }
-        
+            abort(404);
+        }
+
         return $this->receiptPDFService
             ->orderOfPaymentPrint($formInput)
             ->name("receipt-{$formInput->reference_number}.pdf");

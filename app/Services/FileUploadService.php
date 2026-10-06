@@ -16,7 +16,7 @@ class FileUploadService
     protected string $directory = 'supporting-documents';
 
     /** @var list<string> */
-    protected array $allowedTypes = ['pdf', 'jpg', 'jpeg', 'png', 'webp',];
+    protected array $allowedTypes = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
 
     protected int $maxFileSize = 10240; // 10MB in KB
 

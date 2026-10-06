@@ -245,10 +245,19 @@ export default function PrintSelect({
         }
 
         const queryKey = isNumericId ? 'student_id' : 'student';
-        window.open(
-            `/law-ledger/pdf?${queryKey}=${encodeURIComponent(selected)}`,
-            '_blank',
-        );
+        const params = new URLSearchParams({
+            [queryKey]: String(selected),
+        });
+
+        if (schoolYearFilter !== 'all') {
+            params.set('school_year', schoolYearFilter);
+        }
+
+        if (semesterFilter !== 'all') {
+            params.set('semester', semesterFilter);
+        }
+
+        window.open(`/law-ledger/pdf?${params.toString()}`, '_blank');
     };
 
     return (

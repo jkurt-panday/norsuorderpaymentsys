@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\AssessmentFormInfoRequest;
 use App\Models\AssessmentForm;
-use App\Models\Student;
-// use Illuminate\Support\Facades\Redirect as FacadeRedirect;
 use App\Models\Courses;
+// use Illuminate\Support\Facades\Redirect as FacadeRedirect;
+use App\Models\Student;
 use App\Services\ReceiptPDFService;
 use App\Services\ReferenceNumberService;
 use Illuminate\Http\RedirectResponse;
@@ -70,7 +70,7 @@ class AssessmentFormController extends Controller
                 'enrolled_under' => $validated['enrolled_under'],
                 'sy_last_attended' => $validated['sy_last_attended'],
                 'semester' => $validated['semester'],
-                'status' => 'pending'
+                'status' => 'pending',
             ]);
 
             // Student::query()->
@@ -130,7 +130,7 @@ class AssessmentFormController extends Controller
         //     ->firstOrFail();
 
         // dd($formInput);
-         if (session('success_reference_number') !== $assessmentForm->reference_number) {
+        if (session('success_reference_number') !== $assessmentForm->reference_number) {
             abort(404);
         }
 
@@ -147,7 +147,7 @@ class AssessmentFormController extends Controller
         if (session('success_reference_number') !== $assessmentForm->reference_number) {
             abort(404);
         }
-        
+
         return $this->receiptPdfService
             ->assessmentPrint($assessmentForm)
             ->name("receipt-{$assessmentForm->reference_number}.pdf");

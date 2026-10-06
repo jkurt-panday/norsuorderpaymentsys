@@ -98,6 +98,7 @@ export interface LedgerRecord {
   inputBy: string;
   membership?: string | null;
   discountAmount?: number;
+  orLink?: string | null;
 }
 
 export interface LedgerPaginator {
@@ -218,7 +219,7 @@ interface IndexProps {
     totalPayments?: number;
     outstandingBalance?: number;
   };
-  filterOptions?: {
+  filterOptions: {
     courses: string[];
     schoolYears: string[];
     semesters: string[];
@@ -265,6 +266,8 @@ export default function Index({ records, filters, stats, filterOptions, courses 
     preset_academic_term_id: '',
   });
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string | number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [membershipTarget, setMembershipTarget] = useState<LedgerRecord | null>(null);
   const [selectedMembership, setSelectedMembership] = useState<'NAPU' | 'NORSUFFA' | ''>('');
   const [isApplyingMembership, setIsApplyingMembership] = useState(false);
@@ -723,7 +726,35 @@ throw new Error('Export failed');
       console.error('Export error:', error);
       setIsExporting(false);
       setExportProgress(0);
+      flashToast('error', 'Export failed. Please try again.');
     }
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget || isDeleting) {
+      return;
+    }
+
+    const targetId = deleteTarget.id;
+
+    setIsDeleting(true);
+    router.delete(`/graduate-ledger/${targetId}`, {
+      preserveScroll: true,
+      preserveState: true,
+      onSuccess: () => {
+        flashToast('success', 'Transaction deleted.');
+      },
+      onError: (errors) => {
+        const firstError = Object.values(errors ?? {})[0];
+        const message = typeof firstError === 'string' ? firstError : 'Failed to delete transaction.';
+
+        flashToast('error', message);
+      },
+      onFinish: () => {
+        setIsDeleting(false);
+        setDeleteTarget(null);
+      },
+    });
   };
 
   const applyMembershipDiscount = () => {
@@ -919,7 +950,7 @@ throw new Error('Export failed');
 
           <Card className="shadow-xs border border-[#CFE3FF] bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-[#5C7A9E]">Total Assessments</CardTitle>
+              <CardTitle className="text-sm font-medium text-[#5C7A9E]">Total Accounts Receivable</CardTitle>
               <DollarSign className="h-4 w-4 text-[#0F6FFF]" />
             </CardHeader>
             <CardContent>
@@ -1264,7 +1295,20 @@ throw new Error('Export failed');
                       {visibleColumns.semester && <td className="py-2 pr-4 text-[#334E68]">{r.semester}</td>}
                       {visibleColumns.units && <td className="py-2 pr-4 text-right text-[#334E68]">{r.units}</td>}
                       {visibleColumns.transactionDate && <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{formatTransactionDate(r.transactionDate)}</td>}
-                      {visibleColumns.referenceNo && <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{r.referenceNo}</td>}
+                      {visibleColumns.referenceNo && <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">
+                          {r.orLink ? (
+                              <a
+                                  href={r.orLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 font-medium text-[#0B62E0] hover:underline"
+                              >
+                                  {r.referenceNo}
+                              </a>
+                          ) : (
+                              r.referenceNo || '—'
+                          )}
+                      </td>}
                       {visibleColumns.particulars && <td className="py-2 pr-4 text-[#334E68]">{r.particulars}</td>}
                       {visibleColumns.feeRate && (
                         <td className="py-2 pr-4 text-right text-[#334E68]">{currency(r.tuitionPerUnitOrFeePerSemester)}</td>
@@ -1273,20 +1317,22 @@ throw new Error('Export failed');
                         <Badge
                           variant="outline"
                           className={`${getEntryTypeBadge(r.arPayment)} ${
-                            r.arPayment?.toUpperCase() === 'AR'
+                            r.arPayment?.toUpperCase() === 'AR' && !r.membership
                               ? 'cursor-pointer hover:ring-2 hover:ring-[#0F6FFF]'
                               : ''
                           }`}
                           onClick={(e) => {
-                            if (r.arPayment?.toUpperCase() === 'AR') {
+                            if (r.arPayment?.toUpperCase() === 'AR' && !r.membership) {
                               e.stopPropagation();
                               setMembershipTarget(r);
                               setSelectedMembership('');
                             }
                           }}
                           title={
-                            r.arPayment?.toUpperCase() === 'AR'
+                            r.arPayment?.toUpperCase() === 'AR' && !r.membership
                               ? 'Click to apply Membership Scholarship'
+                              : r.membership
+                              ? `${r.membership} Membership Scholarship applied`
                               : undefined
                           }
                         >
@@ -1314,7 +1360,7 @@ throw new Error('Export failed');
                         <button
                           onClick={(event) => {
                             event.stopPropagation();
-                            handleDelete(r.id, r.name);
+                            setDeleteTarget({ id: r.id, name: r.name });
                           }}
                           className="inline-flex items-center justify-center rounded p-1.5 text-red-500 transition-colors hover:bg-red-50"
                           title="Delete"
@@ -1335,7 +1381,9 @@ throw new Error('Export failed');
             <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-[#CFE3FF] pt-4 pb-4 gap-4">
               <div className="flex items-center gap-4 text-xs text-[#5C7A9E]">
                 <div>
-                  Showing {currentPage} of {lastPage}
+                  {totalRecordCount === 0
+                    ? 'Showing 0 of 0'
+                    : `Showing ${currentPage} of ${lastPage}`}
                 </div>
                 <span className="text-[#8AA8CC]">|</span>
                 <div>
@@ -1791,15 +1839,15 @@ throw new Error('Export failed');
                       <div
                         className="flex items-center gap-3 p-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100"
                         onClick={() => {
-                          const visibleIds = new Set(visibleRecipients.map((r) => r.id));
-
-                          if (visibleRecipients.every((r) => selectedIds.has(r.id))) {
-                            visibleIds.forEach((id) => selectedIds.delete(id));
-                          } else {
-                            visibleIds.forEach((id) => selectedIds.add(id));
-                          }
-
-                          setSelectedIds(new Set(selectedIds));
+                          setSelectedIds((prev) => {
+                            const next = new Set(prev);
+                            if (visibleRecipients.every((r) => next.has(r.id))) {
+                              visibleRecipients.forEach((r) => next.delete(r.id));
+                            } else {
+                              visibleRecipients.forEach((r) => next.add(r.id));
+                            }
+                            return next;
+                          });
                         }}
                       >
                         <div className="flex items-center justify-center w-4 h-4">
@@ -2146,7 +2194,7 @@ throw new Error('Export failed');
               Apply Membership Scholarship
             </AlertDialogTitle>
             <AlertDialogDescription className="text-sm text-[#5C7A9E]">
-              Select the faculty or personnel union membership to apply a 100% scholarship adjustment to this assessment.
+              Select the faculty or personnel union membership to apply a 100% scholarship adjustment to this AR.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -2156,7 +2204,7 @@ throw new Error('Export failed');
                 <p className="text-sm font-semibold text-[#0B3D91]">{membershipTarget.name}</p>
                 <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-[#5C7A9E]">
                   <div>
-                    <span className="block text-[11px] uppercase tracking-wide text-[#8AA8CC]">Assessment Amount</span>
+                    <span className="block text-[11px] uppercase tracking-wide text-[#8AA8CC]">AR Amount</span>
                     <span className="font-medium text-[#334E68]">{currency(membershipTarget.amount)}</span>
                   </div>
                   <div>
@@ -2237,12 +2285,48 @@ throw new Error('Export failed');
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) {
+            setDeleteTarget(null);
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-md gap-0 overflow-hidden border border-[#CFE3FF] bg-white p-0 shadow-xl sm:max-w-md">
+          <AlertDialogHeader className="gap-3 p-5 sm:place-items-start sm:text-left">
+            <AlertDialogMedia className="mb-0 size-11 rounded-full bg-red-50 text-red-600">
+              <Trash2 className="size-5" />
+            </AlertDialogMedia>
+            <AlertDialogTitle className="text-lg font-semibold text-[#0B3D91]">
+              Delete Transaction
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-[#5C7A9E]">
+              Are you sure you want to delete the transaction for{' '}
+              <strong className="text-[#0B3D91]">{deleteTarget?.name}</strong>? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="border-t border-[#CFE3FF] bg-[#F8FBFF] px-5 py-3">
+            <AlertDialogCancel
+              disabled={isDeleting}
+              onClick={() => setDeleteTarget(null)}
+              className="border-[#CFE3FF] text-[#0B3D91]"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeleting}
+              onClick={handleConfirmDelete}
+              className="bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              {isDeleting && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
-}
-
-function handleDelete(id: string | number, name: string) {
-  if (confirm(`Delete transaction for ${name}?`)) {
-    router.delete(`/graduate-ledger/${id}`);
-  }
 }

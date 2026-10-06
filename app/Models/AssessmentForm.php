@@ -28,7 +28,7 @@ class AssessmentForm extends Model
         'enrolled_under',
         'sy_last_attended',
         'semester',
-        'status'
+        'status',
     ];
 
     /**

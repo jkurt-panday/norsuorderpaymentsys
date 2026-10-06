@@ -382,8 +382,7 @@ class StaffInputController extends Controller
         StaffProcessingRequest $request,
         StaffInput $staffInput,
         CashierLedgerPostingService $postingService,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $validated = $request->validated();
 
         try {

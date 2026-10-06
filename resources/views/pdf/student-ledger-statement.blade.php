@@ -54,7 +54,11 @@
             }
 
             $units = $firstRecord ? ($getProp($firstRecord, ['units']) ?? '—') : '—';
-            $studentId = $assessment['student_id'] ?? ($getProp($firstRecord, ['student_id', 'studentNo']) ?? '—');
+            $studentObj = $student ?? null;
+            $studentId = $getProp($studentObj, ['student_number'])
+                ?? ($studentObj->id ?? null)
+                ?? ($assessment['student_id'] ?? null)
+                ?? ($getProp($firstRecord, ['studentNumber', 'student_number', 'studentId', 'student_id', 'studentNo']) ?? '—');
             $formNumber = $assessment->reference_number ?? ($assessment->id ?? '—');
 
             // Payment determination logic
@@ -92,9 +96,58 @@
 
         <meta charset="utf-8">
         <title>Statement of Account - {{ $studentName }}</title>
-        @vite(['resources/css/app.css'])
+        <style>
+            @page { size: A4 portrait; margin: 14mm 12mm; }
+            body { color: #111827; font-family: DejaVu Sans, sans-serif; font-size: 11px; width: 100%; }
+            .text-center { text-align: center; }
+            .text-left { text-align: left; }
+            .text-right { text-align: right; }
+            .italic { font-style: italic; }
+            .font-bold { font-weight: bold; }
+            .text-gray-900 { color: #111827; }
+            .text-gray-500 { color: #6b7280; }
+            .text-2xl { font-size: 18pt; }
+            .text-lg { font-size: 14pt; }
+            .text-xs { font-size: 9pt; }
+            .text-\[11px\] { font-size: 11px; }
+            .text-\[16px\], .text-\[1rem\] { font-size: 12pt; }
+            .w-full { width: 100%; }
+            .w-1\/2 { width: 50%; }
+            .w-28 { width: 70px; }
+            .w-45 { width: 115px; }
+            .max-w-\[605px\] { max-width: 605px; }
+            .flex { display: flex; }
+            .justify-center { justify-content: center; }
+            .align-top { vertical-align: top; }
+            .border-collapse { border-collapse: collapse; }
+            .border-black { border-color: #000; }
+            .border-b { border-bottom: 1px solid #d1d5db; }
+            .border-t { border-top: 1px solid #000; }
+            .border-b-2 { border-bottom: 2px solid #000; }
+            .border-t-2 { border-top: 2px solid #000; }
+            .px-1\.5 { padding-left: 6px; padding-right: 6px; }
+            .px-2\.5 { padding-left: 10px; padding-right: 10px; }
+            .py-0\.5 { padding-top: 2px; padding-bottom: 2px; }
+            .py-1 { padding-top: 4px; padding-bottom: 4px; }
+            .py-1\.5 { padding-top: 6px; padding-bottom: 6px; }
+            .py-3 { padding-top: 12px; padding-bottom: 12px; }
+            .mt-1\.5 { margin-top: 6px; }
+            .mt-3\.5 { margin-top: 14px; }
+            .mt-4 { margin-top: 16px; }
+            .mt-6 { margin-top: 24px; }
+            .mt-8 { margin-top: 32px; }
+            .mt-10 { margin-top: 40px; }
+            .mt-20 { margin-top: 48px; }
+            .mb-2 { margin-bottom: 8px; }
+            .mb-3 { margin-bottom: 12px; }
+            .my-4 { margin-top: 16px; margin-bottom: 16px; }
+            table { border-collapse: collapse; }
+            img { height: auto; }
+            thead { display: table-header-group; }
+            tr { page-break-inside: avoid; }
+        </style>
     </head>
-<body class="text-[11px] w-full min-w-[800px] text-gray-900 font-sans">
+<body class="text-[11px] w-full text-gray-900 font-sans">
 
     {{-- <pre>{{ json_encode(get_defined_vars(), JSON_PRETTY_PRINT) }}</pre> --}}
 

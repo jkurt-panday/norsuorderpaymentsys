@@ -1510,13 +1510,17 @@ return 90;
                         onClick={() => {
                           const visibleIds = new Set(visibleRecipients.map((r) => r.id));
 
-                          if (visibleRecipients.every((r) => selectedIds.has(r.id))) {
-                            visibleIds.forEach((id) => selectedIds.delete(id));
-                          } else {
-                            visibleIds.forEach((id) => selectedIds.add(id));
-                          }
+                          setSelectedIds((prev) => {
+                            const next = new Set(prev);
 
-                          setSelectedIds(new Set(selectedIds));
+                            if (visibleRecipients.every((r) => next.has(r.id))) {
+                              visibleIds.forEach((id) => next.delete(id));
+                            } else {
+                              visibleIds.forEach((id) => next.add(id));
+                            }
+
+                            return next;
+                          });
                         }}
                       >
                         <div className="flex items-center justify-center w-4 h-4">

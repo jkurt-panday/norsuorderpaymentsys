@@ -131,6 +131,67 @@ class AssessmentStatementPrinterTest extends TestCase
         $this->assertSame(1250.0, $statement['summary']['outstandingBalance']);
     }
 
+    public function test_law_assessment_soa_prints_matched_ledger_student_number(): void
+    {
+        $assessment = $this->assessment([
+            'enrolled_under' => 'School of Law',
+            'student_id' => null,
+            'first_name' => 'Juan',
+            'middle_name' => 'Q',
+            'last_name' => 'Dela Cruz',
+            'semester' => 'Second Semester',
+        ]);
+        $student = Student::create([
+            'student_number' => 'LAW-100',
+            'last_name' => 'Dela Cruz',
+            'first_name' => 'Juan',
+            'middle_name' => 'Q',
+        ]);
+        $course = $this->course('JD', 'School of Law');
+        $term = $this->academicTerm('2025-2026', 'Second Semester');
+        $this->lawRecord($student, $course, $term, 'ar', 2000, 'LAW-AR');
+
+        $statement = app(LedgerMatchingService::class)->forAssessment($assessment);
+        $html = view('pdf.assessment-soa', [
+            'assessment' => $assessment->load('course'),
+            'ledgerStatement' => $statement,
+            'preparedBy' => 'Test User',
+            'authOfficial' => null,
+        ])->render();
+
+        $this->assertSame('LAW-100', $statement['selectedStudent']['studentId']);
+        $this->assertStringContainsString('<td class="italic align-top py-0.5">LAW-100</td>', $html);
+    }
+
+    public function test_law_ledger_statement_prints_student_number_instead_of_internal_id(): void
+    {
+        $student = Student::create([
+            'student_number' => 'LAW-999',
+            'last_name' => 'Santos',
+            'first_name' => 'Ana',
+            'middle_name' => 'M',
+        ]);
+        $course = $this->course('JD', 'School of Law');
+        $term = $this->academicTerm('2025-2026', 'First Semester');
+        $this->lawRecord($student, $course, $term, 'ar', 1500, 'LAW-AR');
+
+        $records = LawSchoolLedger::query()
+            ->with(['lawStudent', 'lawCourse', 'lawAcademicTerm'])
+            ->where('student_id', $student->id)
+            ->get();
+
+        $html = view('pdf.law-student-ledger-statement', [
+            'student' => null,
+            'studentName' => $student->full_name,
+            'records' => $records,
+            'summary' => ['outstandingBalance' => 1500],
+            'semesterLabel' => 'First Semester',
+            'preparedBy' => 'Test User',
+        ])->render();
+
+        $this->assertStringContainsString('<td class="italic align-top py-0.5">LAW-999</td>', $html);
+    }
+
     public function test_undergraduate_assessments_return_an_unsupported_statement(): void
     {
         $statement = app(LedgerMatchingService::class)->forAssessment($this->assessment([
