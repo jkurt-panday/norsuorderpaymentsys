@@ -83,7 +83,6 @@ interface StudentMatch {
     id: number;
     student_number: string | null;
     full_name: string;
-    has_ledger_records?: boolean;
 }
 
 interface Course {
@@ -364,14 +363,7 @@ export default function ShowRequest() {
     const isLedgerCourse = ['Graduate School', 'School of Law'].includes(
         formInput.course?.course_college ?? '',
     );
-    // A student is "matched" only when the FormInput links to a student
-    // AND that student still has ledger records. If the staff member
-    // deleted the student's ledger entries, the OP is effectively
-    // unmatched again and the "Match Student" CTA should reappear.
-    const studentHasLedger =
-        !!formInput.student && formInput.student.has_ledger_records !== false;
-    const needsStudentMatch =
-        isLedgerCourse && (!formInput.student_num || !studentHasLedger);
+    const needsStudentMatch = isLedgerCourse && !formInput.student_num;
     const needsAcademicTermMatch =
         isLedgerCourse && !formInput.academic_term;
 
@@ -2579,7 +2571,7 @@ export default function ShowRequest() {
                     </section>
                 )}
 
-                {isLedgerCourse && formInput.student && studentHasLedger && (
+                {isLedgerCourse && formInput.student && (
                     <section className="mt-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
                         <div className="flex gap-3 text-emerald-950">
                             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
