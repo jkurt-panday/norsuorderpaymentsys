@@ -11,10 +11,10 @@ use App\Services\ReceiptPDFService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Spatie\LaravelPdf\PdfBuilder;
-use Illuminate\Validation\Rule;
 
 class AssessmentController extends Controller
 {
@@ -178,13 +178,13 @@ class AssessmentController extends Controller
     //  * Update the specified resource in storage.
     //  */
     public function update(Request $request, AssessmentForm $assessment): RedirectResponse
-    {        
+    {
         $validated = $request->validate([
             'status' => ['required', 'string', Rule::in(['pending', 'approved', 'rejected', 'completed'])],
         ]);
-    
+
         $assessment->update($validated);
-        
+
         return back()->with('success', 'Status updated.');
     }
 

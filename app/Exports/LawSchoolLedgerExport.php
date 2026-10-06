@@ -51,7 +51,7 @@ class LawSchoolLedgerExport implements FromQuery, ShouldAutoSize, WithHeadings, 
         $lastName = $row->lawStudent?->last_name ?? '';
         $firstName = $row->lawStudent?->first_name ?? '';
         $middleInitial = $row->lawStudent?->middle_name ? substr($row->lawStudent->middle_name, 0, 1) : '';
-        
+
         return [
             trim("$lastName, $firstName ".($middleInitial ? "$middleInitial" : '')),
             $lastName,

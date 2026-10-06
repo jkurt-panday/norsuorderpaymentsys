@@ -22,6 +22,19 @@ class StoreGraduateLedgerRequest extends FormRequest
             'input_by' => $this->user()?->id,
             'status' => $this->input('status', 'posted'),
         ]);
+
+        // Batch mode: normalise each item's rate/reference/input_by
+        if ($this->has('items') && is_array($this->input('items'))) {
+            $items = array_map(function (array $item): array {
+                $item['tuition_per_unit_or_misc'] = $item['tuition_per_unit_or_misc'] ?? '0.00';
+                $item['rate'] = $item['rate'] ?? $item['tuition_per_unit_or_misc'] ?? '0.00';
+                $item['reference_number'] = $item['reference_number'] ?? $item['reference_or_jev_number'] ?? null;
+                $item['input_by'] = $this->user()?->id;
+                $item['status'] = $item['status'] ?? 'posted';
+                return $item;
+            }, $this->input('items'));
+            $this->merge(['items' => $items]);
+        }
     }
 
     /**
@@ -50,17 +63,21 @@ class StoreGraduateLedgerRequest extends FormRequest
                 'nullable',
                 Rule::in(['First Semester', 'Second Semester', 'Summer']),
             ],
-            'entry_type' => ['required', Rule::in(['ar', 'payment', 'adjustment'])],
+            'entry_type' => [
+                Rule::requiredIf(fn () => ! is_array($this->input('items'))),
+                'nullable',
+                Rule::in(['ar', 'payment', 'adjustment']),
+            ],
             'units' => ['nullable', 'integer', 'min:0'],
             'transaction_date' => ['required', 'date'],
             'reference_or_jev_number' => ['nullable', 'string', 'max:255'],
             'reference_number' => ['nullable', 'string', 'max:100'],
             'particulars' => ['nullable', 'string', 'max:255'],
-            'tuition_per_unit_or_misc' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:99999999.99'],
-            'rate' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
+            'tuition_per_unit_or_misc' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:99999999.99'],
+            'rate' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
             'amount' => [
                 'nullable',
-                'required_unless:entry_type,ar',
+                Rule::requiredIf(fn () => ! is_array($this->input('items')) && $this->input('entry_type') !== 'ar'),
                 'numeric',
                 'decimal:0,2',
                 Rule::when($this->input('entry_type') === 'ar', ['min:0'], ['min:0.01']),
@@ -69,6 +86,27 @@ class StoreGraduateLedgerRequest extends FormRequest
             'remarks' => ['nullable', 'string', 'max:255'],
             'input_by' => ['nullable', 'integer', 'exists:users,id'],
             'status' => ['required', 'string', 'max:30'],
+            'membership' => ['nullable', Rule::in(['NAPU', 'NORSUFFA'])],
+            'discount_amount' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'items' => ['nullable', 'array', 'min:1', 'max:50'],
+            'items.*.course_id' => ['required_with:items', Rule::exists('courses', 'id')->where('course_college', 'Graduate School')],
+            'items.*.entry_type' => ['required_with:items', Rule::in(['ar', 'payment', 'adjustment'])],
+            'items.*.units' => ['nullable', 'integer', 'min:0'],
+            'items.*.transaction_date' => ['nullable', 'date'],
+            'items.*.reference_or_jev_number' => ['nullable', 'string', 'max:255'],
+            'items.*.reference_number' => ['nullable', 'string', 'max:100'],
+            'items.*.particulars' => ['nullable', 'string', 'max:255'],
+            'items.*.tuition_per_unit_or_misc' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:99999999.99'],
+            'items.*.rate' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
+            'items.*.amount' => [
+                'nullable',
+                'numeric',
+                'min:0',
+                'max:99999999.99',
+            ],
+            'items.*.discount_amount' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'items.*.remarks' => ['nullable', 'string', 'max:255'],
+            'items.*.membership' => ['nullable', Rule::in(['NAPU', 'NORSUFFA'])],
         ];
     }
 

@@ -351,6 +351,7 @@ class Course extends Model
     public static function normalizeLawCourseCode(string $raw): string
     {
         $upper = strtoupper(trim($raw));
+
         // Collapse multiple spaces into single space
         return trim((string) preg_replace('/\s+/', ' ', $upper));
     }
@@ -363,7 +364,7 @@ class Course extends Model
     public static function resolveLawCanonicalCode(string $raw): ?string
     {
         $normalized = self::normalizeLawCourseCode($raw);
-        
+
         if ($normalized === '') {
             return null;
         }
@@ -380,7 +381,7 @@ class Course extends Model
         $course = static::where('course_code', $code)
             ->where('course_college', 'School of Law')
             ->first();
-        
+
         return $course?->course_desc;
     }
 }

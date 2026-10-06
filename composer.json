@@ -21,7 +21,7 @@
         "laravel/wayfinder": "^0.1.21",
         "maatwebsite/excel": "*",
         "mallardduck/blade-lucide-icons": "^2.0",
-        "spatie/browsershot": "^5.4",
+        "spatie/browsershot": "5.4",
         "spatie/laravel-pdf": "^2.13",
         "symfony/brevo-mailer": "*",
         "symfony/http-client": "*"

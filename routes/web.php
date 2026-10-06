@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\AssessmentController;
 use App\Http\Controllers\AssessmentFormController;
 use App\Http\Controllers\AuthorizedOfficialController;
 use App\Http\Controllers\BankAccountInfoController;
 use App\Http\Controllers\CashierRequestController;
 use App\Http\Controllers\Client\ClientController;
+use App\Http\Controllers\CollegeOfficeController;
 use App\Http\Controllers\CoursesController;
 use App\Http\Controllers\FormInputController;
 use App\Http\Controllers\GraduateLedgerController;
@@ -15,8 +17,6 @@ use App\Http\Controllers\PaymentDetailOptionController;
 use App\Http\Controllers\StaffInputController;
 use App\Http\Controllers\SupportingDocumentController;
 use App\Http\Controllers\UACSController;
-use App\Http\Controllers\AssessmentController;
-use App\Http\Controllers\CollegeOfficeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -31,7 +31,7 @@ Route::name('public.')->prefix('public')->group(function () {
     Route::post('/opform', [FormInputController::class, 'store']);
 
     Route::post('/college-offices', [CollegeOfficeController::class, 'store'])
-           ->name('college-offices.store');
+        ->name('college-offices.store');
 
     Route::get('/success/{formInput:reference_number}', [FormInputController::class, 'success'])->name('success');
     Route::get('/success/{formInput:reference_number}/print', [FormInputController::class, 'printReceipt'])->name('print');
@@ -76,39 +76,39 @@ Route::middleware('auth')->group(function () {
     // ── Graduate Ledger ──────────────────────────────────────────────────────
     Route::prefix('graduate-ledger')->name('graduate-ledger.')->middleware('staff')->group(function () {
         Route::get('/print-select', [GraduateLedgerController::class, 'printSelect'])->name('print-select');
-        Route::get('/pdf',          [GraduateLedgerController::class, 'generatePdf'])->name('pdf');
-        Route::get('/export',       [GraduateLedgerController::class, 'export'])->name('export');
+        Route::get('/pdf', [GraduateLedgerController::class, 'generatePdf'])->name('pdf');
+        Route::get('/export', [GraduateLedgerController::class, 'export'])->name('export');
         Route::get('/email-recipients', [GraduateLedgerController::class, 'emailRecipients'])->name('email-recipients');
         Route::post('/send-emails', [GraduateLedgerController::class, 'sendBulkEmail'])->name('send-emails');
         Route::get('/students/{student}/balance', [GraduateLedgerController::class, 'studentBalance'])->name('students.balance');
-        Route::get('/add',          [GraduateLedgerController::class, 'create'])->name('create');
-        Route::post('/',            [GraduateLedgerController::class, 'store'])->name('store');
-        Route::post('/import',      [GraduateLedgerController::class, 'import'])->name('import');
+        Route::get('/add', [GraduateLedgerController::class, 'create'])->name('create');
+        Route::post('/', [GraduateLedgerController::class, 'store'])->name('store');
+        Route::post('/import', [GraduateLedgerController::class, 'import'])->name('import');
         Route::post('/{id}/apply-membership', [GraduateLedgerController::class, 'applyMembership'])->name('apply-membership');
-        Route::get('/',             [GraduateLedgerController::class, 'index'])->name('index');
-        Route::get('/{id}/edit',    [GraduateLedgerController::class, 'edit'])->name('edit');
-        Route::put('/{id}',         [GraduateLedgerController::class, 'update'])->name('update');
-        Route::delete('/{id}',      [GraduateLedgerController::class, 'destroy'])->name('destroy');
+        Route::get('/', [GraduateLedgerController::class, 'index'])->name('index');
+        Route::get('/{id}/edit', [GraduateLedgerController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [GraduateLedgerController::class, 'update'])->name('update');
+        Route::delete('/{id}', [GraduateLedgerController::class, 'destroy'])->name('destroy');
     });
 
     // ── Law School Ledger ────────────────────────────────────────────────────
     Route::prefix('law-ledger')->name('law-ledger.')->middleware('staff')->group(function () {
-        Route::get('/print-select',    [LawSchoolLedgerController::class, 'printSelect'])->name('print-select');
-        Route::get('/pdf',             [LawSchoolLedgerController::class, 'generatePdf'])->name('pdf');
-        Route::get('/export',          [LawSchoolLedgerController::class, 'export'])->name('export');
+        Route::get('/print-select', [LawSchoolLedgerController::class, 'printSelect'])->name('print-select');
+        Route::get('/pdf', [LawSchoolLedgerController::class, 'generatePdf'])->name('pdf');
+        Route::get('/export', [LawSchoolLedgerController::class, 'export'])->name('export');
         Route::get('/email-recipients', [LawSchoolLedgerController::class, 'emailRecipients'])->name('email-recipients');
-        Route::post('/send-emails',    [LawSchoolLedgerController::class, 'sendBulkEmail'])->name('send-emails');
+        Route::post('/send-emails', [LawSchoolLedgerController::class, 'sendBulkEmail'])->name('send-emails');
         Route::get('/students/search', [LawSchoolLedgerController::class, 'searchStudents'])->name('students.search');
         Route::delete('/students/{id}', [LawSchoolLedgerController::class, 'destroyStudent'])->name('students.destroy');
-        Route::get('/add',             [LawSchoolLedgerController::class, 'create'])->name('create');
+        Route::get('/add', [LawSchoolLedgerController::class, 'create'])->name('create');
         Route::get('/new-transaction', [LawSchoolLedgerController::class, 'create']);
-        Route::post('/',               [LawSchoolLedgerController::class, 'store'])->name('store');
-        Route::post('/import',         [LawSchoolLedgerController::class, 'import'])->name('import');
+        Route::post('/', [LawSchoolLedgerController::class, 'store'])->name('store');
+        Route::post('/import', [LawSchoolLedgerController::class, 'import'])->name('import');
         Route::post('/{id}/apply-honor', [LawSchoolLedgerController::class, 'applyLatinHonor'])->name('apply-honor');
-        Route::get('/',                [LawSchoolLedgerController::class, 'index'])->name('index');
-        Route::get('/{id}/edit',       [LawSchoolLedgerController::class, 'edit'])->name('edit');
-        Route::put('/{id}',            [LawSchoolLedgerController::class, 'update'])->name('update');
-        Route::delete('/{id}',         [LawSchoolLedgerController::class, 'destroy'])->name('destroy');
+        Route::get('/', [LawSchoolLedgerController::class, 'index'])->name('index');
+        Route::get('/{id}/edit', [LawSchoolLedgerController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [LawSchoolLedgerController::class, 'update'])->name('update');
+        Route::delete('/{id}', [LawSchoolLedgerController::class, 'destroy'])->name('destroy');
     });
 
 });
@@ -162,22 +162,22 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
 
     // ── Requests Management ──────────────────────────────────────────────────
     Route::name('requests.')->prefix('requests')->group(function () {
-        Route::get('/',                      [StaffInputController::class, 'index'])->name('index');
-        Route::post('/process',              [StaffInputController::class, 'store'])->name('store');
-        Route::get('/email-recipients',      [StaffInputController::class, 'emailRecipients'])->name('emailRecipients');
-        Route::get('/student-search',        [StaffInputController::class, 'searchStudents'])->name('searchStudents');
-        Route::post('/bulk-email-op',        [StaffInputController::class, 'bulkEmailOp'])->name('bulkEmailOp');
-        Route::post('/email-job-status',     [StaffInputController::class, 'emailJobStatus'])->name('emailJobStatus');
-        Route::get('/{formInput}/process',   [StaffInputController::class, 'create'])->name('process');
-        Route::get('/{formInput}',           [StaffInputController::class, 'show'])->name('show');
-        Route::get('/{formInput}/view-op',   [StaffInputController::class, 'viewOp'])->name('viewOp');
+        Route::get('/', [StaffInputController::class, 'index'])->name('index');
+        Route::post('/process', [StaffInputController::class, 'store'])->name('store');
+        Route::get('/email-recipients', [StaffInputController::class, 'emailRecipients'])->name('emailRecipients');
+        Route::get('/student-search', [StaffInputController::class, 'searchStudents'])->name('searchStudents');
+        Route::post('/bulk-email-op', [StaffInputController::class, 'bulkEmailOp'])->name('bulkEmailOp');
+        Route::post('/email-job-status', [StaffInputController::class, 'emailJobStatus'])->name('emailJobStatus');
+        Route::get('/{formInput}/process', [StaffInputController::class, 'create'])->name('process');
+        Route::get('/{formInput}', [StaffInputController::class, 'show'])->name('show');
+        Route::get('/{formInput}/view-op', [StaffInputController::class, 'viewOp'])->name('viewOp');
         Route::post('/{formInput}/email-op', [StaffInputController::class, 'emailOp'])->name('emailOp');
-        Route::put('/{formInput}/details',   [StaffInputController::class, 'updateDetails'])->name('updateDetails');
-        Route::put('/{formInput}/student',   [StaffInputController::class, 'linkStudent'])->name('linkStudent');
-        Route::post('/{formInput}/student',  [StaffInputController::class, 'createAndLinkStudent'])->name('createAndLinkStudent');
+        Route::put('/{formInput}/details', [StaffInputController::class, 'updateDetails'])->name('updateDetails');
+        Route::put('/{formInput}/student', [StaffInputController::class, 'linkStudent'])->name('linkStudent');
+        Route::post('/{formInput}/student', [StaffInputController::class, 'createAndLinkStudent'])->name('createAndLinkStudent');
         Route::put('/{formInput}/academic-term', [StaffInputController::class, 'assignAcademicTerm'])->name('assignAcademicTerm');
-        Route::get('/{staffInput}/edit',     [StaffInputController::class, 'edit'])->name('edit');
-        Route::put('/{staffInput}',          [StaffInputController::class, 'update'])->name('update');
+        Route::get('/{staffInput}/edit', [StaffInputController::class, 'edit'])->name('edit');
+        Route::put('/{staffInput}', [StaffInputController::class, 'update'])->name('update');
     });
 
     // ── Master Data (Resource Routes) ───────────────────────────────────────
@@ -206,10 +206,10 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
 
     // ── Supporting Documents ─────────────────────────────────────────────────
     Route::name('documents.')->prefix('documents')->group(function () {
-        Route::get('/',                              [SupportingDocumentController::class, 'index'])->name('index');
-        Route::post('/',                             [SupportingDocumentController::class, 'store'])->name('store');
+        Route::get('/', [SupportingDocumentController::class, 'index'])->name('index');
+        Route::post('/', [SupportingDocumentController::class, 'store'])->name('store');
         Route::get('/{supportingDocument}/download', [SupportingDocumentController::class, 'download'])->name('download');
-        Route::delete('/{supportingDocument}',       [SupportingDocumentController::class, 'destroy'])->name('destroy');
+        Route::delete('/{supportingDocument}', [SupportingDocumentController::class, 'destroy'])->name('destroy');
     });
 
     // Courses

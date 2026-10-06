@@ -152,20 +152,19 @@ class DatabaseSeeder extends Seeder
 
         $this->command->info('Successfully seede: YearSequence.');
 
-
         // student seeder
         $this->call([
             StudentSeeder::class,
             AcademicTermSeeder::class,
-            CourseSeeder::class,            
+            CourseSeeder::class,
         ]);
 
         $this->call(GraduateLedgerSeeder::class, false, [
-               'studentLimit' => 50,
-               'termsPerStudent' => 6,
-               'transactionsPerTerm' => 12,
+            'studentLimit' => 50,
+            'termsPerStudent' => 6,
+            'transactionsPerTerm' => 12,
         ]);
-    
+
         $this->call(LawSchoolLedgerSeeder::class, false, [
             'studentLimit' => 50,
             'termsPerStudent' => 6,

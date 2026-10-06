@@ -25,7 +25,11 @@
             $schoolYear    = $firstRecord ? ($getProp($firstRecord, ['schoolYear', 'school_year']) ?? '—') : '—';
             $semesterLabel = $firstRecord ? ($getProp($firstRecord, ['semesterOrSummer', 'semester_or_summer', 'semester']) ?? '—') : '—';
             $units         = $firstRecord ? ($getProp($firstRecord, ['units']) ?? '—') : '—';
-            $studentId     = $assessment['student_id'] ?? ($getProp($firstRecord, ['student_id', 'studentNo']) ?? '—');
+            $studentObj    = $student ?? null;
+            $studentId     = $getProp($studentObj, ['student_number', 'student_no', 'student_id'])
+                ?? ($studentObj->id ?? null)
+                ?? ($assessment['student_id'] ?? null)
+                ?? ($getProp($firstRecord, ['studentNumber', 'student_number', 'studentNo', 'student_no', 'studentId', 'student_id']) ?? '—');
             $formNumber    = $assessment->reference_number ?? ($assessment->id ?? '—');
             $studentName   = $studentName ?? (is_object($student ?? null) ? ($student->full_name ?? ($student->name ?? '—')) : '—');
 

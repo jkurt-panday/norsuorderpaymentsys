@@ -35,7 +35,9 @@ class GraduateLedgerExport implements FromQuery, ShouldAutoSize, WithCustomChunk
     public function headings(): array
     {
         return [
-            'FF',
+            'STUDENT NUMBER',
+            'FULL NAME',
+            'EMAIL',
             'COURSE',
             'SCHOOL YEAR',
             '',
@@ -55,6 +57,8 @@ class GraduateLedgerExport implements FromQuery, ShouldAutoSize, WithCustomChunk
     public function map($row): array
     {
         $studentName = $row->student->full_name ?? '';
+        $studentNumber = $row->student->student_number ?? '';
+        $studentEmail = $row->student->email ?? '';
         $courseCode = $row->course->code ?? '';
         $schoolYear = $row->academicTerm->school_year ?? '';
         $semShort = '';
@@ -62,12 +66,16 @@ class GraduateLedgerExport implements FromQuery, ShouldAutoSize, WithCustomChunk
         $entryTypeUpper = strtoupper(trim((string) ($row->entry_type ?? 'AR')));
         $type = $entryTypeUpper;
         if ($entryTypeUpper === 'ADJUSTMENT' && filled($row->membership)) {
-            $type = 'ADJUSTMENT (' . strtoupper(trim($row->membership)) . ')';
+            $type = 'ADJUSTMENT ('.strtoupper(trim($row->membership)).')';
+        } elseif ($entryTypeUpper === 'AR' && filled($row->membership)) {
+            $type = 'AR('.strtoupper(trim($row->membership)).')';
         }
         $remark = $this->resolveRemark($row);
 
         return [
+            $studentNumber,
             $studentName,
+            $studentEmail,
             $courseCode,
             $schoolYear,
             $semShort,

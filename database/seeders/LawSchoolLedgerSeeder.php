@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Models\AcademicTerm;
 use App\Models\Courses;
 use App\Models\GraduateLedger;
 use App\Models\LawSchoolLedger;
 use App\Models\Student;
-use App\Models\AcademicTerm;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
@@ -37,10 +37,10 @@ class LawSchoolLedgerSeeder extends Seeder
      * student ends up with ledger activity in both colleges unless you
      * disable $excludeGraduateStudents.
      *
-     * @param int  $studentLimit             How many students to generate ledger activity for.
-     * @param int  $termsPerStudent          Max number of academic terms each student has activity in.
-     * @param int  $transactionsPerTerm      How many ledger rows per term.
-     * @param bool $excludeGraduateStudents  Skip students already present in graduate_ledgers.
+     * @param  int  $studentLimit  How many students to generate ledger activity for.
+     * @param  int  $termsPerStudent  Max number of academic terms each student has activity in.
+     * @param  int  $transactionsPerTerm  How many ledger rows per term.
+     * @param  bool  $excludeGraduateStudents  Skip students already present in graduate_ledgers.
      *
      * Examples:
      *   php artisan tinker

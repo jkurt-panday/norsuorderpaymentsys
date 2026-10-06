@@ -20,7 +20,6 @@ use App\Models\SupportingDocument;
 use App\Models\UACS;
 use App\Models\User;
 use App\Observers\ActivityLogObserver;
-use App\Observers\GraduateLedgerObserver;
 use Carbon\CarbonImmutable;
 use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Notifications\Events\NotificationSent;

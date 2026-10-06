@@ -3,13 +3,16 @@ import {
     AlertCircle,
     ArrowDownUp,
     CalendarDays,
+    ExternalLink,
     FileText,
     GraduationCap,
+    Loader2,
     Mail,
     Pencil,
     Phone,
     PlusCircle,
     ReceiptText,
+    RotateCcw,
     Wallet,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -34,6 +37,7 @@ interface DrawerTransaction {
     id: number | string;
     transactionDate: string;
     referenceNo?: string | null;
+    orLink?: string | null;
     particulars?: string | null;
     arPayment: string;
     amount: number;
@@ -109,6 +113,7 @@ export default function StudentBalanceDrawer({
     const [data, setData] = useState<StudentBalanceData | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [retryCount, setRetryCount] = useState(0);
 
     useEffect(() => {
         if (!open || studentId === null) {
@@ -147,7 +152,7 @@ setLoading(false);
             });
 
         return () => controller.abort();
-    }, [open, studentId]);
+    }, [open, studentId, retryCount]);
 
     const balance = data?.summary.outstandingBalance ?? 0;
 
@@ -177,12 +182,31 @@ setLoading(false);
                     )}
 
                     {error && (
-                        <div className="flex gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
-                            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-                            <div>
-                                <p className="font-semibold">Could not load student balance</p>
-                                <p className="mt-1 text-xs">{error}</p>
+                        <div className="flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+                            <div className="flex gap-3">
+                                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                                <div>
+                                    <p className="font-semibold">
+                                        Could not load student balance
+                                    </p>
+                                    <p className="mt-1 text-xs">{error}</p>
+                                </div>
                             </div>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled={loading}
+                                onClick={() => setRetryCount((c) => c + 1)}
+                                className="shrink-0 border-red-300 bg-white text-red-700 hover:bg-red-100 hover:text-red-800"
+                            >
+                                {loading ? (
+                                    <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                    <RotateCcw className="mr-1 h-3.5 w-3.5" />
+                                )}
+                                Retry
+                            </Button>
                         </div>
                     )}
 
@@ -216,7 +240,7 @@ setLoading(false);
                             <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3">
                                     <ReceiptText className="h-4 w-4 text-blue-600" />
-                                    <p className="mt-2 text-[11px] font-medium text-blue-700">Assessments</p>
+                                    <p className="mt-2 text-[11px] font-medium text-blue-700">Account Receivables</p>
                                     <p className="mt-0.5 font-bold text-blue-900">{currency(data.summary.totalCharges)}</p>
                                 </div>
                                 <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3">
@@ -263,11 +287,23 @@ setLoading(false);
                                                                 <p className="mt-1 flex items-center gap-1 text-[11px] text-[#7FA6D6]"><CalendarDays className="h-3 w-3" />{formatDate(transaction.transactionDate)}</p>
                                                             </div>
                                                             <p className={`shrink-0 font-bold ${adjustment ? 'text-purple-700' : payment ? 'text-emerald-700' : 'text-blue-700'}`}>
-                                                                {(payment || adjustment) ? '−' : '+'}{currency(transaction.amount)}
+                                                                {(payment || adjustment) ? '−' : '+'}{currency(Math.abs(Number(transaction.amount || 0)))}
                                                             </p>
                                                         </div>
                                                         <div className="mt-2 flex items-center justify-between gap-3 border-t border-[#EDF3FB] pt-2 text-[11px] text-[#7FA6D6]">
-                                                            <span>{transaction.referenceNo || 'No reference number'}</span>
+                                                            {transaction.orLink ? (
+                                                                <a
+                                                                    href={transaction.orLink}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="inline-flex items-center gap-1 font-medium text-[#0B62E0] hover:underline"
+                                                                >
+                                                                    <ExternalLink className="h-3 w-3" />
+                                                                    {transaction.referenceNo}
+                                                                </a>
+                                                            ) : (
+                                                                <span>{transaction.referenceNo || 'No reference number'}</span>
+                                                            )}
                                                             <button type="button" onClick={() => router.get(edit.url(transaction.id))} className="inline-flex items-center gap-1 font-medium text-[#0B62E0] hover:underline">
                                                                 <Pencil className="h-3 w-3" /> Edit
                                                             </button>

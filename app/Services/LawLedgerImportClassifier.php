@@ -43,6 +43,7 @@ class LawLedgerImportClassifier
             if ($amount < 0) {
                 return ['entry_type' => 'payment'];
             }
+
             // Positive amounts default to AR
             return ['entry_type' => 'ar'];
         }
@@ -70,6 +71,7 @@ class LawLedgerImportClassifier
         // Check for parentheses notation: "(1000)" or "(1,000.00)" = negative
         if (preg_match('/^\(([0-9,]+\.?[0-9]*)\)$/', $cleaned, $matches)) {
             $number = str_replace(',', '', $matches[1]);
+
             return -1 * (float) $number;
         }
 

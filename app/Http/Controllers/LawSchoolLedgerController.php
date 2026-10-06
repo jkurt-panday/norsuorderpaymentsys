@@ -411,8 +411,7 @@ class LawSchoolLedgerController extends Controller
         ?int $presetCourseId,
         ?int $presetTermId,
         int &$duplicates
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         // ── Pass 1: collect distinct courses + terms + students ───────────────
         $handle = fopen($path, 'r');
         if (! is_resource($handle)) {
@@ -556,8 +555,7 @@ class LawSchoolLedgerController extends Controller
         ?int $presetCourseId,
         ?int $presetTermId,
         int &$duplicates
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $reader = IOFactory::createReaderForFile($path);
         $reader->setReadDataOnly(false);
 
@@ -736,7 +734,7 @@ class LawSchoolLedgerController extends Controller
             ->where('course_college', 'School of Law')
             ->pluck('id', 'course_code')
             ->all();
-        
+
         // Create UNASSIGNED fallback course if it doesn't exist
         $unassignedCourse = LawCourse::firstOrCreate(
             [
@@ -750,7 +748,7 @@ class LawSchoolLedgerController extends Controller
             ]
         );
         $courseMap['__DEFAULT__'] = (int) $unassignedCourse->id;
-        
+
         $newCourses = [];
         foreach (array_keys($distinctCourses) as $code) {
             if (! isset($courseMap[$code])) {
@@ -780,7 +778,7 @@ class LawSchoolLedgerController extends Controller
         foreach ($termsInDb as $t) {
             $termMap["{$t['school_year']}|||{$t['semester']}"] = (int) $t['id'];
         }
-        
+
         // Create UNASSIGNED fallback term if it doesn't exist
         $unassignedTerm = LawAcademicTerm::firstOrCreate(
             [
@@ -793,7 +791,7 @@ class LawSchoolLedgerController extends Controller
             ]
         );
         $termMap['__DEFAULT__'] = (int) $unassignedTerm->id;
-        
+
         $newTerms = [];
         foreach ($distinctTerms as $key => $pair) {
             if (! isset($termMap[$key])) {
@@ -901,8 +899,6 @@ class LawSchoolLedgerController extends Controller
      * @param  array<string, int>  $courseMap
      * @param  array<string, int>  $termMap
      * @param  array<string, int>  $studentMap
-     * @param  int|null  $presetCourseId
-     * @param  int|null  $presetTermId
      * @return array<string, mixed>
      */
     private function resolveImportRowFks(
@@ -916,7 +912,7 @@ class LawSchoolLedgerController extends Controller
         // Course resolution with preset fallback
         $code = trim((string) ($data['course'] ?? ''));
         $courseId = null;
-        
+
         if ($code !== '' && isset($courseMap[$code])) {
             $courseId = $courseMap[$code];
         } elseif ($presetCourseId !== null) {
@@ -930,7 +926,7 @@ class LawSchoolLedgerController extends Controller
         $sy = trim((string) ($data['school_year'] ?? ''));
         $semRaw = (string) ($data['semester_or_summer'] ?? '');
         $academicTermId = null;
-        
+
         if ($sy !== '' && $semRaw !== '') {
             $sem = LawAcademicTerm::normalizeSemester($semRaw);
             $key = "{$sy}|||{$sem}";
@@ -940,7 +936,7 @@ class LawSchoolLedgerController extends Controller
                 $data['semester_or_summer'] = $sem;
             }
         }
-        
+
         if ($academicTermId === null && $presetTermId !== null) {
             $academicTermId = $presetTermId;
         } elseif ($academicTermId === null) {
@@ -1051,6 +1047,7 @@ class LawSchoolLedgerController extends Controller
             'student_id' => ['required_without:student', 'integer', 'exists:students,id'],
             'school_year' => ['nullable', 'string', 'max:20'],
             'semester' => ['nullable', 'in:First Semester,Second Semester,Summer'],
+            'type' => ['nullable', 'string', 'max:100'],
         ]);
 
         $studentName = str_replace(['−', '–', '—'], '-', (string) ($validated['student'] ?? $validated['student_id']));
@@ -1077,6 +1074,17 @@ class LawSchoolLedgerController extends Controller
                 )->values(),
             );
 
+        if (filled($validated['type'] ?? null)) {
+            $records = $records
+                ->filter(fn (LawSchoolLedger $record) => $record->ar_or_payment === $validated['type'])
+                ->values();
+        }
+
+        $studentObj = null;
+        if (isset($validated['student_id'])) {
+            $studentObj = LawStudent::query()->find($validated['student_id']);
+        }
+
         if (isset($validated['student_id']) && $records->isNotEmpty()) {
             $student = $records->first();
             $studentName = trim("{$student->last_name}, {$student->first_name} ".($student->middle_initial ?: ''));
@@ -1091,6 +1099,7 @@ class LawSchoolLedgerController extends Controller
             : null;
 
         $pdf = Pdf::view('pdf.law-student-ledger-statement', [
+            'student' => $studentObj,
             'studentName' => $studentName,
             'records' => $records,
             'summary' => $summary,
@@ -1119,10 +1128,10 @@ class LawSchoolLedgerController extends Controller
         $query = $this->buildFilteredQuery($request);
 
         $studentIds = (clone $query)
-             ->whereNotNull('student_id')
-             ->reorder()
-             ->distinct()
-             ->pluck('student_id')
+            ->whereNotNull('student_id')
+            ->reorder()
+            ->distinct()
+            ->pluck('student_id')
             ->filter()->unique()->values()->all();
 
         if (empty($studentIds)) {
@@ -1182,10 +1191,10 @@ class LawSchoolLedgerController extends Controller
         $query = $this->buildFilteredQuery($request);
 
         $studentIds = (clone $query)
-             ->whereNotNull('student_id')
-             ->reorder()
-             ->distinct()
-             ->pluck('student_id')
+            ->whereNotNull('student_id')
+            ->reorder()
+            ->distinct()
+            ->pluck('student_id')
             ->filter()->unique()->values()->all();
 
         $specificIds = $request->input('student_ids');
@@ -1205,6 +1214,7 @@ class LawSchoolLedgerController extends Controller
         foreach ($students as $student) {
             if (! $student->email) {
                 $skipped++;
+
                 continue;
             }
 
@@ -1228,7 +1238,7 @@ class LawSchoolLedgerController extends Controller
             $sent++;
         }
 
-        return back()->with('success', "Emailed SOA to {$sent} student(s)." . ($skipped > 0 ? " {$skipped} student(s) skipped (no email)." : ''));
+        return back()->with('success', "Emailed SOA to {$sent} student(s).".($skipped > 0 ? " {$skipped} student(s) skipped (no email)." : ''));
     }
 
     /**
@@ -1266,6 +1276,7 @@ class LawSchoolLedgerController extends Controller
         $summary = $this->calculateStudentBalanceNormalized($records);
 
         return Pdf::view('pdf.law-student-ledger-statement', [
+            'student' => $student,
             'studentName' => $studentName,
             'records' => $records,
             'summary' => $summary,
@@ -2052,16 +2063,16 @@ class LawSchoolLedgerController extends Controller
     private function importSummary(int $imported, int $skipped, array $warnings, int $duplicates = 0): string
     {
         $parts = ["{$imported} records imported"];
-        
+
         if ($skipped > 0) {
             $parts[] = "{$skipped} blank rows skipped";
         }
-        
+
         if ($duplicates > 0) {
             $parts[] = "{$duplicates} duplicates skipped";
         }
-        
-        $summary = "Import complete: ".implode(', ', $parts).".";
+
+        $summary = 'Import complete: '.implode(', ', $parts).'.';
         $details = [];
 
         if ($warnings[self::WARNING_NEGATIVE_BLANK_TYPE] > 0) {
@@ -2212,7 +2223,7 @@ class LawSchoolLedgerController extends Controller
                 (string) $record->amount,
                 (string) $record->transaction_date,
             ]);
-            
+
             $fingerprintMap[$fp] = ($fingerprintMap[$fp] ?? 0) + 1;
         }
 
@@ -2298,7 +2309,7 @@ class LawSchoolLedgerController extends Controller
             'CUM_LAUDE' => 'Cum Laude',
             default => 'Latin Honor',
         };
-        
-        return back()->with('success', "{$honorName} discount of ₱".number_format($discountAmount, 2)." applied successfully.");
+
+        return back()->with('success', "{$honorName} discount of ₱".number_format($discountAmount, 2).' applied successfully.');
     }
 }

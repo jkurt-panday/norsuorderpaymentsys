@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Models\AcademicTerm;
 use App\Models\Courses;
 use App\Models\GraduateLedger;
 use App\Models\Student;
-use App\Models\AcademicTerm;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
@@ -24,9 +24,9 @@ class GraduateLedgerSeeder extends Seeder
     /**
      * Run the database seeds.
      *
-     * @param int $studentLimit        How many students to generate ledger activity for.
-     * @param int $termsPerStudent     Max number of academic terms each student has activity in.
-     * @param int $transactionsPerTerm How many ledger rows per term.
+     * @param  int  $studentLimit  How many students to generate ledger activity for.
+     * @param  int  $termsPerStudent  Max number of academic terms each student has activity in.
+     * @param  int  $transactionsPerTerm  How many ledger rows per term.
      *
      * Examples:
      *   php artisan tinker
