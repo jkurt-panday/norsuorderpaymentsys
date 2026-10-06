@@ -19,12 +19,26 @@ class StoreLawSchoolLedgerRequest extends FormRequest
             'semester' => $this->input('semester') ?? $this->input('semester_or_summer'),
             'reference_jev_or_number' => $this->input('reference_jev_or_number') ?? $this->input('reference_or_jev_number'),
             'tuition_per_unit_or_fee_per_semester' => $this->input('tuition_per_unit_or_fee_per_semester')
-                ?? $this->input('tuition_per_unit_or_misc')
-                ?? '0.00',
-            'rate' => $this->input('rate') ?? $this->input('tuition_per_unit_or_fee_per_semester') ?? $this->input('tuition_per_unit_or_misc') ?? '0.00',
+                ?: ($this->input('tuition_per_unit_or_misc') ?: '0.00'),
+            'rate' => $this->input('rate') ?: ($this->input('tuition_per_unit_or_fee_per_semester') ?: ($this->input('tuition_per_unit_or_misc') ?: '0.00')),
             'reference_number' => $this->input('reference_number') ?? $this->input('reference_jev_or_number') ?? $this->input('reference_or_jev_number'),
             'input_by' => $this->filled('input_by') ? $this->input('input_by') : ($this->user()?->name ?? $this->user()?->id),
         ]);
+
+        if ($this->has('items') && is_array($this->input('items'))) {
+            $items = array_map(function (array $item): array {
+                $item['tuition_per_unit_or_fee_per_semester'] = ($item['tuition_per_unit_or_fee_per_semester'] ?? null)
+                    ?: (($item['tuition_per_unit_or_misc'] ?? null) ?: '0.00');
+                $item['rate'] = ($item['rate'] ?? null) ?: (($item['tuition_per_unit_or_fee_per_semester'] ?? null) ?: '0.00');
+                $item['reference_jev_or_number'] = $item['reference_jev_or_number'] ?? $item['reference_or_jev_number'] ?? null;
+                $item['reference_number'] = $item['reference_number'] ?? $item['reference_jev_or_number'] ?? null;
+                $item['status'] = $item['status'] ?? $this->input('status', 'Pending');
+
+                return $item;
+            }, $this->input('items'));
+
+            $this->merge(['items' => $items]);
+        }
     }
 
     /**
@@ -41,6 +55,7 @@ class StoreLawSchoolLedgerRequest extends FormRequest
                 'max:50',
                 Rule::unique(Student::class, 'student_number'),
             ],
+            'new_student.email' => ['nullable', 'email:rfc', 'max:255'],
             'new_student.last_name' => ['required_with:new_student', 'string', 'max:255'],
             'new_student.first_name' => ['required_with:new_student', 'string', 'max:255'],
             'new_student.middle_name' => ['nullable', 'string', 'max:255'],
@@ -52,7 +67,11 @@ class StoreLawSchoolLedgerRequest extends FormRequest
                 'nullable',
                 Rule::in(['First Semester', 'Second Semester', 'Summer']),
             ],
-            'entry_type' => ['required', Rule::in(['ar', 'payment', 'adjustment'])],
+            'entry_type' => [
+                Rule::requiredIf(fn () => ! is_array($this->input('items'))),
+                'nullable',
+                Rule::in(['ar', 'payment', 'adjustment']),
+            ],
             'last_name' => ['nullable', 'string', 'max:255'],
             'first_name' => ['nullable', 'string', 'max:255'],
             'middle_initial' => ['nullable', 'string', 'max:10'],
@@ -69,7 +88,7 @@ class StoreLawSchoolLedgerRequest extends FormRequest
             'ar_or_payment' => ['nullable', 'string', 'max:50'],
             'amount' => [
                 'nullable',
-                'required_unless:entry_type,ar',
+                Rule::requiredIf(fn () => ! is_array($this->input('items')) && $this->input('entry_type') !== 'ar'),
                 'numeric',
                 'decimal:0,2',
                 Rule::when($this->input('entry_type') === 'ar', ['min:0'], ['min:0.01']),
@@ -78,6 +97,22 @@ class StoreLawSchoolLedgerRequest extends FormRequest
             'status' => ['nullable', 'string', 'max:50'],
             'remarks' => ['nullable', 'string', 'max:255'],
             'input_by' => ['nullable', 'string', 'max:255'],
+            'latin_honor' => ['nullable', Rule::in(['SUMMA', 'MAGNA', 'CUM_LAUDE'])],
+            'discount_amount' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'items' => ['nullable', 'array', 'min:1', 'max:50'],
+            'items.*.course_id' => ['required_with:items', Rule::exists('courses', 'id')->where('course_college', 'School of Law')],
+            'items.*.entry_type' => ['required_with:items', Rule::in(['ar', 'payment', 'adjustment'])],
+            'items.*.units' => ['nullable', 'numeric', 'min:0'],
+            'items.*.transaction_date' => ['nullable', 'date'],
+            'items.*.reference_jev_or_number' => ['nullable', 'string', 'max:255'],
+            'items.*.reference_number' => ['nullable', 'string', 'max:100'],
+            'items.*.particulars' => ['nullable', 'string', 'max:255'],
+            'items.*.tuition_per_unit_or_fee_per_semester' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:99999999.99'],
+            'items.*.rate' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
+            'items.*.amount' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'items.*.remarks' => ['nullable', 'string', 'max:255'],
+            'items.*.latin_honor' => ['nullable', Rule::in(['SUMMA', 'MAGNA', 'CUM_LAUDE'])],
+            'items.*.discount_amount' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
         ];
     }
 

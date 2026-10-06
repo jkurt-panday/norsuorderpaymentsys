@@ -228,58 +228,150 @@ class LawSchoolLedgerController extends Controller
     public function store(StoreLawSchoolLedgerRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $items = $data['items'] ?? null;
+        $created = 0;
+        $scholarships = 0;
 
-        DB::transaction(function () use ($data): void {
-            $studentId = $data['student_id'] ?? null;
-
-            if (! $studentId && isset($data['new_student'])) {
-                $newStudent = $data['new_student'];
-                $studentAttributes = [
-                    'student_number' => $newStudent['student_number'] ?? null,
-                    'last_name' => $newStudent['last_name'],
-                    'first_name' => $newStudent['first_name'],
-                    'middle_name' => $newStudent['middle_name'] ?? null,
-                ];
-
-                $student = filled($studentAttributes['student_number'])
-                    ? LawStudent::create($studentAttributes)
-                    : LawStudent::firstOrCreate(
-                        Arr::only($studentAttributes, ['last_name', 'first_name']),
-                        Arr::except($studentAttributes, ['last_name', 'first_name']),
-                    );
-                $studentId = $student->id;
-                $data['middle_initial'] = $data['middle_initial'] ?? $this->normalizeMiddleInitial($newStudent['middle_name'] ?? null);
-            }
-
-            $studentId = $studentId !== null ? (int) $studentId : null;
-
-            // Pull name columns from the chosen student when not provided
-            if ($studentId && empty($data['last_name'])) {
-                $student = LawStudent::find($studentId);
-                if ($student) {
-                    $data['last_name'] = $student->last_name;
-                    $data['first_name'] = $student->first_name;
-                    $data['middle_name'] = $data['middle_name'] ?? $student->middle_name;
-                    $data['middle_initial'] = $data['middle_initial'] ?? $this->normalizeMiddleInitial($student->middle_name);
-                }
-            }
-
-            $attributes = $this->buildLedgerRow($data, $studentId, $this->resolveAcademicTermId($data));
-            $attributes['entry_type'] = $data['entry_type'] ?? 'ar';
-            $attributes['ar_or_payment'] = $this->entryTypeToLabel($attributes['entry_type']);
-            $attributes['status'] = $this->determineStatus(
-                (float) ($attributes['amount'] ?? 0),
-                $data['status'] ?? null,
-            );
-
+        DB::transaction(function () use ($data, $items, &$created, &$scholarships): void {
+            $studentId = $this->resolveStudentIdForStore($data);
+            $academicTermId = $this->resolveAcademicTermId($data);
             $attribution = $this->resolveInputBy($data['input_by'] ?? null);
-            $attributes['input_by'] = $attribution['input_by'];
-            $attributes['imported_input_by'] = $attribution['imported_input_by'];
 
-            LawSchoolLedger::create($attributes);
+            if (is_array($items) && filled($items)) {
+                foreach ($items as $item) {
+                    $record = $this->createLawLedgerRecord($item, $studentId, $academicTermId, $attribution);
+                    $created++;
+
+                    if ($this->shouldApplyLatinHonorOnCreate($item)) {
+                        $this->applyLatinHonorToRecord($record, (string) $item['latin_honor'], $item['discount_amount'] ?? null);
+                        $scholarships++;
+                    }
+                }
+
+                return;
+            }
+
+            $record = $this->createLawLedgerRecord($data, $studentId, $academicTermId, $attribution);
+            $created++;
+
+            if ($this->shouldApplyLatinHonorOnCreate($data)) {
+                $this->applyLatinHonorToRecord($record, (string) $data['latin_honor'], $data['discount_amount'] ?? null);
+                $scholarships++;
+            }
         });
 
-        return redirect()->route('law-ledger.index')->with('success', 'Transaction created successfully.');
+        $message = trans_choice(
+            '{1} :count transaction created.|:count transactions created.',
+            $created,
+            ['count' => $created],
+        );
+
+        if ($scholarships > 0) {
+            $message .= sprintf(
+                ' %d scholarship adjustment%s added.',
+                $scholarships,
+                $scholarships === 1 ? '' : 's',
+            );
+        }
+
+        return redirect()->route('law-ledger.index')->with('success', $message);
+    }
+
+    /**
+     * Resolves the selected or inline-created student for a manual store request.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function resolveStudentIdForStore(array $data): int
+    {
+        $studentId = $data['student_id'] ?? null;
+
+        if ($studentId) {
+            return (int) $studentId;
+        }
+
+        $newStudent = $data['new_student'];
+        $studentAttributes = [
+            'student_number' => $newStudent['student_number'] ?? null,
+            'email' => $newStudent['email'] ?? null,
+            'last_name' => $newStudent['last_name'],
+            'first_name' => $newStudent['first_name'],
+            'middle_name' => $newStudent['middle_name'] ?? null,
+        ];
+
+        $student = filled($studentAttributes['student_number'])
+            ? LawStudent::create($studentAttributes)
+            : LawStudent::firstOrCreate(
+                Arr::only($studentAttributes, ['last_name', 'first_name']),
+                Arr::except($studentAttributes, ['last_name', 'first_name']),
+            );
+
+        return (int) $student->id;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  array{input_by: int|null, imported_input_by: string|null}  $attribution
+     */
+    private function createLawLedgerRecord(array $data, int $studentId, ?int $academicTermId, array $attribution): LawSchoolLedger
+    {
+        $attributes = $this->buildLedgerRow($data, $studentId, $academicTermId);
+        $attributes['entry_type'] = $data['entry_type'] ?? 'ar';
+        $attributes['ar_or_payment'] = $this->entryTypeToLabel($attributes['entry_type']);
+        $attributes['status'] = $this->determineStatus(
+            (float) ($attributes['amount'] ?? 0),
+            $data['status'] ?? null,
+        );
+        $attributes['input_by'] = $attribution['input_by'];
+        $attributes['imported_input_by'] = $attribution['imported_input_by'];
+
+        return LawSchoolLedger::create($attributes);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function shouldApplyLatinHonorOnCreate(array $data): bool
+    {
+        return ($data['entry_type'] ?? null) === 'ar'
+            && filled($data['latin_honor'] ?? null)
+            && filled($data['discount_amount'] ?? null)
+            && (float) $data['discount_amount'] > 0;
+    }
+
+    private function applyLatinHonorToRecord(LawSchoolLedger $record, string $latinHonor, mixed $rawDiscountAmount = null): void
+    {
+        $originalAmount = abs((float) $record->amount);
+        $discountAmount = filled($rawDiscountAmount)
+            ? min(abs((float) $rawDiscountAmount), $originalAmount)
+            : $this->calculateLatinHonorDiscount($originalAmount, $latinHonor);
+
+        if ($discountAmount <= 0) {
+            return;
+        }
+
+        $record->update([
+            'latin_honor' => $latinHonor,
+            'discount_amount' => $discountAmount,
+        ]);
+
+        LawSchoolLedger::create([
+            'student_id' => $record->student_id,
+            'course_id' => $record->course_id,
+            'academic_term_id' => $record->academic_term_id,
+            'entry_type' => 'adjustment',
+            'units' => null,
+            'transaction_date' => now()->toDateString(),
+            'reference_number' => $this->latinHonorReferenceNumber($latinHonor, (int) $record->id),
+            'particulars' => $this->latinHonorParticulars($latinHonor),
+            'rate' => 0,
+            'amount' => $discountAmount,
+            'remarks' => 'Latin honor discount applied to AR #'.$record->id,
+            'status' => 'Applied',
+            'latin_honor' => $latinHonor,
+            'discount_amount' => 0,
+            'input_by' => auth()->id(),
+        ]);
     }
 
     /**
@@ -1901,6 +1993,8 @@ class LawSchoolLedgerController extends Controller
             'remarks' => $data['remarks'] ?? null,
             'status' => $data['status'] ?? 'Active',
             'input_by' => $data['input_by'] ?? null,
+            'latin_honor' => $data['latin_honor'] ?? null,
+            'discount_amount' => $data['discount_amount'] ?? 0,
         ];
 
         $entryType = $attributes['entry_type'];
@@ -2424,6 +2518,39 @@ class LawSchoolLedgerController extends Controller
         return $fingerprintMap;
     }
 
+    private function calculateLatinHonorDiscount(float $amount, string $latinHonor): float
+    {
+        $discountPercentage = match ($latinHonor) {
+            'SUMMA', 'MAGNA' => 100,
+            'CUM_LAUDE' => 50,
+            default => 0,
+        };
+
+        return round(($amount * $discountPercentage) / 100, 2);
+    }
+
+    private function latinHonorParticulars(string $latinHonor): string
+    {
+        return match ($latinHonor) {
+            'SUMMA' => 'Summa Cum Laude Scholarship (100%)',
+            'MAGNA' => 'Magna Cum Laude Scholarship (100%)',
+            'CUM_LAUDE' => 'Cum Laude Scholarship (50%)',
+            default => 'Latin Honor Scholarship',
+        };
+    }
+
+    private function latinHonorReferenceNumber(string $latinHonor, int $recordId): string
+    {
+        $referencePrefix = match ($latinHonor) {
+            'SUMMA' => 'SUM',
+            'MAGNA' => 'MAG',
+            'CUM_LAUDE' => 'CUM',
+            default => 'HON',
+        };
+
+        return 'HONOR-'.$referencePrefix.'-'.$recordId;
+    }
+
     /**
      * Applies a Latin honor discount to an AR transaction.
      */
@@ -2459,15 +2586,7 @@ class LawSchoolLedgerController extends Controller
             return back()->with('error', 'A Latin honor discount has already been applied to this assessment.');
         }
 
-        // Calculate discount based on honor type
-        $discountPercentage = match ($latinHonor) {
-            'SUMMA' => 100,      // 100% discount
-            'MAGNA' => 100,      // 100% discount
-            'CUM_LAUDE' => 50,   // 50% discount
-            default => 0,
-        };
-
-        $discountAmount = round(($originalAmount * $discountPercentage) / 100, 2);
+        $discountAmount = $this->calculateLatinHonorDiscount($originalAmount, $latinHonor);
 
         // Keep the original AR amount unchanged for auditability. The separate
         // adjustment transaction is what reduces the student's outstanding balance.
@@ -2477,21 +2596,6 @@ class LawSchoolLedgerController extends Controller
                 'discount_amount' => $discountAmount,
             ]);
 
-            // Create a corresponding adjustment entry for the discount
-            $particulars = match ($latinHonor) {
-                'SUMMA' => 'Summa Cum Laude Scholarship (100%)',
-                'MAGNA' => 'Magna Cum Laude Scholarship (100%)',
-                'CUM_LAUDE' => 'Cum Laude Scholarship (50%)',
-                default => 'Latin Honor Scholarship',
-            };
-
-            $referencePrefix = match ($latinHonor) {
-                'SUMMA' => 'SUM',
-                'MAGNA' => 'MAG',
-                'CUM_LAUDE' => 'CUM',
-                default => 'HON',
-            };
-
             LawSchoolLedger::create([
                 'student_id' => $record->student_id,
                 'course_id' => $record->course_id,
@@ -2499,8 +2603,8 @@ class LawSchoolLedgerController extends Controller
                 'entry_type' => 'adjustment',
                 'units' => null,
                 'transaction_date' => now()->toDateString(),
-                'reference_number' => 'HONOR-'.$referencePrefix.'-'.$record->id,
-                'particulars' => $particulars,
+                'reference_number' => $this->latinHonorReferenceNumber($latinHonor, (int) $record->id),
+                'particulars' => $this->latinHonorParticulars($latinHonor),
                 'rate' => 0,
                 'amount' => $discountAmount,
                 'remarks' => 'Latin honor discount applied to AR #'.$record->id,
