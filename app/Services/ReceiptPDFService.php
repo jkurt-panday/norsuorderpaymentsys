@@ -81,8 +81,10 @@ class ReceiptPDFService
             'preparedBy' => $request->user()->name ?? '—',
             'authOfficial' => $authOfficial,
         ])
-            ->driver('dompdf')
-            ->format('a4');
+        ->withBrowsershot(function (Browsershot $browsershot): void {
+            $this->configureBrowsershot($browsershot);
+        })
+        ->format('a4');
     }
 
     private function configureBrowsershot(Browsershot $browsershot): void

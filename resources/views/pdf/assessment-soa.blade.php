@@ -145,7 +145,7 @@
             <td class="w-1/2 align-top px-2.5">
                 Prepared By
     
-                <div class="text-center mt-10">
+                <div class="text-left mt-10">
                     (SGD)
                 </div>
     
@@ -169,7 +169,7 @@
             <td class="w-1/2 align-top px-2.5">
                 Certified Correct
     
-                <div class="text-center mt-10">
+                <div class="text-left mt-10">
                     (SGD)
                 </div>
     

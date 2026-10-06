@@ -7,23 +7,38 @@
             $firstRecord   = $records->first();
             $cleanAmount   = static fn ($val) => abs((float) preg_replace('/[^\d.]/', '', (string) ($val ?? 0)));
 
-            // Universal property extractor
+            // Universal property extractor. Only scalar values are ever returned:
+            // key names like 'course' also match Eloquent relationships, and
+            // echoing a model would dump its JSON instead of the field value.
             $getProp = static function ($obj, array $keys) {
                 if (!$obj) return null;
                 foreach ($keys as $key) {
                     if (is_object($obj) && isset($obj->{$key}) && $obj->{$key} !== '') {
-                        return $obj->{$key};
+                        $value = $obj->{$key};
+                        return (is_scalar($value) || $value instanceof \DateTimeInterface || $value === null) ? $value : null;
                     }
                     if (is_array($obj) && isset($obj[$key]) && $obj[$key] !== '') {
-                        return $obj[$key];
+                        $value = $obj[$key];
+                        return (is_scalar($value) || $value instanceof \DateTimeInterface || $value === null) ? $value : null;
                     }
                 }
                 return null;
             };
 
-            $courseCode    = $firstRecord ? ($getProp($firstRecord, ['course', 'course_code', 'code']) ?? '—') : '—';
+            $courseCode = static function ($record) use ($getProp) {
+                if (! $record) return '—';
+
+                // 'course' is a BelongsTo relation, so read the code off the model.
+                if (isset($record->course) && is_object($record->course)) {
+                    return $record->course->course_code ?? $record->course->code ?? '—';
+                }
+
+                return $getProp($record, ['course_code', 'code']) ?? '—';
+            };
+
+            $courseCode    = $courseCode($firstRecord);
             $schoolYear    = $firstRecord ? ($getProp($firstRecord, ['schoolYear', 'school_year']) ?? '—') : '—';
-            $semesterLabel = $firstRecord ? ($getProp($firstRecord, ['semesterOrSummer', 'semester_or_summer', 'semester']) ?? '—') : '—';
+            $semesterLabel = $semesterLabel ?? ($firstRecord ? ($getProp($firstRecord, ['semesterOrSummer', 'semester_or_summer', 'semester']) ?? '—') : '—');
             $units         = $firstRecord ? ($getProp($firstRecord, ['units']) ?? '—') : '—';
             $studentObj    = $student ?? null;
             $studentId     = $getProp($studentObj, ['student_number', 'student_no', 'student_id'])
@@ -129,6 +144,9 @@
             @forelse($records as $r)
                 @php
                     $txDate  = $getProp($r, ['transactionDate', 'transaction_date']);
+                    $txDateDisplay = $txDate instanceof \DateTimeInterface
+                        ? $txDate->format('m/d/Y')
+                        : ($txDate ? \Carbon\Carbon::parse($txDate)->format('m/d/Y') : '—');
                     $refNo   = $getProp($r, ['referenceNo', 'reference_jev_or_number']) ?? '';
                     $part    = $getProp($r, ['particulars']) ?? '—';
                     $rawType = (string) ($getProp($r, ['arOrPayment', 'ar_or_payment', 'arPayment', 'type', 'entry_type']) ?? '');
@@ -137,7 +155,7 @@
                     $type    = $isAdj ? $rawType : ($isPay ? 'Payment' : ($rawType ?: 'Charge'));
                 @endphp
                 <tr class="border-b">
-                    <td class="px-1.5 py-1">{{ $normalizeText($txDate ? \Carbon\Carbon::parse($txDate)->format('m/d/Y') : '—') }}</td>
+                    <td class="px-1.5 py-1">{{ $normalizeText($txDateDisplay) }}</td>
                     <td class="px-1.5 py-1">{{ $normalizeText($refNo) }}</td>
                     <td class="px-1.5 py-1">{{ $normalizeText($part) }}</td>
                     <td class="px-1.5 py-1">{{ $type }}</td>
