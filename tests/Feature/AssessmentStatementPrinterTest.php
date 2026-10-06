@@ -9,8 +9,11 @@ use App\Models\Courses;
 use App\Models\GraduateLedger;
 use App\Models\LawSchoolLedger;
 use App\Models\Student;
+use App\Models\User;
 use App\Services\LedgerMatchingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\LaravelPdf\Facades\Pdf;
+use Spatie\LaravelPdf\PdfBuilder;
 use Tests\TestCase;
 
 class AssessmentStatementPrinterTest extends TestCase
@@ -190,6 +193,69 @@ class AssessmentStatementPrinterTest extends TestCase
         ])->render();
 
         $this->assertStringContainsString('<td class="italic align-top py-0.5">LAW-999</td>', $html);
+    }
+
+    public function test_law_ledger_pdf_applies_requested_transaction_order(): void
+    {
+        Pdf::fake();
+
+        $staff = User::factory()->staff()->create();
+        $student = Student::create([
+            'student_number' => 'LAW-ORDER',
+            'last_name' => 'Order',
+            'first_name' => 'Tester',
+        ]);
+        $course = $this->course('JD', 'School of Law');
+        $term = $this->academicTerm('2025-2026', 'First Semester');
+
+        $oldest = $this->lawRecord($student, $course, $term, 'ar', 100, 'LAW-OLD');
+        $oldest->update(['transaction_date' => '2026-01-01']);
+        $latest = $this->lawRecord($student, $course, $term, 'payment', 50, 'LAW-LATEST');
+        $latest->update(['transaction_date' => '2026-02-01']);
+
+        $this->actingAs($staff)
+            ->get(route('law-ledger.pdf', [
+                'student_id' => $student->id,
+                'order' => 'oldest',
+            ]))
+            ->assertOk();
+
+        Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf): bool {
+            $references = $pdf->viewData['records']->pluck('reference_jev_or_number')->all();
+
+            return $references === ['LAW-OLD', 'LAW-LATEST'];
+        });
+    }
+
+    public function test_law_ledger_pdf_defaults_to_latest_transaction_order(): void
+    {
+        Pdf::fake();
+
+        $staff = User::factory()->staff()->create();
+        $student = Student::create([
+            'student_number' => 'LAW-ORDER-DEFAULT',
+            'last_name' => 'Order',
+            'first_name' => 'Default',
+        ]);
+        $course = $this->course('JD', 'School of Law');
+        $term = $this->academicTerm('2025-2026', 'First Semester');
+
+        $oldest = $this->lawRecord($student, $course, $term, 'ar', 100, 'LAW-OLD');
+        $oldest->update(['transaction_date' => '2026-01-01']);
+        $latest = $this->lawRecord($student, $course, $term, 'payment', 50, 'LAW-LATEST');
+        $latest->update(['transaction_date' => '2026-02-01']);
+
+        $this->actingAs($staff)
+            ->get(route('law-ledger.pdf', [
+                'student_id' => $student->id,
+            ]))
+            ->assertOk();
+
+        Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf): bool {
+            $references = $pdf->viewData['records']->pluck('reference_jev_or_number')->all();
+
+            return $references === ['LAW-LATEST', 'LAW-OLD'];
+        });
     }
 
     public function test_undergraduate_assessments_return_an_unsupported_statement(): void

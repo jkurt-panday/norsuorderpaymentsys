@@ -1097,8 +1097,10 @@ class LawSchoolLedgerController extends Controller
             'school_year' => ['nullable', 'string', 'max:20'],
             'semester' => ['nullable', 'in:First Semester,Second Semester,Summer'],
             'type' => ['nullable', 'string', 'max:100'],
+            'order' => ['nullable', 'in:latest,oldest'],
         ]);
 
+        $sortDirection = ($validated['order'] ?? 'latest') === 'oldest' ? 'asc' : 'desc';
         $studentName = str_replace(['−', '–', '—'], '-', (string) ($validated['student'] ?? $validated['student_id']));
         $recordsQuery = isset($validated['student_id'])
             ? LawSchoolLedger::query()->where('student_id', $validated['student_id'])
@@ -1112,7 +1114,8 @@ class LawSchoolLedgerController extends Controller
                     fn ($termQuery) => $termQuery->where('school_year', $schoolYear),
                 ),
             )
-            ->orderBy('id', 'asc')
+            ->orderBy('transaction_date', $sortDirection)
+            ->orderBy('id', $sortDirection)
             ->get()
             ->when(
                 $validated['semester'] ?? null,
