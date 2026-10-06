@@ -141,6 +141,12 @@ class AdminUserController extends Controller
             'role' => ['required', Rule::enum(UserRole::class)],
         ]);
 
+        if (! empty($validated['password']) && Hash::check($validated['password'], $user->password)) {
+            return back()->withInput()->withErrors([
+                'password' => 'The new password cannot be the same as your current password.',
+            ]);
+        }
+
         $user->name = $validated['name'];
         $user->email = $validated['email'];
         $user->role = $validated['role'];

@@ -7,6 +7,7 @@ use App\Http\Requests\CreateAndLinkOpStudentRequest;
 use App\Http\Requests\LinkOpStudentRequest;
 use App\Http\Requests\SearchOpStudentsRequest;
 use App\Http\Requests\StaffProcessingRequest;
+use App\Http\Requests\UpdateOpOrNumberRequest;
 use App\Jobs\SendOrderOfPaymentEmail;
 use App\Mail\OrderOfPaymentMail;
 use App\Models\AcademicTerm;
@@ -413,6 +414,58 @@ class StaffInputController extends Controller
 
         } catch (\Throwable $e) {
             Log::error('Staff processing update failed: '.$e->getMessage(), [
+                'staff_input_id' => $staffInput->id,
+                'request_data' => $request->all(),
+            ]);
+
+            return back()->withInput()->with('error', 'An error occurred. Please do the action again.');
+        }
+    }
+
+    /**
+     * Correct an OR number that a cashier already placed.
+     *
+     * Issuing the first OR number stays cashier-only; this endpoint only fixes
+     * a typo in an existing one, so staff can cover when the cashier is out.
+     * When the request is already paid, the ledger entry is re-posted so its
+     * reference_number follows the corrected OR number (updateOrCreate-style
+     * correction, so the student is never credited twice).
+     */
+    public function updateOrNumber(
+        UpdateOpOrNumberRequest $request,
+        StaffInput $staffInput,
+        CashierLedgerPostingService $postingService,
+    ): RedirectResponse {
+        $validated = $request->validated();
+
+        try {
+            DB::transaction(function () use ($validated, $staffInput, $postingService): void {
+                $lockedRequest = StaffInput::query()
+                    ->lockForUpdate()
+                    ->findOrFail($staffInput->id);
+
+                // Guard again inside the lock: the cashier could have cleared
+                // the OR number between validation and this write.
+                if (blank($lockedRequest->or_no)) {
+                    return;
+                }
+
+                $lockedRequest->update([
+                    'or_no' => $validated['or_no'],
+                    'or_date' => $validated['or_date'],
+                ]);
+
+                if ($lockedRequest->status === 'paid') {
+                    $postingService->postPayment($lockedRequest->fresh('formInput.course'));
+                }
+            });
+
+            $staffInput->refresh();
+
+            return redirect()->route('staff.requests.show', $staffInput->formInput)
+                ->with('success', 'OR number updated successfully.');
+        } catch (\Throwable $e) {
+            Log::error('Staff OR number update failed: '.$e->getMessage(), [
                 'staff_input_id' => $staffInput->id,
                 'request_data' => $request->all(),
             ]);

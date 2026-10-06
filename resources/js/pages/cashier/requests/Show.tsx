@@ -1,5 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { flashToast } from '@/utils/flashToast';
 import cashier from '@/routes/cashier';
 
 interface PaymentRequest {
@@ -72,11 +74,53 @@ export default function CashierRequestShow({
 
     const submit = (event: React.SyntheticEvent) => {
         event.preventDefault();
-        form.put(cashier.requests.payment.update.url(request.id));
+        form.put(cashier.requests.payment.update.url(request.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                if (orAutoPromoted.current) {
+                    flashToast('success', 'Status updated to Paid.');
+                    orAutoPromoted.current = false;
+                }
+            },
+        });
     };
 
     const badge = getStatusBadgeConfig(request.status);
     const isPaid = form.data.status === 'paid';
+
+    // The OR number auto-drives the status, but only *up* to "Paid"
+    // from "Ready for payment". An explicit "Cancelled" (or any other
+    // pick) is always respected — the status dropdown stays fully
+    // editable no matter what is typed into the OR field.
+    const orAutoPromoted = useRef(false);
+
+    const syncStatusFromOr = () => {
+        if (
+            form.data.or_no.trim() !== '' &&
+            form.data.status === 'processed'
+        ) {
+            form.setData('status', 'paid');
+            orAutoPromoted.current = true;
+        }
+    };
+
+    // When an OR number is entered, automatically mark as paid — but
+    // only when the current status is still "Ready for payment".
+    // When cleared, the status is left at whatever it currently is.
+    const handleOrNoChange = (value: string) => {
+        const filtered = value.replace(/[^0-9./\s-]/g, '');
+        form.setData('or_no', filtered);
+        syncStatusFromOr();
+    };
+
+    // On mount only: if the OR field is already pre-filled (e.g. a
+    // previously-paid request being corrected), make sure the status
+    // reflects that. Runs once; subsequent OR edits are driven by
+    // handleOrNoChange above.
+    useEffect(() => {
+        syncStatusFromOr();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
         <>
@@ -199,14 +243,11 @@ export default function CashierRequestShow({
                                     pattern="[0-9\-\.\/\s]+"
                                     title="Only numbers, dashes, slashes, dots and spaces are allowed"
                                     value={form.data.or_no}
-                                    onChange={(event) => {
-                                        const filtered =
-                                            event.target.value.replace(
-                                                /[^0-9./\s-]/g,
-                                                '',
-                                            );
-                                        form.setData('or_no', filtered);
-                                    }}
+                                    onChange={(event) =>
+                                        handleOrNoChange(
+                                            event.target.value,
+                                        )
+                                    }
                                     className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 />
                                 {form.errors.or_no && (

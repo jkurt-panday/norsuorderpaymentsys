@@ -174,6 +174,7 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
         Route::get('/{formInput}/view-op',   [StaffInputController::class, 'viewOp'])->name('viewOp');
         Route::post('/{formInput}/email-op', [StaffInputController::class, 'emailOp'])->name('emailOp');
         Route::put('/{formInput}/details',   [StaffInputController::class, 'updateDetails'])->name('updateDetails');
+        Route::put('/{staffInput}/or',       [StaffInputController::class, 'updateOrNumber'])->name('updateOr');
         Route::put('/{formInput}/student',   [StaffInputController::class, 'linkStudent'])->name('linkStudent');
         Route::post('/{formInput}/student',  [StaffInputController::class, 'createAndLinkStudent'])->name('createAndLinkStudent');
         Route::put('/{formInput}/academic-term', [StaffInputController::class, 'assignAcademicTerm'])->name('assignAcademicTerm');

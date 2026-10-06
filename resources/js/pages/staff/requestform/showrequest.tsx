@@ -325,6 +325,7 @@ export default function ShowRequest() {
     } = usePage().props as unknown as PageProps;
     const isCashier = auth?.user?.role === 'cashier';
     const isAdmin = auth?.user?.role === 'admin';
+    const isStaff = auth?.user?.role === 'staff';
     const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
     const [isEmailPreviewOpen, setIsEmailPreviewOpen] = useState(false);
@@ -667,7 +668,7 @@ export default function ShowRequest() {
         setIsEditingStaffInput(false);
     };
 
-    // ---- Inline "Edit OR" form (cashier only) -------------------------------
+    // ---- Inline "Edit OR" form (staff/admin, only when an OR exists) ----------
     const {
         data: orData,
         setData: setOrData,
@@ -682,6 +683,14 @@ export default function ShowRequest() {
             : '',
     });
 
+    /**
+     * Issuing the first OR number stays a cashier-only action on the cashier
+     * page. Staff/admin can only correct an OR number the cashier already
+     * placed, which covers the cashier being unavailable.
+     */
+    const canEditOr =
+        (isAdmin || isStaff) && Boolean(formInput.staff_input?.or_no);
+
     const handleOrSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -689,7 +698,7 @@ export default function ShowRequest() {
             return;
         }
 
-        putOr(cashier.requests.payment.update.url(formInput.staff_input.id), {
+        putOr(staff.requests.updateOr.url(formInput.staff_input.id), {
             preserveScroll: true,
             onSuccess: () => {
                 resetOrForm();
@@ -1964,6 +1973,71 @@ export default function ShowRequest() {
                                             )}
                                         </div>
 
+                                        {/* OR Number & OR Date - entering an OR number auto-sets status to paid */}
+                                        <div className="mb-6">
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                                OR Number
+                                            </label>
+                                            <input
+                                                type="text"
+                                                inputMode="text"
+                                                placeholder="e.g. 56-980 or 2024/001"
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                    processErrors.or_no
+                                                        ? 'border-rose-400'
+                                                        : 'border-slate-200'
+                                                }`}
+                                                value={processData.or_no}
+                                                onChange={(e) => {
+                                                    const filtered =
+                                                        e.target.value.replace(
+                                                            /[^0-9./\s-]/g,
+                                                            '',
+                                                        );
+                                                    setProcessData(
+                                                        'or_no',
+                                                        filtered,
+                                                    );
+                                                    if (filtered !== '') {
+                                                        setProcessData(
+                                                            'status',
+                                                            'paid',
+                                                        );
+                                                    }
+                                                }}
+                                            />
+                                            {processErrors.or_no && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {processErrors.or_no}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="mb-6">
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                                OR Date
+                                            </label>
+                                            <input
+                                                type="date"
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                    processErrors.or_date
+                                                        ? 'border-rose-400'
+                                                        : 'border-slate-200'
+                                                }`}
+                                                value={processData.or_date}
+                                                onChange={(e) =>
+                                                    setProcessData(
+                                                        'or_date',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                            {processErrors.or_date && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {processErrors.or_date}
+                                                </p>
+                                            )}
+                                        </div>
+
                                         <div className="mb-6">
                                             <label className="mb-1 block text-sm font-medium text-slate-700">
                                                 Status{' '}
@@ -1985,6 +2059,7 @@ export default function ShowRequest() {
                                                     )
                                                 }
                                                 required
+                                                disabled={!!processData.or_no}
                                             >
                                                 <option value="">
                                                     Select Status
@@ -2101,7 +2176,7 @@ export default function ShowRequest() {
                                         Official Receipt
                                     </h3>
                                     <div className="flex items-center gap-2">
-                                        {(isCashier || isAdmin) && !isEditingOr && (
+                                        {canEditOr && !isEditingOr && (
                                             <button
                                                 type="button"
                                                 onClick={() => {
@@ -2142,7 +2217,7 @@ export default function ShowRequest() {
                                     </div>
                                 </div>
                                 <div className="p-6">
-                                    {(isCashier || isAdmin) && isEditingOr ? (
+                                    {canEditOr && isEditingOr ? (
                                         <form onSubmit={handleOrSubmit}>
                                             <div className="space-y-4">
                                                 <FormField
@@ -2225,18 +2300,14 @@ export default function ShowRequest() {
                                                         </svg>
                                                         {isSubmittingOr
                                                             ? 'Saving...'
-                                                            : formInput
-                                                                    .staff_input
-                                                                    ?.or_no
-                                                              ? 'Update OR'
-                                                              : 'Place OR Number'}
+                                                            : 'Update OR'}
                                                     </button>
                                                 </div>
                                             </div>
                                         </form>
                                         ) : (
                                         <div className="space-y-3">
-                                            <div className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${!isCashier && !isAdmin ? 'opacity-60' : ''}`}>
+                                            <div className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${canEditOr ? '' : 'opacity-60'}`}>
                                                 <ReadOnlyRow
                                                     label="OR Number"
                                                     value={
@@ -2246,7 +2317,7 @@ export default function ShowRequest() {
                                                     valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${!isCashier && !isAdmin ? 'opacity-60' : ''}`}>
+                                            <div className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${canEditOr ? '' : 'opacity-60'}`}>
                                                 <ReadOnlyRow
                                                     label="OR Date"
                                                     value={
