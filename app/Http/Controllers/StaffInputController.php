@@ -699,6 +699,20 @@ class StaffInputController extends Controller
         ]);
         $formInput->student?->append('full_name');
 
+        // If the matched student no longer has any ledger records (e.g.
+        // staff deleted their entries from the graduate/law ledger), treat
+        // the OP as unmatched so the UI shows the "Match Student"
+        // call-to-action instead of a stale match.
+        if ($formInput->student) {
+            $isLaw = $formInput->course?->course_college === 'School of Law';
+            $formInput->student->setAttribute(
+                'has_ledger_records',
+                $isLaw
+                    ? $formInput->student->lawSchoolLedgers()->exists()
+                    : $formInput->student->graduateLedgers()->exists()
+            );
+        }
+
         // Added: bankAccounts + uacsList, so the inline "Process Now" form
         // on this page has what it needs without a separate navigation.
         // Added: paymentOptions, so the new "Edit Processed Request" form

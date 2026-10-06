@@ -34,8 +34,6 @@ use Maatwebsite\Excel\Facades\Excel;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use Spatie\LaravelPdf\Facades\Pdf;
-use Spatie\LaravelPdf\PdfBuilder;
 
 
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
