@@ -53,7 +53,10 @@
 
         // "Units" isn't present in Assessment as loaded (only ->load(['course'])) or in the
         // ledger payload — guessing $assessment->units exists; confirm and adjust if not.
-        $units = $records->first()['units'] ?? '—';
+        $unitsRaw = $records->first()['units'] ?? '—';
+        $units = is_numeric($unitsRaw)
+            ? (string) (int) round((float) $unitsRaw)   // "10.00" -> "10"
+            : ($unitsRaw ?: '—');
 
         $formNumber = $assessment->reference_number ?? $assessment->id;
     @endphp
@@ -102,11 +105,11 @@
     <table class="w-full border-b border-t border-black border-collapse mt-1.5 text-[1rem]">
         <thead>
             <tr class="border-b-2 border-black">
-                <th class="text-left px-1.5 py-1 w-[22%]">Date</th>
-                <th class="text-left px-1.5 py-1 w-[14%]">Ref #</th>
-                <th class="text-left px-1.5 py-1 w-[24%]">Particulars</th>
-                <th class="text-left px-1.5 py-1 w-[16%]">Type</th>
-                <th class="text-right px-1.5 py-1 w-[24%]">Amount</th>
+                <th class="text-left px-1.5 py-1 w-[10%]">Date</th>
+                <th class="text-left px-1.5 py-1 w-[10%]">Ref #</th>
+                <th class="text-left px-1.5 py-1 w-[10%]">Particulars</th>
+                <th class="text-center px-1.5 py-1 w-[10%]">Type</th>
+                <th class="text-right px-1.5 py-1 w-[10%]">Amount</th>
             </tr>
         </thead>
         <tbody>
@@ -120,10 +123,10 @@
                         : number_format($amountValue, 2);
                 @endphp
                 <tr class="border-b">
-                    <td class="px-1.5 py-1">{{ $record['transactionDate'] ?? '—' }}</td>
+                    <td class="px-1.5 py-1">$record['transactionDate'] ? \Carbon\Carbon::parse($record['transactionDate'])->format('m/d/Y') : '—' }}</td>
                     <td class="px-1.5 py-1">{{ $record['referenceNo'] ?? '' }}</td>
                     <td class="px-1.5 py-1">{{ $record['particulars'] ?? '—' }}</td>
-                    <td class="px-1.5 py-1">{{ $record['type'] ?? '—' }}</td>
+                    <td class="text-right px-1.5 py-1">{{ $record['type'] ?? '—' }}</td>
                     <td class="text-right px-1.5 py-1">{{ $amountDisplay }}</td>
                 </tr>
             @empty
@@ -133,8 +136,8 @@
             @endforelse
 
             <tr class="border-t-2 border-black font-bold">
-                <td colspan="3"></td>
-                <td class="text-right px-1.5 py-1.5">Outstanding Balance</td>
+                <td colspan="2"></td>
+                <td colspan="2" class="text-right px-1.5 py-1.5">Outstanding Balance</td>
                 <td class="text-right px-1.5 py-1.5">{{ number_format($summary['outstandingBalance'] ?? 0, 2) }}</td>
             </tr>
         </tbody>
