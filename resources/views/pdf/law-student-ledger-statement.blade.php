@@ -2,14 +2,12 @@
 <html>
     <head>
         @php
-            // ── Variable & Logic Extraction (Retained from snippet) ──
+            // ── Variable & Logic Extraction ──
             $normalizeText = static fn ($value) => str_replace(['−', '–', '—'], '-', (string) ($value ?? ''));
             $firstRecord   = $records->first();
             $cleanAmount   = static fn ($val) => abs((float) preg_replace('/[^\d.]/', '', (string) ($val ?? 0)));
 
-            // Universal property extractor. Only scalar values are ever returned:
-            // key names like 'course' also match Eloquent relationships, and
-            // echoing a model would dump its JSON instead of the field value.
+            // Universal property extractor (works on objects AND arrays)
             $getProp = static function ($obj, array $keys) {
                 if (!$obj) return null;
                 foreach ($keys as $key) {
@@ -25,8 +23,13 @@
                 return null;
             };
 
-            $courseCode = static function ($record) use ($getProp) {
-                if (! $record) return '—';
+            // ── Student number: pull from law_student relationship ──
+            $studentNumber = null;
+            if ($firstRecord) {
+                $lawStudent = $getProp($firstRecord, ['law_student', 'lawStudent']);
+                $studentNumber = $getProp($lawStudent, ['student_number', 'studentNumber', 'student_no']);
+            }
+            $studentNumber = $studentNumber ?? ($assessment->student_id ?? '—');
 
                 // 'course' is a BelongsTo relation, so read the code off the model.
                 if (isset($record->course) && is_object($record->course)) {
@@ -52,7 +55,7 @@
             $formNumber    = $assessment->reference_number ?? ($assessment->id ?? '—');
             $studentName   = $studentName ?? (is_object($student ?? null) ? ($student->full_name ?? ($student->name ?? '—')) : '—');
 
-            // Payment determination logic
+            // ── Payment determination logic ──
             $isPayment = static function ($record) use ($getProp) {
                 $rawType = strtoupper(trim((string) ($getProp($record, ['arOrPayment', 'ar_or_payment', 'arPayment', 'entry_type']) ?? '')));
                 return in_array($rawType, ['PAYMENT', 'P', 'PAYMENR', 'SETTLED', 'ADJUSTMENT', 'ADJ'])
@@ -60,27 +63,25 @@
                     || str_contains($rawType, 'PAY');
             };
 
-            // Amount formatting logic
+            // ── Amount formatting logic ──
             $formatAmount = static function ($record) use ($cleanAmount, $isPayment, $getProp) {
                 $amount = $cleanAmount($getProp($record, ['amount']) ?? 0);
-
                 if ($isPayment($record)) {
                     return '- ' . number_format($amount, 2);
                 }
-
                 return number_format($amount, 2);
             };
 
-            // Header image processing
+            // ── Header image ──
             $headerImagePath = resource_path('views/pdf/norsu header.png');
             $headerImageBase64 = file_exists($headerImagePath)
                 ? base64_encode(file_get_contents($headerImagePath))
                 : ($logoDataUri ?? null);
 
-            // Signatory & user metadata
-            $user = $preparedBy ?? '—';
-            $official = activeAuthorizedOfficial();
-            $signatoryName = $official?->name ?? 'Maurice Anaver B. Dordado, CPA';
+            // ── Signatory & user metadata ──
+            $user              = $preparedBy ?? '—';
+            $official          = activeAuthorizedOfficial();
+            $signatoryName     = $official?->name ?? 'Maurice Anaver B. Dordado, CPA';
             $authofficialcourse = $official?->course ?? 'CPA';
             $signatoryPosition = $official?->position ?? 'Head of Accounting/Division/Unit';
         @endphp
@@ -89,20 +90,20 @@
         <title>Statement of Account - {{ $studentName }}</title>
         @vite(['resources/css/app.css'])
     </head>
-<body class="text-[11px] w-full min-w-[800px] text-gray-900 font-sans">
-
-    {{-- <pre>{{ json_encode(get_defined_vars(), JSON_PRETTY_PRINT) }}</pre> --}}
+<body class="text-[11px] w-full min-w-200 text-gray-900 font-sans">
 
     @if($headerImageBase64)
         <div class="flex justify-center mb-2">
             <img
-                class="w-full max-w-[605px]"
+                class="w-full max-w-151.25"
                 src="{{ str_starts_with($headerImageBase64, 'data:') ? $headerImageBase64 : 'data:image/png;base64,' . $headerImageBase64 }}"
                 alt="NORSU Header"
             >
         </div>
     @endif
 
+    {{-- <pre>{{ json_encode(get_defined_vars(), JSON_PRETTY_PRINT) }}</pre> --}}
+    
     <h1 class="text-center font-bold text-2xl my-4">Statement of Account</h1>
 
     <!-- Meta Information Block -->
@@ -186,10 +187,16 @@
                         : ($txDate ? \Carbon\Carbon::parse($txDate)->format('m/d/Y') : '—');
                     $refNo   = $getProp($r, ['referenceNo', 'reference_jev_or_number']) ?? '';
                     $part    = $getProp($r, ['particulars']) ?? '—';
-                    $rawType = (string) ($getProp($r, ['arOrPayment', 'ar_or_payment', 'arPayment', 'type', 'entry_type']) ?? '');
+                    $rawType = (string) ($getProp($r, ['entry_type', 'arOrPayment', 'ar_or_payment', 'arPayment', 'type']) ?? '');
                     $isAdj   = str_contains(strtoupper($rawType), 'ADJUST');
                     $isPay   = $isPayment($r);
-                    $type    = $isAdj ? $rawType : ($isPay ? 'Payment' : ($rawType ?: 'Charge'));
+                    $type = strtoupper(
+                        $isAdj ? $rawType : ($isPay ? 'Payment' : ($rawType ?: 'Charge'))
+                    );
+
+                    // Semester for this row (fall back to the header semester)
+                    $rowTerm = $getProp($r, ['law_academic_term', 'lawAcademicTerm', 'academic_term', 'academicTerm']);
+                    $rowSem  = $getProp($rowTerm, ['semester']) ?? $semesterLabel;
                 @endphp
                 <tr class="border-b">
                     <td class="px-1.5 py-1">{{ $normalizeText($txDateDisplay) }}</td>
@@ -200,7 +207,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5" class="italic text-gray-500 px-1.5 py-3">No matching ledger records found.</td>
+                    <td colspan="6" class="italic text-gray-500 px-1.5 py-3">No matching ledger records found.</td>
                 </tr>
             @endforelse
 
@@ -221,11 +228,11 @@
                 <div class="text-left mt-10">
                     (SGD)
                 </div>
-    
+
                 <div class="font-bold mt-6">
                     {{ $user }}
                 </div>
-    
+
                 <div class="mt-1">
                     Accounting Staff
                 </div>
@@ -233,19 +240,19 @@
                 <div class="">
                     &nbsp;
                 </div>
-    
+
                 <div class="mt-3.5">
                     Date: {{ now('Asia/Manila')->format('n/j/Y') }}
                 </div>
             </td>
-    
+
             <td class="w-1/2 align-top px-2.5">
                 Certified Correct
     
                 <div class="text-left mt-10">
                     (SGD)
                 </div>
-    
+
                 <div class="font-bold mt-6">
                     {{ $signatoryName }}, {{ $authofficialcourse }}
                 </div>
@@ -253,11 +260,11 @@
                 <div class="mt-1">
                     {{ $signatoryPosition }}
                 </div>
-    
+
                 <div class="">
                     Authorized Official
                 </div>
-    
+
                 <div class="mt-3.5">
                     Date: {{ now('Asia/Manila')->format('n/j/Y') }}
                 </div>
