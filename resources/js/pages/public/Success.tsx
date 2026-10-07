@@ -451,7 +451,6 @@ return null;
                                         return (
                                             <Button
                                                 variant="outline"
-                                                asChild
                                                 className="h-11 w-full rounded-xl border-slate-200 px-6 text-sm font-semibold text-slate-700 transition-all duration-200 hover:bg-slate-50 sm:h-12 sm:w-auto sm:px-8 sm:text-base"
                                             >
                                                 <Link

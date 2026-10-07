@@ -25,7 +25,7 @@ return new class extends Migration
             $table->string('enrolled_under', 100);
             $table->string('sy_last_attended', 100);
             $table->string('semester', 100);
-            $table->enum('status', ['pending', 'approved', 'rejected', 'completed'])->default('pending');
+            $table->enum('status', ['pending', 'mailed', 'rejected', 'completed'])->default('pending');
             $table->timestamps();
         });
     }

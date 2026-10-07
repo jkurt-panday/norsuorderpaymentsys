@@ -180,7 +180,7 @@ class AssessmentController extends Controller
     public function update(Request $request, AssessmentForm $assessment): RedirectResponse
     {
         $validated = $request->validate([
-            'status' => ['required', 'string', Rule::in(['pending', 'approved', 'rejected', 'completed'])],
+            'status' => ['required', 'string', Rule::in(['pending', 'mailed', 'rejected', 'completed'])],
         ]);
 
         $assessment->update($validated);

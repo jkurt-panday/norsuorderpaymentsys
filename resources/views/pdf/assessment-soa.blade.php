@@ -64,7 +64,7 @@
     @if($headerImageBase64)
         <div class="flex justify-center mb-2">
             <img
-                class="w-full max-w-[605px]"
+                class="w-full max-w-151.25"
                 src="data:image/png;base64,{{ $headerImageBase64 }}"
                 alt="NORSU Header"
             >
