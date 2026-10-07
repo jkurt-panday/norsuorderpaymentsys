@@ -36,6 +36,14 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import {
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+} from '@/components/ui/combobox';
+import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -190,6 +198,7 @@ export default function AssessmentEdit({
     const [emailNote, setEmailNote] = useState('');
     const [isSendingEmail, setIsSendingEmail] = useState(false);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+    const [isChangingStudent, setIsChangingStudent] = useState(false);
     
     useEffect(() => {
         flashToast('success', flash?.success);
@@ -224,6 +233,13 @@ export default function AssessmentEdit({
                 .includes(term),
         );
     }, [ledgerStatement.candidates, search]);
+    const selectedStudentComboboxValue = ledgerStatement.selectedStudent
+        ? `${ledgerStatement.selectedStudent.name}${
+              ledgerStatement.selectedStudent.studentId
+                  ? ` · ${ledgerStatement.selectedStudent.studentId}`
+                  : ''
+          }`
+        : '';
 
     const selectStudent = (key: string) => {
         if (!key) {
@@ -516,7 +532,19 @@ export default function AssessmentEdit({
                                 requested in this assessment.
                             </CardDescription>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
+                            <Button
+                                type="button"
+                                onClick={() =>
+                                    setIsChangingStudent((isOpen) => !isOpen)
+                                }
+                                disabled={ledgerStatement.candidates.length === 0}
+                                variant="outline"
+                                className="border-blue-200 bg-white text-[#0B3D91] hover:bg-blue-50"
+                            >
+                                <Search className="h-4 w-4" />
+                                Change Student
+                            </Button>
                             <Button
                                 onClick={openEmailPreview}
                                 disabled={!ledgerStatement.selectedStudent}
@@ -536,6 +564,77 @@ export default function AssessmentEdit({
                             </Button>
                         </div>
                     </CardHeader>
+
+                    {isChangingStudent && (
+                        <div className="border-b border-blue-100 bg-blue-50/40 px-4 py-4 sm:px-6">
+                            <div className="max-w-xl space-y-2">
+                                <label className="text-sm font-semibold text-[#0B3D91]">
+                                    Select student for statement
+                                </label>
+                                <Combobox
+                                    items={ledgerStatement.candidates}
+                                    value={selectedStudentComboboxValue}
+                                    onValueChange={(value) => {
+                                        const selected =
+                                            ledgerStatement.candidates.find(
+                                                (candidate) =>
+                                                    `${candidate.name}${
+                                                        candidate.studentId
+                                                            ? ` · ${candidate.studentId}`
+                                                            : ''
+                                                    }` === value,
+                                            );
+
+                                        if (selected) {
+                                            selectStudent(selected.key);
+                                            setIsChangingStudent(false);
+                                        }
+                                    }}
+                                >
+                                    <ComboboxInput
+                                        placeholder="Search by name or student ID..."
+                                        className="w-full border-slate-200 bg-white shadow-sm focus-within:border-blue-500! focus-within:ring-2! focus-within:ring-blue-500/20!"
+                                        showClear={!!selectedStudentComboboxValue}
+                                    />
+                                    <ComboboxContent>
+                                        <ComboboxEmpty>
+                                            No matching students found.
+                                        </ComboboxEmpty>
+                                        <ComboboxList>
+                                            {(candidate) => (
+                                                <ComboboxItem
+                                                    key={candidate.key}
+                                                    value={`${candidate.name}${
+                                                        candidate.studentId
+                                                            ? ` · ${candidate.studentId}`
+                                                            : ''
+                                                    }`}
+                                                >
+                                                    <span className="flex flex-col">
+                                                        <span className="font-medium text-slate-800">
+                                                            {candidate.name}
+                                                        </span>
+                                                        {candidate.studentId && (
+                                                            <span className="text-xs text-slate-500">
+                                                                {
+                                                                    candidate.studentId
+                                                                }
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </ComboboxItem>
+                                            )}
+                                        </ComboboxList>
+                                    </ComboboxContent>
+                                </Combobox>
+                                <p className="text-xs text-slate-500">
+                                    Changing the student reloads this statement
+                                    using the selected student's ledger records
+                                    for the requested term.
+                                </p>
+                            </div>
+                        </div>
+                    )}
 
                     <CardContent className="space-y-6 p-4 sm:p-6">
                         <MatchNotice statement={ledgerStatement} />
@@ -804,7 +903,7 @@ export default function AssessmentEdit({
                                 <iframe
                                     title="Email preview"
                                     srcDoc={buildEmailPreviewHtml(emailRecipientName, emailNote)}
-                                    className="h-[28rem] w-[400px] bg-white"
+                                    className="h-112 w-100 bg-white"
                                 />
                             </div>
                         </div>
