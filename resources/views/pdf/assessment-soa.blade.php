@@ -12,7 +12,7 @@
         <base href="{{ config('app.url') }}">
         @vite(['resources/css/app.css'])
     </head>
-<body class="text-[11px] w-full min-w-[800px] text-gray-900 font-sans">
+<body class="text-[11px] w-full min-w-200 text-gray-900 font-sans">
 
     @php
         // Base64-embed the header image so it renders regardless of PDF engine.
