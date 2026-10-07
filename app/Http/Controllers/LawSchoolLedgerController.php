@@ -1440,6 +1440,9 @@ class LawSchoolLedgerController extends Controller
 
         $summary = $this->calculateStudentBalanceNormalized($records);
 
+        // Use Browsershot (Chrome) like generatePdf() does, so the PDF
+        // matches the print statement exactly — including all Tailwind styles.
+        // dompdf cannot parse the built Vite stylesheet.
         return Pdf::view('pdf.law-student-ledger-statement', [
             'student' => $student,
             'studentName' => $studentName,
@@ -1448,7 +1451,10 @@ class LawSchoolLedgerController extends Controller
             'semesterLabel' => $semester ?? 'All Terms',
             'generatedAt' => now()->timezone('Asia/Manila')->format('Y-m-d h:i A'),
         ])
-            ->driver('dompdf')
+            ->driver('browsershot')
+            ->withBrowsershot(function (Browsershot $browsershot): void {
+                $this->configureBrowsershot($browsershot);
+            })
             ->format('a4')
             ->generatePdfContent();
     }
