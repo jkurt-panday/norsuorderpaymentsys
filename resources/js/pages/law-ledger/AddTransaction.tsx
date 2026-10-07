@@ -69,7 +69,7 @@ const entryTypeOptions = [
 
 const latinHonorOptions = [
     { value: 'SUMMA', label: 'Summa', fullLabel: 'Summa Cum Laude', discountRate: 1 },
-    { value: 'MAGNA', label: 'Magna', fullLabel: 'Magna Cum Laude', discountRate: 1 },
+    { value: 'MAGNA', label: 'Magna', fullLabel: 'Magna Cum Laude', discountRate: 0.75 },
     { value: 'CUM_LAUDE', label: 'Cum Laude', fullLabel: 'Cum Laude', discountRate: 0.5 },
 ] as const;
 

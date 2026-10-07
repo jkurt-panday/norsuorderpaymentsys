@@ -1923,11 +1923,11 @@ return 90;
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-semibold text-[#0B3D91]">Magna Cum Laude</p>
-                        <p className="text-xs text-[#5C7A9E]">100% discount – Full scholarship</p>
+                        <p className="text-xs text-[#5C7A9E]">75% discount – Partial scholarship</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-bold text-emerald-600">-{currency(honorTarget.amount)}</p>
-                        <p className="text-xs text-[#8AA8CC]">New: {currency(0)}</p>
+                        <p className="text-sm font-bold text-emerald-600">-{currency(honorTarget.amount * 0.75)}</p>
+                        <p className="text-xs text-[#8AA8CC]">New: {currency(honorTarget.amount * 0.25)}</p>
                       </div>
                     </div>
                   </button>
