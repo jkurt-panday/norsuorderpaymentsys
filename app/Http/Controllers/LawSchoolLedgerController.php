@@ -1329,7 +1329,11 @@ class LawSchoolLedgerController extends Controller
 
         $validated = $request->validate([
             'school_year' => ['nullable', 'string', 'max:20'],
-            'semester' => ['nullable', 'in:First Semester,Second Semester,Summer'],
+            // The Law ledger UI filters by `semester_or_summer`, while the PDF
+            // generator uses `semester`. Accept both so emailed PDFs use the
+            // same term selection as the recipient list.
+            'semester' => ['nullable', 'string', 'max:50'],
+            'semester_or_summer' => ['nullable', 'string', 'max:50'],
             'subject' => ['nullable', 'string', 'max:255'],
             'note' => ['nullable', 'string', 'max:2000'],
             'exam_period' => ['nullable', 'in:Midterm,Final'],
@@ -1337,6 +1341,16 @@ class LawSchoolLedgerController extends Controller
             'student_ids' => ['nullable', 'array'],
             'student_ids.*' => ['integer', 'exists:students,id'],
         ]);
+
+        $semester = $this->normalizeStatementSemester(
+            $validated['semester'] ?? $validated['semester_or_summer'] ?? null,
+        );
+
+        if (($validated['semester'] ?? $validated['semester_or_summer'] ?? null) !== null && $semester === null) {
+            return back()->withErrors([
+                'semester' => 'The selected semester is invalid.',
+            ]);
+        }
 
         $query = $this->buildFilteredQuery($request);
 
@@ -1371,7 +1385,7 @@ class LawSchoolLedgerController extends Controller
             $pdfContent = $this->generateStudentPdfContent(
                 (int) $student->id,
                 $validated['school_year'] ?? null,
-                $validated['semester'] ?? null,
+                $semester,
             );
 
             Mail::to($student->email)->send(
@@ -1397,6 +1411,7 @@ class LawSchoolLedgerController extends Controller
      */
     private function generateStudentPdfContent(int $studentId, ?string $schoolYear, ?string $semester): string
     {
+        $semester = $this->normalizeStatementSemester($semester);
         $recordsQuery = LawSchoolLedger::query()
             ->with(['lawStudent', 'lawCourse', 'lawAcademicTerm'])
             ->where('student_id', $studentId);
@@ -1436,6 +1451,21 @@ class LawSchoolLedgerController extends Controller
             ->driver('dompdf')
             ->format('a4')
             ->generatePdfContent();
+    }
+
+    private function normalizeStatementSemester(?string $semester): ?string
+    {
+        if (! filled($semester)) {
+            return null;
+        }
+
+        return LawAcademicTerm::normalizeSemester((string) $semester)
+            ?? match ($this->normalizeSemester((string) $semester)) {
+                '1st Sem' => 'First Semester',
+                '2nd Sem' => 'Second Semester',
+                'Summer' => 'Summer',
+                default => null,
+            };
     }
 
     /**

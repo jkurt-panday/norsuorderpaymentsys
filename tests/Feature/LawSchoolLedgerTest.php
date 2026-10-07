@@ -2,12 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Mail\LawSchoolLedgerStatementMail;
 use App\Models\AcademicTerm;
 use App\Models\Course;
 use App\Models\LawSchoolLedger;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
+use Spatie\LaravelPdf\Facades\Pdf;
 use Tests\TestCase;
 
 class LawSchoolLedgerTest extends TestCase
@@ -160,6 +163,107 @@ class LawSchoolLedgerTest extends TestCase
             ->assertJsonPath('summary.totalCharges', 10000)
             ->assertJsonPath('summary.totalPayments', 5000)
             ->assertJsonPath('summary.outstandingBalance', 5000);
+    }
+
+    public function test_law_ledger_can_email_statements_using_the_current_filters(): void
+    {
+        Pdf::fake();
+        Mail::fake();
+
+        $user = User::factory()->staff()->create();
+        $student = Student::create([
+            'student_number' => 'LAW-EMAIL-1',
+            'email' => 'law.email@example.com',
+            'last_name' => 'Email',
+            'first_name' => 'Target',
+        ]);
+        $otherStudent = Student::create([
+            'student_number' => 'LAW-EMAIL-2',
+            'email' => 'other.law.email@example.com',
+            'last_name' => 'Email',
+            'first_name' => 'Other',
+        ]);
+        $course = Course::create([
+            'course_code' => 'JD',
+            'course_desc' => 'Juris Doctor',
+            'course_college' => 'School of Law',
+        ]);
+        $firstTerm = AcademicTerm::create([
+            'school_year' => '2025-2026',
+            'semester' => 'First Semester',
+        ]);
+        $secondTerm = AcademicTerm::create([
+            'school_year' => '2025-2026',
+            'semester' => 'Second Semester',
+        ]);
+
+        LawSchoolLedger::create([
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $firstTerm->id,
+            'entry_type' => 'ar',
+            'transaction_date' => '2026-01-10',
+            'reference_number' => 'LAW-EMAIL-AR',
+            'particulars' => 'Tuition',
+            'rate' => 1000,
+            'amount' => 1000,
+            'status' => 'Pending',
+        ]);
+        LawSchoolLedger::create([
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $secondTerm->id,
+            'entry_type' => 'ar',
+            'transaction_date' => '2026-02-10',
+            'reference_number' => 'LAW-EMAIL-OTHER-TERM',
+            'particulars' => 'Tuition',
+            'rate' => 2000,
+            'amount' => 2000,
+            'status' => 'Pending',
+        ]);
+        LawSchoolLedger::create([
+            'student_id' => $otherStudent->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $firstTerm->id,
+            'entry_type' => 'ar',
+            'transaction_date' => '2026-01-10',
+            'reference_number' => 'LAW-EMAIL-OTHER-STUDENT',
+            'particulars' => 'Tuition',
+            'rate' => 3000,
+            'amount' => 3000,
+            'status' => 'Pending',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->from('/law-ledger')
+            ->post('/law-ledger/send-emails', [
+                'school_year' => '2025-2026',
+                'semester_or_summer' => '1st Sem',
+                'student_ids' => [$student->id],
+                'subject' => 'Law SOA',
+                'note' => 'Please settle your balance.',
+                'exam_period' => 'Midterm',
+                'exam_deadline' => '2026-03-01',
+            ]);
+
+        $response->assertRedirect('/law-ledger')
+            ->assertSessionHas('success', 'Emailed SOA to 1 student(s).');
+
+        Mail::assertSent(LawSchoolLedgerStatementMail::class, function (LawSchoolLedgerStatementMail $mail) use ($student): bool {
+            return $mail->hasTo('law.email@example.com')
+                && $mail->student->is($student)
+                && $mail->customSubject === 'Law SOA'
+                && $mail->note === 'Please settle your balance.'
+                && $mail->examPeriod === 'Midterm'
+                && $mail->examDeadline === '2026-03-01';
+        });
+        Mail::assertNotSent(LawSchoolLedgerStatementMail::class, function (LawSchoolLedgerStatementMail $mail): bool {
+            return $mail->hasTo('other.law.email@example.com');
+        });
+
+        Pdf::assertViewHas('records');
+        Pdf::assertDontSee('LAW-EMAIL-OTHER-TERM');
+        Pdf::assertDontSee('LAW-EMAIL-OTHER-STUDENT');
     }
 
     public function test_latin_honor_discount_cannot_be_applied_twice_to_same_assessment(): void
