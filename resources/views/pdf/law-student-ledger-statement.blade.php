@@ -30,16 +30,19 @@
 
                 // 'course' is a BelongsTo relation, so read the code off the model.
                 if (isset($record->course) && is_object($record->course)) {
-                    return $record->course->course_code ?? $record->course->code ?? '—';
+                    return $record->course->course_desc ?? $record->course->code ?? '—';
                 }
 
-                return $getProp($record, ['course_code', 'code']) ?? '—';
+                return $getProp($record, ['course_desc', 'code']) ?? '—';
             };
 
             $courseCode    = $courseCode($firstRecord);
             $schoolYear    = $firstRecord ? ($getProp($firstRecord, ['schoolYear', 'school_year']) ?? '—') : '—';
             $semesterLabel = $semesterLabel ?? ($firstRecord ? ($getProp($firstRecord, ['semesterOrSummer', 'semester_or_summer', 'semester']) ?? '—') : '—');
-            $units         = $firstRecord ? ($getProp($firstRecord, ['units']) ?? '—') : '—';
+            $unitsRaw         = $firstRecord ? ($getProp($firstRecord, ['units']) ?? '—') : '—';
+            $units = is_numeric($unitsRaw)
+                ? (string) (int) round((float) $unitsRaw)   // "10.00" -> "10"
+                : ($unitsRaw ?: '—');
             $studentObj    = $student ?? null;
             $recordStudent  = is_object($firstRecord) ? ($firstRecord->lawStudent ?? $firstRecord->student ?? null) : null;
             $studentId     = $getProp($studentObj, ['student_number', 'student_no'])
@@ -105,28 +108,61 @@
     <!-- Meta Information Block -->
     <table class="w-full mb-3 text-[16px]">
         <tr>
-            <td class="font-bold w-28 align-top py-0.5">Name:</td>
-            <td class="italic align-top py-0.5">{{ $normalizeText($studentName) }}</td>
-            <td class="font-bold w-45 align-top py-0.5">Assessment Form No:</td>
-            <td class="italic align-top py-0.5">{{ $formNumber }}</td>
-        </tr>
-        <tr>
-            <td class="font-bold align-top py-0.5">Student ID:</td>
-            <td class="italic align-top py-0.5">{{ $studentId }}</td>
-            <td class="font-bold align-top py-0.5">Semester:</td>
-            <td class="italic align-top py-0.5">{{ $normalizeText($semesterLabel) }}</td>
-        </tr>
-        <tr>
-            <td class="font-bold align-top py-0.5">Course:</td>
-            <td class="italic align-top py-0.5">{{ $normalizeText($courseCode) }}</td>
-            <td class="font-bold align-top py-0.5">School Year:</td>
-            <td class="italic align-top py-0.5">{{ $normalizeText($schoolYear) }}</td>
-        </tr>
-        <tr>
-            <td class="font-bold align-top py-0.5">Units:</td>
-            <td class="italic align-top py-0.5">{{ $normalizeText($units) }}</td>
-            <td></td>
-            <td></td>
+            <!-- Left Block -->
+            <td class="w-1/2 align-top">
+                <table class="w-full">
+                    <tr>
+                        <td class="font-bold w-28 align-top py-0.5">Name:</td>
+                        <td class="italic align-top py-0.5">
+                            {{ $normalizeText($studentName) }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="font-bold align-top py-0.5">Student ID:</td>
+                        <td class="italic align-top py-0.5">
+                            {{ $studentId }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="font-bold align-top py-0.5">Course:</td>
+                        <td class="italic align-top py-0.5">
+                            {{ $normalizeText($courseCode) }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="font-bold align-top py-0.5">Units:</td>
+                        <td class="italic align-top py-0.5">
+                            {{ $normalizeText($units) }}
+                        </td>
+                    </tr>
+                </table>
+            </td>
+    
+            <!-- Right Block -->
+            <td class="w-1/2 align-top">
+                <table class="w-full">
+                    <tr>
+                        <td class="font-bold w-45 align-top py-0.5">
+                            Assessment Form No:
+                        </td>
+                        <td class="italic align-top py-0.5">
+                            {{ $formNumber }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="font-bold align-top py-0.5">Semester:</td>
+                        <td class="italic align-top py-0.5">
+                            {{ $normalizeText($semesterLabel) }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="font-bold align-top py-0.5">School Year:</td>
+                        <td class="italic align-top py-0.5">
+                            {{ $normalizeText($schoolYear) }}
+                        </td>
+                    </tr>
+                </table>
+            </td>
         </tr>
     </table>
 
@@ -134,11 +170,11 @@
     <table class="w-full border-b border-t border-black border-collapse mt-1.5 text-[1rem]">
         <thead>
             <tr class="border-b-2 border-black">
-                <th class="text-left px-1.5 py-1 w-[22%]">Date</th>
-                <th class="text-left px-1.5 py-1 w-[14%]">Ref #</th>
-                <th class="text-left px-1.5 py-1 w-[24%]">Particulars</th>
-                <th class="text-left px-1.5 py-1 w-[16%]">Type</th>
-                <th class="text-right px-1.5 py-1 w-[24%]">Amount</th>
+                <th class="text-left px-1.5 py-1 w-[10%]">Date</th>
+                <th class="text-left px-1.5 py-1 w-[10%]">Ref #</th>
+                <th class="text-left px-1.5 py-1 w-[10%]">Particulars</th>
+                <th class="text-center px-1.5 py-1 w-[10%]">Type</th>
+                <th class="text-right px-1.5 py-1 w-[10%]">Amount</th>
             </tr>
         </thead>
         <tbody>
@@ -159,7 +195,7 @@
                     <td class="px-1.5 py-1">{{ $normalizeText($txDateDisplay) }}</td>
                     <td class="px-1.5 py-1">{{ $normalizeText($refNo) }}</td>
                     <td class="px-1.5 py-1">{{ $normalizeText($part) }}</td>
-                    <td class="px-1.5 py-1">{{ $type }}</td>
+                    <td class="text-right px-1.5 py-1">{{ $type }}</td>
                     <td class="text-right px-1.5 py-1">{{ $formatAmount($r) }}</td>
                 </tr>
             @empty
@@ -169,8 +205,8 @@
             @endforelse
 
             <tr class="border-t-2 border-black font-bold">
-                <td colspan="3"></td>
-                <td class="text-right px-1.5 py-1.5">Outstanding Balance</td>
+                <td colspan="2"></td>
+                <td colspan="2" class="text-right px-1.5 py-1.5">Outstanding Balance</td>
                 <td class="text-right px-1.5 py-1.5">{{ number_format($summary['outstandingBalance'] ?? 0, 2) }}</td>
             </tr>
         </tbody>

@@ -75,32 +75,51 @@
     
     <h1 class="text-center font-bold text-2xl my-4">Statement of Account</h1>
 
+    
     <table class="w-full mb-3 text-[16px]">
         <tr>
-            <td class="font-bold w-28 align-top py-0.5">Name:</td>
-            <td class="italic align-top py-0.5">{{ $studentName }}</td>
-            <td class="font-bold w-45 align-top py-0.5">Assessment Form No:</td>
-            <td class="italic align-top py-0.5">{{ $formNumber }}</td>
-        </tr>
-        <tr>
-            <td class="font-bold align-top py-0.5">Student ID:</td>
-            <td class="italic align-top py-0.5">{{ $studentId }}</td>
-            <td class="font-bold align-top py-0.5">Semester:</td>
-            <td class="italic align-top py-0.5">{{ $semester }}</td>
-        </tr>
-        <tr>
-            <td class="font-bold align-top py-0.5">Course:</td>
-            <td class="italic align-top py-0.5">{{ $courseTitle }}</td>
-            <td class="font-bold align-top py-0.5">School Year:</td>
-            <td class="italic align-top py-0.5">{{ $schoolYear }}</td>
-        </tr>
-        <tr>
-            <td class="font-bold align-top py-0.5">Units:</td>
-            <td class="italic align-top py-0.5">{{ $units }}</td>
-            <td></td>
-            <td></td>
+            <!-- LEFT BLOCK -->
+            <td class="w-1/2 align-top">
+                <table class="w-full">
+                    <tr>
+                        <td class="font-bold w-28 py-0.5">Name:</td>
+                        <td class="italic py-0.5">{{ $studentName }}</td>
+                    </tr>
+                    <tr>
+                        <td class="font-bold py-0.5">Student ID:</td>
+                        <td class="italic py-0.5">{{ $studentId }}</td>
+                    </tr>
+                    <tr>
+                        <td class="font-bold py-0.5">Course:</td>
+                        <td class="italic py-0.5">{{ $courseTitle }}</td>
+                    </tr>
+                    <tr>
+                        <td class="font-bold py-0.5">Units:</td>
+                        <td class="italic py-0.5">{{ $units }}</td>
+                    </tr>
+                </table>
+            </td>
+    
+            <!-- RIGHT BLOCK -->
+            <td class="w-1/2 align-top">
+                <table class="w-full">
+                    <tr>
+                        <td class="font-bold w-45 py-0.5">Assessment Form No:</td>
+                        <td class="italic py-0.5">{{ $formNumber }}</td>
+                    </tr>
+                    <tr>
+                        <td class="font-bold py-0.5">Semester:</td>
+                        <td class="italic py-0.5">{{ $semester }}</td>
+                    </tr>
+                    <tr>
+                        <td class="font-bold py-0.5">School Year:</td>
+                        <td class="italic py-0.5">{{ $schoolYear }}</td>
+                    </tr>
+                </table>
+            </td>
         </tr>
     </table>
+
 
     <table class="w-full border-b border-t border-black border-collapse mt-1.5 text-[1rem]">
         <thead>
@@ -123,7 +142,7 @@
                         : number_format($amountValue, 2);
                 @endphp
                 <tr class="border-b">
-                    <td class="px-1.5 py-1">$record['transactionDate'] ? \Carbon\Carbon::parse($record['transactionDate'])->format('m/d/Y') : '—' }}</td>
+                    <td class="px-1.5 py-1">{{ $record['transactionDate'] ? \Carbon\Carbon::parse($record['transactionDate'])->format('m/d/Y') : '—' }}</td>
                     <td class="px-1.5 py-1">{{ $record['referenceNo'] ?? '' }}</td>
                     <td class="px-1.5 py-1">{{ $record['particulars'] ?? '—' }}</td>
                     <td class="text-right px-1.5 py-1">{{ $record['type'] ?? '—' }}</td>
