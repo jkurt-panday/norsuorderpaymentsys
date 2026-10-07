@@ -78,7 +78,7 @@ class AssessmentController extends Controller
                     ->whereNotNull('semester')
                     ->orderBy('semester')
                     ->pluck('semester'),
-                'statuses' => ['pending', 'approved', 'rejected', 'completed'],
+                'statuses' => ['pending', 'mailed', 'rejected', 'completed'],
             ],
         ]);
     }
