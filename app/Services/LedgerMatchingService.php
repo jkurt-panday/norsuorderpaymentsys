@@ -175,7 +175,7 @@ class LedgerMatchingService
             $manualCandidate = $candidates->firstWhere('key', $manualSelection);
 
             if ($manualCandidate) {
-                return ['status' => 'manual', 'selected' => $manualCandidate, 'candidates' => []];
+                return ['status' => 'manual', 'selected' => $manualCandidate, 'candidates' => array_values($candidates->all())];
             }
         }
 
@@ -185,7 +185,7 @@ class LedgerMatchingService
             ) === $this->normalizeIdentifier($assessment->student_id));
 
             if ($idMatches->count() === 1) {
-                return ['status' => 'matched', 'selected' => $idMatches->first(), 'candidates' => []];
+                return ['status' => 'matched', 'selected' => $idMatches->first(), 'candidates' => array_values($candidates->all())];
             }
 
             if ($idMatches->count() > 1) {
@@ -207,7 +207,7 @@ class LedgerMatchingService
         });
 
         if ($nameMatches->count() === 1) {
-            return ['status' => 'matched', 'selected' => $nameMatches->first(), 'candidates' => []];
+            return ['status' => 'matched', 'selected' => $nameMatches->first(), 'candidates' => array_values($candidates->all())];
         }
 
         return [
