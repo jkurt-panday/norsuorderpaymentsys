@@ -1179,6 +1179,9 @@ class GraduateLedgerController extends Controller
         $studentName = $student->full_name;
         $records = $rawRecords->map(fn ($r) => (object) $this->transformRecord($r));
 
+        // Use Browsershot (Chrome) like generatePdf() does, so the PDF
+        // matches the print statement exactly — including all Tailwind styles.
+        // dompdf cannot parse the built Vite stylesheet.
         return Pdf::view('pdf.student-ledger-statement', [
             'student' => $student,
             'studentName' => $studentName,
@@ -1186,7 +1189,10 @@ class GraduateLedgerController extends Controller
             'summary' => $summary,
             'generatedAt' => now()->format('Y-m-d'),
         ])
-            ->driver('dompdf')
+            ->driver('browsershot')
+            ->withBrowsershot(function (Browsershot $browsershot): void {
+                $this->configureBrowsershot($browsershot);
+            })
             ->format('a4')
             ->generatePdfContent();
     }

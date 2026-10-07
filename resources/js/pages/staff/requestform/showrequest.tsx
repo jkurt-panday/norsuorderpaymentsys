@@ -158,6 +158,20 @@ const statusBadgeClass = (status: string) => {
     }
 };
 
+const statusBadgeBorder = (status: string) => {
+    switch (status) {
+        case 'processed':
+            return 'ring-1 ring-green-500';
+        case 'paid':
+            return 'ring-1 ring-emerald-500';
+        case 'cancelled':
+            return 'ring-1 ring-rose-500';
+        case 'pending':
+        default:
+            return 'ring-1 ring-amber-500';
+    }
+};
+
 const PlaceholderField = ({
     label,
     value = 'Not yet set',
@@ -728,8 +742,6 @@ export default function ShowRequest() {
         uacs_id: '',
         status: 'processed',
         purpose: '',
-        or_no: '',
-        or_date: '',
     });
     const handleProcessSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -1261,7 +1273,7 @@ export default function ShowRequest() {
                                 <div className="flex items-center gap-2">
                                     {formInput.staff_input && (
                                         <span
-                                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(formInput.staff_input.status)}`}
+                                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(formInput.staff_input.status)} ${statusBadgeBorder(formInput.staff_input.status)}`}
                                         >
                                             {formInput.staff_input.status
                                                 .charAt(0)
@@ -1973,71 +1985,6 @@ export default function ShowRequest() {
                                             )}
                                         </div>
 
-                                        {/* OR Number & OR Date - entering an OR number auto-sets status to paid */}
-                                        <div className="mb-6">
-                                            <label className="mb-1 block text-sm font-medium text-slate-700">
-                                                OR Number
-                                            </label>
-                                            <input
-                                                type="text"
-                                                inputMode="text"
-                                                placeholder="e.g. 56-980 or 2024/001"
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
-                                                    processErrors.or_no
-                                                        ? 'border-rose-400'
-                                                        : 'border-slate-200'
-                                                }`}
-                                                value={processData.or_no}
-                                                onChange={(e) => {
-                                                    const filtered =
-                                                        e.target.value.replace(
-                                                            /[^0-9./\s-]/g,
-                                                            '',
-                                                        );
-                                                    setProcessData(
-                                                        'or_no',
-                                                        filtered,
-                                                    );
-                                                    if (filtered !== '') {
-                                                        setProcessData(
-                                                            'status',
-                                                            'paid',
-                                                        );
-                                                    }
-                                                }}
-                                            />
-                                            {processErrors.or_no && (
-                                                <p className="mt-1 text-xs text-rose-500">
-                                                    {processErrors.or_no}
-                                                </p>
-                                            )}
-                                        </div>
-                                        <div className="mb-6">
-                                            <label className="mb-1 block text-sm font-medium text-slate-700">
-                                                OR Date
-                                            </label>
-                                            <input
-                                                type="date"
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
-                                                    processErrors.or_date
-                                                        ? 'border-rose-400'
-                                                        : 'border-slate-200'
-                                                }`}
-                                                value={processData.or_date}
-                                                onChange={(e) =>
-                                                    setProcessData(
-                                                        'or_date',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
-                                            {processErrors.or_date && (
-                                                <p className="mt-1 text-xs text-rose-500">
-                                                    {processErrors.or_date}
-                                                </p>
-                                            )}
-                                        </div>
-
                                         <div className="mb-6">
                                             <label className="mb-1 block text-sm font-medium text-slate-700">
                                                 Status{' '}
@@ -2059,7 +2006,6 @@ export default function ShowRequest() {
                                                     )
                                                 }
                                                 required
-                                                disabled={!!processData.or_no}
                                             >
                                                 <option value="">
                                                     Select Status
