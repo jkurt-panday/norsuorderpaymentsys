@@ -103,7 +103,7 @@ class LawSchoolLedgerController extends Controller
         return Inertia::render('law-ledger/Index', [
             'records' => $records,
             'filters' => $request->only([
-                'search', 'school_year', 'semester_or_summer', 'course', 'status', 'ar_or_payment', 'date_from', 'date_to',
+                'search', 'school_year', 'semester_or_summer', 'course', 'status', 'ar_or_payment', 'date_from', 'date_to', 'balance_status',
             ]),
             'stats' => [
                 'totalStudents' => $totalStudents,
@@ -1692,9 +1692,31 @@ class LawSchoolLedgerController extends Controller
         $type = $request->input('ar_or_payment');
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
+        $balanceStatus = $request->input('balance_status');
+        $balanceSql = "SUM(CASE WHEN LOWER(TRIM(balance_rows.entry_type)) = 'ar' THEN ABS(balance_rows.amount) WHEN LOWER(TRIM(balance_rows.entry_type)) IN ('payment','adjustment') THEN -ABS(balance_rows.amount) ELSE 0 END)";
 
         return LawSchoolLedger::query()
             ->with(['lawStudent', 'lawCourse', 'lawAcademicTerm', 'inputByUser'])
+            ->when($balanceStatus === 'with_balance' || $request->boolean('has_balance'), function ($query) use ($balanceSql) {
+                $query->whereExists(function ($subQuery) use ($balanceSql) {
+                    $subQuery->selectRaw('1')
+                        ->from('law_school_ledgers as balance_rows')
+                        ->whereColumn('balance_rows.student_id', 'law_school_ledgers.student_id')
+                        ->whereColumn('balance_rows.academic_term_id', 'law_school_ledgers.academic_term_id')
+                        ->groupBy('balance_rows.student_id', 'balance_rows.academic_term_id')
+                        ->havingRaw("{$balanceSql} > 0");
+                });
+            })
+            ->when($balanceStatus === 'cleared', function ($query) use ($balanceSql) {
+                $query->whereExists(function ($subQuery) use ($balanceSql) {
+                    $subQuery->selectRaw('1')
+                        ->from('law_school_ledgers as balance_rows')
+                        ->whereColumn('balance_rows.student_id', 'law_school_ledgers.student_id')
+                        ->whereColumn('balance_rows.academic_term_id', 'law_school_ledgers.academic_term_id')
+                        ->groupBy('balance_rows.student_id', 'balance_rows.academic_term_id')
+                        ->havingRaw("{$balanceSql} <= 0");
+                });
+            })
             ->when($request->input('search'), function ($query, $search) {
                 // Lowercase the search term to match the LOWER() applied to columns.
                 // PostgreSQL's LIKE is case-sensitive, so "Juan" won't match "juan"
