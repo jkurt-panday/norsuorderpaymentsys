@@ -5,7 +5,7 @@
             // ── Variable & Logic Extraction (Retained from snippet) ──
             $normalizeText = static fn ($value) => str_replace(['−', '–', '—'], '-', (string) ($value ?? ''));
             $firstRecord   = $records->first();
-            $cleanAmount   = static fn ($val) => abs((float) preg_replace('/[^\d.]/', '', (string) ($val ?? 0)));
+            $cleanAmount   = static fn ($val) => (float) number_format(abs((float) preg_replace('/[^\d.]/', '', (string) ($val ?? 0))), 2, '.', '');
 
             // Universal property extractor. Only scalar values are ever returned:
             // key names like 'course' also match Eloquent relationships, and

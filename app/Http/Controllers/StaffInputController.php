@@ -616,6 +616,19 @@ class StaffInputController extends Controller
         return back()->with('success', 'Student created and matched to this Order of Payment.');
     }
 
+    public function unmatchStudent(FormInput $formInput): RedirectResponse
+    {
+        $this->ensureLedgerMatchingIsApplicable($formInput);
+
+        if ($formInput->staffInput()->exists()) {
+            throw new \RuntimeException('Cannot unmatch student on an already processed request.');
+        }
+
+        $formInput->update(['student_num' => null]);
+
+        return back()->with('success', 'Student unmatched from this Order of Payment.');
+    }
+
     public function assignAcademicTerm(
         AssignOpAcademicTermRequest $request,
         FormInput $formInput,

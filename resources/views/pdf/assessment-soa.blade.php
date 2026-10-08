@@ -25,9 +25,9 @@
         $selectedStudent = $ledgerStatement['selectedStudent'] ?? null;
         $records         = $ledgerStatement['records'] ?? collect();
         $summary         = $ledgerStatement['summary'] ?? [
-            'totalCharges' => 0,
-            'totalPayments' => 0,
-            'outstandingBalance' => 0,
+            'totalCharges' => '0.00',
+            'totalPayments' => '0.00',
+            'outstandingBalance' => '0.00',
         ];
         $schoolYear = $ledgerStatement['schoolYear'] ?? '—';
         $semester   = $ledgerStatement['semester'] ?? '—';

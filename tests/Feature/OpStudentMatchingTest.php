@@ -553,6 +553,101 @@ class OpStudentMatchingTest extends TestCase
         $this->assertFalse($formInput->staffInput()->exists());
     }
 
+    public function test_staff_can_unmatch_a_linked_student(): void
+    {
+        $staff = User::factory()->staff()->create();
+        $student = Student::create([
+            'student_number' => '202600501',
+            'first_name' => 'Unmatchable',
+            'last_name' => 'Student',
+        ]);
+        $formInput = $this->makeLedgerFormInput(['student_num' => $student->id]);
+
+        $this->actingAs($staff)
+            ->delete("/staff/requests/{$formInput->id}/student")
+            ->assertRedirect()
+            ->assertSessionHas('success', 'Student unmatched from this Order of Payment.');
+
+        $this->assertNull($formInput->fresh()->student_num);
+    }
+
+    public function test_staff_cannot_unmatch_student_on_processed_request(): void
+    {
+        $staff = User::factory()->staff()->create();
+        $student = Student::create([
+            'student_number' => '202600502',
+            'first_name' => 'Processed',
+            'last_name' => 'Student',
+        ]);
+        $formInput = $this->makeLedgerFormInput(['student_num' => $student->id]);
+        $bank = BankAccountInfo::firstOrCreate(
+            ['account_num' => '123456789'],
+            ['account_name' => 'Main', 'bank_name' => 'Landbank', 'fund_cluster' => '01'],
+        );
+        $uacs = UACS::firstOrCreate(
+            ['object_code' => '4020101000'],
+            ['account_title' => 'Tuition Fees'],
+        );
+        StaffInput::create([
+            'form_input_id' => $formInput->id,
+            'fundcluster_id' => $bank->id,
+            'ref_date' => '2026-09-01',
+            'uacs_id' => $uacs->id,
+            'status' => 'processed',
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Cannot unmatch student on an already processed request.');
+
+        $this->withoutExceptionHandling()
+            ->actingAs($staff)
+            ->delete("/staff/requests/{$formInput->id}/student");
+    }
+
+    public function test_deleting_a_student_clears_student_num_on_linked_form_inputs(): void
+    {
+        $student = Student::create([
+            'student_number' => '202600503',
+            'first_name' => 'Deletable',
+            'last_name' => 'Student',
+        ]);
+        $formInput1 = $this->makeLedgerFormInput(['student_num' => $student->id]);
+        $formInput2 = $this->makeLedgerFormInput(['student_num' => $student->id]);
+
+        $student->delete();
+
+        $this->assertNull($formInput1->fresh()->student_num);
+        $this->assertNull($formInput2->fresh()->student_num);
+    }
+
+    public function test_non_ledger_course_cannot_unmatch_or_link_student(): void
+    {
+        $staff = User::factory()->staff()->create();
+        $student = Student::create([
+            'student_number' => '202600504',
+            'first_name' => 'Undergrad',
+            'last_name' => 'Student',
+        ]);
+        $undergradCourse = Course::firstOrCreate(
+            ['course_code' => 'BSCS-TEST'],
+            ['course_desc' => 'BS Computer Science', 'course_college' => 'CAS'],
+        );
+        $formInput = $this->makeLedgerFormInput([
+            'course_id' => $undergradCourse->id,
+            'student_num' => null,
+        ]);
+
+        $this->actingAs($staff)
+            ->putJson("/staff/requests/{$formInput->id}/student", [
+                'student_id' => $student->id,
+            ])
+            ->assertStatus(422);
+
+        $this->actingAs($staff)
+            ->deleteJson("/staff/requests/{$formInput->id}/student")
+            ->assertStatus(422);
+    }
+
     /** @param array<string, mixed> $overrides */
     private function makeLedgerFormInput(array $overrides = []): FormInput
     {

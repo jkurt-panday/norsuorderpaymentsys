@@ -21,6 +21,19 @@ class Student extends Model
         'contact_num',
     ];
 
+    protected static function booted(): void
+    {
+        static::deleting(function (Student $student): void {
+            $student->formInputs()->update(['student_num' => null]);
+        });
+    }
+
+    /** @return HasMany<FormInput, $this> */
+    public function formInputs(): HasMany
+    {
+        return $this->hasMany(FormInput::class, 'student_num');
+    }
+
     /** @return HasMany<GraduateLedger, $this> */
     public function graduateLedgers(): HasMany
     {

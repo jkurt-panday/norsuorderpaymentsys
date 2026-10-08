@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\LawSchoolLedgerExport;
+use App\Services\BalanceCalculator;
 use App\Http\Requests\StoreLawSchoolLedgerRequest;
 use App\Http\Requests\UpdateLawSchoolLedgerRequest;
 use App\Mail\LawSchoolLedgerStatementMail;
@@ -2038,20 +2039,30 @@ class LawSchoolLedgerController extends Controller
     {
         $str = trim((string) ($rawAmount ?? ''));
 
+        // Handle spreadsheet error values (#VALUE!, #REF!, #DIV/0!, #NAME?, #N/A, etc.)
+        if ($str === '' || str_starts_with($str, '#')) {
+            return 0.0;
+        }
+
         if (str_starts_with($str, '=')) {
             $str = ltrim($str, '=');
         }
 
-        $cleaned = (float) preg_replace('/[^\d.\-]/', '', $str);
+        $cleaned = preg_replace('/[^\d.\-]/', '', $str);
 
-        if ($cleaned >= 100000000.00) {
+        if (! is_numeric($cleaned)) {
+            return 0.0;
+        }
+
+        // Enforce decimal column max (12,2)
+        if ((float) $cleaned >= 100000000.00) {
             return 99999999.99;
         }
-        if ($cleaned <= -100000000.00) {
+        if ((float) $cleaned <= -100000000.00) {
             return -99999999.99;
         }
 
-        return $cleaned;
+        return round((float) $cleaned, 2);
     }
 
     /**
@@ -2065,33 +2076,7 @@ class LawSchoolLedgerController extends Controller
      */
     private function calculateStudentBalanceNormalized(iterable $records): array
     {
-        $totalCharges = 0.0;
-        $totalPayments = 0.0;
-
-        foreach ($records as $record) {
-            $entryType = strtolower((string) ($record->entry_type ?? ''));
-            $amount = $this->cleanAmount($record->amount ?? 0);
-
-            if ($entryType === 'ar') {
-                $totalCharges += abs($amount);
-            } elseif (in_array($entryType, ['payment', 'adjustment'], true)) {
-                $totalPayments += abs($amount);
-            } else {
-                // Legacy rows without an entry_type: fall back to the text label
-                $label = strtoupper(trim((string) ($record->ar_or_payment ?? '')));
-                if ($label === 'AR' || $label === 'ASSESSMENT') {
-                    $totalCharges += abs($amount);
-                } else {
-                    $totalPayments += abs($amount);
-                }
-            }
-        }
-
-        return [
-            'totalCharges' => $totalCharges,
-            'totalPayments' => $totalPayments,
-            'outstandingBalance' => $totalCharges - $totalPayments,
-        ];
+        return BalanceCalculator::summarizeLaw($records);
     }
 
     /**

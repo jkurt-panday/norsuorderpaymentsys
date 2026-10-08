@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\GraduateLedgerExport;
+use App\Services\BalanceCalculator;
 use App\Http\Requests\StoreGraduateLedgerRequest;
 use App\Http\Requests\UpdateGraduateLedgerRequest;
 use App\Mail\GraduateLedgerStatementMail;
@@ -34,8 +35,6 @@ use Maatwebsite\Excel\Facades\Excel;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use Spatie\LaravelPdf\Facades\Pdf;
-use Spatie\LaravelPdf\PdfBuilder;
 
 
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -1908,14 +1907,18 @@ class GraduateLedgerController extends Controller
             $str = ltrim($str, '=');
         }
 
-        $cleaned = (float) preg_replace('/[^\d.]/', '', $str);
+        $cleaned = preg_replace('/[^\d.]/', '', $str);
 
-        // PostgreSQL decimal(10,2) allows max 99,999,999.99 (absolute value < 10^8)
-        if ($cleaned >= 100000000.00) {
+        if (! is_numeric($cleaned)) {
+            return 0.0;
+        }
+
+        // Enforce decimal column max (12,2)
+        if ((float) $cleaned >= 100000000.00) {
             return 99999999.99;
         }
 
-        return abs($cleaned);
+        return round((float) $cleaned, 2);
     }
 
     /**
@@ -1942,29 +1945,7 @@ class GraduateLedgerController extends Controller
      */
     private function calculateStudentBalanceNormalized(Collection $records): array
     {
-        $totalCharges = 0.0;
-        $totalPayments = 0.0;
-        $totalAdjustments = 0.0;
-
-        foreach ($records as $record) {
-            $cleanAmount = $this->cleanAmount($record->amount);
-            $type = strtolower(trim((string) $record->entry_type));
-
-            if ($type === 'ar') {
-                $totalCharges += $cleanAmount;
-            } elseif ($type === 'adjustment') {
-                $totalAdjustments += $cleanAmount;
-            } else {
-                $totalPayments += $cleanAmount;
-            }
-        }
-
-        return [
-            'totalCharges' => $totalCharges,
-            'totalPayments' => $totalPayments,
-            'totalAdjustments' => $totalAdjustments,
-            'outstandingBalance' => $totalCharges - $totalPayments - $totalAdjustments,
-        ];
+        return BalanceCalculator::summarize($records);
     }
 
     /**

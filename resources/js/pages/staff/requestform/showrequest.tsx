@@ -343,6 +343,7 @@ export default function ShowRequest() {
         [],
     );
     const [isSearchingStudents, setIsSearchingStudents] = useState(false);
+    const [isUnmatchingStudent, setIsUnmatchingStudent] = useState(false);
 
     const linkStudentForm = useForm({ student_id: '' });
     const createStudentForm = useForm({
@@ -440,6 +441,22 @@ export default function ShowRequest() {
                 onSuccess: () => setIsStudentMatchOpen(false),
             },
         );
+    };
+
+    const handleUnmatchStudent = () => {
+        if (
+            !confirm(
+                'Are you sure you want to unmatch this student from this Order of Payment?',
+            )
+        ) {
+            return;
+        }
+
+        setIsUnmatchingStudent(true);
+        router.delete(staff.requests.unmatchStudent.url(formInput.id), {
+            preserveScroll: true,
+            onFinish: () => setIsUnmatchingStudent(false),
+        });
     };
 
     const assignAcademicTerm = (e: React.FormEvent) => {
@@ -2502,17 +2519,38 @@ export default function ShowRequest() {
 
                 {isLedgerCourse && formInput.student && (
                     <section className="mt-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
-                        <div className="flex gap-3 text-emerald-950">
-                            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-                            <div>
-                                <h3 className="font-semibold">Student matched</h3>
-                                <p className="mt-1 text-sm text-emerald-800">
-                                    {formInput.student.full_name}
-                                    {formInput.student.student_number
-                                        ? ` · ${formInput.student.student_number}`
-                                        : ''}
-                                </p>
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex gap-3 text-emerald-950">
+                                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                                <div>
+                                    <h3 className="font-semibold">Student matched</h3>
+                                    <p className="mt-1 text-sm text-emerald-800">
+                                        {formInput.student.full_name}
+                                        {formInput.student.student_number
+                                            ? ` · ${formInput.student.student_number}`
+                                            : ''}
+                                    </p>
+                                </div>
                             </div>
+                            {!formInput.staff_input && (
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={openStudentMatch}
+                                        className="inline-flex items-center justify-center rounded-full border border-emerald-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-emerald-800 shadow-xs transition-colors hover:bg-emerald-100"
+                                    >
+                                        Change Match
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleUnmatchStudent}
+                                        disabled={isUnmatchingStudent}
+                                        className="inline-flex items-center justify-center rounded-full border border-rose-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-rose-700 shadow-xs transition-colors hover:bg-rose-50 disabled:opacity-50"
+                                    >
+                                        {isUnmatchingStudent ? 'Unmatching...' : 'Unmatch'}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </section>
                 )}

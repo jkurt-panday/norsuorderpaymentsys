@@ -5,7 +5,7 @@
             // ── Variable & Logic Extraction (Retained from Second Code) ──
             $normalizeText = static fn ($value) => str_replace(['−', '–', '—'], '-', (string) ($value ?? ''));
             $firstRecord   = $records->first();
-            $cleanAmount   = static fn ($val) => abs((float) preg_replace('/[^\d.]/', '', (string) ($val ?? 0)));
+            $cleanAmount   = static fn ($val) => (float) number_format(abs((float) preg_replace('/[^\d.]/', '', (string) ($val ?? 0))), 2, '.', '');
             $studentName   = $studentName ?? (is_object($student ?? null) ? ($student->full_name ?? ($student->name ?? '—')) : '—');
             $generatedAt   = $generatedAt ?? now()->format('n/j/Y');
 
