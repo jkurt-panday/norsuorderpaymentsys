@@ -1,6 +1,13 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { AlertTriangle, CheckCircle2, Mail, Search, UserPlus } from 'lucide-react';
+import {
+    AlertTriangle,
+    CheckCircle2,
+    Mail,
+    Search,
+    UserPlus,
+} from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
     Dialog,
     DialogContent,
@@ -301,6 +308,31 @@ const formatDateOnly = (value: string) => {
     });
 };
 
+const todayIso = (): string => {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+
+    return `${now.getFullYear()}-${month}-${day}`;
+};
+
+const dateFieldError = (
+    serverError: string | undefined,
+    value: string,
+    label: string,
+    requiredField = true,
+): string | undefined => {
+    if (serverError) {
+        return serverError;
+    }
+
+    if (requiredField && value.trim() === '') {
+        return `${label} is required.`;
+    }
+
+    return undefined;
+};
+
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-PH', {
         style: 'currency',
@@ -378,8 +410,7 @@ export default function ShowRequest() {
         formInput.course?.course_college ?? '',
     );
     const needsStudentMatch = isLedgerCourse && !formInput.student_num;
-    const needsAcademicTermMatch =
-        isLedgerCourse && !formInput.academic_term;
+    const needsAcademicTermMatch = isLedgerCourse && !formInput.academic_term;
 
     useEffect(() => {
         if (!isStudentMatchOpen || studentMatchMode !== 'existing') {
@@ -661,6 +692,10 @@ export default function ShowRequest() {
             return;
         }
 
+        if (!staffInputData.ref_date) {
+            return;
+        }
+
         router.put(
             staff.requests.update.url(formInput.staff_input.id),
             staffInputData,
@@ -712,6 +747,10 @@ export default function ShowRequest() {
             return;
         }
 
+        if (!orData.or_date) {
+            return;
+        }
+
         putOr(staff.requests.updateOr.url(formInput.staff_input.id), {
             preserveScroll: true,
             onSuccess: () => {
@@ -738,13 +777,20 @@ export default function ShowRequest() {
         form_input_id: formInput.id,
         fundcluster_id: '',
         ref_document_id: '',
-        ref_date: new Date().toISOString().slice(0, 10),
+        ref_date: todayIso(),
         uacs_id: '',
         status: 'processed',
         purpose: '',
+        or_no: '',
+        or_date: '',
     });
     const handleProcessSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!processData.ref_date) {
+            return;
+        }
+
         postProcess(staff.requests.store.url(), {
             preserveScroll: true,
             onSuccess: () => {
@@ -753,6 +799,10 @@ export default function ShowRequest() {
             },
         });
     };
+
+    const staffRefDateInvalid = !staffInputData.ref_date;
+    const processRefDateInvalid = !processData.ref_date;
+    const orDateInvalid = !orData.or_date;
 
     return (
         <div className="min-h-screen bg-slate-50 px-4 py-8">
@@ -1260,7 +1310,6 @@ export default function ShowRequest() {
                                 )}
                             </div>
                         </section>
-
                     </div>
 
                     <div className="space-y-6">
@@ -1387,7 +1436,9 @@ export default function ShowRequest() {
                                                 onClick={() =>
                                                     setIsProcessing(true)
                                                 }
-                                                disabled={needsAcademicTermMatch}
+                                                disabled={
+                                                    needsAcademicTermMatch
+                                                }
                                                 title={
                                                     needsAcademicTermMatch
                                                         ? 'Assign an academic term before processing.'
@@ -1523,27 +1574,28 @@ export default function ShowRequest() {
                                                 <FormField
                                                     label="Reference Date"
                                                     required
-                                                    error={
-                                                        staffInputErrors.ref_date
-                                                    }
+                                                    error={dateFieldError(
+                                                        staffInputErrors.ref_date,
+                                                        staffInputData.ref_date,
+                                                        'Reference date',
+                                                    )}
                                                 >
-                                                    <input
-                                                        type="date"
-                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
-                                                            staffInputErrors.ref_date
-                                                                ? 'border-rose-400'
-                                                                : 'border-slate-200'
-                                                        }`}
+                                                    <DatePicker
                                                         value={
                                                             staffInputData.ref_date
                                                         }
-                                                        onChange={(e) =>
+                                                        invalid={
+                                                            Boolean(
+                                                                staffInputErrors.ref_date,
+                                                            ) ||
+                                                            staffRefDateInvalid
+                                                        }
+                                                        onChange={(value) =>
                                                             setStaffInputData(
                                                                 'ref_date',
-                                                                e.target.value,
+                                                                value,
                                                             )
                                                         }
-                                                        required
                                                     />
                                                 </FormField>
                                                 <FormField
@@ -1614,7 +1666,8 @@ export default function ShowRequest() {
                                                         onChange={(e) =>
                                                             setStaffInputData(
                                                                 'status',
-                                                                e.target.value as StaffInput['status'],
+                                                                e.target
+                                                                    .value as StaffInput['status'],
                                                             )
                                                         }
                                                         required
@@ -1920,25 +1973,28 @@ export default function ShowRequest() {
                                                     *
                                                 </span>
                                             </label>
-                                            <input
-                                                type="date"
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
-                                                    processErrors.ref_date
-                                                        ? 'border-rose-400'
-                                                        : 'border-slate-200'
-                                                }`}
+                                            <DatePicker
                                                 value={processData.ref_date}
-                                                onChange={(e) =>
+                                                invalid={
+                                                    Boolean(
+                                                        processErrors.ref_date,
+                                                    ) || processRefDateInvalid
+                                                }
+                                                onChange={(value) =>
                                                     setProcessData(
                                                         'ref_date',
-                                                        e.target.value,
+                                                        value,
                                                     )
                                                 }
-                                                required
                                             />
-                                            {processErrors.ref_date && (
+                                            {(processErrors.ref_date ||
+                                                processRefDateInvalid) && (
                                                 <p className="mt-1 text-xs text-rose-500">
-                                                    {processErrors.ref_date}
+                                                    {dateFieldError(
+                                                        processErrors.ref_date,
+                                                        processData.ref_date,
+                                                        'Reference date',
+                                                    )}
                                                 </p>
                                             )}
                                         </div>
@@ -2026,6 +2082,70 @@ export default function ShowRequest() {
                                                 </p>
                                             )}
                                         </div>
+
+                                        {/* OR Number & OR Date - entering an OR number auto-sets status to paid */}
+                                        <div className="mb-6">
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                                OR Number
+                                            </label>
+                                            <input
+                                                type="text"
+                                                inputMode="text"
+                                                placeholder="e.g. 56-980 or 2024/001"
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                    processErrors.or_no
+                                                        ? 'border-rose-400'
+                                                        : 'border-slate-200'
+                                                }`}
+                                                value={processData.or_no}
+                                                onChange={(e) => {
+                                                    const filtered =
+                                                        e.target.value.replace(
+                                                            /[^0-9./\s-]/g,
+                                                            '',
+                                                        );
+                                                    setProcessData(
+                                                        'or_no',
+                                                        filtered,
+                                                    );
+
+                                                    if (filtered !== '') {
+                                                        setProcessData(
+                                                            'status',
+                                                            'paid',
+                                                        );
+                                                    }
+                                                }}
+                                            />
+                                            {processErrors.or_no && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {processErrors.or_no}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="mb-6">
+                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                                OR Date
+                                            </label>
+                                            <DatePicker
+                                                value={processData.or_date}
+                                                invalid={Boolean(
+                                                    processErrors.or_date,
+                                                )}
+                                                onChange={(value) =>
+                                                    setProcessData(
+                                                        'or_date',
+                                                        value,
+                                                    )
+                                                }
+                                            />
+                                            {processErrors.or_date && (
+                                                <p className="mt-1 text-xs text-rose-500">
+                                                    {processErrors.or_date}
+                                                </p>
+                                            )}
+                                        </div>
+
                                         <div className="mb-6">
                                             <label className="mb-1 block text-sm font-medium text-slate-700">
                                                 Purpose
@@ -2198,23 +2318,25 @@ export default function ShowRequest() {
                                                 <FormField
                                                     label="OR Date"
                                                     required
-                                                    error={orErrors.or_date}
+                                                    error={dateFieldError(
+                                                        orErrors.or_date,
+                                                        orData.or_date,
+                                                        'OR date',
+                                                    )}
                                                 >
-                                                    <input
-                                                        type="date"
-                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
-                                                            orErrors.or_date
-                                                                ? 'border-rose-400'
-                                                                : 'border-slate-200'
-                                                        }`}
+                                                    <DatePicker
                                                         value={orData.or_date}
-                                                        onChange={(e) =>
+                                                        invalid={
+                                                            Boolean(
+                                                                orErrors.or_date,
+                                                            ) || orDateInvalid
+                                                        }
+                                                        onChange={(value) =>
                                                             setOrData(
                                                                 'or_date',
-                                                                e.target.value,
+                                                                value,
                                                             )
                                                         }
-                                                        required
                                                     />
                                                 </FormField>
                                                 <div className="flex justify-end gap-2 pt-2">
@@ -2251,9 +2373,11 @@ export default function ShowRequest() {
                                                 </div>
                                             </div>
                                         </form>
-                                        ) : (
+                                    ) : (
                                         <div className="space-y-3">
-                                            <div className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${canEditOr ? '' : 'opacity-60'}`}>
+                                            <div
+                                                className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${canEditOr ? '' : 'opacity-60'}`}
+                                            >
                                                 <ReadOnlyRow
                                                     label="OR Number"
                                                     value={
@@ -2263,7 +2387,9 @@ export default function ShowRequest() {
                                                     valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${canEditOr ? '' : 'opacity-60'}`}>
+                                            <div
+                                                className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${canEditOr ? '' : 'opacity-60'}`}
+                                            >
                                                 <ReadOnlyRow
                                                     label="OR Date"
                                                     value={
@@ -2431,13 +2557,17 @@ export default function ShowRequest() {
                                 <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
                                 <div>
                                     <h3 className="font-semibold">
-                                        Student is not matched to a ledger record
+                                        Student is not matched to a ledger
+                                        record
                                     </h3>
                                     <p className="mt-1 text-sm text-amber-800">
-                                        Match this {formInput.course?.course_college}{' '}
-                                        student before cashier payment to enable automatic
-                                        ledger posting. Processing may continue without a match,
-                                        but the payment will not be posted automatically.
+                                        Match this{' '}
+                                        {formInput.course?.course_college}{' '}
+                                        student before cashier payment to enable
+                                        automatic ledger posting. Processing may
+                                        continue without a match, but the
+                                        payment will not be posted
+                                        automatically.
                                     </p>
                                     {formInput.submitted_student_number && (
                                         <p className="mt-2 text-xs font-semibold text-amber-900">
@@ -2469,15 +2599,17 @@ export default function ShowRequest() {
                                 </h3>
                                 <p className="mt-1 text-sm text-rose-800">
                                     Select the correct academic term before this{' '}
-                                    {formInput.course?.course_college} request can
-                                    be processed.
+                                    {formInput.course?.course_college} request
+                                    can be processed.
                                 </p>
                                 <form
                                     onSubmit={assignAcademicTerm}
                                     className="mt-4 flex flex-col gap-3 sm:flex-row"
                                 >
                                     <select
-                                        value={academicTermForm.data.academic_term}
+                                        value={
+                                            academicTermForm.data.academic_term
+                                        }
                                         onChange={(e) =>
                                             academicTermForm.setData(
                                                 'academic_term',
@@ -2487,10 +2619,16 @@ export default function ShowRequest() {
                                         className="min-w-0 flex-1 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-200"
                                         required
                                     >
-                                        <option value="">Select academic term</option>
+                                        <option value="">
+                                            Select academic term
+                                        </option>
                                         {academicTerms.map((term) => (
-                                            <option key={term.id} value={term.id}>
-                                                {term.school_year} · {term.semester}
+                                            <option
+                                                key={term.id}
+                                                value={term.id}
+                                            >
+                                                {term.school_year} ·{' '}
+                                                {term.semester}
                                             </option>
                                         ))}
                                     </select>
@@ -2522,7 +2660,9 @@ export default function ShowRequest() {
                         <div className="flex gap-3 text-emerald-950">
                             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
                             <div>
-                                <h3 className="font-semibold">Student matched</h3>
+                                <h3 className="font-semibold">
+                                    Student matched
+                                </h3>
                                 <p className="mt-1 text-sm text-emerald-800">
                                     {formInput.student.full_name}
                                     {formInput.student.student_number
@@ -2622,13 +2762,17 @@ export default function ShowRequest() {
                     </button>
                 </div>
             )}
-            <Dialog open={isStudentMatchOpen} onOpenChange={setIsStudentMatchOpen}>
+            <Dialog
+                open={isStudentMatchOpen}
+                onOpenChange={setIsStudentMatchOpen}
+            >
                 <DialogContent className="sm:max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>Match Student</DialogTitle>
                         <DialogDescription>
-                            Link this Order of Payment to one shared student record.
-                            The cashier will use only this confirmed link for ledger posting.
+                            Link this Order of Payment to one shared student
+                            record. The cashier will use only this confirmed
+                            link for ledger posting.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -2663,7 +2807,9 @@ export default function ShowRequest() {
                                 <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 <Input
                                     value={studentSearch}
-                                    onChange={(event) => setStudentSearch(event.target.value)}
+                                    onChange={(event) =>
+                                        setStudentSearch(event.target.value)
+                                    }
                                     placeholder="Search student number or name"
                                     className="pl-9"
                                     autoFocus
@@ -2702,7 +2848,8 @@ export default function ShowRequest() {
                                                         {student.full_name}
                                                     </span>
                                                     <span className="block text-xs text-slate-500">
-                                                        {student.student_number ?? 'No student number'}
+                                                        {student.student_number ??
+                                                            'No student number'}
                                                     </span>
                                                 </span>
                                                 {selected && (
@@ -2718,7 +2865,9 @@ export default function ShowRequest() {
                                         </p>
                                         <button
                                             type="button"
-                                            onClick={() => setStudentMatchMode('create')}
+                                            onClick={() =>
+                                                setStudentMatchMode('create')
+                                            }
                                             className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700"
                                         >
                                             <UserPlus className="h-4 w-4" />
@@ -2741,7 +2890,9 @@ export default function ShowRequest() {
                                     Student Number
                                 </label>
                                 <Input
-                                    value={createStudentForm.data.student_number}
+                                    value={
+                                        createStudentForm.data.student_number
+                                    }
                                     onChange={(event) =>
                                         createStudentForm.setData(
                                             'student_number',
@@ -2751,7 +2902,10 @@ export default function ShowRequest() {
                                 />
                                 {createStudentForm.errors.student_number && (
                                     <p className="mt-1 text-xs text-rose-600">
-                                        {createStudentForm.errors.student_number}
+                                        {
+                                            createStudentForm.errors
+                                                .student_number
+                                        }
                                     </p>
                                 )}
                             </div>
@@ -2762,7 +2916,10 @@ export default function ShowRequest() {
                                 <Input
                                     value={createStudentForm.data.first_name}
                                     onChange={(event) =>
-                                        createStudentForm.setData('first_name', event.target.value)
+                                        createStudentForm.setData(
+                                            'first_name',
+                                            event.target.value,
+                                        )
                                     }
                                 />
                                 {createStudentForm.errors.first_name && (
@@ -2778,7 +2935,10 @@ export default function ShowRequest() {
                                 <Input
                                     value={createStudentForm.data.middle_name}
                                     onChange={(event) =>
-                                        createStudentForm.setData('middle_name', event.target.value)
+                                        createStudentForm.setData(
+                                            'middle_name',
+                                            event.target.value,
+                                        )
                                     }
                                 />
                             </div>
@@ -2789,7 +2949,10 @@ export default function ShowRequest() {
                                 <Input
                                     value={createStudentForm.data.last_name}
                                     onChange={(event) =>
-                                        createStudentForm.setData('last_name', event.target.value)
+                                        createStudentForm.setData(
+                                            'last_name',
+                                            event.target.value,
+                                        )
                                     }
                                 />
                                 {createStudentForm.errors.last_name && (
@@ -2806,7 +2969,10 @@ export default function ShowRequest() {
                                     type="email"
                                     value={createStudentForm.data.email}
                                     onChange={(event) =>
-                                        createStudentForm.setData('email', event.target.value)
+                                        createStudentForm.setData(
+                                            'email',
+                                            event.target.value,
+                                        )
                                     }
                                 />
                                 {createStudentForm.errors.email && (

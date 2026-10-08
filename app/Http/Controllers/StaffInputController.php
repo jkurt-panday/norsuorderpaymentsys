@@ -34,7 +34,7 @@ use Inertia\Response;
 
 class StaffInputController extends Controller
 {
-    private const OP_COPY_LABELS = [
+    public const OP_COPY_LABELS = [
         "Payor's Copy",
         "Cash Unit's Copy",
         "Accounting Unit's Copy",
