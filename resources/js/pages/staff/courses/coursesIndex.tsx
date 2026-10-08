@@ -44,7 +44,7 @@ export default function CoursesIndex({ courses }: CoursesProps) {
                     <ClientDataTable
                         columns={columns}
                         data={courses}
-                        searchableColumns={['course_code', 'course_desc']}
+                        searchableColumns={['course_code', 'course_desc', 'course_college']}
                     />
                 </div>
             </div>

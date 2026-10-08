@@ -20,7 +20,7 @@ class MembershipController extends BaseResourceController
     protected string $model = Membership::class;
 
     /** @var list<string> */
-    protected array $searchableColumns = ['member_code', 'member_desc'];
+    protected array $searchableColumns = ['member_code', 'member_desc', 'created_at'];
 
     protected string $indexView = 'staff/memberships/membership';
 
@@ -44,13 +44,11 @@ class MembershipController extends BaseResourceController
     // redeclare it here. Everything below is unchanged from before.
 
     /**
-     * Adds a `display_number` column via ROW_NUMBER() — a rank that's
-     * always computed against a FIXED base order (id ASC), independent of
-     * whatever sort the user currently has applied for display. That's
-     * what keeps each row's number permanent/stable even when sorting
-     * newest, oldest, A–Z, etc.
-     */
-    /**
+     * Adds a `display_number` column via ROW_NUMBER() OVER (ORDER BY id ASC) —
+     * a sequential rank computed within the result set using a fixed base
+     * order (id ASC), independent of whatever sort the user currently has
+     * applied for display.
+     *
      * @param  Builder<Model>  $query
      * @return Builder<Model>
      */
@@ -58,7 +56,7 @@ class MembershipController extends BaseResourceController
     {
         return $query
             ->select('*')
-            ->selectRaw('(SELECT COUNT(*) FROM memberships AS t2 WHERE t2.id <= memberships.id) as display_number');
+            ->selectRaw('ROW_NUMBER() OVER (ORDER BY id ASC) as display_number');
     }
 
     /**

@@ -44,7 +44,7 @@ class UACSController extends BaseResourceController
     {
         return $query
             ->select('*')
-            ->selectRaw('(SELECT COUNT(*) FROM uacs AS t2 WHERE t2.id <= uacs.id) as display_number');
+            ->selectRaw('ROW_NUMBER() OVER (ORDER BY id ASC) as display_number');
     }
 
     public function create(): Response

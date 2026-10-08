@@ -30,7 +30,6 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import cashier from '@/routes/cashier';
 import staff from '@/routes/staff';
 import { flashToast } from '@/utils/flashToast';
 
@@ -781,8 +780,6 @@ export default function ShowRequest() {
         uacs_id: '',
         status: 'processed',
         purpose: '',
-        or_no: '',
-        or_date: '',
     });
     const handleProcessSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -2079,69 +2076,6 @@ export default function ShowRequest() {
                                             {processErrors.status && (
                                                 <p className="mt-1 text-xs text-rose-500">
                                                     {processErrors.status}
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        {/* OR Number & OR Date - entering an OR number auto-sets status to paid */}
-                                        <div className="mb-6">
-                                            <label className="mb-1 block text-sm font-medium text-slate-700">
-                                                OR Number
-                                            </label>
-                                            <input
-                                                type="text"
-                                                inputMode="text"
-                                                placeholder="e.g. 56-980 or 2024/001"
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
-                                                    processErrors.or_no
-                                                        ? 'border-rose-400'
-                                                        : 'border-slate-200'
-                                                }`}
-                                                value={processData.or_no}
-                                                onChange={(e) => {
-                                                    const filtered =
-                                                        e.target.value.replace(
-                                                            /[^0-9./\s-]/g,
-                                                            '',
-                                                        );
-                                                    setProcessData(
-                                                        'or_no',
-                                                        filtered,
-                                                    );
-
-                                                    if (filtered !== '') {
-                                                        setProcessData(
-                                                            'status',
-                                                            'paid',
-                                                        );
-                                                    }
-                                                }}
-                                            />
-                                            {processErrors.or_no && (
-                                                <p className="mt-1 text-xs text-rose-500">
-                                                    {processErrors.or_no}
-                                                </p>
-                                            )}
-                                        </div>
-                                        <div className="mb-6">
-                                            <label className="mb-1 block text-sm font-medium text-slate-700">
-                                                OR Date
-                                            </label>
-                                            <DatePicker
-                                                value={processData.or_date}
-                                                invalid={Boolean(
-                                                    processErrors.or_date,
-                                                )}
-                                                onChange={(value) =>
-                                                    setProcessData(
-                                                        'or_date',
-                                                        value,
-                                                    )
-                                                }
-                                            />
-                                            {processErrors.or_date && (
-                                                <p className="mt-1 text-xs text-rose-500">
-                                                    {processErrors.or_date}
                                                 </p>
                                             )}
                                         </div>

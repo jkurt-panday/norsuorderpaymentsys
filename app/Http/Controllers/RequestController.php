@@ -20,7 +20,9 @@ class RequestController extends Controller
             $search = strtolower($request->search);
             $query->where(function ($q) use ($search) {
                 $q->whereRaw('LOWER(reference_number) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(full_name) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(firstname_or_office) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(middlename_or_project) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(lastname_or_agency) LIKE ?', ["%{$search}%"])
                     ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"]);
             });
         }
