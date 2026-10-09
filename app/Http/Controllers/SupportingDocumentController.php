@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SupportingDocumentController extends Controller
@@ -134,11 +135,92 @@ class SupportingDocumentController extends Controller
     }
 
     /**
+     * View the specified document inline in the browser when supported.
+     */
+    public function view(SupportingDocument $supportingDocument): SymfonyResponse
+    {
+        $headers = ['Content-Type' => $supportingDocument->mime_type];
+
+        if ($relativePath = $this->storagePath($supportingDocument)) {
+            return Storage::disk($this->disk)->response(
+                $relativePath,
+                $supportingDocument->original_filename,
+                $headers
+            );
+        }
+
+        if ($absolutePath = $this->publicPath($supportingDocument)) {
+            return response()->file($absolutePath, $headers);
+        }
+
+        abort(404, 'File not found on storage.');
+    }
+
+    /**
      * Download the specified document (Alias or Explicit Download)
      */
-    public function download(SupportingDocument $supportingDocument): StreamedResponse
+    public function download(SupportingDocument $supportingDocument): SymfonyResponse
     {
-        // Re-routing download directly to our standardized storage-safe response wrapper
-        return $this->show($supportingDocument);
+        $headers = ['Content-Type' => $supportingDocument->mime_type];
+
+        if ($relativePath = $this->storagePath($supportingDocument)) {
+            return Storage::disk($this->disk)->download(
+                $relativePath,
+                $supportingDocument->original_filename,
+                $headers
+            );
+        }
+
+        if ($absolutePath = $this->publicPath($supportingDocument)) {
+            return response()->download(
+                $absolutePath,
+                $supportingDocument->original_filename,
+                $headers
+            );
+        }
+
+        abort(404, 'File not found on storage.');
+    }
+
+    private function storagePath(SupportingDocument $supportingDocument): ?string
+    {
+        foreach ($this->pathCandidates($supportingDocument) as $path) {
+            if (Storage::disk($this->disk)->exists($path)) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
+
+    private function publicPath(SupportingDocument $supportingDocument): ?string
+    {
+        foreach ($this->pathCandidates($supportingDocument) as $path) {
+            $absolutePath = public_path($path);
+
+            if (is_file($absolutePath)) {
+                return $absolutePath;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function pathCandidates(SupportingDocument $supportingDocument): array
+    {
+        $storedFilename = trim($supportingDocument->stored_filename ?? '');
+        $urlPath = ltrim(parse_url($supportingDocument->file_url ?? '', PHP_URL_PATH) ?: '', '/');
+        $publicStoragePath = preg_replace('#^storage/#', '', $urlPath);
+
+        return array_values(array_filter(array_unique([
+            $this->folder.'/'.$storedFilename,
+            $storedFilename,
+            $urlPath,
+            $publicStoragePath,
+            'storage/'.$this->folder.'/'.$storedFilename,
+        ])));
     }
 }

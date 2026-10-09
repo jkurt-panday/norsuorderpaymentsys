@@ -210,6 +210,7 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
     Route::name('documents.')->prefix('documents')->group(function () {
         Route::get('/', [SupportingDocumentController::class, 'index'])->name('index');
         Route::post('/', [SupportingDocumentController::class, 'store'])->name('store');
+        Route::get('/{supportingDocument}/view', [SupportingDocumentController::class, 'view'])->name('view');
         Route::get('/{supportingDocument}/download', [SupportingDocumentController::class, 'download'])->name('download');
         Route::delete('/{supportingDocument}', [SupportingDocumentController::class, 'destroy'])->name('destroy');
     });
