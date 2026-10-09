@@ -2,6 +2,7 @@ import { Link, router, useForm, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
     CheckCircle2,
+    Eye,
     Mail,
     Search,
     UserPlus,
@@ -2424,10 +2425,23 @@ export default function ShowRequest() {
                                                             )}
                                                     </span>
                                                     <a
+                                                        href={staff.documents.view.url(
+                                                            document.id,
+                                                        )}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        title="View"
+                                                        aria-label={`View ${document.original_filename}`}
+                                                        className="flex h-8 w-8 items-center justify-center rounded-full border border-blue-200 text-blue-600 transition-colors hover:bg-blue-50"
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </a>
+                                                    <a
                                                         href={staff.documents.download.url(
                                                             document.id,
                                                         )}
                                                         title="Download"
+                                                        aria-label={`Download ${document.original_filename}`}
                                                         className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:bg-slate-100"
                                                     >
                                                         <svg
