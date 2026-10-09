@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Models\Student;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreGraduateLedgerRequest extends FormRequest
 {
@@ -117,6 +118,60 @@ class StoreGraduateLedgerRequest extends FormRequest
     {
         return [
             'new_student.student_number.unique' => 'This Student ID is already registered. Select the existing student instead.',
+            'items.required' => 'Please add at least one transaction line.',
+            'items.min' => 'Please add at least one transaction line.',
+            'items.*.amount.min' => 'Line #:position must have an amount greater than zero.',
+            'items.*.amount.required' => 'Line #:position must have an amount greater than zero.',
         ];
+    }
+
+    /**
+     * Reject empty batch rows before the controller opens a transaction. A row is
+     * empty when its final amount is zero or negative after applying the same
+     * AR auto-compute rule used by the store action.
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                $items = $this->input('items');
+
+                if (! is_array($items)) {
+                    return;
+                }
+
+                foreach ($items as $index => $item) {
+                    if (! is_array($item)) {
+                        continue;
+                    }
+
+                    $amount = $this->batchItemAmount($item);
+
+                    if ($amount <= 0) {
+                        $validator->errors()->add(
+                            "items.{$index}.amount",
+                            sprintf('Line #%d must have an amount greater than zero.', $index + 1),
+                        );
+                    }
+                }
+            },
+        ];
+    }
+
+    /** @param array<string, mixed> $item */
+    private function batchItemAmount(array $item): float
+    {
+        if (filled($item['amount'] ?? null)) {
+            return (float) $item['amount'];
+        }
+
+        if (($item['entry_type'] ?? null) !== 'ar') {
+            return 0.0;
+        }
+
+        return round(
+            (float) ($item['units'] ?? 0) * (float) ($item['rate'] ?? $item['tuition_per_unit_or_misc'] ?? 0),
+            2,
+        );
     }
 }

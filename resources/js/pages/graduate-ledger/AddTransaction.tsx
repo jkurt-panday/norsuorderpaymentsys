@@ -123,6 +123,10 @@ function currency(value: number): string {
     })}`;
 }
 
+function defaultParticularForType(entryType: 'ar' | 'payment' | 'adjustment'): string {
+    return particularPresets[entryType][0] ?? 'Tuition';
+}
+
 function FieldError({ message }: { message?: string }) {
     if (!message) return null;
     return <p className="mt-1 text-xs text-red-500">{message}</p>;
@@ -341,7 +345,7 @@ export default function AddTransaction({
         units: '',
         transaction_date: todayStr,
         reference_or_jev_number: '',
-        particulars: defaultEntryType === 'payment' ? 'Payment' : defaultEntryType === 'adjustment' ? 'Adjustment' : 'Tuition',
+        particulars: defaultParticularForType(defaultEntryType),
         tuition_per_unit_or_misc: '',
         amount: '',
         remarks: '',
@@ -356,7 +360,7 @@ export default function AddTransaction({
         {
             id: '1',
             entry_type: 'ar',
-            particulars: 'Tuition',
+            particulars: defaultParticularForType('ar'),
             units: '',
             tuition_per_unit_or_misc: '',
             amount: '',
@@ -427,11 +431,10 @@ export default function AddTransaction({
     }
 
     function handleTypeChange(nextType: 'ar' | 'payment' | 'adjustment') {
-        const defaultParticular = nextType === 'payment' ? 'Payment' : nextType === 'adjustment' ? 'Adjustment' : 'Tuition';
         setData((prev) => ({
             ...prev,
             entry_type: nextType,
-            particulars: defaultParticular,
+            particulars: defaultParticularForType(nextType),
             membership: nextType === 'ar' ? prev.membership : '',
             discount_amount: nextType === 'ar' ? prev.discount_amount : '',
         }));
@@ -445,7 +448,7 @@ export default function AddTransaction({
             {
                 id: String(Date.now()),
                 entry_type: 'ar',
-                particulars: 'Miscellaneous',
+                particulars: defaultParticularForType('ar'),
                 units: '',
                 tuition_per_unit_or_misc: '',
                 amount: '',
@@ -529,6 +532,21 @@ export default function AddTransaction({
             // Validate batch items
             if (batchItems.length === 0) {
                 flashToast('error', 'Please add at least one line item.');
+                return;
+            }
+
+            const invalidItemIndex = batchItems.findIndex((item) => {
+                const u = Number(item.units || 0);
+                const r = Number(item.tuition_per_unit_or_misc || 0);
+                const finalAmt = item.amount !== '' ? Number(item.amount || 0) : u * r;
+
+                return !Number.isFinite(finalAmt) || finalAmt <= 0;
+            });
+
+            if (invalidItemIndex !== -1) {
+                const message = `Line #${invalidItemIndex + 1} must have an amount greater than zero.`;
+                setError(`items.${invalidItemIndex}.amount` as any, message);
+                flashToast('error', message);
                 return;
             }
 
@@ -1212,12 +1230,15 @@ export default function AddTransaction({
                                                     <label className="text-[11px] font-medium text-[#334E68]">Type</label>
                                                     <select
                                                         value={item.entry_type}
-                                                        onChange={(e) =>
+                                                        onChange={(e) => {
+                                                            const nextType = e.target.value as 'ar' | 'payment' | 'adjustment';
+
                                                             updateBatchRow(item.id, {
-                                                                entry_type: e.target.value as any,
-                                                                particulars: e.target.value === 'payment' ? 'Payment' : e.target.value === 'adjustment' ? 'Adjustment' : 'Tuition',
-                                                            })
-                                                        }
+                                                                entry_type: nextType,
+                                                                particulars: defaultParticularForType(nextType),
+                                                                membership: nextType === 'ar' ? item.membership : '',
+                                                            });
+                                                        }}
                                                         className="w-full rounded-md border border-[#CFE3FF] bg-white px-2 py-1.5 text-xs"
                                                     >
                                                         <option value="ar">AR</option>
@@ -1229,12 +1250,17 @@ export default function AddTransaction({
                                                 {/* Particulars */}
                                                 <div className="sm:col-span-2">
                                                     <label className="text-[11px] font-medium text-[#334E68]">Particulars</label>
-                                                    <Input
+                                                    <select
                                                         value={item.particulars}
                                                         onChange={(e) => updateBatchRow(item.id, { particulars: e.target.value })}
-                                                        placeholder="e.g. Tuition, Misc"
-                                                        className="h-8 text-xs"
-                                                    />
+                                                        className="h-8 w-full rounded-md border border-[#CFE3FF] bg-white px-2 py-1.5 text-xs text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                                    >
+                                                        {particularPresets[item.entry_type].map((preset) => (
+                                                            <option key={preset} value={preset}>
+                                                                {preset}
+                                                            </option>
+                                                        ))}
+                                                    </select>
                                                 </div>
 
                                                 {/* Reference */}
