@@ -455,7 +455,7 @@ return '';
                                             >
                                                 <Home className="mr-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
                                                 Go back to Home
-                                            </Link>
+                                            </Button>
                                         );
                                     })()}
                                 </div>
