@@ -31,12 +31,17 @@
             }
             $studentNumber = $studentNumber ?? ($assessment->student_id ?? '—');
 
-                // 'course' is a BelongsTo relation, so read the code off the model.
+            $courseCode = static function ($record) use ($getProp) {
+                if (! $record) {
+                    return '—';
+                }
+
+                // 'course' is a BelongsTo relation, so read the description/code off the model.
                 if (isset($record->course) && is_object($record->course)) {
                     return $record->course->course_desc ?? $record->course->code ?? '—';
                 }
 
-                return $getProp($record, ['course_desc', 'code']) ?? '—';
+                return $getProp($record, ['course_desc', 'courseDesc', 'course', 'code']) ?? '—';
             };
 
             $courseCode    = $courseCode($firstRecord);
