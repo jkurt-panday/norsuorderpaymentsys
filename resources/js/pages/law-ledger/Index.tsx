@@ -101,6 +101,7 @@ export interface LawLedgerRecord {
   status: string;
   remark: string;
   inputBy: string;
+  orLink?: string | null;
   latinHonor?: string | null;
   discountAmount?: number;
 }
@@ -1336,7 +1337,21 @@ return 90;
                           {visibleColumns.semester && <td className="py-2 pr-4 text-[#334E68]">{r.semesterOrSummer}</td>}
                           {visibleColumns.units && <td className="py-2 pr-4 text-right text-[#334E68]">{r.units}</td>}
                           {visibleColumns.transactionDate && <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{formatTransactionDate(r.transactionDate)}</td>}
-                          {visibleColumns.referenceNo && <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{r.referenceNo || '—'}</td>}
+                          {visibleColumns.referenceNo && <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">
+                            {r.orLink ? (
+                              <a
+                                href={r.orLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 font-medium text-[#0B62E0] hover:underline"
+                                onClick={(event) => event.stopPropagation()}
+                              >
+                                {r.referenceNo}
+                              </a>
+                            ) : (
+                              r.referenceNo || '—'
+                            )}
+                          </td>}
                           {visibleColumns.particulars && <td className="py-2 pr-4 text-[#334E68]">{r.particulars}</td>}
                           {visibleColumns.feeRate && <td className="py-2 pr-4 text-right text-[#334E68]">{currency(r.tuitionPerUnitOrFeePerSemester)}</td>}
                           {visibleColumns.entryType && <td className="py-2 pr-4">

@@ -10,6 +10,7 @@ use App\Models\AcademicTerm as LawAcademicTerm;
 use App\Models\ActivityLog;
 use App\Models\Course as LawCourse;
 use App\Models\LawSchoolLedger;
+use App\Models\StaffInput;
 use App\Models\Student as LawStudent;
 use App\Models\User;
 use App\Services\LawLedgerImportClassifier;
@@ -1843,6 +1844,25 @@ class LawSchoolLedgerController extends Controller
     /** @return array<string, mixed> */
      private function transformRecord(LawSchoolLedger $r): array
      {
+         $entryTypeLower = strtolower(trim((string) $r->entry_type));
+         $status = (string) ($r->status ?? '');
+         $orLink = null;
+
+         if ($entryTypeLower === 'payment' && filled($r->reference_number)) {
+             $staffInput = StaffInput::query()
+                 ->where('or_no', $r->reference_number)
+                 ->select('id', 'form_input_id', 'status')
+                 ->first();
+
+             if ($staffInput !== null) {
+                 $orLink = route('staff.requests.show', $staffInput->form_input_id);
+
+                 if ($staffInput->status === 'paid') {
+                     $status = 'Paid';
+                 }
+             }
+         }
+
          return [
              'id' => $r->id,
              'studentId' => $r->student_id,
@@ -1863,11 +1883,12 @@ class LawSchoolLedgerController extends Controller
             'arPayment' => $this->entryTypeToLabel($r->entry_type),
             'entryType' => $r->entry_type,
             'amount' => (float) ($r->amount ?? 0),
-            'status' => $r->status,
+            'status' => $status,
             'remark' => $r->remarks,
             'inputBy' => $r->inputByDisplay() ?? '',
             'latinHonor' => $r->latin_honor,
             'discountAmount' => (float) ($r->discount_amount ?? 0),
+            'orLink' => $orLink,
         ];
     }
 
