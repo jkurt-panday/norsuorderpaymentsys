@@ -14,6 +14,7 @@ import {
     edit as editAssessment,
     index as assessmentsIndex,
     emailSoa,
+    update as updateAssessment,
 } from '@/actions/App/Http/Controllers/AssessmentController';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -27,6 +28,21 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+} from '@/components/ui/combobox';
 import {
     Dialog,
     DialogContent,
@@ -57,8 +73,43 @@ interface AssessmentFormModel {
     enrolled_under: string;
     sy_last_attended: string;
     semester: string;
+    status: AssessmentStatus;
     course?: Course;
 }
+
+type AssessmentStatus = 'pending' | 'mailed' | 'rejected' | 'completed';
+
+const ASSESSMENT_STATUS_OPTIONS: Array<{
+    value: AssessmentStatus;
+    label: string;
+    dotClassName: string;
+    textClassName: string;
+}> = [
+    {
+        value: 'pending',
+        label: 'Pending',
+        dotClassName: 'bg-amber-500',
+        textClassName: 'text-amber-700',
+    },
+    {
+        value: 'mailed',
+        label: 'Mailed',
+        dotClassName: 'bg-blue-500',
+        textClassName: 'text-blue-700',
+    },
+    {
+        value: 'rejected',
+        label: 'Rejected',
+        dotClassName: 'bg-red-500',
+        textClassName: 'text-red-700',
+    },
+    {
+        value: 'completed',
+        label: 'Completed',
+        dotClassName: 'bg-emerald-500',
+        textClassName: 'text-emerald-700',
+    },
+];
 
 interface StudentCandidate {
     key: string;
@@ -146,6 +197,8 @@ export default function AssessmentEdit({
     const [emailRecipientName, setEmailRecipientName] = useState('');
     const [emailNote, setEmailNote] = useState('');
     const [isSendingEmail, setIsSendingEmail] = useState(false);
+    const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+    const [isChangingStudent, setIsChangingStudent] = useState(false);
     
     useEffect(() => {
         flashToast('success', flash?.success);
@@ -160,6 +213,10 @@ export default function AssessmentEdit({
     ]
         .filter(Boolean)
         .join(' ');
+    const selectedStatus =
+        ASSESSMENT_STATUS_OPTIONS.find(
+            (option) => option.value === assessment.status,
+        ) ?? ASSESSMENT_STATUS_OPTIONS[0];
     const needsSelection = ['missing', 'ambiguous'].includes(
         ledgerStatement.matchStatus,
     );
@@ -176,6 +233,13 @@ export default function AssessmentEdit({
                 .includes(term),
         );
     }, [ledgerStatement.candidates, search]);
+    const selectedStudentComboboxValue = ledgerStatement.selectedStudent
+        ? `${ledgerStatement.selectedStudent.name}${
+              ledgerStatement.selectedStudent.studentId
+                  ? ` · ${ledgerStatement.selectedStudent.studentId}`
+                  : ''
+          }`
+        : '';
 
     const selectStudent = (key: string) => {
         if (!key) {
@@ -188,6 +252,23 @@ export default function AssessmentEdit({
             }),
             {},
             { preserveScroll: true, preserveState: true },
+        );
+    };
+
+    const updateStatus = (status: AssessmentStatus) => {
+        if (status === assessment.status || isUpdatingStatus) {
+            return;
+        }
+
+        setIsUpdatingStatus(true);
+
+        router.patch(
+            updateAssessment.url(assessment.id),
+            { status },
+            {
+                preserveScroll: true,
+                onFinish: () => setIsUpdatingStatus(false),
+            },
         );
     };
 
@@ -282,17 +363,89 @@ export default function AssessmentEdit({
 
             <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-slate-50 p-3 sm:p-6">
                 <Card className="rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
-                    <CardHeader className="flex flex-row items-center justify-between gap-4 p-3">
+                    <CardHeader className="flex flex-col gap-4 p-3 sm:flex-row sm:items-center sm:justify-between">
                         <CardTitle className="text-xl font-bold text-slate-900">
                             Assessment: {assessment.reference_number}
                         </CardTitle>
-                        <Link
-                            href={assessmentsIndex.url()}
-                            className={cn(buttonVariants({ variant: 'outline' }))}
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                            Back
-                        </Link>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                            <div className="flex items-center gap-2 sm:min-w-52">
+                                <span className="shrink-0 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                                    Status
+                                </span>
+                                <Select
+                                    value={assessment.status}
+                                    onValueChange={(value) =>
+                                        updateStatus(value as AssessmentStatus)
+                                    }
+                                    disabled={isUpdatingStatus}
+                                >
+                                    <SelectTrigger className="h-10 w-full rounded-xl border-slate-200 bg-slate-50 px-3 shadow-sm transition-colors hover:bg-white focus-visible:border-blue-400 focus-visible:ring-blue-500/20 disabled:opacity-60">
+                                        <SelectValue>
+                                            <span className="flex items-center gap-2">
+                                                <span
+                                                    className={cn(
+                                                        'h-2.5 w-2.5 shrink-0 rounded-full',
+                                                        selectedStatus.dotClassName,
+                                                    )}
+                                                />
+                                                <span
+                                                    className={cn(
+                                                        'font-semibold',
+                                                        selectedStatus.textClassName,
+                                                    )}
+                                                >
+                                                    {selectedStatus.label}
+                                                </span>
+                                                {isUpdatingStatus && (
+                                                    <span className="text-xs font-normal text-slate-400">
+                                                        Saving...
+                                                    </span>
+                                                )}
+                                            </span>
+                                        </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent
+                                        sideOffset={6}
+                                        className="min-w-(--anchor-width) rounded-xl border-slate-200 p-1 shadow-xl"
+                                    >
+                                        <div className="px-2 py-1.5 text-[10px] font-semibold tracking-wider text-slate-500 uppercase">
+                                            Change status
+                                        </div>
+                                        {ASSESSMENT_STATUS_OPTIONS.map((option) => (
+                                            <SelectItem
+                                                key={option.value}
+                                                value={option.value}
+                                                className="cursor-pointer rounded-lg px-2 py-2"
+                                            >
+                                                <span className="flex items-center gap-2">
+                                                    <span
+                                                        className={cn(
+                                                            'h-2.5 w-2.5 shrink-0 rounded-full',
+                                                            option.dotClassName,
+                                                        )}
+                                                    />
+                                                    <span
+                                                        className={cn(
+                                                            'font-medium',
+                                                            option.textClassName,
+                                                        )}
+                                                    >
+                                                        {option.label}
+                                                    </span>
+                                                </span>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <Link
+                                href={assessmentsIndex.url()}
+                                className={cn(buttonVariants({ variant: 'outline' }))}
+                            >
+                                <ArrowLeft className="h-4 w-4" />
+                                Back
+                            </Link>
+                        </div>
                     </CardHeader>
                 </Card>
 
@@ -379,7 +532,19 @@ export default function AssessmentEdit({
                                 requested in this assessment.
                             </CardDescription>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
+                            <Button
+                                type="button"
+                                onClick={() =>
+                                    setIsChangingStudent((isOpen) => !isOpen)
+                                }
+                                disabled={ledgerStatement.candidates.length === 0}
+                                variant="outline"
+                                className="border-blue-200 bg-white text-[#0B3D91] hover:bg-blue-50"
+                            >
+                                <Search className="h-4 w-4" />
+                                Change Student
+                            </Button>
                             <Button
                                 onClick={openEmailPreview}
                                 disabled={!ledgerStatement.selectedStudent}
@@ -399,6 +564,77 @@ export default function AssessmentEdit({
                             </Button>
                         </div>
                     </CardHeader>
+
+                    {isChangingStudent && (
+                        <div className="border-b border-blue-100 bg-blue-50/40 px-4 py-4 sm:px-6">
+                            <div className="max-w-xl space-y-2">
+                                <label className="text-sm font-semibold text-[#0B3D91]">
+                                    Select student for statement
+                                </label>
+                                <Combobox
+                                    items={ledgerStatement.candidates}
+                                    value={selectedStudentComboboxValue}
+                                    onValueChange={(value) => {
+                                        const selected =
+                                            ledgerStatement.candidates.find(
+                                                (candidate) =>
+                                                    `${candidate.name}${
+                                                        candidate.studentId
+                                                            ? ` · ${candidate.studentId}`
+                                                            : ''
+                                                    }` === value,
+                                            );
+
+                                        if (selected) {
+                                            selectStudent(selected.key);
+                                            setIsChangingStudent(false);
+                                        }
+                                    }}
+                                >
+                                    <ComboboxInput
+                                        placeholder="Search by name or student ID..."
+                                        className="w-full border-slate-200 bg-white shadow-sm focus-within:border-blue-500! focus-within:ring-2! focus-within:ring-blue-500/20!"
+                                        showClear={!!selectedStudentComboboxValue}
+                                    />
+                                    <ComboboxContent>
+                                        <ComboboxEmpty>
+                                            No matching students found.
+                                        </ComboboxEmpty>
+                                        <ComboboxList>
+                                            {(candidate) => (
+                                                <ComboboxItem
+                                                    key={candidate.key}
+                                                    value={`${candidate.name}${
+                                                        candidate.studentId
+                                                            ? ` · ${candidate.studentId}`
+                                                            : ''
+                                                    }`}
+                                                >
+                                                    <span className="flex flex-col">
+                                                        <span className="font-medium text-slate-800">
+                                                            {candidate.name}
+                                                        </span>
+                                                        {candidate.studentId && (
+                                                            <span className="text-xs text-slate-500">
+                                                                {
+                                                                    candidate.studentId
+                                                                }
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </ComboboxItem>
+                                            )}
+                                        </ComboboxList>
+                                    </ComboboxContent>
+                                </Combobox>
+                                <p className="text-xs text-slate-500">
+                                    Changing the student reloads this statement
+                                    using the selected student's ledger records
+                                    for the requested term.
+                                </p>
+                            </div>
+                        </div>
+                    )}
 
                     <CardContent className="space-y-6 p-4 sm:p-6">
                         <MatchNotice statement={ledgerStatement} />
@@ -667,7 +903,7 @@ export default function AssessmentEdit({
                                 <iframe
                                     title="Email preview"
                                     srcDoc={buildEmailPreviewHtml(emailRecipientName, emailNote)}
-                                    className="h-[28rem] w-[400px] bg-white"
+                                    className="h-112 w-100 bg-white"
                                 />
                             </div>
                         </div>
