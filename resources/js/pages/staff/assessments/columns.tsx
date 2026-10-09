@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/tooltip"
 import { useConfirm } from '@/components/confirm-dialog';
 
-export type AssessmentStatus = 'pending' | 'approved' | 'rejected' | 'completed';
+export type AssessmentStatus = 'pending' | 'mailed' | 'rejected' | 'completed';
 
 export type AssessmentType = {
     id: number;
@@ -75,13 +75,13 @@ const getStatusBadgeClass = (status: string) => {
         case 'pending':
             return 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-100 px-4 py-3 text-xs';
 
-        case 'approved':
+        case 'completed':
             return 'bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-4 py-3 text-xs';
 
         case 'rejected':
             return 'bg-red-100 text-red-700 border border-red-200 hover:bg-red-100 px-4 py-3 text-xs';
 
-        case 'completed':
+        case 'mailed':
             return 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-100 px-4 py-3 text-xs';
 
         default:
