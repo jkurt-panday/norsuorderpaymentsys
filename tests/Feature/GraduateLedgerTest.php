@@ -238,6 +238,110 @@ class GraduateLedgerTest extends TestCase
         ]);
     }
 
+    public function test_user_can_create_batch_ledger_transactions(): void
+    {
+        $user = User::factory()->staff()->create();
+        $student = Student::create(['last_name' => 'Batch', 'first_name' => 'Student']);
+        $course = $this->graduateCourse('MBA-BATCH');
+        $term = AcademicTerm::create([
+            'school_year' => '2026-2027',
+            'semester' => 'First Semester',
+        ]);
+
+        $response = $this->actingAs($user)->post('/graduate-ledger', [
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $term->id,
+            'school_year' => '2026-2027',
+            'semester' => 'First Semester',
+            'transaction_date' => '2026-08-28',
+            'items' => [
+                [
+                    'course_id' => $course->id,
+                    'entry_type' => 'ar',
+                    'units' => '3',
+                    'transaction_date' => '2026-08-28',
+                    'reference_or_jev_number' => 'BATCH-AR',
+                    'particulars' => 'Tuition',
+                    'tuition_per_unit_or_misc' => '500.00',
+                    'rate' => '500.00',
+                    'amount' => '',
+                ],
+                [
+                    'course_id' => $course->id,
+                    'entry_type' => 'payment',
+                    'units' => '0',
+                    'transaction_date' => '2026-08-28',
+                    'reference_or_jev_number' => 'BATCH-PAY',
+                    'particulars' => 'Payment',
+                    'tuition_per_unit_or_misc' => '0.00',
+                    'rate' => '0.00',
+                    'amount' => '500.00',
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect('/graduate-ledger');
+
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $term->id,
+            'entry_type' => 'ar',
+            'reference_number' => 'BATCH-AR',
+            'amount' => '1500.00',
+            'particulars' => 'Tuition',
+        ]);
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $term->id,
+            'entry_type' => 'payment',
+            'reference_number' => 'BATCH-PAY',
+            'amount' => '500.00',
+            'particulars' => 'Payment',
+        ]);
+        $this->assertSame(2, GraduateLedger::query()->where('student_id', $student->id)->count());
+    }
+
+    public function test_batch_transaction_rejects_empty_line_items(): void
+    {
+        $user = User::factory()->staff()->create();
+        $student = Student::create(['last_name' => 'Empty', 'first_name' => 'Batch']);
+        $course = $this->graduateCourse('MBA-EMPTY');
+        $term = AcademicTerm::create([
+            'school_year' => '2026-2027',
+            'semester' => 'First Semester',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->from('/graduate-ledger/add')
+            ->post('/graduate-ledger', [
+                'student_id' => $student->id,
+                'course_id' => $course->id,
+                'academic_term_id' => $term->id,
+                'school_year' => '2026-2027',
+                'semester' => 'First Semester',
+                'transaction_date' => '2026-08-28',
+                'items' => [
+                    [
+                        'course_id' => $course->id,
+                        'entry_type' => 'ar',
+                        'units' => '',
+                        'transaction_date' => '2026-08-28',
+                        'particulars' => 'Tuition',
+                        'tuition_per_unit_or_misc' => '0.00',
+                        'rate' => '0.00',
+                        'amount' => '',
+                    ],
+                ],
+            ]);
+
+        $response->assertRedirect('/graduate-ledger/add');
+        $response->assertSessionHasErrors('items.0.amount');
+        $this->assertDatabaseCount('graduate_ledgers', 0);
+    }
+
     public function test_payment_defaults_a_blank_tuition_field_to_zero(): void
     {
         $user = User::factory()->staff()->create();

@@ -155,6 +155,10 @@ function discountForHonor(amount: number, latinHonor: LatinHonor): number {
     return option ? amount * option.discountRate : 0;
 }
 
+function defaultParticularForType(entryType: EntryType): string {
+    return particularPresets[entryType][0] ?? 'Tuition';
+}
+
 function FieldError({ message }: { message?: string }) {
     if (!message) {
         return null;
@@ -380,12 +384,7 @@ export default function AddTransaction({
             units: '',
             transaction_date: todayStr,
             reference_or_jev_number: '',
-            particulars:
-                defaultEntryType === 'payment'
-                    ? 'Payment'
-                    : defaultEntryType === 'adjustment'
-                      ? 'Adjustment'
-                      : 'Tuition',
+            particulars: defaultParticularForType(defaultEntryType),
             tuition_per_unit_or_misc: '',
             amount: '',
             remarks: '',
@@ -398,7 +397,7 @@ export default function AddTransaction({
         {
             id: '1',
             entry_type: 'ar',
-            particulars: 'Tuition',
+            particulars: defaultParticularForType('ar'),
             units: '',
             tuition_per_unit_or_misc: '',
             amount: '',
@@ -466,17 +465,10 @@ export default function AddTransaction({
     }
 
     function handleTypeChange(nextType: EntryType) {
-        const defaultParticular =
-            nextType === 'payment'
-                ? 'Payment'
-                : nextType === 'adjustment'
-                  ? 'Adjustment'
-                  : 'Tuition';
-
         setData((previousData) => ({
             ...previousData,
             entry_type: nextType,
-            particulars: defaultParticular,
+            particulars: defaultParticularForType(nextType),
             latin_honor: nextType === 'ar' ? previousData.latin_honor : '',
             discount_amount: nextType === 'ar' ? previousData.discount_amount : '',
         }));
@@ -488,7 +480,7 @@ export default function AddTransaction({
             {
                 id: String(Date.now()),
                 entry_type: 'ar',
-                particulars: 'Miscellaneous',
+                particulars: defaultParticularForType('ar'),
                 units: '',
                 tuition_per_unit_or_misc: '',
                 amount: '',
@@ -1496,13 +1488,9 @@ export default function AddTransaction({
                                                                     entry_type:
                                                                         nextType,
                                                                     particulars:
-                                                                        nextType ===
-                                                                        'payment'
-                                                                            ? 'Payment'
-                                                                            : nextType ===
-                                                                                'adjustment'
-                                                                              ? 'Adjustment'
-                                                                              : 'Tuition',
+                                                                        defaultParticularForType(
+                                                                            nextType,
+                                                                        ),
                                                                     latin_honor:
                                                                         nextType ===
                                                                         'ar'
@@ -1529,7 +1517,7 @@ export default function AddTransaction({
                                                     <label className="text-[11px] font-medium text-[#334E68]">
                                                         Particulars
                                                     </label>
-                                                    <Input
+                                                    <select
                                                         value={item.particulars}
                                                         onChange={(event) =>
                                                             updateBatchRow(
@@ -1542,9 +1530,19 @@ export default function AddTransaction({
                                                                 },
                                                             )
                                                         }
-                                                        placeholder="e.g. Tuition, Misc"
-                                                        className="h-8 text-xs"
-                                                    />
+                                                        className="h-8 w-full rounded-md border border-[#CFE3FF] bg-white px-2 py-1.5 text-xs text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                                    >
+                                                        {particularPresets[
+                                                            item.entry_type
+                                                        ].map((preset) => (
+                                                            <option
+                                                                key={preset}
+                                                                value={preset}
+                                                            >
+                                                                {preset}
+                                                            </option>
+                                                        ))}
+                                                    </select>
                                                 </div>
 
                                                 <div className="sm:col-span-1">
