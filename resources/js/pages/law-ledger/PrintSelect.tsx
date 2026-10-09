@@ -257,6 +257,12 @@ export default function PrintSelect({
             params.set('semester', semesterFilter);
         }
 
+        if (typeFilter !== 'all') {
+            params.set('type', typeFilter);
+        }
+
+        params.set('order', sortOrder);
+
         window.open(`/law-ledger/pdf?${params.toString()}`, '_blank');
     };
 

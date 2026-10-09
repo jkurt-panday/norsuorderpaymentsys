@@ -15,10 +15,10 @@ use App\Models\UserProfile;
 use App\Services\FileUploadService;
 use App\Services\ReceiptPDFService;
 use App\Services\ReferenceNumberService;
-// use Illuminate\Http\Request;
-// use Illuminate\Support\Facades\Storage;
-// use Illuminate\Support\Str;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -181,15 +181,38 @@ class FormInputController extends Controller
     /**
      * Stream the PDF receipt in the browser window.
      */
-    public function printReceipt(FormInput $formInput): PdfBuilder
+    public function printReceipt(FormInput $formInput, Request $request): PdfBuilder|HttpResponse
     {
-        if (session('success_reference_number') !== $formInput->reference_number) {
+        // The session flag only exists right after submission (the
+        // success-page flow). Clients printing later from their
+        // dashboard are matched by email instead — form_inputs has
+        // no user_id, so email is the ownership link.
+        $user = $request->user();
+        $isOwningClient = $user
+            && $user->role === 'client'
+            && $formInput->email === $user->email;
+
+        if (session('success_reference_number') !== $formInput->reference_number
+            && ! $isOwningClient) {
             abort(404);
         }
 
-        // $formInput = FormInput::query()->where('reference_number', $referenceNumber)->firstOrFail();
+        $layout = $request->query('layout');
 
-        // dd($formInput);
+        // The dashboard's Print action picks an orientation up front
+        // and streams the Order of Payment in the chosen layout —
+        // the same output as the staff "View OP" feature.
+        if ($layout === 'portrait' || $layout === 'landscape') {
+            $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument']);
+
+            $copyLabels = StaffInputController::OP_COPY_LABELS;
+
+            $pdf = $layout === 'landscape'
+                ? Pdf::loadView('pdf.op-landscape', compact('formInput', 'copyLabels'))->setPaper('legal', 'landscape')
+                : Pdf::loadView('pdf.op-a6', compact('formInput', 'copyLabels'))->setPaper('a6', 'portrait');
+
+            return $pdf->stream("OP-{$formInput->reference_number}.pdf");
+        }
 
         return $this->receiptPDFService
             ->orderOfPaymentPrint($formInput)

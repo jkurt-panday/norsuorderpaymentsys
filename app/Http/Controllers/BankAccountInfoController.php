@@ -22,7 +22,7 @@ class BankAccountInfoController extends BaseResourceController
     protected string $model = BankAccountInfo::class;
 
     /** @var list<string> */
-    protected array $searchableColumns = ['bank_name', 'account_name'];
+    protected array $searchableColumns = ['bank_name', 'account_name', 'fund_cluster', 'account_num'];
 
     protected string $indexView = 'staff/bankaccounts/bankaccount';
 
@@ -57,7 +57,7 @@ class BankAccountInfoController extends BaseResourceController
     {
         return $query
             ->select('*')
-            ->selectRaw('(SELECT COUNT(*) FROM bankaccount_infos AS t2 WHERE t2.id <= bankaccount_infos.id) as display_number');
+            ->selectRaw('ROW_NUMBER() OVER (ORDER BY id ASC) as display_number');
     }
 
     public function create(): Response

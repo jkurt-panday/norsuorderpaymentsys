@@ -54,7 +54,7 @@ class CashierRoleBoundaryTest extends TestCase
         }
     }
 
-    public function test_payment_route_is_cashier_only_and_removed_from_staff_routes(): void
+    public function test_payment_route_is_cashier_only_but_or_correction_is_open_to_staff(): void
     {
         $paymentRoute = app('router')->getRoutes()
             ->getByName('cashier.requests.payment.update');
@@ -62,9 +62,16 @@ class CashierRoleBoundaryTest extends TestCase
         $this->assertInstanceOf(IlluminateRoute::class, $paymentRoute);
         $this->assertContains('auth', $paymentRoute->gatherMiddleware());
         $this->assertContains('cashier', $paymentRoute->gatherMiddleware());
-        $this->assertNull(
-            app('router')->getRoutes()->getByName('staff.requests.updateOr'),
-        );
+
+        // Placing/issuing an OR number stays cashier-only, but staff and admin
+        // get a separate correction route for an OR number that already exists.
+        $updateOrRoute = app('router')->getRoutes()
+            ->getByName('staff.requests.updateOr');
+
+        $this->assertInstanceOf(IlluminateRoute::class, $updateOrRoute);
+        $this->assertContains('auth', $updateOrRoute->gatherMiddleware());
+        $this->assertContains('staff', $updateOrRoute->gatherMiddleware());
+        $this->assertNotContains('cashier', $updateOrRoute->gatherMiddleware());
     }
 
     public function test_staff_web_and_api_routes_require_staff_middleware(): void

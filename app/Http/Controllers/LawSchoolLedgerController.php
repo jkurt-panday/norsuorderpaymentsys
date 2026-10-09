@@ -5,11 +5,12 @@ namespace App\Http\Controllers;
 use App\Exports\LawSchoolLedgerExport;
 use App\Http\Requests\StoreLawSchoolLedgerRequest;
 use App\Http\Requests\UpdateLawSchoolLedgerRequest;
-use App\Mail\LawSchoolLedgerStatementMail;
+use App\Jobs\SendLawLedgerStatementEmail;
 use App\Models\AcademicTerm as LawAcademicTerm;
 use App\Models\ActivityLog;
 use App\Models\Course as LawCourse;
 use App\Models\LawSchoolLedger;
+use App\Models\StaffInput;
 use App\Models\Student as LawStudent;
 use App\Models\User;
 use App\Services\LawLedgerImportClassifier;
@@ -24,7 +25,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -104,7 +104,7 @@ class LawSchoolLedgerController extends Controller
         return Inertia::render('law-ledger/Index', [
             'records' => $records,
             'filters' => $request->only([
-                'search', 'school_year', 'semester_or_summer', 'course', 'status', 'ar_or_payment', 'date_from', 'date_to',
+                'search', 'school_year', 'semester_or_summer', 'course', 'status', 'ar_or_payment', 'date_from', 'date_to', 'balance_status',
             ]),
             'stats' => [
                 'totalStudents' => $totalStudents,
@@ -228,58 +228,150 @@ class LawSchoolLedgerController extends Controller
     public function store(StoreLawSchoolLedgerRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $items = $data['items'] ?? null;
+        $created = 0;
+        $scholarships = 0;
 
-        DB::transaction(function () use ($data): void {
-            $studentId = $data['student_id'] ?? null;
-
-            if (! $studentId && isset($data['new_student'])) {
-                $newStudent = $data['new_student'];
-                $studentAttributes = [
-                    'student_number' => $newStudent['student_number'] ?? null,
-                    'last_name' => $newStudent['last_name'],
-                    'first_name' => $newStudent['first_name'],
-                    'middle_name' => $newStudent['middle_name'] ?? null,
-                ];
-
-                $student = filled($studentAttributes['student_number'])
-                    ? LawStudent::create($studentAttributes)
-                    : LawStudent::firstOrCreate(
-                        Arr::only($studentAttributes, ['last_name', 'first_name']),
-                        Arr::except($studentAttributes, ['last_name', 'first_name']),
-                    );
-                $studentId = $student->id;
-                $data['middle_initial'] = $data['middle_initial'] ?? $this->normalizeMiddleInitial($newStudent['middle_name'] ?? null);
-            }
-
-            $studentId = $studentId !== null ? (int) $studentId : null;
-
-            // Pull name columns from the chosen student when not provided
-            if ($studentId && empty($data['last_name'])) {
-                $student = LawStudent::find($studentId);
-                if ($student) {
-                    $data['last_name'] = $student->last_name;
-                    $data['first_name'] = $student->first_name;
-                    $data['middle_name'] = $data['middle_name'] ?? $student->middle_name;
-                    $data['middle_initial'] = $data['middle_initial'] ?? $this->normalizeMiddleInitial($student->middle_name);
-                }
-            }
-
-            $attributes = $this->buildLedgerRow($data, $studentId, $this->resolveAcademicTermId($data));
-            $attributes['entry_type'] = $data['entry_type'] ?? 'ar';
-            $attributes['ar_or_payment'] = $this->entryTypeToLabel($attributes['entry_type']);
-            $attributes['status'] = $this->determineStatus(
-                (float) ($attributes['amount'] ?? 0),
-                $data['status'] ?? null,
-            );
-
+        DB::transaction(function () use ($data, $items, &$created, &$scholarships): void {
+            $studentId = $this->resolveStudentIdForStore($data);
+            $academicTermId = $this->resolveAcademicTermId($data);
             $attribution = $this->resolveInputBy($data['input_by'] ?? null);
-            $attributes['input_by'] = $attribution['input_by'];
-            $attributes['imported_input_by'] = $attribution['imported_input_by'];
 
-            LawSchoolLedger::create($attributes);
+            if (is_array($items) && filled($items)) {
+                foreach ($items as $item) {
+                    $record = $this->createLawLedgerRecord($item, $studentId, $academicTermId, $attribution);
+                    $created++;
+
+                    if ($this->shouldApplyLatinHonorOnCreate($item)) {
+                        $this->applyLatinHonorToRecord($record, (string) $item['latin_honor'], $item['discount_amount'] ?? null);
+                        $scholarships++;
+                    }
+                }
+
+                return;
+            }
+
+            $record = $this->createLawLedgerRecord($data, $studentId, $academicTermId, $attribution);
+            $created++;
+
+            if ($this->shouldApplyLatinHonorOnCreate($data)) {
+                $this->applyLatinHonorToRecord($record, (string) $data['latin_honor'], $data['discount_amount'] ?? null);
+                $scholarships++;
+            }
         });
 
-        return redirect()->route('law-ledger.index')->with('success', 'Transaction created successfully.');
+        $message = trans_choice(
+            '{1} :count transaction created.|:count transactions created.',
+            $created,
+            ['count' => $created],
+        );
+
+        if ($scholarships > 0) {
+            $message .= sprintf(
+                ' %d scholarship adjustment%s added.',
+                $scholarships,
+                $scholarships === 1 ? '' : 's',
+            );
+        }
+
+        return redirect()->route('law-ledger.index')->with('success', $message);
+    }
+
+    /**
+     * Resolves the selected or inline-created student for a manual store request.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function resolveStudentIdForStore(array $data): int
+    {
+        $studentId = $data['student_id'] ?? null;
+
+        if ($studentId) {
+            return (int) $studentId;
+        }
+
+        $newStudent = $data['new_student'];
+        $studentAttributes = [
+            'student_number' => $newStudent['student_number'] ?? null,
+            'email' => $newStudent['email'] ?? null,
+            'last_name' => $newStudent['last_name'],
+            'first_name' => $newStudent['first_name'],
+            'middle_name' => $newStudent['middle_name'] ?? null,
+        ];
+
+        $student = filled($studentAttributes['student_number'])
+            ? LawStudent::create($studentAttributes)
+            : LawStudent::firstOrCreate(
+                Arr::only($studentAttributes, ['last_name', 'first_name']),
+                Arr::except($studentAttributes, ['last_name', 'first_name']),
+            );
+
+        return (int) $student->id;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  array{input_by: int|null, imported_input_by: string|null}  $attribution
+     */
+    private function createLawLedgerRecord(array $data, int $studentId, ?int $academicTermId, array $attribution): LawSchoolLedger
+    {
+        $attributes = $this->buildLedgerRow($data, $studentId, $academicTermId);
+        $attributes['entry_type'] = $data['entry_type'] ?? 'ar';
+        $attributes['ar_or_payment'] = $this->entryTypeToLabel($attributes['entry_type']);
+        $attributes['status'] = $this->determineStatus(
+            (float) ($attributes['amount'] ?? 0),
+            $data['status'] ?? null,
+        );
+        $attributes['input_by'] = $attribution['input_by'];
+        $attributes['imported_input_by'] = $attribution['imported_input_by'];
+
+        return LawSchoolLedger::create($attributes);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function shouldApplyLatinHonorOnCreate(array $data): bool
+    {
+        return ($data['entry_type'] ?? null) === 'ar'
+            && filled($data['latin_honor'] ?? null)
+            && filled($data['discount_amount'] ?? null)
+            && (float) $data['discount_amount'] > 0;
+    }
+
+    private function applyLatinHonorToRecord(LawSchoolLedger $record, string $latinHonor, mixed $rawDiscountAmount = null): void
+    {
+        $originalAmount = abs((float) $record->amount);
+        $discountAmount = filled($rawDiscountAmount)
+            ? min(abs((float) $rawDiscountAmount), $originalAmount)
+            : $this->calculateLatinHonorDiscount($originalAmount, $latinHonor);
+
+        if ($discountAmount <= 0) {
+            return;
+        }
+
+        $record->update([
+            'latin_honor' => $latinHonor,
+            'discount_amount' => $discountAmount,
+        ]);
+
+        LawSchoolLedger::create([
+            'student_id' => $record->student_id,
+            'course_id' => $record->course_id,
+            'academic_term_id' => $record->academic_term_id,
+            'entry_type' => 'adjustment',
+            'units' => null,
+            'transaction_date' => now()->toDateString(),
+            'reference_number' => $this->latinHonorReferenceNumber($latinHonor, (int) $record->id),
+            'particulars' => $this->latinHonorParticulars($latinHonor),
+            'rate' => 0,
+            'amount' => $discountAmount,
+            'remarks' => 'Latin honor discount applied to AR #'.$record->id,
+            'status' => 'Applied',
+            'latin_honor' => $latinHonor,
+            'discount_amount' => 0,
+            'input_by' => auth()->id(),
+        ]);
     }
 
     /**
@@ -1097,8 +1189,10 @@ class LawSchoolLedgerController extends Controller
             'school_year' => ['nullable', 'string', 'max:20'],
             'semester' => ['nullable', 'in:First Semester,Second Semester,Summer'],
             'type' => ['nullable', 'string', 'max:100'],
+            'order' => ['nullable', 'in:latest,oldest'],
         ]);
 
+        $sortDirection = ($validated['order'] ?? 'latest') === 'oldest' ? 'asc' : 'desc';
         $studentName = str_replace(['−', '–', '—'], '-', (string) ($validated['student'] ?? $validated['student_id']));
         $recordsQuery = isset($validated['student_id'])
             ? LawSchoolLedger::query()->where('student_id', $validated['student_id'])
@@ -1112,7 +1206,8 @@ class LawSchoolLedgerController extends Controller
                     fn ($termQuery) => $termQuery->where('school_year', $schoolYear),
                 ),
             )
-            ->orderBy('id', 'asc')
+            ->orderBy('transaction_date', $sortDirection)
+            ->orderBy('id', $sortDirection)
             ->get()
             ->when(
                 $validated['semester'] ?? null,
@@ -1234,7 +1329,11 @@ class LawSchoolLedgerController extends Controller
 
         $validated = $request->validate([
             'school_year' => ['nullable', 'string', 'max:20'],
-            'semester' => ['nullable', 'in:First Semester,Second Semester,Summer'],
+            // The Law ledger UI filters by `semester_or_summer`, while the PDF
+            // generator uses `semester`. Accept both so emailed PDFs use the
+            // same term selection as the recipient list.
+            'semester' => ['nullable', 'string', 'max:50'],
+            'semester_or_summer' => ['nullable', 'string', 'max:50'],
             'subject' => ['nullable', 'string', 'max:255'],
             'note' => ['nullable', 'string', 'max:2000'],
             'exam_period' => ['nullable', 'in:Midterm,Final'],
@@ -1242,6 +1341,16 @@ class LawSchoolLedgerController extends Controller
             'student_ids' => ['nullable', 'array'],
             'student_ids.*' => ['integer', 'exists:students,id'],
         ]);
+
+        $semester = $this->normalizeStatementSemester(
+            $validated['semester'] ?? $validated['semester_or_summer'] ?? null,
+        );
+
+        if (($validated['semester'] ?? $validated['semester_or_summer'] ?? null) !== null && $semester === null) {
+            return back()->withErrors([
+                'semester' => 'The selected semester is invalid.',
+            ]);
+        }
 
         $query = $this->buildFilteredQuery($request);
 
@@ -1273,74 +1382,35 @@ class LawSchoolLedgerController extends Controller
                 continue;
             }
 
-            $pdfContent = $this->generateStudentPdfContent(
+            SendLawLedgerStatementEmail::dispatch(
                 (int) $student->id,
                 $validated['school_year'] ?? null,
-                $validated['semester'] ?? null,
-            );
-
-            Mail::to($student->email)->send(
-                new LawSchoolLedgerStatementMail(
-                    $student,
-                    $pdfContent,
-                    $validated['subject'] ?? null,
-                    $validated['note'] ?? null,
-                    $validated['exam_period'] ?? null,
-                    $validated['exam_deadline'] ?? null,
-                )
+                $semester,
+                $validated['subject'] ?? null,
+                $validated['note'] ?? null,
+                $validated['exam_period'] ?? null,
+                $validated['exam_deadline'] ?? null,
             );
 
             $sent++;
         }
 
-        return back()->with('success', "Emailed SOA to {$sent} student(s).".($skipped > 0 ? " {$skipped} student(s) skipped (no email)." : ''));
+        return back()->with('success', "Queued SOA email for {$sent} student(s).".($skipped > 0 ? " {$skipped} student(s) skipped (no email)." : ''));
     }
 
-    /**
-     * Generates raw PDF content bytes for a single law student's
-     * statement of account, reusing the same view and data as generatePdf().
-     */
-    private function generateStudentPdfContent(int $studentId, ?string $schoolYear, ?string $semester): string
+    private function normalizeStatementSemester(?string $semester): ?string
     {
-        $recordsQuery = LawSchoolLedger::query()
-            ->with(['lawStudent', 'lawCourse', 'lawAcademicTerm'])
-            ->where('student_id', $studentId);
+        if (! filled($semester)) {
+            return null;
+        }
 
-        $records = $recordsQuery
-            ->when(
-                $schoolYear,
-                fn ($query, $sy) => $query->whereHas(
-                    'lawAcademicTerm',
-                    fn ($termQuery) => $termQuery->where('school_year', $sy),
-                ),
-            )
-            ->orderBy('id', 'asc')
-            ->get()
-            ->when(
-                $semester,
-                fn ($records, $sem) => $records->filter(
-                    fn (LawSchoolLedger $record) => LawAcademicTerm::normalizeSemester(
-                        (string) $record->semester_or_summer,
-                    ) === $sem,
-                )->values(),
-            );
-
-        $student = LawStudent::query()->findOrFail($studentId);
-        $studentName = trim("{$student->last_name}, {$student->first_name} ".($student->middle_name ? substr($student->middle_name, 0, 1).'.' : ''));
-
-        $summary = $this->calculateStudentBalanceNormalized($records);
-
-        return Pdf::view('pdf.law-student-ledger-statement', [
-            'student' => $student,
-            'studentName' => $studentName,
-            'records' => $records,
-            'summary' => $summary,
-            'semesterLabel' => $semester ?? 'All Terms',
-            'generatedAt' => now()->timezone('Asia/Manila')->format('Y-m-d h:i A'),
-        ])
-            ->driver('dompdf')
-            ->format('a4')
-            ->generatePdfContent();
+        return LawAcademicTerm::normalizeSemester((string) $semester)
+            ?? match ($this->normalizeSemester((string) $semester)) {
+                '1st Sem' => 'First Semester',
+                '2nd Sem' => 'Second Semester',
+                'Summer' => 'Summer',
+                default => null,
+            };
     }
 
     /**
@@ -1623,9 +1693,31 @@ class LawSchoolLedgerController extends Controller
         $type = $request->input('ar_or_payment');
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
+        $balanceStatus = $request->input('balance_status');
+        $balanceSql = "SUM(CASE WHEN LOWER(TRIM(balance_rows.entry_type)) = 'ar' THEN ABS(balance_rows.amount) WHEN LOWER(TRIM(balance_rows.entry_type)) IN ('payment','adjustment') THEN -ABS(balance_rows.amount) ELSE 0 END)";
 
         return LawSchoolLedger::query()
             ->with(['lawStudent', 'lawCourse', 'lawAcademicTerm', 'inputByUser'])
+            ->when($balanceStatus === 'with_balance' || $request->boolean('has_balance'), function ($query) use ($balanceSql) {
+                $query->whereExists(function ($subQuery) use ($balanceSql) {
+                    $subQuery->selectRaw('1')
+                        ->from('law_school_ledgers as balance_rows')
+                        ->whereColumn('balance_rows.student_id', 'law_school_ledgers.student_id')
+                        ->whereColumn('balance_rows.academic_term_id', 'law_school_ledgers.academic_term_id')
+                        ->groupBy('balance_rows.student_id', 'balance_rows.academic_term_id')
+                        ->havingRaw("{$balanceSql} > 0");
+                });
+            })
+            ->when($balanceStatus === 'cleared', function ($query) use ($balanceSql) {
+                $query->whereExists(function ($subQuery) use ($balanceSql) {
+                    $subQuery->selectRaw('1')
+                        ->from('law_school_ledgers as balance_rows')
+                        ->whereColumn('balance_rows.student_id', 'law_school_ledgers.student_id')
+                        ->whereColumn('balance_rows.academic_term_id', 'law_school_ledgers.academic_term_id')
+                        ->groupBy('balance_rows.student_id', 'balance_rows.academic_term_id')
+                        ->havingRaw("{$balanceSql} <= 0");
+                });
+            })
             ->when($request->input('search'), function ($query, $search) {
                 // Lowercase the search term to match the LOWER() applied to columns.
                 // PostgreSQL's LIKE is case-sensitive, so "Juan" won't match "juan"
@@ -1752,6 +1844,25 @@ class LawSchoolLedgerController extends Controller
     /** @return array<string, mixed> */
      private function transformRecord(LawSchoolLedger $r): array
      {
+         $entryTypeLower = strtolower(trim((string) $r->entry_type));
+         $status = (string) ($r->status ?? '');
+         $orLink = null;
+
+         if ($entryTypeLower === 'payment' && filled($r->reference_number)) {
+             $staffInput = StaffInput::query()
+                 ->where('or_no', $r->reference_number)
+                 ->select('id', 'form_input_id', 'status')
+                 ->first();
+
+             if ($staffInput !== null) {
+                 $orLink = route('staff.requests.show', $staffInput->form_input_id);
+
+                 if ($staffInput->status === 'paid') {
+                     $status = 'Paid';
+                 }
+             }
+         }
+
          return [
              'id' => $r->id,
              'studentId' => $r->student_id,
@@ -1772,11 +1883,12 @@ class LawSchoolLedgerController extends Controller
             'arPayment' => $this->entryTypeToLabel($r->entry_type),
             'entryType' => $r->entry_type,
             'amount' => (float) ($r->amount ?? 0),
-            'status' => $r->status,
+            'status' => $status,
             'remark' => $r->remarks,
             'inputBy' => $r->inputByDisplay() ?? '',
             'latinHonor' => $r->latin_honor,
             'discountAmount' => (float) ($r->discount_amount ?? 0),
+            'orLink' => $orLink,
         ];
     }
 
@@ -1898,6 +2010,8 @@ class LawSchoolLedgerController extends Controller
             'remarks' => $data['remarks'] ?? null,
             'status' => $data['status'] ?? 'Active',
             'input_by' => $data['input_by'] ?? null,
+            'latin_honor' => $data['latin_honor'] ?? null,
+            'discount_amount' => $data['discount_amount'] ?? 0,
         ];
 
         $entryType = $attributes['entry_type'];
@@ -2421,6 +2535,40 @@ class LawSchoolLedgerController extends Controller
         return $fingerprintMap;
     }
 
+    private function calculateLatinHonorDiscount(float $amount, string $latinHonor): float
+    {
+        $discountPercentage = match ($latinHonor) {
+            'SUMMA' => 100,
+            'MAGNA' => 75,
+            'CUM_LAUDE' => 50,
+            default => 0,
+        };
+
+        return round(($amount * $discountPercentage) / 100, 2);
+    }
+
+    private function latinHonorParticulars(string $latinHonor): string
+    {
+        return match ($latinHonor) {
+            'SUMMA' => 'Summa Cum Laude Scholarship (100%)',
+            'MAGNA' => 'Magna Cum Laude Scholarship (75%)',
+            'CUM_LAUDE' => 'Cum Laude Scholarship (50%)',
+            default => 'Latin Honor Scholarship',
+        };
+    }
+
+    private function latinHonorReferenceNumber(string $latinHonor, int $recordId): string
+    {
+        $referencePrefix = match ($latinHonor) {
+            'SUMMA' => 'SUM',
+            'MAGNA' => 'MAG',
+            'CUM_LAUDE' => 'CUM',
+            default => 'HON',
+        };
+
+        return 'HONOR-'.$referencePrefix.'-'.$recordId;
+    }
+
     /**
      * Applies a Latin honor discount to an AR transaction.
      */
@@ -2456,15 +2604,7 @@ class LawSchoolLedgerController extends Controller
             return back()->with('error', 'A Latin honor discount has already been applied to this assessment.');
         }
 
-        // Calculate discount based on honor type
-        $discountPercentage = match ($latinHonor) {
-            'SUMMA' => 100,      // 100% discount
-            'MAGNA' => 100,      // 100% discount
-            'CUM_LAUDE' => 50,   // 50% discount
-            default => 0,
-        };
-
-        $discountAmount = round(($originalAmount * $discountPercentage) / 100, 2);
+        $discountAmount = $this->calculateLatinHonorDiscount($originalAmount, $latinHonor);
 
         // Keep the original AR amount unchanged for auditability. The separate
         // adjustment transaction is what reduces the student's outstanding balance.
@@ -2474,21 +2614,6 @@ class LawSchoolLedgerController extends Controller
                 'discount_amount' => $discountAmount,
             ]);
 
-            // Create a corresponding adjustment entry for the discount
-            $particulars = match ($latinHonor) {
-                'SUMMA' => 'Summa Cum Laude Scholarship (100%)',
-                'MAGNA' => 'Magna Cum Laude Scholarship (100%)',
-                'CUM_LAUDE' => 'Cum Laude Scholarship (50%)',
-                default => 'Latin Honor Scholarship',
-            };
-
-            $referencePrefix = match ($latinHonor) {
-                'SUMMA' => 'SUM',
-                'MAGNA' => 'MAG',
-                'CUM_LAUDE' => 'CUM',
-                default => 'HON',
-            };
-
             LawSchoolLedger::create([
                 'student_id' => $record->student_id,
                 'course_id' => $record->course_id,
@@ -2496,8 +2621,8 @@ class LawSchoolLedgerController extends Controller
                 'entry_type' => 'adjustment',
                 'units' => null,
                 'transaction_date' => now()->toDateString(),
-                'reference_number' => 'HONOR-'.$referencePrefix.'-'.$record->id,
-                'particulars' => $particulars,
+                'reference_number' => $this->latinHonorReferenceNumber($latinHonor, (int) $record->id),
+                'particulars' => $this->latinHonorParticulars($latinHonor),
                 'rate' => 0,
                 'amount' => $discountAmount,
                 'remarks' => 'Latin honor discount applied to AR #'.$record->id,

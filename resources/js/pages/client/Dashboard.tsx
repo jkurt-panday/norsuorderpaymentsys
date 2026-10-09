@@ -6,6 +6,7 @@ import {
     ShieldCheck,
     User,
     Clock,
+    ChevronDown,
     Printer,
 } from 'lucide-react';
 import React from 'react';
@@ -18,6 +19,12 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
     Table,
     TableBody,
@@ -70,8 +77,8 @@ const statusBadgeClass = (status?: string) => {
 
 const statusLabel = (status?: string) => {
     if (!status) {
-return 'Unprocessed';
-}
+        return 'Unprocessed';
+    }
 
     return status.charAt(0).toUpperCase() + status.slice(1);
 };
@@ -80,8 +87,8 @@ const formatDate = (value: string) => {
     const date = new Date(value);
 
     if (Number.isNaN(date.getTime())) {
-return value;
-}
+        return value;
+    }
 
     return date.toLocaleDateString('en-US', {
         month: 'short',
@@ -295,15 +302,49 @@ export default function ClientDashboard() {
                                             {formatDate(submission.created_at)}
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <a
-                                                href={`/public/success/${submission.reference_number}/print`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[#CFE3FF] px-3 text-xs font-medium text-[#0F6FFF] hover:bg-[#EAF2FF] hover:text-[#0B5DDB]"
-                                            >
-                                                <Printer className="h-3.5 w-3.5" />
-                                                Print
-                                            </a>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger
+                                                    render={
+                                                        <button
+                                                            type="button"
+                                                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[#CFE3FF] px-3 text-xs font-medium text-[#0F6FFF] hover:bg-[#EAF2FF] hover:text-[#0B5DDB]"
+                                                        >
+                                                            <Printer className="h-3.5 w-3.5" />
+                                                            Print
+                                                            <ChevronDown className="h-3.5 w-3.5" />
+                                                        </button>
+                                                    }
+                                                />
+                                                <DropdownMenuContent
+                                                    align="end"
+                                                    className="w-44"
+                                                >
+                                                    <DropdownMenuItem
+                                                        render={
+                                                            <a
+                                                                href={`/public/success/${submission.reference_number}/print?layout=portrait`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="cursor-pointer"
+                                                            />
+                                                        }
+                                                    >
+                                                        Portrait (3 Pages)
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        render={
+                                                            <a
+                                                                href={`/public/success/${submission.reference_number}/print?layout=landscape`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="cursor-pointer"
+                                                            />
+                                                        }
+                                                    >
+                                                        Landscape (1 Page)
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </TableCell>
                                     </TableRow>
                                 ))}

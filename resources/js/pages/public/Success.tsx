@@ -445,22 +445,17 @@ return '';
                                                     : null;
 
                                         if (!homeHref) {
-return null;
-}
+                                            return null;
+                                        }
 
                                         return (
                                             <Button
                                                 variant="outline"
                                                 className="h-11 w-full rounded-xl border-slate-200 px-6 text-sm font-semibold text-slate-700 transition-all duration-200 hover:bg-slate-50 sm:h-12 sm:w-auto sm:px-8 sm:text-base"
                                             >
-                                                <Link
-                                                    href={homeHref}
-                                                    className="flex h-full w-full items-center justify-center"
-                                                >
-                                                    <Home className="mr-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
-                                                    Go back to Home
-                                                </Link>
-                                            </Button>
+                                                <Home className="mr-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
+                                                Go back to Home
+                                            </Link>
                                         );
                                     })()}
                                 </div>

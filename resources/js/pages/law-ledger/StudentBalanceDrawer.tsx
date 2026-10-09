@@ -33,6 +33,7 @@ interface DrawerTransaction {
     id: number | string;
     transactionDate: string;
     referenceNo?: string | null;
+    orLink?: string | null;
     particulars?: string | null;
     arPayment?: string | null;
     arOrPayment?: string | null;
@@ -261,7 +262,18 @@ export default function StudentBalanceDrawer({
                                                             </p>
                                                         </div>
                                                         <div className="mt-2 flex items-center justify-between gap-3 border-t border-[#EDF3FB] pt-2 text-[11px] text-[#7FA6D6]">
-                                                            <span>{transaction.referenceNo || 'No reference number'}</span>
+                                                            {transaction.orLink ? (
+                                                                <a
+                                                                    href={transaction.orLink}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="inline-flex items-center gap-1 font-medium text-[#0B62E0] hover:underline"
+                                                                >
+                                                                    {transaction.referenceNo}
+                                                                </a>
+                                                            ) : (
+                                                                <span>{transaction.referenceNo || 'No reference number'}</span>
+                                                            )}
                                                             <button type="button" onClick={() => router.get(edit.url(transaction.id))} className="inline-flex items-center gap-1 font-medium text-[#0B62E0] hover:underline">
                                                                 <Pencil className="h-3 w-3" /> Edit
                                                             </button>

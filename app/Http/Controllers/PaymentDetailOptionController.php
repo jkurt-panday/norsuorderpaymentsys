@@ -37,36 +37,20 @@ class PaymentDetailOptionController extends BaseResourceController
     protected array $sortableColumns = ['id', 'payment_desc', 'created_at'];
 
     /**
-     * Adds a `display_number` column via ROW_NUMBER() — a permanent number
-     * tied to creation order (id ASC), completely independent of whatever
-     * sort the user currently has applied for display. This is what makes
-     * the newest record always show its true position (e.g. record #7,
-     * the 7th one ever created, always shows "7" — whether it's listed
-     * first under "Newest" or last under "Oldest").
+     * Adds a `display_number` column via ROW_NUMBER() OVER (ORDER BY id ASC) — a
+     * sequential rank computed within the result set using a fixed base order
+     * (id ASC), independent of whatever sort the user currently has applied for
+     * display. Because ROW_NUMBER() runs after the WHERE clause (search/filters)
+     * but before the outer ORDER BY / pagination, each row's number stays
+     * stable within a given sort/filter context: the result set is numbered 1,
+     * 2, 3, ... starting from id ASC, and the outer ORDER BY only reorders
+     * which row those numbers are attached to.
      *
      * This uses BaseResourceController's modifyIndexQuery() hook, which
      * runs right before sorting/pagination in the shared index() — so
      * search, sort, filters, and pagination all keep working exactly as
-     * the base class already implements them. No need to override index()
-     * itself (which previously broke: its `: Response` return type has to
-     * be matched exactly on any override, which the earlier attempt missed).
-/**
-     * Adds a `display_number` column via a correlated subquery — a
-     * permanent number tied to creation order (id ASC), computed against
-     * the FULL, unfiltered table rather than a ROW_NUMBER() window
-     * function. This is what makes a record's number stay stable whether
-     * it's shown in the full list, in a search result, on any page, or
-     * under any sort — because the subquery counts against the entire
-     * table, completely independent of the outer query's WHERE clause.
+     * the base class already implements them.
      *
-     * This uses BaseResourceController's modifyIndexQuery() hook, which
-     * runs right before sorting/pagination in the shared index() — so
-     * search, sort, filters, and pagination all keep working exactly as
-     * the base class already implements them. No need to override index()
-     * itself (which previously broke: its `: Response` return type has to
-     * be matched exactly on any override, which the earlier attempt missed).
-     */
-    /**
      * @param  Builder<Model>  $query
      * @return Builder<Model>
      */
@@ -74,7 +58,7 @@ class PaymentDetailOptionController extends BaseResourceController
     {
         return $query
             ->select('*')
-            ->selectRaw('(SELECT COUNT(*) FROM payment_detail_options AS t2 WHERE t2.id <= payment_detail_options.id) as display_number');
+            ->selectRaw('ROW_NUMBER() OVER (ORDER BY id ASC) as display_number');
     }
 
     /**

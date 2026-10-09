@@ -1,6 +1,9 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { DatePicker } from '@/components/ui/date-picker';
 import cashier from '@/routes/cashier';
+import { flashToast } from '@/utils/flashToast';
 
 interface PaymentRequest {
     id: number;
@@ -24,6 +27,14 @@ const money = new Intl.NumberFormat('en-PH', {
     style: 'currency',
     currency: 'PHP',
 });
+
+const todayIso = (): string => {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+
+    return `${now.getFullYear()}-${month}-${day}`;
+};
 
 const getStatusBadgeConfig = (status: PaymentRequest['status']) => {
     switch (status) {
@@ -58,9 +69,7 @@ export default function CashierRequestShow({
     const form = useForm({
         status: request.status,
         or_no: request.or_no ?? '',
-        or_date:
-            request.or_date?.slice(0, 10) ??
-            new Date().toISOString().slice(0, 10),
+        or_date: request.or_date?.slice(0, 10) ?? todayIso(),
     });
     const payer = [
         request.form_input.firstname_or_office,
@@ -72,11 +81,50 @@ export default function CashierRequestShow({
 
     const submit = (event: React.SyntheticEvent) => {
         event.preventDefault();
-        form.put(cashier.requests.payment.update.url(request.id));
+        form.put(cashier.requests.payment.update.url(request.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                if (orAutoPromoted.current) {
+                    flashToast('success', 'Status updated to Paid.');
+                    orAutoPromoted.current = false;
+                }
+            },
+        });
     };
 
     const badge = getStatusBadgeConfig(request.status);
     const isPaid = form.data.status === 'paid';
+
+    // The OR number auto-drives the status, but only *up* to "Paid"
+    // from "Ready for payment". An explicit "Cancelled" (or any other
+    // pick) is always respected — the status dropdown stays fully
+    // editable no matter what is typed into the OR field.
+    const orAutoPromoted = useRef(false);
+
+    const syncStatusFromOr = () => {
+        if (form.data.or_no.trim() !== '' && form.data.status === 'processed') {
+            form.setData('status', 'paid');
+            orAutoPromoted.current = true;
+        }
+    };
+
+    // When an OR number is entered, automatically mark as paid — but
+    // only when the current status is still "Ready for payment".
+    // When cleared, the status is left at whatever it currently is.
+    const handleOrNoChange = (value: string) => {
+        const filtered = value.replace(/[^0-9./\s-]/g, '');
+        form.setData('or_no', filtered);
+        syncStatusFromOr();
+    };
+
+    // On mount only: if the OR field is already pre-filled (e.g. a
+    // previously-paid request being corrected), make sure the status
+    // reflects that. Runs once; subsequent OR edits are driven by
+    // handleOrNoChange above.
+    useEffect(() => {
+        syncStatusFromOr();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
         <>
@@ -174,12 +222,15 @@ export default function CashierRequestShow({
                                     onChange={(e) =>
                                         form.setData(
                                             'status',
-                                            e.target.value as PaymentRequest['status'],
+                                            e.target
+                                                .value as PaymentRequest['status'],
                                         )
                                     }
                                     className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 >
-                                    <option value="processed">Ready for payment</option>
+                                    <option value="processed">
+                                        Ready for payment
+                                    </option>
                                     <option value="paid">Paid</option>
                                     <option value="cancelled">Cancelled</option>
                                 </select>
@@ -191,7 +242,14 @@ export default function CashierRequestShow({
                             </label>
 
                             <label className="text-sm font-medium text-slate-700">
-                                OR number {isPaid ? <span className="text-rose-500">*</span> : <span className="text-xs text-slate-400 font-normal">(optional)</span>}
+                                OR number{' '}
+                                {isPaid ? (
+                                    <span className="text-rose-500">*</span>
+                                ) : (
+                                    <span className="text-xs font-normal text-slate-400">
+                                        (optional)
+                                    </span>
+                                )}
                                 <input
                                     required={isPaid}
                                     maxLength={50}
@@ -199,14 +257,9 @@ export default function CashierRequestShow({
                                     pattern="[0-9\-\.\/\s]+"
                                     title="Only numbers, dashes, slashes, dots and spaces are allowed"
                                     value={form.data.or_no}
-                                    onChange={(event) => {
-                                        const filtered =
-                                            event.target.value.replace(
-                                                /[^0-9./\s-]/g,
-                                                '',
-                                            );
-                                        form.setData('or_no', filtered);
-                                    }}
+                                    onChange={(event) =>
+                                        handleOrNoChange(event.target.value)
+                                    }
                                     className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 />
                                 {form.errors.or_no && (
@@ -217,19 +270,22 @@ export default function CashierRequestShow({
                             </label>
 
                             <label className="text-sm font-medium text-slate-700">
-                                Payment date {isPaid ? <span className="text-rose-500">*</span> : <span className="text-xs text-slate-400 font-normal">(optional)</span>}
-                                <input
-                                    required={isPaid}
-                                    type="date"
-                                    max={new Date().toISOString().slice(0, 10)}
+                                Payment date{' '}
+                                {isPaid ? (
+                                    <span className="text-rose-500">*</span>
+                                ) : (
+                                    <span className="text-xs font-normal text-slate-400">
+                                        (optional)
+                                    </span>
+                                )}
+                                <DatePicker
                                     value={form.data.or_date}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'or_date',
-                                            event.target.value,
-                                        )
+                                    invalid={Boolean(form.errors.or_date)}
+                                    maxDate={todayIso()}
+                                    onChange={(value) =>
+                                        form.setData('or_date', value)
                                     }
-                                    className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                    className="mt-1.5 rounded-lg border-slate-300 bg-white px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 />
                                 {form.errors.or_date && (
                                     <span className="mt-1 block text-xs text-rose-600">
@@ -243,9 +299,7 @@ export default function CashierRequestShow({
                             disabled={form.processing}
                             className="rounded-lg bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            {form.processing
-                                ? 'Saving…'
-                                : 'Save changes'}
+                            {form.processing ? 'Saving…' : 'Save changes'}
                         </button>
                     </form>
                 </div>

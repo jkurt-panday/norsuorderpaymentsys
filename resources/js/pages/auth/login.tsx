@@ -1,4 +1,4 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -25,6 +25,7 @@ export default function Login({
     canResetPassword?: boolean;
     deactivated_account?: boolean;
 }) {
+    const { auth } = usePage<{ auth: { user: { role: string } | null } }>().props;
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
         password: '',
@@ -34,8 +35,27 @@ export default function Login({
     const [showPassword, setShowPassword] = useState(false);
     const [isDeactivatedOpen, setIsDeactivatedOpen] = useState(deactivated_account);
 
+    // If the user is already logged in (e.g. they navigated here via
+    // browser back/forward, which restores cached Inertia props), bounce
+    // them to their role dashboard immediately.
+    useEffect(() => {
+        if (!auth?.user) return;
+
+        const role = auth.user.role;
+        if (role === 'admin') {
+            window.location.assign('/admin/dashboard');
+        } else if (role === 'staff') {
+            window.location.assign('/staff/staffdashboard');
+        } else if (role === 'cashier') {
+            window.location.assign('/cashier/requests');
+        } else if (role === 'client') {
+            window.location.assign('/client/dashboard');
+        } else {
+            window.location.assign('/dashboard');
+        }
+    }, [auth?.user]);
+
     // Automatically wipe password inputs clean if there is an auth error
-    // Fix: Added 'reset' to the dependency array to satisfy ESLint rules
     useEffect(() => {
         return () => {
             reset('password');

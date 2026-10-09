@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import PasswordInput from '@/components/password-input';
 import {
     Popover,
     PopoverContent,
@@ -924,9 +925,8 @@ setPageJumpInput(
                                             ? 'New Password (leave blank to keep current)'
                                             : 'Password'}
                                     </Label>
-                                    <Input
+                                    <PasswordInput
                                         id="password"
-                                        type="password"
                                         value={data.password}
                                         onChange={(e) =>
                                             setData('password', e.target.value)
