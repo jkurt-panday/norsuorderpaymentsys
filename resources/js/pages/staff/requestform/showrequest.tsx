@@ -8,7 +8,7 @@ import {
     UserPlus,
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { DatePicker, toIsoDate, toDisplayDate } from '@/components/ui/date-picker';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
     Dialog,
     DialogContent,
@@ -678,9 +678,7 @@ export default function ShowRequest() {
         ref_document_id: formInput.staff_input?.reference_document
             ? String(formInput.staff_input.reference_document.id)
             : '',
-        ref_date: formInput.staff_input?.ref_date
-            ? toDisplayDate(formInput.staff_input.ref_date.split('T')[0])
-            : '',
+        ref_date: formInput.staff_input?.ref_date?.split('T')[0] ?? '',
         uacs_id: formInput.staff_input?.uacs
             ? String(formInput.staff_input.uacs.id)
             : '',
@@ -698,11 +696,6 @@ export default function ShowRequest() {
         if (!staffInputData.ref_date) {
             return;
         }
-
-        const payload = {
-            ...staffInputData,
-            ref_date: toIsoDate(staffInputData.ref_date),
-        };
 
         putStaffInput(staff.requests.update.url(formInput.staff_input.id), {
             preserveScroll: true,
@@ -728,9 +721,7 @@ export default function ShowRequest() {
         reset: resetOrForm,
     } = useForm({
         or_no: formInput.staff_input?.or_no ?? '',
-        or_date: formInput.staff_input?.or_date
-            ? toDisplayDate(formInput.staff_input.or_date.split('T')[0])
-            : '',
+        or_date: formInput.staff_input?.or_date?.split('T')[0] ?? '',
     });
 
     /**
@@ -751,8 +742,6 @@ export default function ShowRequest() {
         if (!orData.or_date) {
             return;
         }
-
-        setOrData('or_date', toIsoDate(orData.or_date));
 
         putOr(staff.requests.updateOr.url(formInput.staff_input.id), {
             preserveScroll: true,
@@ -786,7 +775,7 @@ export default function ShowRequest() {
         form_input_id: formInput.id,
         fundcluster_id: '',
         ref_document_id: '',
-        ref_date: toDisplayDate(todayIso()),
+        ref_date: todayIso(),
         uacs_id: '',
         status: 'processed',
         purpose: '',
@@ -797,8 +786,6 @@ export default function ShowRequest() {
         if (!processData.ref_date) {
             return;
         }
-
-        setProcessData('ref_date', toIsoDate(processData.ref_date));
 
         postProcess(staff.requests.store.url(), {
             preserveScroll: true,
@@ -1385,12 +1372,7 @@ export default function ShowRequest() {
                                                         ref_date: formInput
                                                             .staff_input
                                                             ?.ref_date
-                                                            ? toDisplayDate(
-                                                                  formInput.staff_input.ref_date.split(
-                                                                      'T',
-                                                                  )[0],
-                                                              )
-                                                            : '',
+                                                            ?.split('T')[0] ?? '',
                                                         uacs_id: formInput
                                                             .staff_input?.uacs
                                                             ? String(
@@ -1587,6 +1569,8 @@ purpose:
                                                         value={
                                                             staffInputData.ref_date
                                                         }
+                                                        valueFormat="iso"
+                                                        maxDate={todayIso()}
                                                         invalid={Boolean(staffInputErrors.ref_date)}
                                                         onChange={(value) =>
                                                             setStaffInputData(
@@ -1973,6 +1957,8 @@ purpose:
                                             </label>
                                             <DatePicker
                                                 value={processData.ref_date}
+                                                valueFormat="iso"
+                                                maxDate={todayIso()}
                                                 invalid={Boolean(processErrors.ref_date)}
                                                 onChange={(value) =>
                                                     setProcessData(
@@ -2248,6 +2234,7 @@ purpose:
                                                 >
                                                     <DatePicker
                                                         value={orData.or_date}
+                                                        valueFormat="iso"
                                                         invalid={Boolean(orErrors.or_date)}
                                                         onChange={(value) =>
                                                             setOrData(
