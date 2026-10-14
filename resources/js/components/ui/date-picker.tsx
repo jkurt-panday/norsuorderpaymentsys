@@ -15,35 +15,51 @@ interface DatePickerProps {
     placeholder?: string;
     className?: string;
     maxDate?: string;
+    valueFormat?: 'display' | 'iso' | 'auto';
 }
 
+const DISPLAY_DATE_PATTERN = /^\d{2}\/\d{2}\/\d{4}$/;
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 const toDisplayDate = (iso: string): string => {
-    if (!ISO_DATE_PATTERN.test(iso)) {
-        return '';
-    }
-
+    if (!ISO_DATE_PATTERN.test(iso)) return '';
     const [year, month, day] = iso.split('-');
-
     return `${day}/${month}/${year}`;
 };
 
-const toDateValue = (iso: string): Date | undefined => {
-    if (!ISO_DATE_PATTERN.test(iso)) {
-        return undefined;
-    }
+const toIsoDate = (display: string): string => {
+    if (!DISPLAY_DATE_PATTERN.test(display)) return '';
+    const [day, month, year] = display.split('/');
+    const date = new Date(Number(year), Number(month) - 1, Number(day));
+    if (date.getFullYear() !== Number(year) || date.getMonth() !== Number(month) - 1 || date.getDate() !== Number(day)) return '';
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+};
 
+const normalizeToDisplay = (value: string, format: 'display' | 'iso' | 'auto'): string => {
+    if (!value) return '';
+    if (format === 'display') return DISPLAY_DATE_PATTERN.test(value) ? value : '';
+    if (format === 'iso') return toDisplayDate(value);
+    if (ISO_DATE_PATTERN.test(value)) return toDisplayDate(value);
+    if (DISPLAY_DATE_PATTERN.test(value)) return value;
+    return '';
+};
+
+const toDateValue = (display: string): Date | undefined => {
+    const iso = toIsoDate(display);
+    if (!iso) return undefined;
     const [year, month, day] = iso.split('-').map(Number);
-
     return new Date(year, month - 1, day);
 };
 
 const fromDateValue = (date: Date): string => {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
+    return `${day}/${month}/${date.getFullYear()}`;
+};
 
-    return `${date.getFullYear()}-${month}-${day}`;
+const formatForOnChange = (display: string, format: 'display' | 'iso' | 'auto'): string => {
+    if (format === 'iso') return toIsoDate(display);
+    return display;
 };
 
 function DatePicker({
@@ -53,11 +69,12 @@ function DatePicker({
     placeholder = 'dd/mm/yyyy',
     className,
     maxDate,
+    valueFormat = 'display',
 }: DatePickerProps) {
     const [open, setOpen] = React.useState(false);
-    const selected = toDateValue(value);
-    const display = toDisplayDate(value);
-    const maxDateValue = maxDate ? toDateValue(maxDate) : undefined;
+    const displayValue = normalizeToDisplay(value, valueFormat);
+    const selected = toDateValue(displayValue);
+    const maxDateValue = maxDate ? toDateValue(normalizeToDisplay(maxDate, valueFormat)) : undefined;
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -71,17 +88,14 @@ function DatePicker({
                             className,
                         )}
                     >
-                        <span className={display ? '' : 'text-slate-400'}>
-                            {display || placeholder}
+                        <span className={displayValue ? '' : 'text-slate-400'}>
+                            {displayValue || placeholder}
                         </span>
                         <CalendarIcon className="h-4 w-4 shrink-0 text-slate-400" />
                     </button>
                 }
             />
-            <PopoverContent
-                className="w-auto overflow-hidden p-0"
-                align="start"
-            >
+            <PopoverContent className="w-auto overflow-hidden p-0" align="start">
                 <Calendar
                     mode="single"
                     selected={selected}
@@ -89,8 +103,8 @@ function DatePicker({
                     captionLayout="dropdown"
                     disabled={maxDateValue ? [{ after: maxDateValue }] : undefined}
                     onSelect={(date) => {
-                        onChange(date ? fromDateValue(date) : '');
-
+                        const display = date ? fromDateValue(date) : '';
+                        onChange(formatForOnChange(display, valueFormat));
                         setOpen(false);
                     }}
                 />
@@ -99,4 +113,4 @@ function DatePicker({
     );
 }
 
-export { DatePicker };
+export { DatePicker, toIsoDate, toDisplayDate, toDateValue, fromDateValue };
