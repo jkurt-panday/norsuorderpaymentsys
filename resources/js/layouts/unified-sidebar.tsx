@@ -60,17 +60,6 @@ const adminNavItems: SidebarItem[] = [
 
 const staffNavItems: SidebarItem[] = [
     { title: 'Dashboard', href: '/staff/staffdashboard', icon: Home },
-    { title: 'Requests', href: '/staff/requests', icon: FileText },
-    { title: 'Bank Accounts', href: '/staff/bank-accounts', icon: Building },
-    {
-        title: 'Payment Options',
-        href: '/staff/payment-options',
-        icon: CreditCard,
-    },
-    { title: 'Memberships', href: '/staff/memberships', icon: Users },
-    { title: 'UACS', href: '/staff/uacs', icon: Logs },
-    { title: 'Authorized Officials', href: '/staff/authorized-officials', icon: Shield },
-    { title: 'Course', href: '/staff/courses', icon: School },
     { title: 'Activity Log', href: '/staff/activity-log', icon: Activity },
 ];
 
@@ -79,7 +68,24 @@ const cashierNavItems: SidebarItem[] = [
 ];
 
 const staffCollapsibleItems = [
-    {
+        {
+        title: 'Order of Payment',
+        icon: FileSearchIcon,
+        items: [
+                    { title: 'Requests', href: '/staff/requests', icon: FileText },
+                    { title: 'Bank Accounts', href: '/staff/bank-accounts', icon: Building },
+                    {
+                        title: 'Payment Options',
+                        href: '/staff/payment-options',
+                        icon: CreditCard,
+                    },
+                    { title: 'Memberships', href: '/staff/memberships', icon: Users },
+                    { title: 'UACS', href: '/staff/uacs', icon: Logs },
+                    { title: 'Authorized Officials', href: '/staff/authorized-officials', icon: Shield },
+                    { title: 'Course', href: '/staff/courses', icon: School },
+                        ],
+                    },
+                 {
         title: 'Assessments',
         icon: FileSearchIcon,
         items: [
@@ -222,7 +228,6 @@ export default function UnifiedSidebar() {
                         staffCollapsibleItems.map((item, index) => (
                             <SidebarMenuItem key={index}>
                                 <Collapsible
-                                    defaultOpen
                                     className="group/collapsible"
                                 >
                                     <CollapsibleTrigger
@@ -232,7 +237,7 @@ export default function UnifiedSidebar() {
                                     >
                                         <item.icon className="mr-2 h-4 w-4 shrink-0" />
                                         <span>{item.title}</span>
-                                        <ChevronRight className="ml-auto h-4 w-4 text-white/60 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                        <ChevronRight className="ml-auto h-4 w-4 text-white/60 transition-transform duration-200 group-data-[open]/collapsible:rotate-90" />
                                     </CollapsibleTrigger>
                                     <CollapsibleContent>
                                         <SidebarMenuSub className="ml-4 border-l border-blue-400/20 pl-3">

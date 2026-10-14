@@ -144,6 +144,7 @@ Route::name('cashier.')->prefix('cashier')->middleware(['auth', 'cashier'])->gro
     Route::name('requests.')->prefix('requests')->group(function () {
         Route::get('/', [CashierRequestController::class, 'index'])->name('index');
         Route::get('/{staffInput}', [CashierRequestController::class, 'show'])->name('show');
+        Route::get('/{staffInput}/view-op', [CashierRequestController::class, 'viewOp'])->name('viewOp');
         Route::put('/{staffInput}/payment', [CashierRequestController::class, 'updatePayment'])
             ->name('payment.update');
     });

@@ -7,7 +7,7 @@ import {
     UserPlus,
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { DatePicker } from '@/components/ui/date-picker';
+import { DatePicker, toIsoDate, toDisplayDate } from '@/components/ui/date-picker';
 import {
     Dialog,
     DialogContent,
@@ -648,6 +648,12 @@ export default function ShowRequest() {
         putDetails(staff.requests.updateDetails.url(formInput.id), {
             preserveScroll: true,
             onSuccess: () => setIsEditingDetails(false),
+            onError: (errors) => {
+                const errorMessages = errors
+                    ? Object.values(errors).flat().join(', ')
+                    : 'Failed to update details. Please try again.';
+                flashToast('error', errorMessages);
+            },
         });
     };
 
@@ -660,6 +666,7 @@ export default function ShowRequest() {
     const {
         data: staffInputData,
         setData: setStaffInputData,
+        put: putStaffInput,
         processing: isSubmittingStaffInput,
         errors: staffInputErrors,
         reset: resetStaffInputForm,
@@ -671,17 +678,13 @@ export default function ShowRequest() {
             ? String(formInput.staff_input.reference_document.id)
             : '',
         ref_date: formInput.staff_input?.ref_date
-            ? formInput.staff_input.ref_date.split('T')[0]
+            ? toDisplayDate(formInput.staff_input.ref_date.split('T')[0])
             : '',
         uacs_id: formInput.staff_input?.uacs
             ? String(formInput.staff_input.uacs.id)
             : '',
         status: formInput.staff_input?.status ?? 'processed',
         purpose: formInput.staff_input?.purpose ?? '',
-        or_no: formInput.staff_input?.or_no ?? '',
-        or_date: formInput.staff_input?.or_date
-            ? formInput.staff_input.or_date.split('T')[0]
-            : '',
     });
 
     const handleStaffInputSubmit = (e: React.FormEvent) => {
@@ -695,20 +698,18 @@ export default function ShowRequest() {
             return;
         }
 
-        router.put(
-            staff.requests.update.url(formInput.staff_input.id),
-            staffInputData,
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    resetStaffInputForm();
-                    setIsEditingStaffInput(false);
-                },
-                onError: (errors) => {
-                    console.error('Staff input update errors:', errors);
-                },
+        const payload = {
+            ...staffInputData,
+            ref_date: toIsoDate(staffInputData.ref_date),
+        };
+
+        putStaffInput(staff.requests.update.url(formInput.staff_input.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                resetStaffInputForm();
+                setIsEditingStaffInput(false);
             },
-        );
+        });
     };
 
     const cancelStaffInputEdit = () => {
@@ -716,7 +717,7 @@ export default function ShowRequest() {
         setIsEditingStaffInput(false);
     };
 
-    // ---- Inline "Edit OR" form (staff/admin, only when an OR exists) ----------
+    // ---- Inline "Edit OR" form (staff/admin; enabled when staff input exists) ----------
     const {
         data: orData,
         setData: setOrData,
@@ -727,17 +728,17 @@ export default function ShowRequest() {
     } = useForm({
         or_no: formInput.staff_input?.or_no ?? '',
         or_date: formInput.staff_input?.or_date
-            ? formInput.staff_input.or_date.split('T')[0]
+            ? toDisplayDate(formInput.staff_input.or_date.split('T')[0])
             : '',
     });
 
     /**
-     * Issuing the first OR number stays a cashier-only action on the cashier
-     * page. Staff/admin can only correct an OR number the cashier already
-     * placed, which covers the cashier being unavailable.
+     * Staff/admin may place or edit the OR number for an existing staff input
+     * record (created after processing). Issuing the first OR is allowed here
+     * when the cashier is unavailable.
      */
     const canEditOr =
-        (isAdmin || isStaff) && Boolean(formInput.staff_input?.or_no);
+        (isAdmin || isStaff) && Boolean(formInput.staff_input);
 
     const handleOrSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -750,11 +751,19 @@ export default function ShowRequest() {
             return;
         }
 
+        setOrData('or_date', toIsoDate(orData.or_date));
+
         putOr(staff.requests.updateOr.url(formInput.staff_input.id), {
             preserveScroll: true,
             onSuccess: () => {
                 resetOrForm();
                 setIsEditingOr(false);
+            },
+            onError: (errors) => {
+                const errorMessages = errors
+                    ? Object.values(errors).flat().join(', ')
+                    : 'Failed to update OR. Please try again.';
+                flashToast('error', errorMessages);
             },
         });
     };
@@ -776,7 +785,7 @@ export default function ShowRequest() {
         form_input_id: formInput.id,
         fundcluster_id: '',
         ref_document_id: '',
-        ref_date: todayIso(),
+        ref_date: toDisplayDate(todayIso()),
         uacs_id: '',
         status: 'processed',
         purpose: '',
@@ -788,18 +797,22 @@ export default function ShowRequest() {
             return;
         }
 
+        setProcessData('ref_date', toIsoDate(processData.ref_date));
+
         postProcess(staff.requests.store.url(), {
             preserveScroll: true,
             onSuccess: () => {
                 resetProcessForm();
                 setIsProcessing(false);
             },
+            onError: (errors) => {
+                const errorMessages = errors
+                    ? Object.values(errors).flat().join(', ')
+                    : 'Failed to process request. Please try again.';
+                flashToast('error', errorMessages);
+            },
         });
     };
-
-    const staffRefDateInvalid = !staffInputData.ref_date;
-    const processRefDateInvalid = !processData.ref_date;
-    const orDateInvalid = !orData.or_date;
 
     return (
         <div className="min-h-screen bg-slate-50 px-4 py-8">
@@ -1371,9 +1384,11 @@ export default function ShowRequest() {
                                                         ref_date: formInput
                                                             .staff_input
                                                             ?.ref_date
-                                                            ? formInput.staff_input.ref_date.split(
-                                                                  'T',
-                                                              )[0]
+                                                            ? toDisplayDate(
+                                                                  formInput.staff_input.ref_date.split(
+                                                                      'T',
+                                                                  )[0],
+                                                              )
                                                             : '',
                                                         uacs_id: formInput
                                                             .staff_input?.uacs
@@ -1388,22 +1403,11 @@ export default function ShowRequest() {
                                                                 .staff_input
                                                                 ?.status ??
                                                             'processed',
-                                                        purpose:
+purpose:
                                                             formInput
                                                                 .staff_input
                                                                 ?.purpose ?? '',
-                                                        or_no:
-                                                            formInput
-                                                                .staff_input
-                                                                ?.or_no ?? '',
-                                                        or_date: formInput
-                                                            .staff_input
-                                                            ?.or_date
-                                                            ? formInput.staff_input.or_date.split(
-                                                                  'T',
-                                                              )[0]
-                                                            : '',
-                                                    });
+                                                        });
                                                     setIsEditingStaffInput(
                                                         true,
                                                     );
@@ -1575,18 +1579,14 @@ export default function ShowRequest() {
                                                         staffInputErrors.ref_date,
                                                         staffInputData.ref_date,
                                                         'Reference date',
+                                                        false,
                                                     )}
                                                 >
                                                     <DatePicker
                                                         value={
                                                             staffInputData.ref_date
                                                         }
-                                                        invalid={
-                                                            Boolean(
-                                                                staffInputErrors.ref_date,
-                                                            ) ||
-                                                            staffRefDateInvalid
-                                                        }
+                                                        invalid={Boolean(staffInputErrors.ref_date)}
                                                         onChange={(value) =>
                                                             setStaffInputData(
                                                                 'ref_date',
@@ -1972,11 +1972,7 @@ export default function ShowRequest() {
                                             </label>
                                             <DatePicker
                                                 value={processData.ref_date}
-                                                invalid={
-                                                    Boolean(
-                                                        processErrors.ref_date,
-                                                    ) || processRefDateInvalid
-                                                }
+                                                invalid={Boolean(processErrors.ref_date)}
                                                 onChange={(value) =>
                                                     setProcessData(
                                                         'ref_date',
@@ -1984,16 +1980,6 @@ export default function ShowRequest() {
                                                     )
                                                 }
                                             />
-                                            {(processErrors.ref_date ||
-                                                processRefDateInvalid) && (
-                                                <p className="mt-1 text-xs text-rose-500">
-                                                    {dateFieldError(
-                                                        processErrors.ref_date,
-                                                        processData.ref_date,
-                                                        'Reference date',
-                                                    )}
-                                                </p>
-                                            )}
                                         </div>
 
                                         <div className="mb-4">
@@ -2256,15 +2242,12 @@ export default function ShowRequest() {
                                                         orErrors.or_date,
                                                         orData.or_date,
                                                         'OR date',
+                                                        false,
                                                     )}
                                                 >
                                                     <DatePicker
                                                         value={orData.or_date}
-                                                        invalid={
-                                                            Boolean(
-                                                                orErrors.or_date,
-                                                            ) || orDateInvalid
-                                                        }
+                                                        invalid={Boolean(orErrors.or_date)}
                                                         onChange={(value) =>
                                                             setOrData(
                                                                 'or_date',

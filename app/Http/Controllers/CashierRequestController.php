@@ -5,18 +5,20 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CashierPaymentRequest;
 use App\Models\StaffInput;
 use App\Services\CashierLedgerPostingService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
-use Inertia\Response;
+use Inertia\Response as InertiaResponse;
 use Throwable;
 
 class CashierRequestController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request): InertiaResponse
     {
         $requestedStatus = $request->string('status')->toString();
         $allowedStatuses = ['processed', 'paid', 'cancelled'];
@@ -91,7 +93,7 @@ class CashierRequestController extends Controller
         ]);
     }
 
-    public function show(StaffInput $staffInput): Response
+    public function show(StaffInput $staffInput): InertiaResponse
     {
         $staffInput->load(['formInput.membership', 'formInput.paymentDetailOption']);
 
@@ -183,5 +185,21 @@ class CashierRequestController extends Controller
                 ? ''
                 : " ({$label} ledger auto-post skipped: {$posting['reason']}.)",
         };
+    }
+
+    public function viewOp(StaffInput $staffInput, Request $request): HttpResponse
+    {
+        $staffInput->load(['bankAccount', 'uacs', 'referenceDocument', 'formInput']);
+
+        $formInput = $staffInput->formInput;
+        $copyLabels = StaffInputController::OP_COPY_LABELS;
+
+        $layout = $request->query('layout', 'portrait');
+
+        $pdf = $layout === 'landscape'
+            ? Pdf::loadView('pdf.op-landscape', compact('staffInput', 'formInput', 'copyLabels'))->setPaper('legal', 'landscape')
+            : Pdf::loadView('pdf.op-a6', compact('staffInput', 'formInput', 'copyLabels'))->setPaper('a6', 'portrait');
+
+        return $pdf->stream("OP-{$formInput->reference_number}.pdf");
     }
 }
