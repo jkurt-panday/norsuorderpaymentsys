@@ -16,8 +16,12 @@ import {
     RotateCw,
     SlidersHorizontal,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
+import { features  } from './data-table-features';
+import type { DataTableFeatures } from './data-table-features';
+import { DataTablePagination } from './data-table-pagination';
+import { DateRangeFilter } from './date-range-picker';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -35,10 +39,6 @@ import {
     TableRow,
 } from '@/components/ui/table';
 
-import { features  } from './data-table-features';
-import type {DataTableFeatures} from './data-table-features';
-import { DataTablePagination } from './data-table-pagination';
-import { DateRangeFilter } from './date-range-picker';
 
 interface ServerFilters {
     search: string;
@@ -110,9 +110,48 @@ export function ServerDataTable<TData extends RowData>({
         filters.date_to ? new Date(filters.date_to) : undefined,
     );
 
-    // inside ServerDataTable, alongside your other state:
-    const [columnVisibility, setColumnVisibility] =
-        useState<ColumnVisibilityState>({});
+    const columnVisibilityStorageKey = `server-data-table:${route}:column-visibility`;
+
+    const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>(() => {
+        if (typeof window === 'undefined') {
+            return {};
+        }
+
+        try {
+            const savedColumnVisibility = window.localStorage.getItem(
+                columnVisibilityStorageKey,
+            );
+
+            if (!savedColumnVisibility) {
+                return {};
+            }
+
+            const parsedColumnVisibility = JSON.parse(savedColumnVisibility);
+
+            if (
+                !parsedColumnVisibility ||
+                typeof parsedColumnVisibility !== 'object' ||
+                Array.isArray(parsedColumnVisibility)
+            ) {
+                return {};
+            }
+
+            return Object.fromEntries(
+                Object.entries(parsedColumnVisibility).filter(
+                    ([, value]) => typeof value === 'boolean',
+                ),
+            ) as ColumnVisibilityState;
+        } catch {
+            return {};
+        }
+    });
+
+    useEffect(() => {
+        window.localStorage.setItem(
+            columnVisibilityStorageKey,
+            JSON.stringify(columnVisibility),
+        );
+    }, [columnVisibility, columnVisibilityStorageKey]);
 
     // Staged/uncommitted values for anything extraFilters adds (course_id,
       // semester, etc). These update instantly in the UI so the dropdown shows

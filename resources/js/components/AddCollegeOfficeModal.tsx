@@ -1,6 +1,7 @@
 // resources/js/Components/AddCollegeOfficeModal.tsx
 
 import { useState } from 'react';
+import { Button } from './ui/button';
 import {
     Dialog,
     DialogContent,
@@ -8,9 +9,8 @@ import {
     DialogTitle,
     DialogFooter,
 } from './ui/dialog';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
 import { Field, FieldLabel } from './ui/field';
+import { Input } from './ui/input';
 
 type CollegeOffice = { id: number; name: string };
 
@@ -35,6 +35,7 @@ export default function AddCollegeOfficeModal({
     const handleSubmit = async () => {
         if (!name.trim()) {
             setError('This field is required.');
+
             return;
         }
 
@@ -64,6 +65,7 @@ export default function AddCollegeOfficeModal({
                         'Something went wrong.',
                 );
                 setProcessing(false);
+
                 return;
             }
 
@@ -100,7 +102,10 @@ export default function AddCollegeOfficeModal({
                         value={name}
                         onChange={(e) => {
                             setName(e.target.value);
-                            if (error) setError('');
+
+                            if (error) {
+setError('');
+}
                         }}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {

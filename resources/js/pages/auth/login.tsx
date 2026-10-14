@@ -39,9 +39,12 @@ export default function Login({
     // browser back/forward, which restores cached Inertia props), bounce
     // them to their role dashboard immediately.
     useEffect(() => {
-        if (!auth?.user) return;
+        if (!auth?.user) {
+return;
+}
 
         const role = auth.user.role;
+
         if (role === 'admin') {
             window.location.assign('/admin/dashboard');
         } else if (role === 'staff') {

@@ -410,6 +410,7 @@ export default function AddTransaction({
     useEffect(() => {
         if (!data.student_id || showNewStudent) {
             setBalancePreview(null);
+
             return;
         }
 
@@ -454,6 +455,7 @@ export default function AddTransaction({
                 school_year: schoolYear,
                 semester,
             }));
+
             return;
         }
 
@@ -539,31 +541,37 @@ export default function AddTransaction({
 
         if (showNewStudent) {
             const newStudent = data.new_student;
+
             if (!newStudent?.last_name?.trim()) {
                 setError(
                     'new_student.last_name' as keyof typeof data,
                     'Last name is required.',
                 );
                 flashToast('error', "Please enter the student's last name.");
+
                 return;
             }
+
             if (!newStudent?.first_name?.trim()) {
                 setError(
                     'new_student.first_name' as keyof typeof data,
                     'First name is required.',
                 );
                 flashToast('error', "Please enter the student's first name.");
+
                 return;
             }
         } else if (!data.student_id) {
             setError('student_id', 'Please select a student.');
             flashToast('error', 'Please select a student.');
+
             return;
         }
 
         if (!data.course_id) {
             setError('course_id', 'Please select a course.');
             flashToast('error', 'Please select a course.');
+
             return;
         }
 
@@ -573,6 +581,7 @@ export default function AddTransaction({
         if (isBatchMode) {
             if (batchItems.length === 0) {
                 flashToast('error', 'Please add at least one line item.');
+
                 return;
             }
 
@@ -620,6 +629,7 @@ export default function AddTransaction({
             post(storeLawLedger.url(), {
                 preserveScroll: true,
             });
+
             return;
         }
 
@@ -712,6 +722,7 @@ export default function AddTransaction({
                                 type="button"
                                 onClick={() => {
                                     setShowNewStudent(!showNewStudent);
+
                                     if (!showNewStudent) {
                                         setData('student_id', '');
                                         setData('new_student', {

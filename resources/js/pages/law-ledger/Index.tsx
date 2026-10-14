@@ -1312,20 +1312,25 @@ return 90;
                           aria-label={r.studentId ? `View ${r.name}'s balance and transaction history` : undefined}
                           onClick={() => {
                             const studentId = Number(r.studentId);
+
                             if (!Number.isFinite(studentId) || studentId <= 0) {
                               return;
                             }
+
                             setDrawerSelection({ studentId, transactionId: r.id });
                           }}
                           onKeyDown={(event) => {
                             if (event.key !== 'Enter' && event.key !== ' ') {
                               return;
                             }
+
                             event.preventDefault();
                             const studentId = Number(r.studentId);
+
                             if (!Number.isFinite(studentId) || studentId <= 0) {
                               return;
                             }
+
                             setDrawerSelection({ studentId, transactionId: r.id });
                           }}
                           className="cursor-pointer border-b border-[#EAF2FF] transition-colors hover:bg-[#F3F8FF] focus-visible:bg-[#F3F8FF] focus-visible:outline-2 focus-visible:outline-[#0F6FFF]"

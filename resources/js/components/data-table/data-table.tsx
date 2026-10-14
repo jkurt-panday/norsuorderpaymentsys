@@ -10,6 +10,8 @@ import {
 import type {ColumnDef, RowData, SortingState} from '@tanstack/react-table';
 import { Search } from 'lucide-react';
 import { useState } from 'react';
+import { features  } from './data-table-features';
+import type {DataTableFeatures} from './data-table-features';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -20,8 +22,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { features  } from './data-table-features';
-import type {DataTableFeatures} from './data-table-features';
 
 interface DataTableProps<TData extends RowData> {
     columns: ColumnDef<DataTableFeatures, TData>[];

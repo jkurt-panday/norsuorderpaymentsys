@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
 import {
     CheckCircle,
     Mail,
@@ -11,7 +12,10 @@ import {
     Hash,
     Home,
 } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import PublicLayout from '../layouts/PublicLayout';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -21,10 +25,7 @@ import {
     CardFooter,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import PublicLayout from '../layouts/PublicLayout';
-import { Button } from '@/components/ui/button';
-import { usePage } from '@inertiajs/react';
-import { useRef } from 'react';
+import { setExpiringLocalStorage } from '@/lib/expiring-local-storage';
 
 interface Courses {
     id: number | string;
@@ -119,6 +120,24 @@ return '';
             '_blank',
         );
     };
+
+    useEffect(() => {
+        setExpiringLocalStorage('assessment-form-prefill', {
+            email: assessmentForm.email ?? '',
+            contact_num: assessmentForm.contact_num ?? '',
+            first_name: assessmentForm.first_name ?? '',
+            middle_name: assessmentForm.middle_name ?? '',
+            last_name: assessmentForm.last_name ?? '',
+            student_id: assessmentForm.student_id ?? '',
+            course_id: assessmentForm.course?.id
+                ? String(assessmentForm.course.id)
+                : '',
+            address: assessmentForm.address ?? '',
+            enrolled_under: assessmentForm.enrolled_under ?? 'Undergraduate',
+            sy_last_attended: assessmentForm.sy_last_attended ?? '',
+            semester: assessmentForm.semester ?? 'First Semester',
+        });
+    }, [assessmentForm]);
 
     return (
         <>
