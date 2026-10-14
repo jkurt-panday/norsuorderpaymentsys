@@ -5,10 +5,17 @@ namespace Tests\Feature;
 use App\Jobs\SendLawLedgerStatementEmail;
 use App\Mail\LawSchoolLedgerStatementMail;
 use App\Models\AcademicTerm;
+use App\Models\BankAccountInfo;
 use App\Models\Course;
+use App\Models\FormInput;
 use App\Models\LawSchoolLedger;
+use App\Models\Membership;
+use App\Models\PaymentDetailOption;
+use App\Models\StaffInput;
 use App\Models\Student;
+use App\Models\UACS;
 use App\Models\User;
+use App\Services\CashierLedgerPostingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Mail;
@@ -397,6 +404,108 @@ class LawSchoolLedgerTest extends TestCase
             'subject_type' => LawSchoolLedger::class,
             'description' => 'Law Ledger SOA emailed to Job, Target (law.job@example.com).',
         ]);
+    }
+
+    public function test_paid_law_op_posts_paid_clickable_ledger_payment(): void
+    {
+        $user = User::factory()->staff()->create();
+        $cashier = User::factory()->cashier()->create();
+        $student = Student::create([
+            'student_number' => '202600777',
+            'email' => 'paid.law@example.com',
+            'last_name' => 'Paid',
+            'first_name' => 'Law',
+        ]);
+        $course = Course::create([
+            'course_code' => 'JD-OP',
+            'course_desc' => 'Juris Doctor',
+            'course_college' => 'School of Law',
+        ]);
+        $term = AcademicTerm::create([
+            'school_year' => '2026-2027',
+            'semester' => 'First Semester',
+        ]);
+        $bank = BankAccountInfo::create([
+            'account_num' => 'LAW-OP-ACCOUNT',
+            'account_name' => 'Law OP Account',
+            'bank_name' => 'Landbank',
+            'fund_cluster' => '01',
+        ]);
+        $uacs = UACS::create([
+            'object_code' => '4020101000',
+            'account_title' => 'Tuition Fees',
+        ]);
+        $membership = Membership::create([
+            'member_code' => 'LAW-STUDENT',
+            'member_desc' => 'Law Student',
+        ]);
+        $paymentOption = PaymentDetailOption::create([
+            'payment_desc' => 'Law Tuition Payment',
+        ]);
+
+        LawSchoolLedger::create([
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            'academic_term_id' => $term->id,
+            'entry_type' => 'ar',
+            'transaction_date' => '2026-09-01',
+            'reference_number' => 'LAW-AR-OP-001',
+            'particulars' => 'Tuition',
+            'rate' => 1000,
+            'amount' => 2500,
+            'status' => 'Pending',
+        ]);
+
+        $formInput = FormInput::create([
+            'reference_number' => 'OP-LAW-2026-0001',
+            'email' => 'paid.law@example.com',
+            'contact_num' => '09123456789',
+            'firstname_or_office' => 'Law',
+            'middlename_or_project' => null,
+            'lastname_or_agency' => 'Paid',
+            'office_or_college' => 'School of Law',
+            'position_or_designation' => 'Student',
+            'address' => 'Dumaguete City',
+            'amount' => 2500,
+            'request_type' => 'New Request',
+            'membership_id' => $membership->id,
+            'payment_detail_option_id' => $paymentOption->id,
+            'student_num' => $student->id,
+            'submitted_student_number' => '202600777',
+            'course_id' => $course->id,
+            'academic_term' => $term->id,
+        ]);
+
+        $staffInput = StaffInput::create([
+            'form_input_id' => $formInput->id,
+            'fundcluster_id' => $bank->id,
+            'ref_date' => '2026-09-02',
+            'uacs_id' => $uacs->id,
+            'status' => 'paid',
+            'or_no' => 'LAW-OR-2026-0001',
+            'or_date' => '2026-09-03',
+        ]);
+
+        $this->actingAs($cashier);
+        $result = app(CashierLedgerPostingService::class)->postPayment($staffInput);
+
+        $this->assertTrue($result['posted']);
+        $this->assertDatabaseHas('law_school_ledgers', [
+            'student_id' => $student->id,
+            'entry_type' => 'payment',
+            'reference_number' => 'LAW-OR-2026-0001',
+            'amount' => '2500.00',
+            'status' => 'Paid',
+            'remarks' => 'OP:'.$formInput->id,
+        ]);
+
+        $this->actingAs($user)->get('/law-ledger')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('records.data.0.referenceNo', 'LAW-OR-2026-0001')
+                ->where('records.data.0.status', 'Paid')
+                ->where('records.data.0.orLink', route('staff.requests.show', $formInput))
+            );
     }
 
     public function test_latin_honor_discount_cannot_be_applied_twice_to_same_assessment(): void

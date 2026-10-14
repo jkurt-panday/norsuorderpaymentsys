@@ -277,6 +277,7 @@ class CashierLedgerPostingService
                     'transaction_date' => $orDate,
                     'reference_number' => $orNo,
                     'amount' => $amount,
+                    'status' => 'Paid',
                 ]);
 
                 return ['posted' => true, 'reason' => null];
@@ -293,7 +294,7 @@ class CashierLedgerPostingService
                 'rate' => '0.00',
                 'amount' => $amount,
                 'remarks' => $opRemark,
-                'status' => 'posted',
+                'status' => 'Paid',
                 'input_by' => auth()->id(),
             ]);
         } catch (\Throwable $e) {

@@ -12,7 +12,7 @@
         <base href="{{ config('app.url') }}">
         @vite(['resources/css/app.css'])
     </head>
-<body class="text-[11px] w-full min-w-[800px] text-gray-900 font-sans">
+<body class="text-[11px] w-full min-w-200 text-gray-900 font-sans">
 
     @php
         // Base64-embed the header image so it renders regardless of PDF engine.
@@ -53,7 +53,10 @@
 
         // "Units" isn't present in Assessment as loaded (only ->load(['course'])) or in the
         // ledger payload — guessing $assessment->units exists; confirm and adjust if not.
-        $units = $records->first()['units'] ?? '—';
+        $unitsRaw = $records->first()['units'] ?? '—';
+        $units = is_numeric($unitsRaw)
+            ? (string) (int) round((float) $unitsRaw)   // "10.00" -> "10"
+            : ($unitsRaw ?: '—');
 
         $formNumber = $assessment->reference_number ?? $assessment->id;
     @endphp
@@ -61,7 +64,7 @@
     @if($headerImageBase64)
         <div class="flex justify-center mb-2">
             <img
-                class="w-full max-w-[605px]"
+                class="w-full max-w-151.25"
                 src="data:image/png;base64,{{ $headerImageBase64 }}"
                 alt="NORSU Header"
             >
@@ -72,41 +75,60 @@
     
     <h1 class="text-center font-bold text-2xl my-4">Statement of Account</h1>
 
+    
     <table class="w-full mb-3 text-[16px]">
         <tr>
-            <td class="font-bold w-28 align-top py-0.5">Name:</td>
-            <td class="italic align-top py-0.5">{{ $studentName }}</td>
-            <td class="font-bold w-45 align-top py-0.5">Assessment Form No:</td>
-            <td class="italic align-top py-0.5">{{ $formNumber }}</td>
-        </tr>
-        <tr>
-            <td class="font-bold align-top py-0.5">Student ID:</td>
-            <td class="italic align-top py-0.5">{{ $studentId }}</td>
-            <td class="font-bold align-top py-0.5">Semester:</td>
-            <td class="italic align-top py-0.5">{{ $semester }}</td>
-        </tr>
-        <tr>
-            <td class="font-bold align-top py-0.5">Course:</td>
-            <td class="italic align-top py-0.5">{{ $courseTitle }}</td>
-            <td class="font-bold align-top py-0.5">School Year:</td>
-            <td class="italic align-top py-0.5">{{ $schoolYear }}</td>
-        </tr>
-        <tr>
-            <td class="font-bold align-top py-0.5">Units:</td>
-            <td class="italic align-top py-0.5">{{ $units }}</td>
-            <td></td>
-            <td></td>
+            <!-- LEFT BLOCK -->
+            <td class="w-1/2 align-top">
+                <table class="w-full">
+                    <tr>
+                        <td class="font-bold w-28 py-0.5">Name:</td>
+                        <td class="italic py-0.5">{{ $studentName }}</td>
+                    </tr>
+                    <tr>
+                        <td class="font-bold py-0.5">Student ID:</td>
+                        <td class="italic py-0.5">{{ $studentId }}</td>
+                    </tr>
+                    <tr>
+                        <td class="font-bold py-0.5">Course:</td>
+                        <td class="italic py-0.5">{{ $courseTitle }}</td>
+                    </tr>
+                    <tr>
+                        <td class="font-bold py-0.5">Units:</td>
+                        <td class="italic py-0.5">{{ $units }}</td>
+                    </tr>
+                </table>
+            </td>
+    
+            <!-- RIGHT BLOCK -->
+            <td class="w-1/2 align-top">
+                <table class="w-full">
+                    <tr>
+                        <td class="font-bold w-45 py-0.5">Assessment Form No:</td>
+                        <td class="italic py-0.5">{{ $formNumber }}</td>
+                    </tr>
+                    <tr>
+                        <td class="font-bold py-0.5">Semester:</td>
+                        <td class="italic py-0.5">{{ $semester }}</td>
+                    </tr>
+                    <tr>
+                        <td class="font-bold py-0.5">School Year:</td>
+                        <td class="italic py-0.5">{{ $schoolYear }}</td>
+                    </tr>
+                </table>
+            </td>
         </tr>
     </table>
+
 
     <table class="w-full border-b border-t border-black border-collapse mt-1.5 text-[1rem]">
         <thead>
             <tr class="border-b-2 border-black">
-                <th class="text-left px-1.5 py-1 w-[22%]">Date</th>
-                <th class="text-left px-1.5 py-1 w-[14%]">Ref #</th>
-                <th class="text-left px-1.5 py-1 w-[24%]">Particulars</th>
-                <th class="text-left px-1.5 py-1 w-[16%]">Type</th>
-                <th class="text-right px-1.5 py-1 w-[24%]">Amount</th>
+                <th class="text-left px-1.5 py-1 w-[10%]">Date</th>
+                <th class="text-left px-1.5 py-1 w-[10%]">Ref #</th>
+                <th class="text-left px-1.5 py-1 w-[10%]">Particulars</th>
+                <th class="text-center px-1.5 py-1 w-[10%]">Type</th>
+                <th class="text-right px-1.5 py-1 w-[10%]">Amount</th>
             </tr>
         </thead>
         <tbody>
@@ -120,10 +142,10 @@
                         : number_format($amountValue, 2);
                 @endphp
                 <tr class="border-b">
-                    <td class="px-1.5 py-1">{{ $record['transactionDate'] ?? '—' }}</td>
+                    <td class="px-1.5 py-1">{{ $record['transactionDate'] ? \Carbon\Carbon::parse($record['transactionDate'])->format('m/d/Y') : '—' }}</td>
                     <td class="px-1.5 py-1">{{ $record['referenceNo'] ?? '' }}</td>
                     <td class="px-1.5 py-1">{{ $record['particulars'] ?? '—' }}</td>
-                    <td class="px-1.5 py-1">{{ $record['type'] ?? '—' }}</td>
+                    <td class="text-right px-1.5 py-1">{{ $record['type'] ?? '—' }}</td>
                     <td class="text-right px-1.5 py-1">{{ $amountDisplay }}</td>
                 </tr>
             @empty
@@ -133,8 +155,8 @@
             @endforelse
 
             <tr class="border-t-2 border-black font-bold">
-                <td colspan="3"></td>
-                <td class="text-right px-1.5 py-1.5">Outstanding Balance</td>
+                <td colspan="2"></td>
+                <td colspan="2" class="text-right px-1.5 py-1.5">Outstanding Balance</td>
                 <td class="text-right px-1.5 py-1.5">{{ number_format($summary['outstandingBalance'] ?? 0, 2) }}</td>
             </tr>
         </tbody>

@@ -449,9 +449,9 @@ return '';
                                         }
 
                                         return (
-                                            <Link
-                                                href={homeHref}
-                                                className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-6 text-sm font-semibold text-slate-700 transition-all duration-200 hover:bg-slate-50 sm:h-12 sm:w-auto sm:px-8 sm:text-base"
+                                            <Button
+                                                variant="outline"
+                                                className="h-11 w-full rounded-xl border-slate-200 px-6 text-sm font-semibold text-slate-700 transition-all duration-200 hover:bg-slate-50 sm:h-12 sm:w-auto sm:px-8 sm:text-base"
                                             >
                                                 <Home className="mr-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
                                                 Go back to Home
