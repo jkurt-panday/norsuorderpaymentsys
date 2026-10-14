@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePoll } from '@inertiajs/react';
 import { AssessmentFilters } from './assessment-filters';
 import { columns  } from './columns';
 import type {AssessmentType} from './columns';
@@ -35,6 +35,10 @@ type AssessmentProps = {
 };
 
 export default function AssessmentIndex({ assessments, filters, filterOptions }: AssessmentProps) {
+    usePoll(15000, {
+        only: ['assessments'],
+    });
+
     return (
         <>
             <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-slate-50 p-3 sm:p-6">
