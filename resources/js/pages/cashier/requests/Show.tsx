@@ -1,7 +1,13 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { ArrowLeft, CheckCircle2, Eye, ChevronDown } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { DatePicker } from '@/components/ui/date-picker';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import cashier from '@/routes/cashier';
 import { flashToast } from '@/utils/flashToast';
 
@@ -66,6 +72,7 @@ export default function CashierRequestShow({
 }: {
     request: PaymentRequest;
 }) {
+    const { props } = usePage<{ flash?: { success?: string } }>();
     const form = useForm({
         status: request.status,
         or_no: request.or_no ?? '',
@@ -78,6 +85,13 @@ export default function CashierRequestShow({
     ]
         .filter(Boolean)
         .join(' ');
+
+    // Show success toast from flash message
+    useEffect(() => {
+        if (props.flash?.success) {
+            flashToast('success', props.flash.success);
+        }
+    }, [props.flash?.success]);
 
     const submit = (event: React.SyntheticEvent) => {
         event.preventDefault();
@@ -149,11 +163,51 @@ export default function CashierRequestShow({
                                 {request.form_input.reference_number}
                             </h1>
                         </div>
-                        <span
-                            className={`w-fit rounded-full border px-3 py-1 text-xs font-semibold ${badge.className}`}
-                        >
-                            {badge.label}
-                        </span>
+                        <div className="flex items-center gap-3">
+                            <span
+                                className={`w-fit rounded-full border px-3 py-1 text-xs font-semibold ${badge.className}`}
+                            >
+                                {badge.label}
+                            </span>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger
+                                    render={
+                                        <button className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100" />
+                                    }
+                                    className="cursor-pointer"
+                                >
+                                    <Eye className="h-3.5 w-3.5" />
+                                    View OP
+                                    <ChevronDown className="h-3.5 w-3.5" />
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-44">
+                                    <DropdownMenuItem
+                                        render={
+                                            <a
+                                                href={`${cashier.requests.viewOp.url(request.id)}?layout=portrait`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="cursor-pointer"
+                                            />
+                                        }
+                                    >
+                                        Portrait (3 Pages)
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        render={
+                                            <a
+                                                href={`${cashier.requests.viewOp.url(request.id)}?layout=landscape`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="cursor-pointer"
+                                            />
+                                        }
+                                    >
+                                        Landscape (1 Page)
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                     </div>
 
                     <dl className="grid gap-x-8 gap-y-5 py-6 sm:grid-cols-2">
@@ -282,6 +336,7 @@ export default function CashierRequestShow({
                                     value={form.data.or_date}
                                     invalid={Boolean(form.errors.or_date)}
                                     maxDate={todayIso()}
+                                    valueFormat="iso"
                                     onChange={(value) =>
                                         form.setData('or_date', value)
                                     }
