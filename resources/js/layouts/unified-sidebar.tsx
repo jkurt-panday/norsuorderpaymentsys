@@ -120,6 +120,32 @@ const navigationHrefs = [
     ),
 ];
 
+const SIDEBAR_COLLAPSIBLE_STORAGE_KEY = 'norsu.sidebar.collapsible.open';
+
+const readStoredCollapsibleState = (): Record<string, boolean> => {
+    if (typeof window === 'undefined') {
+        return {};
+    }
+
+    try {
+        const stored = window.localStorage.getItem(
+            SIDEBAR_COLLAPSIBLE_STORAGE_KEY,
+        );
+
+        if (!stored) {
+            return {};
+        }
+
+        const parsed = JSON.parse(stored);
+
+        return parsed && typeof parsed === 'object'
+            ? (parsed as Record<string, boolean>)
+            : {};
+    } catch {
+        return {};
+    }
+};
+
 export default function UnifiedSidebar() {
     const { url, props } = usePage<{
         auth?: { user?: { role?: string } | null };
@@ -140,6 +166,79 @@ export default function UnifiedSidebar() {
         )
         .sort((left, right) => right.length - left.length)[0];
     const isActive = (href: string) => activeHref === href;
+    const activeCollapsibleTitles = React.useMemo(
+        () =>
+            new Set(
+                staffCollapsibleItems
+                    .filter((item) =>
+                        item.items.some(
+                            (subItem) =>
+                                currentPath === subItem.href ||
+                                currentPath.startsWith(`${subItem.href}/`),
+                        ),
+                    )
+                    .map((item) => item.title),
+            ),
+        [currentPath],
+    );
+    const [openCollapsibles, setOpenCollapsibles] = React.useState<
+        Record<string, boolean>
+    >(() => ({
+        ...readStoredCollapsibleState(),
+        ...Object.fromEntries(
+            [...activeCollapsibleTitles].map((title) => [title, true]),
+        ),
+    }));
+
+    const setCollapsibleOpen = React.useCallback(
+        (title: string, open: boolean) => {
+            setOpenCollapsibles((previous) => {
+                const next = {
+                    ...previous,
+                    [title]: open,
+                };
+
+                if (typeof window !== 'undefined') {
+                    window.localStorage.setItem(
+                        SIDEBAR_COLLAPSIBLE_STORAGE_KEY,
+                        JSON.stringify(next),
+                    );
+                }
+
+                return next;
+            });
+        },
+        [],
+    );
+
+    React.useEffect(() => {
+        if (activeCollapsibleTitles.size === 0) {
+            return;
+        }
+
+        setOpenCollapsibles((previous) => {
+            const next = {
+                ...previous,
+            };
+            let changed = false;
+
+            for (const title of activeCollapsibleTitles) {
+                if (!next[title]) {
+                    next[title] = true;
+                    changed = true;
+                }
+            }
+
+            if (changed && typeof window !== 'undefined') {
+                window.localStorage.setItem(
+                    SIDEBAR_COLLAPSIBLE_STORAGE_KEY,
+                    JSON.stringify(next),
+                );
+            }
+
+            return changed ? next : previous;
+        });
+    }, [activeCollapsibleTitles]);
 
     return (
         <Sidebar className="border-r border-blue-900/40 bg-[#003f7d] text-white [&_[data-sidebar=sidebar]]:bg-transparent">
@@ -229,6 +328,10 @@ export default function UnifiedSidebar() {
                             <SidebarMenuItem key={index}>
                                 <Collapsible
                                     className="group/collapsible"
+                                    open={Boolean(openCollapsibles[item.title])}
+                                    onOpenChange={(open) =>
+                                        setCollapsibleOpen(item.title, open)
+                                    }
                                 >
                                     <CollapsibleTrigger
                                         render={
