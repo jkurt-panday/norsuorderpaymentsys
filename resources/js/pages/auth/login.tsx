@@ -1,4 +1,5 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Eye, EyeOff, LogIn, Mail, Lock } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -99,11 +100,9 @@ export default function Login({
                         Email Address
                     </Label>
                     <div className="relative">
-                        <span className="material-symbols-outlined absolute top-1/2 left-3 -translate-y-1/2 text-xl text-[#717786]">
-                            mail
-                        </span>
+                        <Mail className="absolute top-1/2 left-3 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
-                            className="w-full rounded-lg border border-[#c1c6d7] bg-white py-3 pr-4 pl-10 text-sm text-[#091d2e] transition-all outline-none placeholder:text-muted-foreground focus:border-[#005ab7] focus:ring-2 focus:ring-[#005ab7]"
+                            className="w-full rounded-lg border border-border bg-white py-3 pr-4 pl-10 text-sm text-foreground transition-all outline-none placeholder:text-muted-foreground focus:border-[#0d51b5] focus:ring-2 focus:ring-[#0d51b5]/20"
                             id="email"
                             type="email"
                             name="email"
@@ -129,11 +128,9 @@ export default function Login({
                         Password
                     </Label>
                     <div className="relative">
-                        <span className="material-symbols-outlined absolute top-1/2 left-3 -translate-y-1/2 text-xl text-[#717786]">
-                            lock
-                        </span>
+                        <Lock className="absolute top-1/2 left-3 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
-                            className="w-full rounded-lg border border-[#c1c6d7] bg-white py-3 pr-12 pl-10 text-sm text-[#091d2e] transition-all outline-none placeholder:text-muted-foreground focus:border-[#005ab7] focus:ring-2 focus:ring-[#005ab7]"
+                            className="w-full rounded-lg border border-border bg-white py-3 pr-12 pl-10 text-sm text-foreground transition-all outline-none placeholder:text-muted-foreground focus:border-[#0d51b5] focus:ring-2 focus:ring-[#0d51b5]/20"
                             id="password"
                             type={showPassword ? 'text' : 'password'}
                             name="password"
@@ -147,11 +144,13 @@ export default function Login({
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute top-1/2 right-3 -translate-y-1/2 text-[#717786] transition-colors hover:text-[#005ab7]"
+                            className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground transition-colors hover:text-[#0d51b5]"
                         >
-                            <span className="material-symbols-outlined pt-2 text-xl">
-                                {showPassword ? 'visibility_off' : 'visibility'}
-                            </span>
+                            {showPassword ? (
+                                <EyeOff className="w-4 h-4" />
+                            ) : (
+                                <Eye className="w-4 h-4" />
+                            )}
                         </button>
                     </div>
                     {errors.password && (
@@ -170,11 +169,11 @@ export default function Login({
                             onCheckedChange={(checked) =>
                                 setData('remember', checked === true)
                             }
-                            className="cursor-pointer border-[#c1c6d7] focus-visible:ring-2 focus-visible:ring-[#005ab7] data-[state=checked]:border-[#005ab7] data-[state=checked]:bg-[#005ab7] data-[state=checked]:text-white"
+                            className="cursor-pointer border-border focus-visible:ring-2 focus-visible:ring-[#0d51b5] data-[state=checked]:border-[#0d51b5] data-[state=checked]:bg-[#0d51b5] data-[state=checked]:text-white"
                         />
                         <label
                             htmlFor="remember"
-                            className="cursor-pointer text-xs font-medium text-[#414754] select-none"
+                            className="cursor-pointer text-xs font-medium text-muted-foreground select-none"
                         >
                             Remember Me
                         </label>
@@ -183,7 +182,7 @@ export default function Login({
                     {canResetPassword && (
                         <Link
                             href={forgotPassword.url()}
-                            className="text-xs font-semibold text-[#005ab7] hover:underline"
+                            className="text-xs font-semibold text-[#0d51b5] hover:underline"
                         >
                             Forgot password?
                         </Link>
@@ -192,14 +191,12 @@ export default function Login({
 
                 {/* Login Button */}
                 <Button
-                    className="flex w-full items-center justify-center gap-2 rounded-full border-0 bg-[#0072e5] py-6 text-xs font-semibold tracking-widest text-white uppercase transition-all duration-200 hover:bg-[#005ab7] hover:shadow-lg active:scale-[0.98]"
+                    className="flex w-full items-center justify-center gap-2 rounded-full border-0 bg-[#0d51b5] py-6 text-xs font-semibold tracking-widest text-white uppercase transition-all duration-200 hover:bg-[#0a3d8a] hover:shadow-lg active:scale-[0.98]"
                     type="submit"
                     disabled={processing}
                 >
                     <span>{processing ? 'LOGGING IN...' : 'LOG IN'}</span>
-                    <span className="material-symbols-outlined text-sm">
-                        login
-                    </span>
+                    <LogIn className="w-4 h-4" />
                 </Button>
             </form>
 

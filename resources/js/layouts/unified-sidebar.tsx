@@ -241,7 +241,7 @@ export default function UnifiedSidebar() {
     }, [activeCollapsibleTitles]);
 
     return (
-        <Sidebar className="border-r border-blue-900/40 bg-[#003f7d] text-white [&_[data-sidebar=sidebar]]:bg-transparent">
+        <Sidebar className="border-r border-blue-800/40 bg-[#0d51b5] text-white [&_[data-sidebar=sidebar]]:bg-transparent">
             <SidebarHeader className="border-b border-blue-400/20 px-4 py-5">
                 <div className="flex flex-col items-center gap-2">
                     <img
@@ -277,8 +277,8 @@ export default function UnifiedSidebar() {
                                                 href={item.href}
                                                 className={`my-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[15px] transition-colors duration-200 ${
                                                     isActive(item.href)
-                                                        ? 'bg-[#0078d4] font-medium text-white shadow-sm'
-                                                        : 'text-white/80 hover:bg-white/5 hover:text-white'
+                                                        ? 'bg-white/20 font-medium text-white shadow-sm'
+                                                        : 'text-white/80 hover:bg-white/10 hover:text-white'
                                                 }`}
                                             />
                                         }
@@ -311,8 +311,8 @@ export default function UnifiedSidebar() {
                                             href={item.href}
                                             className={`my-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[15px] transition-colors duration-200 ${
                                                 isActive(item.href)
-                                                    ? 'bg-[#0078d4] font-medium text-white shadow-sm'
-                                                    : 'text-white/80 hover:bg-white/5 hover:text-white'
+                                                    ? 'bg-white/20 font-medium text-white shadow-sm'
+                                                    : 'text-white/80 hover:bg-white/10 hover:text-white'
                                             }`}
                                         />
                                     }
@@ -359,8 +359,8 @@ export default function UnifiedSidebar() {
                                                                         isActive(
                                                                             subItem.href,
                                                                         )
-                                                                            ? 'bg-[#0078d4] font-medium text-white shadow-sm'
-                                                                            : 'text-white/70 hover:bg-white/5 hover:text-white'
+                                                                            ? 'bg-white/20 font-medium text-white shadow-sm'
+                                                                            : 'text-white/70 hover:bg-white/10 hover:text-white'
                                                                     }`}
                                                                 />
                                                             }

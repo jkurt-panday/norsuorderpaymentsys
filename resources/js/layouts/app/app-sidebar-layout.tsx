@@ -1,13 +1,11 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import { ChevronRight } from 'lucide-react';
-import React from 'react';
 import { Separator } from '@/components/ui/separator';
 import {
     SidebarInset,
     SidebarProvider,
     SidebarTrigger,
 } from '@/components/ui/sidebar';
-import ClientLayoutTemplate from '@/layouts/client/layout';
 import UnifiedSidebar from '@/layouts/unified-sidebar';
 import type { AppLayoutProps, BreadcrumbItem } from '@/types';
 
@@ -51,26 +49,13 @@ export default function AppSidebarLayout({
     children,
     breadcrumbs = [],
 }: AppLayoutProps) {
-    const { auth } = usePage<{ auth?: { user?: { role?: string } | null } }>().props;
-    const isClient = auth?.user?.role === 'client';
-
-    if (isClient) {
-        return (
-            <SidebarProvider>
-                <div className="flex h-screen w-full bg-[#FAFAF5]">
-                    <ClientLayoutTemplate>{children}</ClientLayoutTemplate>
-                </div>
-            </SidebarProvider>
-        );
-    }
-
     return (
         <SidebarProvider>
-            <div className="flex h-screen w-full bg-[#FAFAF5]">
+            <div className="flex h-screen w-full bg-background">
                 <UnifiedSidebar />
-                <SidebarInset className="overflow-hidden bg-[#FAFAF5]">
+                <SidebarInset className="overflow-hidden bg-background">
                     <AppSidebarHeader breadcrumbs={breadcrumbs} />
-                    <main className="min-h-0 flex-1 overflow-auto bg-[#FAFAF5] p-4 md:p-8">
+                    <main className="min-h-0 flex-1 overflow-auto bg-background p-4 md:p-8">
                         {children}
                     </main>
                 </SidebarInset>
