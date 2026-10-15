@@ -133,6 +133,7 @@ export default function EditTransaction({
     filterOptions,
 }: EditTransactionProps) {
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [showDiscardDialog, setShowDiscardDialog] = useState(false);
     const [deleteProcessing, setDeleteProcessing] = useState(false);
 
     const { data, setData, put, processing, errors, isDirty } =
@@ -227,12 +228,17 @@ export default function EditTransaction({
         });
     };
 
+    const navigateToLedger = () => {
+        router.get(lawLedgerIndex.url());
+    };
+
     const handleNavigateBack = () => {
-        if (isDirty && !window.confirm('Discard unsaved changes?')) {
+        if (isDirty) {
+            setShowDiscardDialog(true);
             return;
         }
 
-        router.get(lawLedgerIndex.url());
+        navigateToLedger();
     };
 
     const confirmDelete = () => {
@@ -842,6 +848,26 @@ export default function EditTransaction({
                         </form>
                     </CardContent>
                 </Card>
+
+                <AlertDialog
+                    open={showDiscardDialog}
+                    onOpenChange={setShowDiscardDialog}
+                >
+                    <AlertDialogContent size="sm">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Your changes have not been saved. Are you sure you want to leave this page?
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Continue editing</AlertDialogCancel>
+                            <AlertDialogAction onClick={navigateToLedger}>
+                                Discard changes
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
 
                 <AlertDialog
                     open={showDeleteDialog}
