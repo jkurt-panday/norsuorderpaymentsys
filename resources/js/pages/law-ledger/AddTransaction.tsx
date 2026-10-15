@@ -712,7 +712,7 @@ export default function AddTransaction({
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-                <Card className="border-[#CFE3FF] bg-white">
+                <Card className="overflow-visible border-[#CFE3FF] bg-white">
                     <CardHeader className="border-b border-[#EAF2FF] bg-[#F8FBFF] pb-3">
                         <div className="flex items-center justify-between">
                             <CardTitle className="text-sm font-bold text-[#0B3D91]">
