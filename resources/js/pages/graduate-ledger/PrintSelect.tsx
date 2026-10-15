@@ -46,17 +46,21 @@ function currency(n: number) {
 
 function getEntryTypeBadge(type?: string | null): string {
     const normalized = (type ?? '').trim().toUpperCase();
+
     if (normalized === 'PAYMENT' || normalized === 'P') {
         return 'bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold';
     }
+
     if (normalized.includes('ADJUST')) {
         return 'bg-purple-50 text-purple-700 border-purple-200 font-semibold';
     }
+
     return 'bg-[#EAF2FF] text-[#0B62E0] border-[#B9D8FF] font-semibold';
 }
 
 function isDeduction(type?: string | null): boolean {
     const normalized = (type ?? '').trim().toUpperCase();
+
     return normalized === 'PAYMENT' || normalized === 'P' || normalized.includes('ADJUST');
 }
 
@@ -254,9 +258,17 @@ return;
         const queryKey = isNumericId ? 'student_id' : 'student';
         const params = new URLSearchParams({ [queryKey]: String(selected) });
 
-        if (schoolYearFilter !== 'all') params.set('school_year', schoolYearFilter);
-        if (semesterFilter !== 'all') params.set('semester', semesterFilter);
-        if (typeFilter !== 'all') params.set('type', typeFilter);
+        if (schoolYearFilter !== 'all') {
+params.set('school_year', schoolYearFilter);
+}
+
+        if (semesterFilter !== 'all') {
+params.set('semester', semesterFilter);
+}
+
+        if (typeFilter !== 'all') {
+params.set('type', typeFilter);
+}
 
         window.open(`/graduate-ledger/pdf?${params.toString()}`, '_blank');
     };

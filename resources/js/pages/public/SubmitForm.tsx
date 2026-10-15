@@ -1,10 +1,9 @@
 import { Link, useForm, Head, usePage } from '@inertiajs/react';
 import { UploadCloud02 } from '@untitledui/icons';
 import { Mail, User, ClipboardList, FileText, Home, GraduationCap, Plus } from 'lucide-react';
-import AddCollegeOfficeModal from '@/components/AddCollegeOfficeModal';
 import { useState, useMemo, useEffect } from 'react';
+import AddCollegeOfficeModal from '@/components/AddCollegeOfficeModal';
 import { FileUpload } from '@/components/application/file-upload/file-upload-base';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -25,6 +24,8 @@ import {
 import { Field, FieldLabel, FieldDescription } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getExpiringLocalStorage } from '@/lib/expiring-local-storage';
 import PublicLayout from '@/pages/layouts/PublicLayout';
 
 const reqType = ['New Request', 'Re-issue Request'] as const;
@@ -89,6 +90,24 @@ interface Props {
     collegeOffices?: CollegeOffice[]; // ? new
 }
 
+type SubmitFormPrefill = Partial<{
+    email: string;
+    contact_num: string;
+    firstname_or_office: string;
+    middlename_or_project: string;
+    lastname_or_agency: string;
+    office_or_college: string;
+    position_or_designation: string;
+    address: string;
+    student_num: string;
+    course_id: string;
+    school_year: string;
+    semester: string;
+}>;
+
+const getSubmitFormPrefill = () =>
+    getExpiringLocalStorage<SubmitFormPrefill>('submit-form-prefill');
+
 export default function SubmitForm({ memberships, paymentOptions, course = [], academicTerms = [], collegeOffices = [] }: Props) {
     const { auth } = usePage<any>().props;
     const user = auth?.user;
@@ -100,31 +119,27 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
     // 
     const [collegeOfficesList, setCollegeOfficesList] = useState(collegeOffices ?? []);
     const [addModalOpen, setAddModalOpen] = useState(false);
-
-    // ? keep position_or_designation in sync with the active tab
-    // ? keep position_or_designation in sync with the active tab
-    useEffect(() => {
-        if (activeTab === 'student') {
-            setData('position_or_designation', 'Student');
-        } else {
-            // reset back to the profile's saved value (or blank) when leaving student tab
-            setData(
-                'position_or_designation',
-                profile?.position_or_designation || '',
-            );
-        }
-    }, [activeTab]);
+    const prefill = getSubmitFormPrefill();
 
     // ? form handling
     const { data, setData, post, processing, errors, reset } = useForm({
-        email: user?.email || '',
-        contact_num: profile?.contact_num || '',
-        firstname_or_office: profile?.firstname_or_office || '',
-        middlename_or_project: profile?.middlename_or_project || '',
-        lastname_or_agency: profile?.lastname_or_agency || '',
-        office_or_college: profile?.office_or_college || '',
-        position_or_designation: profile?.position_or_designation || '',
-        address: profile?.address || '',
+        email: prefill?.email ?? user?.email ?? '',
+        contact_num: prefill?.contact_num ?? profile?.contact_num ?? '',
+        firstname_or_office:
+            prefill?.firstname_or_office ?? profile?.firstname_or_office ?? '',
+        middlename_or_project:
+            prefill?.middlename_or_project ??
+            profile?.middlename_or_project ??
+            '',
+        lastname_or_agency:
+            prefill?.lastname_or_agency ?? profile?.lastname_or_agency ?? '',
+        office_or_college:
+            prefill?.office_or_college ?? profile?.office_or_college ?? '',
+        position_or_designation:
+            prefill?.position_or_designation ??
+            profile?.position_or_designation ??
+            '',
+        address: prefill?.address ?? profile?.address ?? '',
         amount: '',
         request_type: '',
         membership_id: '',
@@ -132,11 +147,32 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
         documents: [] as File[],
 
         // ? student-only fields (Academic Details)
-        student_num: '',
-        course_id: '',
-        school_year: '',
-        semester: '',
+        student_num: prefill?.student_num ?? '',
+        course_id: prefill?.course_id ?? '',
+        school_year: prefill?.school_year ?? '',
+        semester: prefill?.semester ?? '',
     });
+
+    // ? keep position_or_designation in sync with the active tab
+    useEffect(() => {
+        if (activeTab === 'student') {
+            setData('position_or_designation', 'Student');
+
+            return;
+        }
+
+        setData(
+            'position_or_designation',
+            prefill?.position_or_designation ??
+                profile?.position_or_designation ??
+                '',
+        );
+    }, [
+        activeTab,
+        prefill?.position_or_designation,
+        profile?.position_or_designation,
+        setData,
+    ]);
 
     const handleTabChange = (value: string) => {
         const nextTab = (value as FormTab) || 'general';
@@ -153,11 +189,7 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
         }
     };
 
-    // Distinct school year / semester options derived from the academic_term table
-    const schoolYearOptions = useMemo(
-        () => Array.from(new Set(academicTerms.map((t) => t.school_year))),
-        [academicTerms],
-    );
+    // Distinct semester options derived from the academic_term table
     const semesterOptions = useMemo(
         () => Array.from(new Set(academicTerms.map((t) => t.semester))),
         [academicTerms],

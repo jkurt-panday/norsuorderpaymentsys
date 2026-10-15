@@ -27,6 +27,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
+import { getExpiringLocalStorage } from '@/lib/expiring-local-storage';
 import PublicLayout from '@/pages/layouts/PublicLayout';
 
 const enlarge =
@@ -73,20 +74,39 @@ interface Props {
     courses: Course[];
 }
 
+type AssessmentFormPrefill = Partial<{
+    email: string;
+    contact_num: string;
+    first_name: string;
+    middle_name: string;
+    last_name: string;
+    course_id: string;
+    student_id: string;
+    address: string;
+    enrolled_under: EnrolledUnder;
+    sy_last_attended: string;
+    semester: Semester;
+}>;
+
+const getAssessmentFormPrefill = () =>
+    getExpiringLocalStorage<AssessmentFormPrefill>('assessment-form-prefill');
+
 export default function AssessmentForm({ courses }: Props) {
+    const prefill = getAssessmentFormPrefill();
+
     // ? form handling
     const { data, setData, post, processing, errors, reset } = useForm({
-        email: '',
-        contact_num: '',
-        first_name: '',
-        middle_name: '',
-        last_name: '',
-        course_id: '',
-        student_id: '',
-        address: '',
-        enrolled_under: EnrolledUnder.UNDERGRADUATE,
-        sy_last_attended: '',
-        semester: Semester.FIRST,
+        email: prefill?.email ?? '',
+        contact_num: prefill?.contact_num ?? '',
+        first_name: prefill?.first_name ?? '',
+        middle_name: prefill?.middle_name ?? '',
+        last_name: prefill?.last_name ?? '',
+        course_id: prefill?.course_id ?? '',
+        student_id: prefill?.student_id ?? '',
+        address: prefill?.address ?? '',
+        enrolled_under: prefill?.enrolled_under ?? EnrolledUnder.UNDERGRADUATE,
+        sy_last_attended: prefill?.sy_last_attended ?? '',
+        semester: prefill?.semester ?? Semester.FIRST,
     });
 
     const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {

@@ -96,11 +96,13 @@ return 'No date';
 
 function isPayment(type: string): boolean {
     const normalized = (type ?? '').trim().toLowerCase();
+
     return ['payment', 'p'].includes(normalized);
 }
 
 function isAdjustment(type: string): boolean {
     const normalized = (type ?? '').trim().toLowerCase();
+
     return normalized.includes('adjust');
 }
 

@@ -1841,11 +1841,13 @@ throw new Error('Export failed');
                         onClick={() => {
                           setSelectedIds((prev) => {
                             const next = new Set(prev);
+
                             if (visibleRecipients.every((r) => next.has(r.id))) {
                               visibleRecipients.forEach((r) => next.delete(r.id));
                             } else {
                               visibleRecipients.forEach((r) => next.add(r.id));
                             }
+
                             return next;
                           });
                         }}

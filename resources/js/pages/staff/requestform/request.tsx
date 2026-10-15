@@ -3,12 +3,8 @@ import { Inbox, Mail, Send, Search as SearchIcon, X, CheckCircle2, Loader2, Chec
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import RequestTable, { StatusBadge } from '@/components/RequestTable';
 import type { ColumnDef, PaginatedData } from '@/components/RequestTable';
-import staff from '@/routes/staff';
-import { flashToast } from '@/utils/flashToast';
-
-// Direct URL for email job status (bypasses Wayfinder parser issue)
-const EMAIL_JOB_STATUS_URL = '/staff/requests/email-job-status';
-const BULK_EMAIL_OP_URL = '/staff/requests/bulk-email-op';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +20,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import staff from '@/routes/staff';
+import { flashToast } from '@/utils/flashToast';
+
+// Direct URL for email job status (bypasses Wayfinder parser issue)
+const EMAIL_JOB_STATUS_URL = '/staff/requests/email-job-status';
+const BULK_EMAIL_OP_URL = '/staff/requests/bulk-email-op';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Tooltip,
@@ -31,8 +33,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -143,19 +143,34 @@ const formatFullName = (row: FormInput) => {
 
 /** Returns a human-readable "X days ago" / "X hours ago" / "X minutes ago" string. */
 const formatTimeAgo = (isoDate: string | null | undefined): string => {
-    if (!isoDate) return '';
+    if (!isoDate) {
+return '';
+}
+
     const then = new Date(isoDate).getTime();
     const now = Date.now();
     const diffMs = now - then;
-    if (diffMs < 0) return 'just now';
+
+    if (diffMs < 0) {
+return 'just now';
+}
 
     const minutes = Math.floor(diffMs / 60000);
     const hours = Math.floor(diffMs / 3600000);
     const days = Math.floor(diffMs / 86400000);
 
-    if (days > 0) return `${days} day${days === 1 ? '' : 's'} ago`;
-    if (hours > 0) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
-    if (minutes > 0) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    if (days > 0) {
+return `${days} day${days === 1 ? '' : 's'} ago`;
+}
+
+    if (hours > 0) {
+return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+}
+
+    if (minutes > 0) {
+return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+}
+
     return 'just now';
 };
 
@@ -230,13 +245,16 @@ const ManageRequests: React.FC = () => {
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
+
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     // Cleanup polling timeout on unmount
     useEffect(() => {
         return () => {
-            if (pollTimeoutId) clearTimeout(pollTimeoutId);
+            if (pollTimeoutId) {
+clearTimeout(pollTimeoutId);
+}
         };
     }, [pollTimeoutId]);
 
@@ -245,7 +263,9 @@ const ManageRequests: React.FC = () => {
     // page's filter/search state — that keeps the parent table's
     // Filter / Reset / status controls fully functional.
     useEffect(() => {
-        if (!isEmailModalOpen) return;
+        if (!isEmailModalOpen) {
+return;
+}
 
         let cancelled = false;
         setIsLoadingRecipients(true);
@@ -257,15 +277,22 @@ const ManageRequests: React.FC = () => {
                 if (!res.ok) {
                     throw new Error(`HTTP ${res.status}`);
                 }
+
                 return res.json();
             })
             .then((json) => {
-                if (cancelled) return;
+                if (cancelled) {
+return;
+}
+
                 setAllRecipients(json.data ?? []);
                 setIsLoadingRecipients(false);
             })
             .catch((err) => {
-                if (cancelled) return;
+                if (cancelled) {
+return;
+}
+
                 flashToast('error', 'Failed to load recipients.');
                 setIsLoadingRecipients(false);
             });
@@ -285,6 +312,7 @@ const ManageRequests: React.FC = () => {
             : allRecipients.filter((row) => {
                 const q = emailSearch.toLowerCase();
                 const fullName = formatFullName(row).toLowerCase();
+
                 return fullName.includes(q) || row.reference_number.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
             }), 
         [allRecipients, emailSearch]
@@ -299,11 +327,13 @@ const ManageRequests: React.FC = () => {
     const toggleSelectId = (id: number) => {
         setSelectedIds((prev) => {
             const next = new Set(prev);
+
             if (next.has(id)) {
                 next.delete(id);
             } else {
                 next.add(id);
             }
+
             return next;
         });
     };
@@ -331,6 +361,7 @@ const ManageRequests: React.FC = () => {
             : bulkRecipients.filter((row) => {
                 const q = emailSearch.toLowerCase();
                 const fullName = formatFullName(row).toLowerCase();
+
                 return fullName.includes(q) || row.reference_number.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
             }), 
         [bulkRecipients, emailSearch]
@@ -357,6 +388,7 @@ const ManageRequests: React.FC = () => {
                 setSelectedIds(new Set());
             }
         }
+
         prevBulkTargetRef.current = emailTarget;
     }, [emailTarget]); // Only depend on emailTarget, not bulkRecipients
 
@@ -376,8 +408,10 @@ const ManageRequests: React.FC = () => {
 
     const handleSendBulkEmail = async () => {
         const ids = computeTargetIds();
+
         if (ids.length === 0) {
             flashToast('error', 'No eligible recipients selected.');
+
             return;
         }
 
@@ -446,6 +480,7 @@ const ManageRequests: React.FC = () => {
             setIsPollingProgress(false);
             const pendingCount = emailProgress.filter(p => p.status === 'pending').length;
             flashToast('warning', `Polling timed out. ${pendingCount} email(s) still pending. You can retry them.`);
+
             return;
         }
 
@@ -474,10 +509,12 @@ const ManageRequests: React.FC = () => {
                         status: job.status,
                         emailed_at: job.emailed_at,
                     }));
+
                     // Only update if actually changed
                     if (JSON.stringify(newProgress) !== JSON.stringify(prev)) {
                         return newProgress;
                     }
+
                     return prev;
                 });
             }
@@ -485,7 +522,11 @@ const ManageRequests: React.FC = () => {
             if (data.completed) {
                 isPollingRef.current = false;
                 setIsPollingProgress(false);
-                if (pollTimeoutId) clearTimeout(pollTimeoutId);
+
+                if (pollTimeoutId) {
+clearTimeout(pollTimeoutId);
+}
+
                 flashToast('success', `All emails processed: ${data.summary.sent} sent, ${data.summary.failed} failed.`);
             } else {
                 // Poll every 5 seconds (passive auto-refresh)
@@ -502,7 +543,10 @@ const ManageRequests: React.FC = () => {
     const stopProgressPolling = () => {
         isPollingRef.current = false;
         setIsPollingProgress(false);
-        if (pollTimeoutId) clearTimeout(pollTimeoutId);
+
+        if (pollTimeoutId) {
+clearTimeout(pollTimeoutId);
+}
     };
 
     const closeProgressModal = () => {
@@ -805,9 +849,13 @@ const ManageRequests: React.FC = () => {
                                                             .map((id) => allRecipients.find(r => r.id === id))
                                                             .filter((row): row is typeof row & { id: number } => row !== undefined)
                                                             .filter((row) => {
-                                                                if (!selectedPopoverSearch.trim()) return true;
+                                                                if (!selectedPopoverSearch.trim()) {
+return true;
+}
+
                                                                 const q = selectedPopoverSearch.toLowerCase();
                                                                 const fullName = formatFullName(row).toLowerCase();
+
                                                                 return fullName.includes(q) || row.reference_number.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
                                                             })
                                                             .map((row) => (
@@ -847,6 +895,7 @@ const ManageRequests: React.FC = () => {
                                             const eligible = row.staff_input && row.email;
                                             const isSelected = selectedIds.has(row.id);
                                             const timeAgo = formatTimeAgo(row.staff_input?.emailed_at);
+
                                             return (
                                                 <div
                                                     key={row.id}
@@ -972,9 +1021,13 @@ const ManageRequests: React.FC = () => {
                                                                 .map((id) => allRecipients.find(r => r.id === id))
                                                                 .filter((row): row is typeof row & { id: number } => row !== undefined)
                                                                 .filter((row) => {
-                                                                    if (!selectedPopoverSearch.trim()) return true;
+                                                                    if (!selectedPopoverSearch.trim()) {
+return true;
+}
+
                                                                     const q = selectedPopoverSearch.toLowerCase();
                                                                     const fullName = formatFullName(row).toLowerCase();
+
                                                                     return fullName.includes(q) || row.reference_number.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
                                                                 })
                                                                 .map((row) => (

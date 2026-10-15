@@ -161,7 +161,7 @@ class FormInputController extends Controller
             abort(404);
         }
 
-        $formInput->load(['membership', 'paymentDetailOption', 'supportingDocuments']);
+        $formInput->load(['membership', 'paymentDetailOption', 'supportingDocuments', 'course', 'academicTerm']);
 
         $user = auth()->user();
         $dashboardUrl = $user ? match ($user->role) {
@@ -174,6 +174,12 @@ class FormInputController extends Controller
         return Inertia::render('public/Success', [
             'reference_number' => $formInput->reference_number,
             'formInput' => $formInput,
+            'prefillAcademicTerm' => $formInput->academicTerm
+                ? [
+                    'school_year' => $formInput->academicTerm->school_year,
+                    'semester' => $formInput->academicTerm->semester,
+                ]
+                : null,
             'dashboardUrl' => $dashboardUrl,
         ]);
     }

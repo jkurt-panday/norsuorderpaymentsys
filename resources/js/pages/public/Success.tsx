@@ -12,7 +12,7 @@ import {
     Printer,
     Home
 } from 'lucide-react';
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +24,7 @@ import {
     CardFooter,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { setExpiringLocalStorage } from '@/lib/expiring-local-storage';
 import PublicLayout from '@/pages/layouts/PublicLayout';
 
 interface SupportingDocument {
@@ -45,6 +46,18 @@ interface PaymentOption {
     payment_desc: string;
 }
 
+interface Course {
+    id: number | string;
+    course_code: string;
+    course_desc: string;
+}
+
+interface AcademicTerm {
+    id: number | string;
+    school_year: string;
+    semester: string;
+}
+
 interface FormInput {
     id: number;
     reference_number: string;
@@ -60,6 +73,10 @@ interface FormInput {
     request_type: string;
     membership: Membership;
     payment_detail_option: PaymentOption;
+    submitted_student_number?: string | null;
+    course_id?: number | string | null;
+    course?: Course | null;
+    academic_term?: number | string | null;
     supporting_documents: SupportingDocument[];
     created_at: string;
 }
@@ -67,12 +84,14 @@ interface FormInput {
 interface Props {
     reference_number: string;
     formInput: FormInput;
+    prefillAcademicTerm?: Pick<AcademicTerm, 'school_year' | 'semester'> | null;
     dashboardUrl?: string | null;
 }
 
 export default function Success({
     reference_number,
     formInput,
+    prefillAcademicTerm,
 }: Props) {
     const { auth } = usePage<any>().props;
 
@@ -143,6 +162,23 @@ return '';
             '_blank',
         );
     };
+
+    useEffect(() => {
+        setExpiringLocalStorage('submit-form-prefill', {
+            email: formInput.email ?? '',
+            contact_num: formInput.contact_num ?? '',
+            firstname_or_office: formInput.firstname_or_office ?? '',
+            middlename_or_project: formInput.middlename_or_project ?? '',
+            lastname_or_agency: formInput.lastname_or_agency ?? '',
+            office_or_college: formInput.office_or_college ?? '',
+            position_or_designation: formInput.position_or_designation ?? '',
+            address: formInput.address ?? '',
+            student_num: formInput.submitted_student_number ?? '',
+            course_id: formInput.course_id ? String(formInput.course_id) : '',
+            school_year: prefillAcademicTerm?.school_year ?? '',
+            semester: prefillAcademicTerm?.semester ?? '',
+        });
+    }, [formInput, prefillAcademicTerm]);
 
     return (
         <>
@@ -455,7 +491,7 @@ return '';
                                             >
                                                 <Home className="mr-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
                                                 Go back to Home
-                                            </Link>
+                                            </Button>
                                         );
                                     })()}
                                 </div>

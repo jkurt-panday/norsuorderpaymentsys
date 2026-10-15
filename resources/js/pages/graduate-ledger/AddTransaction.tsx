@@ -128,7 +128,10 @@ function defaultParticularForType(entryType: 'ar' | 'payment' | 'adjustment'): s
 }
 
 function FieldError({ message }: { message?: string }) {
-    if (!message) return null;
+    if (!message) {
+return null;
+}
+
     return <p className="mt-1 text-xs text-red-500">{message}</p>;
 }
 
@@ -148,7 +151,9 @@ function SearchableStudentSelect({
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (!isOpen) return;
+        if (!isOpen) {
+return;
+}
 
         const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
             if (
@@ -191,6 +196,7 @@ function SearchableStudentSelect({
 
         return students.filter((s) => {
             const label = formatStudentLabel(s).toLowerCase();
+
             return label.includes(query);
         });
     }, [students, search]);
@@ -375,6 +381,7 @@ export default function AddTransaction({
     useEffect(() => {
         if (!data.student_id || showNewStudent) {
             setBalancePreview(null);
+
             return;
         }
 
@@ -420,6 +427,7 @@ export default function AddTransaction({
                 school_year: sy,
                 semester,
             }));
+
             return;
         }
 
@@ -460,7 +468,10 @@ export default function AddTransaction({
     }
 
     function removeBatchRow(id: string) {
-        if (batchItems.length <= 1) return;
+        if (batchItems.length <= 1) {
+return;
+}
+
         setBatchItems((prev) => prev.filter((item) => item.id !== id));
     }
 
@@ -481,6 +492,7 @@ export default function AddTransaction({
 
             if (item.entry_type === 'ar') {
                 arTotal += amt;
+
                 if (item.membership) {
                     creditTotal += amt; // Scholarship adjustment credits 100%
                 }
@@ -504,25 +516,31 @@ export default function AddTransaction({
         // Guard: student must be resolved
         if (showNewStudent) {
             const newStudent = data.new_student;
+
             if (!newStudent?.last_name?.trim()) {
                 setError('new_student.last_name' as any, 'Last name is required.');
                 flashToast('error', "Please enter the student's last name.");
+
                 return;
             }
+
             if (!newStudent?.first_name?.trim()) {
                 setError('new_student.first_name' as any, 'First name is required.');
                 flashToast('error', "Please enter the student's first name.");
+
                 return;
             }
         } else if (!data.student_id) {
             setError('student_id', 'Please select a student.');
             flashToast('error', 'Please select a student.');
+
             return;
         }
 
         if (!data.course_id) {
             setError('course_id', 'Please select a course.');
             flashToast('error', 'Please select a course.');
+
             return;
         }
 
@@ -532,6 +550,7 @@ export default function AddTransaction({
             // Validate batch items
             if (batchItems.length === 0) {
                 flashToast('error', 'Please add at least one line item.');
+
                 return;
             }
 
@@ -547,6 +566,7 @@ export default function AddTransaction({
                 const message = `Line #${invalidItemIndex + 1} must have an amount greater than zero.`;
                 setError(`items.${invalidItemIndex}.amount` as any, message);
                 flashToast('error', message);
+
                 return;
             }
 
@@ -580,6 +600,7 @@ export default function AddTransaction({
             post(storeGraduateLedger.url(), {
                 preserveScroll: true,
             });
+
             return;
         }
 
@@ -668,6 +689,7 @@ export default function AddTransaction({
                                 type="button"
                                 onClick={() => {
                                     setShowNewStudent(!showNewStudent);
+
                                     if (!showNewStudent) {
                                         setData('student_id', '');
                                         setData('new_student', {
@@ -802,6 +824,7 @@ export default function AddTransaction({
                                             const selected = students.find(
                                                 (s) => String(s.id) === String(id),
                                             );
+
                                             if (selected?.last_course_id) {
                                                 setData((prev) => ({
                                                     ...prev,
@@ -950,6 +973,7 @@ export default function AddTransaction({
                                     {entryTypeOptions.map((t) => {
                                         const Icon = t.icon;
                                         const isSelected = data.entry_type === t.value;
+
                                         return (
                                             <button
                                                 key={t.value}

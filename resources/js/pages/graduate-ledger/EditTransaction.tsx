@@ -14,7 +14,6 @@ import {
     index as graduateLedgerIndex,
     update as updateGraduateLedger,
 } from '@/actions/App/Http/Controllers/GraduateLedgerController';
-import { Button } from '@/components/ui/button';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -26,6 +25,7 @@ import {
     AlertDialogMedia,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -350,8 +350,10 @@ export default function EditTransaction({
             const found = students.find(
                 (s) => String(s.id) === String(data.student_id),
             );
+
             return found ? formatStudentLabel(found) : 'this student';
         }
+
         return data.student_name || 'this student';
     }, [isNormalized, students, data.student_id, data.student_name]);
 
