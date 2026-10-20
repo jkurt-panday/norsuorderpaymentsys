@@ -203,6 +203,7 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
 
         post('/public/opform', {
             forceFormData: true,
+            preserveState: true,
             onSuccess: () => console.log('Success'),
             onError: (errs) => console.error('Validation errors:', errs),
         });
@@ -290,7 +291,7 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
     return (
         <>
             <Head title="Order of Payment Form" />
-            <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-200 to-white px-6 py-12">
+            <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-300 to-white px-6 py-12">
                 <div className="mx-auto max-w-4xl">
                     <div className="mb-10 rounded-2xl border border-blue-100 bg-white px-8 py-8 text-center shadow-md">
                         <div className="flex justify-center">

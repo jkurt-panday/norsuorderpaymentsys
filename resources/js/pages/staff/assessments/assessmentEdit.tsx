@@ -199,13 +199,13 @@ export default function AssessmentEdit({
     const [isSendingEmail, setIsSendingEmail] = useState(false);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
     const [isChangingStudent, setIsChangingStudent] = useState(false);
-    
+
     useEffect(() => {
         flashToast('success', flash?.success);
         flashToast('error', flash?.error);
         flashToast('warning', flash?.warning);
     }, [flash]);
-    
+
     const fullName = [
         assessment.first_name,
         assessment.middle_name,
@@ -273,11 +273,12 @@ export default function AssessmentEdit({
     };
 
     const printStatement = () => {
-      const url = `/staff/assessments/print_soa/${assessment.id}` +
-        (ledgerStatement.selectedStudent
-          ? `?ledger_student=${encodeURIComponent(ledgerStatement.selectedStudent.key)}`
-          : '');
-      window.open(url, '_blank');
+        const url =
+            `/staff/assessments/print_soa/${assessment.id}` +
+            (ledgerStatement.selectedStudent
+                ? `?ledger_student=${encodeURIComponent(ledgerStatement.selectedStudent.key)}`
+                : '');
+        window.open(url, '_blank');
     };
 
     const buildDefaultEmailSubject = () =>
@@ -298,7 +299,8 @@ export default function AssessmentEdit({
             ? `<p>${escapeHtml(note).replace(/\n/g, '<br>')}</p>`
             : '';
 
-        const recipient = recipientName.trim() ||
+        const recipient =
+            recipientName.trim() ||
             `${assessment.first_name} ${assessment.last_name}`;
 
         return `<!DOCTYPE html>
@@ -329,9 +331,9 @@ export default function AssessmentEdit({
 
     const handleConfirmSendEmail = () => {
         setIsSendingEmail(true);
-        
+
         const ledgerStudentKey = ledgerStatement.selectedStudent?.key ?? '';
-        
+
         router.post(
             emailSoa.url(assessment.id),
             {
@@ -361,7 +363,7 @@ export default function AssessmentEdit({
                 title={`Edit Assessment - ${assessment.reference_number || assessment.id}`}
             />
 
-            <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-slate-50 p-3 sm:p-6">
+            <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-page-background p-3 sm:p-6">
                 <Card className="rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
                     <CardHeader className="flex flex-col gap-4 p-3 sm:flex-row sm:items-center sm:justify-between">
                         <CardTitle className="text-xl font-bold text-slate-900">
@@ -411,36 +413,40 @@ export default function AssessmentEdit({
                                         <div className="px-2 py-1.5 text-[10px] font-semibold tracking-wider text-slate-500 uppercase">
                                             Change status
                                         </div>
-                                        {ASSESSMENT_STATUS_OPTIONS.map((option) => (
-                                            <SelectItem
-                                                key={option.value}
-                                                value={option.value}
-                                                className="cursor-pointer rounded-lg px-2 py-2"
-                                            >
-                                                <span className="flex items-center gap-2">
-                                                    <span
-                                                        className={cn(
-                                                            'h-2.5 w-2.5 shrink-0 rounded-full',
-                                                            option.dotClassName,
-                                                        )}
-                                                    />
-                                                    <span
-                                                        className={cn(
-                                                            'font-medium',
-                                                            option.textClassName,
-                                                        )}
-                                                    >
-                                                        {option.label}
+                                        {ASSESSMENT_STATUS_OPTIONS.map(
+                                            (option) => (
+                                                <SelectItem
+                                                    key={option.value}
+                                                    value={option.value}
+                                                    className="cursor-pointer rounded-lg px-2 py-2"
+                                                >
+                                                    <span className="flex items-center gap-2">
+                                                        <span
+                                                            className={cn(
+                                                                'h-2.5 w-2.5 shrink-0 rounded-full',
+                                                                option.dotClassName,
+                                                            )}
+                                                        />
+                                                        <span
+                                                            className={cn(
+                                                                'font-medium',
+                                                                option.textClassName,
+                                                            )}
+                                                        >
+                                                            {option.label}
+                                                        </span>
                                                     </span>
-                                                </span>
-                                            </SelectItem>
-                                        ))}
+                                                </SelectItem>
+                                            ),
+                                        )}
                                     </SelectContent>
                                 </Select>
                             </div>
                             <Link
                                 href={assessmentsIndex.url()}
-                                className={cn(buttonVariants({ variant: 'outline' }))}
+                                className={cn(
+                                    buttonVariants({ variant: 'outline' }),
+                                )}
                             >
                                 <ArrowLeft className="h-4 w-4" />
                                 Back
@@ -456,7 +462,11 @@ export default function AssessmentEdit({
                                 Student Information
                             </h2>
                             <div className="grid grid-cols-1 gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4 sm:grid-cols-2 md:grid-cols-3">
-                                <Detail label="Full Name" value={fullName} className=''/>
+                                <Detail
+                                    label="Full Name"
+                                    value={fullName}
+                                    className=""
+                                />
                                 <Detail
                                     label="Email"
                                     value={assessment.email}
@@ -538,7 +548,9 @@ export default function AssessmentEdit({
                                 onClick={() =>
                                     setIsChangingStudent((isOpen) => !isOpen)
                                 }
-                                disabled={ledgerStatement.candidates.length === 0}
+                                disabled={
+                                    ledgerStatement.candidates.length === 0
+                                }
                                 variant="outline"
                                 className="border-blue-200 bg-white text-[#0B3D91] hover:bg-blue-50"
                             >
@@ -549,7 +561,7 @@ export default function AssessmentEdit({
                                 onClick={openEmailPreview}
                                 disabled={!ledgerStatement.selectedStudent}
                                 variant="outline"
-                                className="bg-white text-[#0B3D91] border-blue-200 hover:bg-blue-50"
+                                className="border-blue-200 bg-white text-[#0B3D91] hover:bg-blue-50"
                             >
                                 <Mail className="h-4 w-4" />
                                 Email Statement
@@ -594,7 +606,9 @@ export default function AssessmentEdit({
                                     <ComboboxInput
                                         placeholder="Search by name or student ID..."
                                         className="w-full border-slate-200 bg-white shadow-sm focus-within:border-blue-500! focus-within:ring-2! focus-within:ring-blue-500/20!"
-                                        showClear={!!selectedStudentComboboxValue}
+                                        showClear={
+                                            !!selectedStudentComboboxValue
+                                        }
                                     />
                                     <ComboboxContent>
                                         <ComboboxEmpty>
@@ -842,12 +856,16 @@ export default function AssessmentEdit({
             </div>
 
             {/* Email Preview Modal */}
-            <Dialog open={isEmailPreviewOpen} onOpenChange={setIsEmailPreviewOpen}>
-                <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+            <Dialog
+                open={isEmailPreviewOpen}
+                onOpenChange={setIsEmailPreviewOpen}
+            >
+                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
                     <DialogHeader>
                         <DialogTitle>Email Statement of Account</DialogTitle>
                         <DialogDescription>
-                            Review and customize the email before sending the Statement of Account PDF.
+                            Review and customize the email before sending the
+                            Statement of Account PDF.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-6 md:grid-cols-[2fr_1fr]">
@@ -868,7 +886,9 @@ export default function AssessmentEdit({
                                 </label>
                                 <Input
                                     value={emailRecipientName}
-                                    onChange={(e) => setEmailRecipientName(e.target.value)}
+                                    onChange={(e) =>
+                                        setEmailRecipientName(e.target.value)
+                                    }
                                     placeholder="Recipient name"
                                 />
                             </div>
@@ -878,7 +898,9 @@ export default function AssessmentEdit({
                                 </label>
                                 <Input
                                     value={emailSubject}
-                                    onChange={(e) => setEmailSubject(e.target.value)}
+                                    onChange={(e) =>
+                                        setEmailSubject(e.target.value)
+                                    }
                                     placeholder="Email subject"
                                 />
                             </div>
@@ -888,7 +910,9 @@ export default function AssessmentEdit({
                                 </label>
                                 <Textarea
                                     value={emailNote}
-                                    onChange={(e) => setEmailNote(e.target.value)}
+                                    onChange={(e) =>
+                                        setEmailNote(e.target.value)
+                                    }
                                     placeholder="Add a personal note..."
                                     rows={4}
                                 />
@@ -896,13 +920,16 @@ export default function AssessmentEdit({
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                            <label className="mb-2 block text-sm font-medium text-slate-700">
                                 Live Preview
                             </label>
                             <div className="overflow-hidden rounded-xl border border-slate-200">
                                 <iframe
                                     title="Email preview"
-                                    srcDoc={buildEmailPreviewHtml(emailRecipientName, emailNote)}
+                                    srcDoc={buildEmailPreviewHtml(
+                                        emailRecipientName,
+                                        emailNote,
+                                    )}
                                     className="h-112 w-100 bg-white"
                                 />
                             </div>
@@ -941,9 +968,7 @@ function Detail({
 }) {
     return (
         <div className={className}>
-            <span className="text-x font-semibold text-slate-400">
-                {label}
-            </span>
+            <span className="text-x font-semibold text-slate-400">{label}</span>
             <p className="text-lg font-medium text-slate-900">{value || '—'}</p>
         </div>
     );

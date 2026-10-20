@@ -121,7 +121,7 @@ export default function Dashboard() {
     );
 
     return (
-        <div className="min-h-screen bg-slate-50 px-4 py-8">
+        <div className="min-h-screen bg-page-background px-4 py-8">
             <Head title="Dashboard" />
             <div className="mx-auto max-w-7xl">
                 <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">

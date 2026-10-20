@@ -1,11 +1,5 @@
-import {
-    Head,
-    Link,
-    router,
-    usePoll
-    
-} from '@inertiajs/react';
-import type {InertiaLinkProps} from '@inertiajs/react';
+import { Head, Link, router, usePoll } from '@inertiajs/react';
+import type { InertiaLinkProps } from '@inertiajs/react';
 import {
     Plus,
     Pencil,
@@ -171,13 +165,13 @@ export default function ResourceTable<T extends { id: number }>({
         }
 
         return [...resource.data].sort((rowA, rowB) => {
-                const { key: sortKey, direction } = optimisticSort;
-                const valueA = (rowA as Record<string, unknown>)[sortKey];
-                const valueB = (rowB as Record<string, unknown>)[sortKey];
-                const result = compareValues(valueA, valueB);
+            const { key: sortKey, direction } = optimisticSort;
+            const valueA = (rowA as Record<string, unknown>)[sortKey];
+            const valueB = (rowB as Record<string, unknown>)[sortKey];
+            const result = compareValues(valueA, valueB);
 
-                return direction === 'asc' ? result : -result;
-            });
+            return direction === 'asc' ? result : -result;
+        });
     }, [optimisticSort, resource.data]);
 
     function optimisticallySort(sortKey: string, direction: 'asc' | 'desc') {
@@ -491,7 +485,7 @@ export default function ResourceTable<T extends { id: number }>({
     };
 
     return (
-        <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-slate-50 p-3 sm:p-6">
+        <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-page-background p-3 sm:p-6">
             <Head title={title} />
 
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
@@ -843,16 +837,16 @@ export default function ResourceTable<T extends { id: number }>({
                                                 }
                                             }}
                                         >
-                                        <PopoverTrigger>
-                                            <span
-                                                role="button"
-                                                tabIndex={0}
-                                                className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
-                                            >
-                                                Page {resource.current_page}{' '}
-                                                of {resource.last_page}
-                                            </span>
-                                        </PopoverTrigger>
+                                            <PopoverTrigger>
+                                                <span
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+                                                >
+                                                    Page {resource.current_page}{' '}
+                                                    of {resource.last_page}
+                                                </span>
+                                            </PopoverTrigger>
                                             <PopoverContent
                                                 align="center"
                                                 className="w-48 space-y-2 p-2"

@@ -224,7 +224,7 @@ const ReadOnlyRow = ({
 
     const valueContent = scrollable ? (
         <div
-            className={`max-h-30 min-w-0 flex-1 overflow-y-auto rounded-md border border-slate-100 bg-slate-50/60 px-3 py-2 text-sm ${valueClass} break-words whitespace-pre-wrap`}
+            className={`max-h-30 min-w-0 flex-1 overflow-y-auto rounded-md border border-slate-100 bg-slate-50/60 px-3 py-2 text-sm ${valueClass} wrap-break-word whitespace-pre-wrap`}
         >
             {value}
         </div>
@@ -729,8 +729,7 @@ export default function ShowRequest() {
      * record (created after processing). Issuing the first OR is allowed here
      * when the cashier is unavailable.
      */
-    const canEditOr =
-        (isAdmin || isStaff) && Boolean(formInput.staff_input);
+    const canEditOr = (isAdmin || isStaff) && Boolean(formInput.staff_input);
 
     const handleOrSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -803,7 +802,7 @@ export default function ShowRequest() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 px-4 py-8">
+        <div className="min-h-screen bg-page-background px-4 py-8">
             <div className="mx-auto sm:max-w-6xl">
                 <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
@@ -1369,10 +1368,10 @@ export default function ShowRequest() {
                                                                           .id,
                                                                   )
                                                                 : '',
-                                                        ref_date: formInput
-                                                            .staff_input
-                                                            ?.ref_date
-                                                            ?.split('T')[0] ?? '',
+                                                        ref_date:
+                                                            formInput.staff_input?.ref_date?.split(
+                                                                'T',
+                                                            )[0] ?? '',
                                                         uacs_id: formInput
                                                             .staff_input?.uacs
                                                             ? String(
@@ -1386,11 +1385,11 @@ export default function ShowRequest() {
                                                                 .staff_input
                                                                 ?.status ??
                                                             'processed',
-purpose:
+                                                        purpose:
                                                             formInput
                                                                 .staff_input
                                                                 ?.purpose ?? '',
-                                                        });
+                                                    });
                                                     setIsEditingStaffInput(
                                                         true,
                                                     );
@@ -1571,7 +1570,9 @@ purpose:
                                                         }
                                                         valueFormat="iso"
                                                         maxDate={todayIso()}
-                                                        invalid={Boolean(staffInputErrors.ref_date)}
+                                                        invalid={Boolean(
+                                                            staffInputErrors.ref_date,
+                                                        )}
                                                         onChange={(value) =>
                                                             setStaffInputData(
                                                                 'ref_date',
@@ -1959,7 +1960,9 @@ purpose:
                                                 value={processData.ref_date}
                                                 valueFormat="iso"
                                                 maxDate={todayIso()}
-                                                invalid={Boolean(processErrors.ref_date)}
+                                                invalid={Boolean(
+                                                    processErrors.ref_date,
+                                                )}
                                                 onChange={(value) =>
                                                     setProcessData(
                                                         'ref_date',
@@ -2235,7 +2238,9 @@ purpose:
                                                     <DatePicker
                                                         value={orData.or_date}
                                                         valueFormat="iso"
-                                                        invalid={Boolean(orErrors.or_date)}
+                                                        invalid={Boolean(
+                                                            orErrors.or_date,
+                                                        )}
                                                         onChange={(value) =>
                                                             setOrData(
                                                                 'or_date',
@@ -2363,7 +2368,7 @@ purpose:
                                                                         title={
                                                                             document.original_filename
                                                                         }
-                                                                        className="block max-w-[260px] min-w-0 truncate text-blue-600 hover:underline"
+                                                                        className="block max-w-65 min-w-0 truncate text-blue-600 hover:underline"
                                                                     />
                                                                 }
                                                             >
@@ -3034,7 +3039,7 @@ purpose:
                                         emailRecipientName,
                                         emailNote,
                                     )}
-                                    className="h-[28rem] w-full bg-white"
+                                    className="h-112 w-full bg-white"
                                 />
                             </div>
                         </div>

@@ -17,25 +17,25 @@ function AppSidebarHeader({
     breadcrumbs?: BreadcrumbItem[];
 }) {
     return (
-        <div className="flex h-16 items-center gap-4 border-b px-6">
-            <SidebarTrigger />
-            <Separator orientation="vertical" className="h-6" />
+        <div className="flex h-16 items-center gap-4 border-b border-white/20 bg-[#007FFF] px-6 text-white">
+            <SidebarTrigger className="text-white hover:bg-white/15 hover:text-white" />
+            {/* <Separator orientation="vertical" className="h-6 bg-white/40" /> */}
             {breadcrumbs.length > 0 && (
                 <nav className="flex items-center gap-2 text-sm">
                     {breadcrumbs.map((crumb, index) => (
                         <div key={index} className="flex items-center gap-2">
                             {index > 0 && (
-                                <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                                <ChevronRight className="h-3 w-3 text-white/70" />
                             )}
                             {crumb.href ? (
                                 <Link
                                     href={crumb.href}
-                                    className="hover:text-primary"
+                                    className="text-white hover:text-white/80"
                                 >
                                     {crumb.title}
                                 </Link>
                             ) : (
-                                <span className="text-muted-foreground">
+                                <span className="text-white/80">
                                     {crumb.title}
                                 </span>
                             )}
@@ -51,7 +51,8 @@ export default function AppSidebarLayout({
     children,
     breadcrumbs = [],
 }: AppLayoutProps) {
-    const { auth } = usePage<{ auth?: { user?: { role?: string } | null } }>().props;
+    const { auth } = usePage<{ auth?: { user?: { role?: string } | null } }>()
+        .props;
     const isClient = auth?.user?.role === 'client';
 
     if (isClient) {
@@ -70,7 +71,7 @@ export default function AppSidebarLayout({
                 <UnifiedSidebar />
                 <SidebarInset className="overflow-hidden bg-[#FAFAF5]">
                     <AppSidebarHeader breadcrumbs={breadcrumbs} />
-                    <main className="min-h-0 flex-1 overflow-auto bg-[#FAFAF5] p-4 md:p-8">
+                    <main className="min-h-0 flex-1 overflow-auto bg-page-background p-4 md:p-8">
                         {children}
                     </main>
                 </SidebarInset>

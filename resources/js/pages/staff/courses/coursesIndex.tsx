@@ -2,15 +2,11 @@ import { Link, Head } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 
 // table
-import { columns  } from './columns';
-import type {CourseType} from './columns';
+import { columns } from './columns';
+import type { CourseType } from './columns';
 import { Button } from '@/components/base/buttons/button';
 import { ClientDataTable } from '@/components/data-table/client-data-table';
-import {
-    Card,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 
 // for client side search
 type CoursesProps = {
@@ -20,7 +16,7 @@ type CoursesProps = {
 export default function CoursesIndex({ courses }: CoursesProps) {
     return (
         <>
-            <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-slate-50 p-3 sm:p-6">
+            <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-page-background p-3 sm:p-6">
                 <Head title="Courses" />
 
                 <Card className="rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
@@ -44,7 +40,11 @@ export default function CoursesIndex({ courses }: CoursesProps) {
                     <ClientDataTable
                         columns={columns}
                         data={courses}
-                        searchableColumns={['course_code', 'course_desc', 'course_college']}
+                        searchableColumns={[
+                            'course_code',
+                            'course_desc',
+                            'course_college',
+                        ]}
                     />
                 </div>
             </div>

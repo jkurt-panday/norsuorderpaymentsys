@@ -377,7 +377,7 @@ export default function RequestTable<T extends { id: number | string }>({
     };
 
     return (
-        <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-slate-50 p-3 sm:p-6">
+        <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-page-background p-3 sm:p-6">
             {(title || resource.total !== undefined || customToolbar) && (
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     {title && (
@@ -389,9 +389,7 @@ export default function RequestTable<T extends { id: number | string }>({
                         </h2>
                     )}
                     {customToolbar && (
-                        <div className="flex items-center">
-                            {customToolbar}
-                        </div>
+                        <div className="flex items-center">{customToolbar}</div>
                     )}
                 </div>
             )}
