@@ -66,6 +66,10 @@
             "Composer\\Config::disableProcessTimeout",
             "@php artisan dev"
         ],
+        "queue:work": [
+            "Composer\\Config::disableProcessTimeout",
+            "@php artisan queue:work --tries=3 --timeout=120"
+        ],
         "lint": [
             "pint --parallel"
         ],

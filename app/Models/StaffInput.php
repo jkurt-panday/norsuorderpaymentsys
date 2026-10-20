@@ -23,6 +23,9 @@ class StaffInput extends Model
         'or_no',
         'or_date',
         'emailed_at',
+        'email_status',
+        'email_error',
+        'email_queued_at',
     ];
 
     protected $casts = [
@@ -30,9 +33,15 @@ class StaffInput extends Model
         'or_date' => 'date',
         'status' => 'string',
         'emailed_at' => 'datetime',
+        'email_queued_at' => 'datetime',
     ];
 
     public const STATUSES = ['pending', 'processed', 'paid', 'cancelled'];
+
+    /**
+     * Delivery states for a queued Order of Payment email.
+     */
+    public const EMAIL_STATUSES = ['pending', 'sent', 'failed'];
 
     /** @return BelongsTo<FormInput, $this> */
     public function formInput(): BelongsTo

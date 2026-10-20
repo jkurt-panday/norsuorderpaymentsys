@@ -1,5 +1,5 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { Inbox, Mail, Send, Search as SearchIcon, X, CheckCircle2, Loader2, CheckSquare, Square, ChevronDown, UserX } from 'lucide-react';
+import { Inbox, Mail, Send, Search as SearchIcon, X, CheckCircle2, Loader2, CheckSquare, Square, ChevronDown, UserX, XCircle } from 'lucide-react';
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import RequestTable, { StatusBadge } from '@/components/RequestTable';
 import type { ColumnDef, PaginatedData } from '@/components/RequestTable';
@@ -45,6 +45,7 @@ interface StaffInput {
     id: number;
     status: 'pending' | 'approved' | 'cancelled' | 'unprocessed' | 'processed' | 'paid';
     emailed_at: string | null;
+    email_status?: 'pending' | 'sent' | 'failed' | null;
 }
 
 interface FormInput {
@@ -218,12 +219,15 @@ const ManageRequests: React.FC = () => {
     // ALL form inputs (not paginated) fetched from the backend
     const [allRecipients, setAllRecipients] = useState<FormInput[]>([]);
     const [isLoadingRecipients, setIsLoadingRecipients] = useState(false);
+    const [isQueueStalled, setIsQueueStalled] = useState(false);
 
     // ---- Email Progress Tracking state ----
     interface EmailProgress {
         form_input_id: number;
-        status: 'sent' | 'pending';
+        status: 'sent' | 'pending' | 'failed';
         emailed_at: string | null;
+        stalled?: boolean;
+        error?: string | null;
     }
     const [emailFormInputIds, setEmailFormInputIds] = useState<number[]>([]);
     const [emailProgress, setEmailProgress] = useState<EmailProgress[]>([]);
@@ -232,6 +236,8 @@ const ManageRequests: React.FC = () => {
     const [showProgressModal, setShowProgressModal] = useState(false);
     const [pollingStartTime, setPollingStartTime] = useState<number | null>(null);
     const [pollTimeoutId, setPollTimeoutId] = useState<ReturnType<typeof setTimeout> | null>(null);
+    // Only warn once per send that the queue looks stalled.
+    const hasShownStalledToast = useRef(false);
     const [showSelectedPopover, setShowSelectedPopover] = useState(false);
     const [selectedPopoverSearch, setSelectedPopoverSearch] = useState('');
     const popoverRef = useRef<HTMLDivElement>(null);
@@ -286,6 +292,7 @@ return;
 }
 
                 setAllRecipients(json.data ?? []);
+                setIsQueueStalled(Boolean(json.queue_stalled));
                 setIsLoadingRecipients(false);
             })
             .catch((err) => {
@@ -403,6 +410,7 @@ return;
         setEmailTarget('specific');
         setSelectedIds(new Set());
         setAllRecipients([]);
+        setIsQueueStalled(false);
         setIsEmailModalOpen(true);
     };
 
@@ -440,11 +448,14 @@ return;
             const data = await res.json();
 
             if (data.success && data.form_input_ids?.length > 0) {
+                hasShownStalledToast.current = false;
                 setEmailFormInputIds(data.form_input_ids);
                 setEmailProgress(data.form_input_ids.map((id: number) => ({
                     form_input_id: id,
                     status: 'pending' as const,
                     emailed_at: null,
+                    stalled: false,
+                    error: null,
                 })));
                 setIsEmailModalOpen(false);
                 setSelectedIds(new Set());
@@ -479,7 +490,7 @@ return;
             isPollingRef.current = false;
             setIsPollingProgress(false);
             const pendingCount = emailProgress.filter(p => p.status === 'pending').length;
-            flashToast('warning', `Polling timed out. ${pendingCount} email(s) still pending. You can retry them.`);
+            flashToast('warning', `Polling timed out. ${pendingCount} email(s) still pending. Make sure a queue worker is running (php artisan queue:work), then retry them.`);
 
             return;
         }
@@ -508,6 +519,8 @@ return;
                         form_input_id: job.form_input_id,
                         status: job.status,
                         emailed_at: job.emailed_at,
+                        stalled: job.stalled ?? false,
+                        error: job.error ?? null,
                     }));
 
                     // Only update if actually changed
@@ -527,8 +540,17 @@ return;
 clearTimeout(pollTimeoutId);
 }
 
-                flashToast('success', `All emails processed: ${data.summary.sent} sent, ${data.summary.failed} failed.`);
+                if (data.summary.failed > 0) {
+                    flashToast('warning', `Emails processed: ${data.summary.sent} sent, ${data.summary.failed} failed.`);
+                } else {
+                    flashToast('success', `All emails processed: ${data.summary.sent} sent, ${data.summary.failed} failed.`);
+                }
             } else {
+                if ((data.summary?.stalled ?? 0) > 0 && !hasShownStalledToast.current) {
+                    hasShownStalledToast.current = true;
+                    flashToast('error', `No queue worker is running — ${data.summary.stalled} email job(s) were queued but never picked up. Start one with "php artisan queue:work" (or "composer queue:work"), then send again.`);
+                }
+
                 // Poll every 5 seconds (passive auto-refresh)
                 const timeoutId = setTimeout(() => pollProgressWithIds(ids), 5000);
                 setPollTimeoutId(timeoutId);
@@ -759,6 +781,18 @@ clearTimeout(pollTimeoutId);
                     </DialogHeader>
 
                     <div className="space-y-4 pb-2">
+                        {isQueueStalled && (
+                            <div className="rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800">
+                                <div className="font-semibold">Queue worker not running</div>
+                                <div className="mt-1 text-xs">
+                                    Emails are sent in the background by a queue worker. Start one with{' '}
+                                    <code className="rounded bg-white px-1 py-0.5 font-mono">php artisan queue:work</code>{' '}
+                                    (or <code className="rounded bg-white px-1 py-0.5 font-mono">composer queue:work</code>) before sending —
+                                    otherwise the requests stay queued and no email goes out.
+                                </div>
+                            </div>
+                        )}
+
                         {/* Recipient selection dropdown */}
                         <div className="space-y-1.5">
                             <label className="text-sm font-medium text-slate-700">
@@ -935,6 +969,16 @@ return true;
                                                             >
                                                                 {row.staff_input?.status ?? 'Unprocessed'}
                                                             </span>
+                                                            {row.staff_input?.email_status === 'pending' && (
+                                                                <span className="inline shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                                                                    Email queued
+                                                                </span>
+                                                            )}
+                                                            {row.staff_input?.email_status === 'failed' && (
+                                                                <span className="inline shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700">
+                                                                    Email failed
+                                                                </span>
+                                                            )}
                                                         </div>
                                                         <div className="truncate text-xs text-slate-500">
                                                             {row.reference_number} · {row.email}
@@ -1112,6 +1156,16 @@ return true;
                                                             >
                                                                 {row.staff_input?.status ?? 'Unprocessed'}
                                                             </span>
+                                                            {row.staff_input?.email_status === 'pending' && (
+                                                                <span className="inline shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                                                                    Email queued
+                                                                </span>
+                                                            )}
+                                                            {row.staff_input?.email_status === 'failed' && (
+                                                                <span className="inline shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700">
+                                                                    Email failed
+                                                                </span>
+                                                            )}
                                                         </div>
                                                         <div className="truncate text-xs text-slate-500">
                                                             {row.reference_number} · {row.email}
@@ -1218,6 +1272,13 @@ return true;
                             </div>
                             <div className="w-px h-10 bg-slate-200" />
                             <div className="flex-1 text-center">
+                                <div className="text-2xl font-bold text-rose-600">
+                                    {emailProgress.filter(p => p.status === 'failed').length}
+                                </div>
+                                <div className="text-xs text-slate-500">Failed</div>
+                            </div>
+                            <div className="w-px h-10 bg-slate-200" />
+                            <div className="flex-1 text-center">
                                 <div className="text-2xl font-bold text-slate-600">
                                     {emailProgress.filter(p => p.status === 'pending').length}
                                 </div>
@@ -1232,6 +1293,18 @@ return true;
                             </div>
                         </div>
 
+                        {/* Stalled Queue Warning */}
+                        {emailProgress.some(p => p.stalled) && (
+                            <div className="rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800">
+                                <div className="font-semibold">No queue worker is running</div>
+                                <div className="mt-1 text-xs">
+                                    These emails were queued but no worker picked them up, so they will not be sent.
+                                    Start a worker with <code className="rounded bg-white px-1 py-0.5 font-mono">php artisan queue:work</code>{' '}
+                                    (or <code className="rounded bg-white px-1 py-0.5 font-mono">composer queue:work</code>) and they will be delivered automatically.
+                                </div>
+                            </div>
+                        )}
+
                         {/* Progress Bar */}
                         <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
                             <div
@@ -1244,11 +1317,15 @@ return true;
                             />
                         </div>
                         <p className="text-sm text-slate-500 text-center flex items-center justify-center gap-2">
-                            {isPollingProgress 
-                                ? (pollingStartTime && Date.now() - pollingStartTime > MAX_POLLING_DURATION * 0.8
-                                    ? 'Almost timed out...'
-                                    : <span>Processing... <Loader2 className="h-4 w-4 animate-spin text-emerald-600" /> <span className="text-xs text-slate-400">(auto-refresh every 5s)</span></span>) 
-                                : 'Completed'}
+                            {isPollingProgress
+                                ? (emailProgress.some(p => p.stalled)
+                                    ? <span className="text-rose-600">Waiting for a queue worker...</span>
+                                    : (pollingStartTime && Date.now() - pollingStartTime > MAX_POLLING_DURATION * 0.8
+                                        ? 'Almost timed out...'
+                                        : <span>Processing... <Loader2 className="h-4 w-4 animate-spin text-emerald-600" /> <span className="text-xs text-slate-400">(auto-refresh every 5s)</span></span>))
+                                : emailProgress.some(p => p.status === 'failed')
+                                    ? `Completed — ${emailProgress.filter(p => p.status === 'failed').length} email(s) failed`
+                                    : 'Completed'}
                         </p>
 
                         {/* Job List - Scrollable */}
@@ -1264,10 +1341,12 @@ return true;
                                         const statusColors = {
                                             sent: 'bg-emerald-100 text-emerald-700',
                                             pending: 'bg-amber-100 text-amber-700',
+                                            failed: 'bg-rose-100 text-rose-700',
                                         };
                                         const statusIcons = {
                                             sent: <CheckCircle2 className="h-3.5 w-3.5" />,
                                             pending: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
+                                            failed: <XCircle className="h-3.5 w-3.5" />,
                                         };
 
                                         return (
@@ -1290,9 +1369,19 @@ return true;
                                                     <div className="text-xs text-slate-500 truncate">
                                                         {recipient ? `${recipient.reference_number} · ${recipient.email}` : `ID: ${progress.form_input_id}`}
                                                     </div>
-                                                    {progress.emailed_at && (
+                                                    {progress.status === 'sent' && progress.emailed_at && (
                                                         <div className="text-xs text-emerald-600">
                                                             Sent: {formatDate(progress.emailed_at)}
+                                                        </div>
+                                                    )}
+                                                    {progress.status === 'failed' && (
+                                                        <div className="text-xs text-rose-600">
+                                                            Failed: {progress.error ?? 'Unknown error'}
+                                                        </div>
+                                                    )}
+                                                    {progress.stalled && (
+                                                        <div className="text-xs text-rose-600">
+                                                            Stalled: {progress.error ?? 'Queued but never picked up — no queue worker is running.'}
                                                         </div>
                                                     )}
                                                 </div>

@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Inertia\Support\Header;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -19,11 +20,25 @@ class HandleInertiaRequests extends Middleware
     /**
      * Determines the current asset version.
      *
+     * Asset versioning exists so a production deploy forces a hard reload of
+     * the SPA. It must stay off outside production: the Vite dev server
+     * serves the assets in local, and any rebuild of
+     * public/build/manifest.json would change the hash and make every
+     * Inertia request fail with a 409 Conflict.
+     *
+     * In local/testing the browser's version is echoed back so a tab that
+     * was loaded with an older version can never trip the conflict check
+     * either.
+     *
      * @see https://inertiajs.com/asset-versioning
      */
     public function version(Request $request): ?string
     {
-        return parent::version($request);
+        if (! app()->environment('local', 'testing')) {
+            return parent::version($request);
+        }
+
+        return $request->header(Header::VERSION);
     }
 
     /**
