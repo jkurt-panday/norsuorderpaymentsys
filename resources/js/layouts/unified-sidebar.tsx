@@ -398,6 +398,7 @@ export default function UnifiedSidebar() {
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
+                                variant="destructive"
                                 onClick={() => router.post('/logout')}
                             >
                                 Logout

@@ -15,9 +15,9 @@ function AppSidebarHeader({
     breadcrumbs?: BreadcrumbItem[];
 }) {
     return (
-        <div className="flex h-16 items-center gap-4 border-b px-6">
+        <div className="flex h-16 items-center gap-4 border-b px-6 bg-[#0d51b5] text-white">
             <SidebarTrigger />
-            <Separator orientation="vertical" className="h-6" />
+            {/* <Separator orientation="vertical" className="h-6" /> */}
             {breadcrumbs.length > 0 && (
                 <nav className="flex items-center gap-2 text-sm">
                     {breadcrumbs.map((crumb, index) => (

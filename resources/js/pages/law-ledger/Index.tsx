@@ -1686,14 +1686,14 @@ return 90;
           <AlertDialogFooter className="mx-0 mb-0 rounded-none border-[#EAF2FF] bg-[#F8FBFF] px-5 py-4">
             <AlertDialogCancel
               disabled={isDeleting}
-              className="border-[#CFE3FF] text-[#0B3D91] hover:bg-white"
+              className=""
             >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               disabled={isDeleting}
               onClick={confirmDelete}
-              className="bg-red-600 text-white hover:bg-red-700"
             >
               {isDeleting ? (
                 <>
@@ -2256,14 +2256,13 @@ return 90;
           <AlertDialogFooter className="mx-0 mb-0 rounded-none border-[#EAF2FF] bg-[#F8FBFF] px-5 py-4">
             <AlertDialogCancel
               disabled={isApplyingHonor}
-              className="border-[#CFE3FF] text-[#0B3D91] hover:bg-white"
             >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               disabled={isApplyingHonor || !selectedHonor}
               onClick={applyHonorDiscount}
-              className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB] disabled:opacity-50"
+              className="bg-[#0d51b5] text-white hover:bg-[#0a3d8a] disabled:opacity-50"
             >
               {isApplyingHonor ? (
                 <>

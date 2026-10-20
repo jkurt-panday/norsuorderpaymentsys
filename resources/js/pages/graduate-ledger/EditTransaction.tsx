@@ -812,14 +812,13 @@ export default function EditTransaction({
                         <AlertDialogCancel
                             disabled={isDeleting}
                             onClick={() => setShowDeleteDialog(false)}
-                            className="border-[#CFE3FF] text-[#0B3D91]"
                         >
                             Cancel
                         </AlertDialogCancel>
                         <AlertDialogAction
+                            variant="destructive"
                             disabled={isDeleting}
                             onClick={handleConfirmDelete}
-                            className="bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
                         >
                             {isDeleting && (
                                 <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />

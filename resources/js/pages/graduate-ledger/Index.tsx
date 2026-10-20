@@ -2308,18 +2308,17 @@ throw new Error('Export failed');
               <strong className="text-[#0B3D91]">{deleteTarget?.name}</strong>? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="border-t border-[#CFE3FF] bg-[#F8FBFF] px-5 py-3">
+          <AlertDialogFooter>
             <AlertDialogCancel
               disabled={isDeleting}
               onClick={() => setDeleteTarget(null)}
-              className="border-[#CFE3FF] text-[#0B3D91]"
             >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               disabled={isDeleting}
               onClick={handleConfirmDelete}
-              className="bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
             >
               {isDeleting && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               {isDeleting ? 'Deleting...' : 'Delete'}
