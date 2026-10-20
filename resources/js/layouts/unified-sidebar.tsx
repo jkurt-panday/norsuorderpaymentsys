@@ -68,24 +68,32 @@ const cashierNavItems: SidebarItem[] = [
 ];
 
 const staffCollapsibleItems = [
-        {
+    {
         title: 'Order of Payment',
         icon: FileSearchIcon,
         items: [
-                    { title: 'Requests', href: '/staff/requests', icon: FileText },
-                    { title: 'Bank Accounts', href: '/staff/bank-accounts', icon: Building },
-                    {
-                        title: 'Payment Options',
-                        href: '/staff/payment-options',
-                        icon: CreditCard,
-                    },
-                    { title: 'Memberships', href: '/staff/memberships', icon: Users },
-                    { title: 'UACS', href: '/staff/uacs', icon: Logs },
-                    { title: 'Authorized Officials', href: '/staff/authorized-officials', icon: Shield },
-                    { title: 'Course', href: '/staff/courses', icon: School },
-                        ],
-                    },
-                 {
+            { title: 'Requests', href: '/staff/requests', icon: FileText },
+            {
+                title: 'Bank Accounts',
+                href: '/staff/bank-accounts',
+                icon: Building,
+            },
+            {
+                title: 'Payment Options',
+                href: '/staff/payment-options',
+                icon: CreditCard,
+            },
+            { title: 'Memberships', href: '/staff/memberships', icon: Users },
+            { title: 'UACS', href: '/staff/uacs', icon: Logs },
+            {
+                title: 'Authorized Officials',
+                href: '/staff/authorized-officials',
+                icon: Shield,
+            },
+            { title: 'Course', href: '/staff/courses', icon: School },
+        ],
+    },
+    {
         title: 'Assessments',
         icon: FileSearchIcon,
         items: [
@@ -241,7 +249,7 @@ export default function UnifiedSidebar() {
     }, [activeCollapsibleTitles]);
 
     return (
-        <Sidebar className="border-r border-blue-900/40 bg-[#003f7d] text-white [&_[data-sidebar=sidebar]]:bg-transparent">
+        <Sidebar className="border-r border-white/20 bg-[#007FFF] text-white **:data-[sidebar=sidebar]:bg-transparent">
             <SidebarHeader className="border-b border-blue-400/20 px-4 py-5">
                 <div className="flex flex-col items-center gap-2">
                     <img
@@ -266,7 +274,7 @@ export default function UnifiedSidebar() {
                 <SidebarMenu>
                     {isAdmin && (
                         <>
-                            <div className="mb-2 px-2 py-1 text-xs font-semibold tracking-wider text-blue-200/80 uppercase">
+                            <div className="mb-2 px-2 py-1 text-xs font-semibold tracking-wider text-white/80 uppercase">
                                 Admin
                             </div>
                             {adminNavItems.map((item, index) => (
@@ -278,7 +286,7 @@ export default function UnifiedSidebar() {
                                                 className={`my-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[15px] transition-colors duration-200 ${
                                                     isActive(item.href)
                                                         ? 'bg-[#0078d4] font-medium text-white shadow-sm'
-                                                        : 'text-white/80 hover:bg-white/5 hover:text-white'
+                                                        : 'text-white hover:bg-white/15 hover:text-white'
                                                 }`}
                                             />
                                         }
@@ -292,7 +300,7 @@ export default function UnifiedSidebar() {
                     )}
 
                     <div
-                        className={`mb-2 px-2 py-1 text-xs font-semibold tracking-wider text-blue-200/80 uppercase ${
+                        className={`mb-2 px-2 py-1 text-xs font-semibold tracking-wider text-white/80 uppercase ${
                             isAdmin ? 'mt-4' : ''
                         }`}
                     >
@@ -312,7 +320,7 @@ export default function UnifiedSidebar() {
                                             className={`my-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[15px] transition-colors duration-200 ${
                                                 isActive(item.href)
                                                     ? 'bg-[#0078d4] font-medium text-white shadow-sm'
-                                                    : 'text-white/80 hover:bg-white/5 hover:text-white'
+                                                    : 'text-white hover:bg-white/15 hover:text-white'
                                             }`}
                                         />
                                     }
@@ -340,7 +348,7 @@ export default function UnifiedSidebar() {
                                     >
                                         <item.icon className="mr-2 h-4 w-4 shrink-0" />
                                         <span>{item.title}</span>
-                                        <ChevronRight className="ml-auto h-4 w-4 text-white/60 transition-transform duration-200 group-data-[open]/collapsible:rotate-90" />
+                                        <ChevronRight className="ml-auto h-4 w-4 text-white/60 transition-transform duration-200 group-data-open/collapsible:rotate-90" />
                                     </CollapsibleTrigger>
                                     <CollapsibleContent>
                                         <SidebarMenuSub className="ml-4 border-l border-blue-400/20 pl-3">
@@ -360,7 +368,7 @@ export default function UnifiedSidebar() {
                                                                             subItem.href,
                                                                         )
                                                                             ? 'bg-[#0078d4] font-medium text-white shadow-sm'
-                                                                            : 'text-white/70 hover:bg-white/5 hover:text-white'
+                                                                            : 'text-white/90 hover:bg-white/15 hover:text-white'
                                                                     }`}
                                                                 />
                                                             }

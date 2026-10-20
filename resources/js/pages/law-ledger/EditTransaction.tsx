@@ -264,7 +264,7 @@ export default function EditTransaction({
             ?.label ?? 'Adjustment';
 
     return (
-        <div className="min-h-full bg-[#FAFAF5] p-4 md:p-8">
+        <div className="min-h-full bg-page-background p-4 md:p-8">
             <Head title="Edit Transaction - Law School Ledger" />
             <div className="mx-auto max-w-5xl space-y-6">
                 <div className="flex items-center justify-between border-b border-[#CFE3FF] pb-4">
@@ -855,13 +855,18 @@ export default function EditTransaction({
                 >
                     <AlertDialogContent size="sm">
                         <AlertDialogHeader>
-                            <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
+                            <AlertDialogTitle>
+                                Discard unsaved changes?
+                            </AlertDialogTitle>
                             <AlertDialogDescription>
-                                Your changes have not been saved. Are you sure you want to leave this page?
+                                Your changes have not been saved. Are you sure
+                                you want to leave this page?
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogCancel>Continue editing</AlertDialogCancel>
+                            <AlertDialogCancel>
+                                Continue editing
+                            </AlertDialogCancel>
                             <AlertDialogAction onClick={navigateToLedger}>
                                 Discard changes
                             </AlertDialogAction>

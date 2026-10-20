@@ -41,7 +41,7 @@ class AssessmentController extends Controller
             ->with('course')
             ->filtered($request)
             ->orderBy($sort, $direction)
-            ->paginate(15)
+            ->paginate(10)
             ->withQueryString();
 
         return Inertia::render('staff/assessments/assessmentIndex', [

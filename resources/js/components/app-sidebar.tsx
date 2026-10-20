@@ -67,7 +67,7 @@ export function AppSidebar() {
         <Sidebar
             collapsible="icon"
             variant="inset"
-            className="border-r border-blue-900/40 bg-[#003f7d] pt-5 text-white [&_[data-sidebar=sidebar]]:bg-transparent"
+            className="border-r border-white/20 bg-[#0080ff9d] pt-5 text-white [&_[data-sidebar=sidebar]]:bg-transparent"
         >
             <SidebarHeader className="mb-2 items-center border-b border-blue-400/20 bg-transparent px-3 pb-4 text-center">
                 {!isCollapsed ? (

@@ -61,7 +61,11 @@ function getEntryTypeBadge(type?: string | null): string {
 function isDeduction(type?: string | null): boolean {
     const normalized = (type ?? '').trim().toUpperCase();
 
-    return normalized === 'PAYMENT' || normalized === 'P' || normalized.includes('ADJUST');
+    return (
+        normalized === 'PAYMENT' ||
+        normalized === 'P' ||
+        normalized.includes('ADJUST')
+    );
 }
 
 function absAmount(val: unknown): number {
@@ -127,7 +131,11 @@ export default function PrintSelect({
     const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
 
     useEffect(() => {
-        if (selectedStudent !== undefined && selectedStudent !== null && selectedStudent !== '') {
+        if (
+            selectedStudent !== undefined &&
+            selectedStudent !== null &&
+            selectedStudent !== ''
+        ) {
             setSelected(selectedStudent);
         }
     }, [selectedStudent]);
@@ -252,29 +260,29 @@ export default function PrintSelect({
 
     const handleOpenPdf = () => {
         if (!selected) {
-return;
-}
+            return;
+        }
 
         const queryKey = isNumericId ? 'student_id' : 'student';
         const params = new URLSearchParams({ [queryKey]: String(selected) });
 
         if (schoolYearFilter !== 'all') {
-params.set('school_year', schoolYearFilter);
-}
+            params.set('school_year', schoolYearFilter);
+        }
 
         if (semesterFilter !== 'all') {
-params.set('semester', semesterFilter);
-}
+            params.set('semester', semesterFilter);
+        }
 
         if (typeFilter !== 'all') {
-params.set('type', typeFilter);
-}
+            params.set('type', typeFilter);
+        }
 
         window.open(`/graduate-ledger/pdf?${params.toString()}`, '_blank');
     };
 
     return (
-        <div className="min-h-full bg-[#FAFAF5] p-4 md:p-8">
+        <div className="min-h-full bg-page-background p-4 md:p-8">
             <Head title="Search Student" />
 
             <div className="mx-auto max-w-5xl space-y-6">
@@ -396,7 +404,11 @@ params.set('type', typeFilter);
                                         <div>
                                             <CardTitle className="text-lg font-bold text-[#0B3D91]">
                                                 {records[0]?.name ||
-                                                    students.find((s) => String(s.id) === String(selected))?.full_name ||
+                                                    students.find(
+                                                        (s) =>
+                                                            String(s.id) ===
+                                                            String(selected),
+                                                    )?.full_name ||
                                                     'Student Record'}
                                             </CardTitle>
                                             <CardDescription className="text-xs text-[#7FA6D6]">
@@ -416,7 +428,9 @@ params.set('type', typeFilter);
                                 </Card>
 
                                 {/* Stats Row */}
-                                <div className={`grid grid-cols-1 gap-4 ${(summary.totalAdjustments ?? 0) > 0 ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
+                                <div
+                                    className={`grid grid-cols-1 gap-4 ${(summary.totalAdjustments ?? 0) > 0 ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}
+                                >
                                     <Card className="border-[#CFE3FF] bg-white p-4">
                                         <p className="text-xs text-[#5C7A9E]">
                                             Total Billed Charges (AR)
@@ -439,7 +453,10 @@ params.set('type', typeFilter);
                                                 Total Adjustments
                                             </p>
                                             <h3 className="mt-1 text-base font-bold text-purple-900">
-                                                {currency(summary.totalAdjustments ?? 0)}
+                                                {currency(
+                                                    summary.totalAdjustments ??
+                                                        0,
+                                                )}
                                             </h3>
                                         </Card>
                                     )}
@@ -674,8 +691,15 @@ params.set('type', typeFilter);
                                                                             }
                                                                         </Badge>
                                                                     </td>
-                                                                    <td className={`px-3 py-2 text-right font-medium ${isDeduction(r.arPayment) ? (r.arPayment?.toUpperCase().includes('ADJUST') ? 'text-purple-700' : 'text-emerald-700') : 'text-[#0B3D91]'}`}>
-                                                                        {isDeduction(r.arPayment) ? '−' : ''}{currency(
+                                                                    <td
+                                                                        className={`px-3 py-2 text-right font-medium ${isDeduction(r.arPayment) ? (r.arPayment?.toUpperCase().includes('ADJUST') ? 'text-purple-700' : 'text-emerald-700') : 'text-[#0B3D91]'}`}
+                                                                    >
+                                                                        {isDeduction(
+                                                                            r.arPayment,
+                                                                        )
+                                                                            ? '−'
+                                                                            : ''}
+                                                                        {currency(
                                                                             absAmount(
                                                                                 r.amount,
                                                                             ),

@@ -23,7 +23,7 @@ export default function AssessmentDashboard({
     requestsTrend,
 }: AssessmentDashboardProps) {
     return (
-        <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-slate-50 p-3 sm:p-6">
+        <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-page-background p-3 sm:p-6">
             <Head title="Dashboard Assessment" />
 
             <Card className="rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
@@ -93,7 +93,13 @@ export default function AssessmentDashboard({
                     title="Assessments by Course"
                     data={byCourse}
                     xAxisKey="course"
-                    series={[{ key: 'total', label: 'Assessments', color: '#007FFF' }]}
+                    series={[
+                        {
+                            key: 'total',
+                            label: 'Assessments',
+                            color: '#007FFF',
+                        },
+                    ]}
                     height="h-50"
                     className="lg:col-span-2"
                 />

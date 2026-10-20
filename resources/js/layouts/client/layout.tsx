@@ -48,7 +48,7 @@ function ClientSidebar() {
     };
 
     return (
-        <Sidebar className="border-r border-blue-900/40 bg-[#003f7d] text-white [&_[data-sidebar=sidebar]]:bg-transparent">
+        <Sidebar className="border-r border-white/20 bg-[#007FFF] text-white [&_[data-sidebar=sidebar]]:bg-transparent">
             {/* Header */}
             <SidebarHeader className="border-b border-blue-400/20 px-4 py-5">
                 <div className="flex flex-col items-center gap-2">
@@ -57,16 +57,15 @@ function ClientSidebar() {
                         alt="NORSU Order of Payment System"
                         className="w-40 rounded-md object-contain"
                         onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
+                            (e.target as HTMLImageElement).style.display =
+                                'none';
                         }}
                     />
                     <div className="text-center">
                         <p className="text-sm font-semibold text-white">
                             Order of Payment
                         </p>
-                        <p className="text-xs text-white/70">
-                            Client Portal
-                        </p>
+                        <p className="text-xs text-white/70">Client Portal</p>
                     </div>
                 </div>
             </SidebarHeader>
@@ -135,25 +134,25 @@ function ClientSidebarHeader({
     breadcrumbs?: BreadcrumbItem[];
 }) {
     return (
-        <div className="flex h-16 items-center gap-4 border-b px-6">
-            <SidebarTrigger />
-            <Separator orientation="vertical" className="h-6" />
+        <div className="flex h-16 items-center gap-4 border-b border-white/20 bg-[#007FFF] px-6 text-white">
+            <SidebarTrigger className="text-white hover:bg-white/15 hover:text-white" />
+            {/* <Separator orientation="vertical" className="h-6 bg-white/40" /> */}
             {breadcrumbs.length > 0 && (
                 <nav className="flex items-center gap-2 text-sm">
                     {breadcrumbs.map((crumb, index) => (
                         <div key={index} className="flex items-center gap-2">
                             {index > 0 && (
-                                <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                                <ChevronRight className="h-3 w-3 text-white/70" />
                             )}
                             {crumb.href ? (
                                 <Link
                                     href={crumb.href}
-                                    className="hover:text-primary"
+                                    className="text-white hover:text-white/80"
                                 >
                                     {crumb.title}
                                 </Link>
                             ) : (
-                                <span className="text-muted-foreground">
+                                <span className="text-white/80">
                                     {crumb.title}
                                 </span>
                             )}
@@ -175,7 +174,7 @@ export default function ClientSidebarLayout({
                 <ClientSidebar />
                 <SidebarInset className="overflow-hidden bg-[#FAFAF5]">
                     <ClientSidebarHeader breadcrumbs={breadcrumbs} />
-                    <main className="min-h-0 flex-1 overflow-auto bg-[#FAFAF5] p-4 md:p-8">
+                    <main className="min-h-0 flex-1 overflow-auto bg-page-background p-4 md:p-8">
                         {children}
                     </main>
                 </SidebarInset>

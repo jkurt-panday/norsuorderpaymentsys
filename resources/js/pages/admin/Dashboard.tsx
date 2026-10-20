@@ -30,14 +30,14 @@ export default function AdminDashboardPage() {
 
     function formatDateTime(value?: string | null) {
         if (!value) {
-return '-';
-}
+            return '-';
+        }
 
         const date = new Date(value);
 
         if (Number.isNaN(date.getTime())) {
-return value;
-}
+            return value;
+        }
 
         return date.toLocaleString('en-US', {
             month: 'short',
@@ -64,7 +64,7 @@ return value;
     return (
         <AdminLayout>
             <Head title="Admin Dashboard" />
-            <div className="min-h-screen bg-slate-50 px-4 py-8">
+            <div className="min-h-screen bg-page-background px-4 py-8">
                 <div className="mx-auto max-w-7xl">
                     <div className="mb-8">
                         <h1 className="text-2xl font-semibold text-slate-950">

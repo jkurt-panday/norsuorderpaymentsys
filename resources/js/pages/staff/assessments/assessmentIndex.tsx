@@ -1,7 +1,7 @@
 import { Head, usePoll } from '@inertiajs/react';
 import { AssessmentFilters } from './assessment-filters';
-import { columns  } from './columns';
-import type {AssessmentType} from './columns';
+import { columns } from './columns';
+import type { AssessmentType } from './columns';
 import { ServerDataTable } from '@/components/data-table/server-data-table';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -34,18 +34,22 @@ type AssessmentProps = {
     };
 };
 
-export default function AssessmentIndex({ assessments, filters, filterOptions }: AssessmentProps) {
+export default function AssessmentIndex({
+    assessments,
+    filters,
+    filterOptions,
+}: AssessmentProps) {
     usePoll(15000, {
         only: ['assessments'],
     });
 
     return (
         <>
-            <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-slate-50 p-3 sm:p-6">
+            <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-page-background p-3 sm:p-6">
                 <Head title="Index Assessment" />
                 <Card className="rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between p-3">
-                        <CardTitle className="text-xl font-bold text-slate-900">
+                        <CardTitle className="bg-[linear-gradient(to_right,#007FFF,#3399FF,#80BFFF)] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                             Assessments
                         </CardTitle>
                     </CardHeader>
@@ -62,7 +66,11 @@ export default function AssessmentIndex({ assessments, filters, filterOptions }:
                         per_page: assessments.per_page,
                         total: assessments.total,
                     }}
-                    sortableColumns={['reference_number', 'last_name', 'created_at']}
+                    sortableColumns={[
+                        'reference_number',
+                        'last_name',
+                        'created_at',
+                    ]}
                     extraFilters={({ values, setValue }) => (
                         <AssessmentFilters
                             values={values}
