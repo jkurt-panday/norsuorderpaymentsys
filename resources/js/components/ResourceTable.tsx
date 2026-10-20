@@ -31,6 +31,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { CardTitle } from '@/components/ui/card';
 
 // ============ TYPE DEFINITIONS ============
 export interface PaginationLink {
@@ -496,9 +497,9 @@ export default function ResourceTable<T extends { id: number }>({
                         </div>
                     )}
                     <div>
-                        <h2 className="text-xl font-bold text-slate-900">
+                        <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                             {title}
-                        </h2>
+                        </CardTitle>
                         {description && (
                             <p className="text-sm text-slate-500">
                                 {description}

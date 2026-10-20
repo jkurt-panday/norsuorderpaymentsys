@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Models\AssessmentForm;
-// use Illuminate\Support\Facades\DB;
 use Carbon\CarbonPeriod;
+use Illuminate\Support\Facades\DB;
 
 class AssessmentStatsService
 {
@@ -62,11 +62,22 @@ class AssessmentStatsService
     /** @return list<array{month: string, total: int}> */
     public function monthlyTrend(int $months = 6): array
     {
-        return array_values(AssessmentForm::query()
-            ->selectRaw("to_char(created_at, 'YYYY-MM') as month, count(*) as total")
-            ->where('created_at', '>=', now()->subMonths($months)->startOfMonth())
-            ->groupBy('month')
-            ->orderBy('month')
+        $query = AssessmentForm::query()
+            ->where('created_at', '>=', now()->subMonths($months)->startOfMonth());
+
+        // DATE_FORMAT is MySQL-specific; to_char is PostgreSQL-specific.
+        // Fetch the grouped rows using the active driver's expression, then
+        // normalize the result to the same YYYY-MM API shape.
+        $monthExpression = match (DB::connection()->getDriverName()) {
+            'pgsql' => "to_char(created_at, 'YYYY-MM')",
+            'sqlite' => "strftime('%Y-%m', created_at)",
+            default => "DATE_FORMAT(created_at, '%Y-%m')",
+        };
+
+        return array_values($query
+            ->selectRaw("{$monthExpression} as month, count(*) as total")
+            ->groupByRaw($monthExpression)
+            ->orderBy('month', 'asc')
             ->get()
             ->map(fn (AssessmentForm $record): array => [
                 'month' => (string) $record->getAttribute('month'),

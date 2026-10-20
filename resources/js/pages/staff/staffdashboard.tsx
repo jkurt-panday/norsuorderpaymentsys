@@ -7,6 +7,7 @@ import {
     getDayLabel,
 } from '@/components/Reusable';
 import type { ActivityLogItem } from '@/components/Reusable';
+import { CardTitle } from '@/components/ui/card';
 
 interface RecentRequest {
     id: number;
@@ -126,9 +127,9 @@ export default function Dashboard() {
             <div className="mx-auto max-w-7xl">
                 <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold text-slate-950">
+                        <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                             Dashboard
-                        </h1>
+                        </CardTitle>
                         <p className="text-sm text-slate-500">
                             Staff dashboard overview for requests and activity.
                         </p>

@@ -13,11 +13,7 @@ import { toast } from 'sonner';
 import PasswordInput from '@/components/password-input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -54,6 +50,7 @@ import {
     toggle as toggleAdminUser,
 } from '@/routes/admin/users';
 import { store as storeAdminUser } from '@/routes/admin/users';
+import { CardTitle } from '@/components/ui/card';
 
 type UserRole = 'admin' | 'staff' | 'cashier' | 'client';
 
@@ -108,14 +105,14 @@ const ROLE_OPTIONS = [
 
 function formatDateTime(value?: string | null) {
     if (!value) {
-return '-';
-}
+        return '-';
+    }
 
     const date = new Date(value);
 
     if (Number.isNaN(date.getTime())) {
-return value;
-}
+        return value;
+    }
 
     return date.toLocaleString('en-US', {
         month: 'short',
@@ -404,9 +401,9 @@ export default function AdminUserManagement() {
             <div className="mx-auto max-w-7xl">
                 <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold text-slate-950">
+                        <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                             User Management
-                        </h1>
+                        </CardTitle>
                         <p className="text-sm text-slate-500">
                             Manage system users, roles, and access permissions.
                         </p>
@@ -687,12 +684,12 @@ export default function AdminUserManagement() {
                                                         setPageJumpOpen(open);
 
                                                         if (open) {
-setPageJumpInput(
+                                                            setPageJumpInput(
                                                                 String(
                                                                     currentPage,
                                                                 ),
                                                             );
-}
+                                                        }
                                                     }}
                                                 >
                                                     <PopoverTrigger

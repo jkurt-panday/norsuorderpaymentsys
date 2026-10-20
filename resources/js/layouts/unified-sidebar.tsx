@@ -15,6 +15,7 @@ import {
     FileSearchIcon,
     ChevronRight,
     LogOut,
+    FileSpreadsheet,
 } from 'lucide-react';
 import React from 'react';
 import {
@@ -95,7 +96,7 @@ const staffCollapsibleItems = [
     },
     {
         title: 'Assessments',
-        icon: FileSearchIcon,
+        icon: FileSpreadsheet,
         items: [
             { title: 'Dashboard', href: '/staff/assessments/dashboard' },
             { title: 'Assessments', href: '/staff/assessments' },
@@ -274,7 +275,7 @@ export default function UnifiedSidebar() {
                 <SidebarMenu>
                     {isAdmin && (
                         <>
-                            <div className="mb-2 px-2 py-1 text-xs font-semibold tracking-wider text-white/80 uppercase">
+                            <div className="mb-2 px-2 py-1 text-xl font-semibold tracking-wider text-white/90 uppercase">
                                 Admin
                             </div>
                             {adminNavItems.map((item, index) => (
@@ -285,14 +286,16 @@ export default function UnifiedSidebar() {
                                                 href={item.href}
                                                 className={`my-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[15px] transition-colors duration-200 ${
                                                     isActive(item.href)
-                                                        ? 'bg-[#0078d4] font-medium text-white shadow-sm'
+                                                        ? 'bg-white font-medium text-blue-500 shadow-sm'
                                                         : 'text-white hover:bg-white/15 hover:text-white'
                                                 }`}
                                             />
                                         }
                                     >
                                         <item.icon className="mr-2 h-4 w-4 shrink-0" />
-                                        <span>{item.title}</span>
+                                        <span className="text-[1rem]">
+                                            {item.title}
+                                        </span>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
                             ))}
@@ -300,7 +303,7 @@ export default function UnifiedSidebar() {
                     )}
 
                     <div
-                        className={`mb-2 px-2 py-1 text-xs font-semibold tracking-wider text-white/80 uppercase ${
+                        className={`mb-2 px-2 py-1 text-xl font-semibold tracking-wider text-white/90 uppercase ${
                             isAdmin ? 'mt-4' : ''
                         }`}
                     >
@@ -319,14 +322,16 @@ export default function UnifiedSidebar() {
                                             href={item.href}
                                             className={`my-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[15px] transition-colors duration-200 ${
                                                 isActive(item.href)
-                                                    ? 'bg-[#0078d4] font-medium text-white shadow-sm'
+                                                    ? 'bg-white font-medium text-blue-500 shadow-sm'
                                                     : 'text-white hover:bg-white/15 hover:text-white'
                                             }`}
                                         />
                                     }
                                 >
                                     <item.icon className="mr-2 h-4 w-4 shrink-0" />
-                                    <span>{item.title}</span>
+                                    <span className="text-[1rem]">
+                                        {item.title}
+                                    </span>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                         ))}
@@ -347,7 +352,9 @@ export default function UnifiedSidebar() {
                                         }
                                     >
                                         <item.icon className="mr-2 h-4 w-4 shrink-0" />
-                                        <span>{item.title}</span>
+                                        <span className="text-[1rem]">
+                                            {item.title}
+                                        </span>
                                         <ChevronRight className="ml-auto h-4 w-4 text-white/60 transition-transform duration-200 group-data-open/collapsible:rotate-90" />
                                     </CollapsibleTrigger>
                                     <CollapsibleContent>
@@ -367,7 +374,7 @@ export default function UnifiedSidebar() {
                                                                         isActive(
                                                                             subItem.href,
                                                                         )
-                                                                            ? 'bg-[#0078d4] font-medium text-white shadow-sm'
+                                                                            ? 'bg-white font-medium text-blue-500'
                                                                             : 'text-white/90 hover:bg-white/15 hover:text-white'
                                                                     }`}
                                                                 />

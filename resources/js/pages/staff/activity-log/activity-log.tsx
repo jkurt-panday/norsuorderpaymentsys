@@ -4,6 +4,7 @@ import type {
     ActivityLogFilters,
     ActivityLogPaginator,
 } from '@/components/ActivityLogTable';
+import { CardTitle } from '@/components/ui/card';
 
 interface ActivityLogPageProps {
     [key: string]: unknown;
@@ -21,9 +22,9 @@ export default function ActivityLogPage() {
             <div className="mx-auto max-w-7xl">
                 <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold text-slate-950">
+                        <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                             Activity Log
-                        </h1>
+                        </CardTitle>
                         <p className="text-sm text-slate-500">
                             Every change across requests, orders of payment, and
                             settings — who did it and what changed.

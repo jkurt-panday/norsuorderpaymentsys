@@ -283,9 +283,9 @@ export default function PrintSelect({
                             >
                                 <ArrowLeft className="mr-1 h-4 w-4" /> Back
                             </Button>
-                            <h1 className="text-2xl font-bold text-[#0B3D91]">
+                            <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                                 Student Statement Printer
-                            </h1>
+                            </CardTitle>
                         </div>
                         <p className="mt-1 text-sm text-[#5C7A9E]">
                             Select a law school student to review their
