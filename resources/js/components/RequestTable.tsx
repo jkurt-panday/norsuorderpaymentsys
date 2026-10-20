@@ -35,6 +35,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { CardTitle } from '@/components/ui/card';
 
 interface PaginationLink {
     url: string | null;
@@ -381,12 +382,9 @@ export default function RequestTable<T extends { id: number | string }>({
             {(title || resource.total !== undefined || customToolbar) && (
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     {title && (
-                        <h2
-                            className="max-w-xs truncate text-base font-semibold text-slate-900 sm:max-w-md sm:text-lg"
-                            title={title}
-                        >
+                        <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                             {title}
-                        </h2>
+                        </CardTitle>
                     )}
                     {customToolbar && (
                         <div className="flex items-center">{customToolbar}</div>

@@ -67,9 +67,9 @@ export default function AdminDashboardPage() {
             <div className="min-h-screen bg-page-background px-4 py-8">
                 <div className="mx-auto max-w-7xl">
                     <div className="mb-8">
-                        <h1 className="text-2xl font-semibold text-slate-950">
+                        <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                             Admin Dashboard
-                        </h1>
+                        </CardTitle>
                         <p className="text-sm text-slate-500">
                             System overview and user statistics.
                         </p>

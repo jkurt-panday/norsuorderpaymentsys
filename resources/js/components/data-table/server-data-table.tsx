@@ -255,7 +255,7 @@ export function ServerDataTable<TData extends RowData>({
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && runSearch()}
-                            className="h-10 min-w-0 flex-1 rounded-xl border border-slate-200 px-4 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:flex-none sm:w-150"
+                            className="h-10 min-w-0 flex-1 rounded-xl border border-slate-200 px-4 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 focus-visible:ring-2 focus-visible:ring-blue-400 sm:flex-none sm:w-150"
                         />
                 
                         <Button

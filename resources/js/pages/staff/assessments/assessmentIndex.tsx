@@ -49,7 +49,7 @@ export default function AssessmentIndex({
                 <Head title="Index Assessment" />
                 <Card className="rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between p-3">
-                        <CardTitle className="bg-[linear-gradient(to_right,#007FFF,#3399FF,#80BFFF)] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
+                        <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                             Assessments
                         </CardTitle>
                     </CardHeader>

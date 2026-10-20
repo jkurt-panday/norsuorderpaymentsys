@@ -28,7 +28,7 @@ export default function AssessmentDashboard({
 
             <Card className="rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between p-3">
-                    <CardTitle className="text-xl font-bold text-slate-900">
+                    <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                         Assessments Dashboard
                     </CardTitle>
                 </CardHeader>
