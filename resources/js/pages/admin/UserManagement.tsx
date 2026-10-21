@@ -432,7 +432,7 @@ export default function AdminUserManagement() {
                             onSubmit={handleSearchSubmit}
                             className="flex w-full flex-wrap items-center gap-2"
                         >
-                            <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
+                            <div className="relative min-w-50 flex-1 sm:max-w-xs">
                                 <Search className="pointer-events-none absolute top-2.5 left-2.5 h-4 w-4 text-slate-400" />
                                 <Input
                                     type="search"
