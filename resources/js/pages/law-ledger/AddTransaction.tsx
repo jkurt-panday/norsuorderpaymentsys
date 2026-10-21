@@ -665,7 +665,41 @@ export default function AddTransaction({
             <Head title="Add Transaction" />
 
             <div className="flex flex-col gap-4 border-b border-[#CFE3FF] pb-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
+                <div>
+                    <h1 className="text-2xl font-bold text-[#0B3D91]">
+                        Add New Transaction
+                    </h1>
+                    <p className="text-xs text-[#5C7A9E]">
+                        Post Accounts Receivable, Payments, Adjustments, or multi-line transactions.
+                    </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-1 rounded-lg border border-[#CFE3FF] bg-white p-1 shadow-xs">
+                        <button
+                            type="button"
+                            onClick={() => setIsBatchMode(false)}
+                            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                !isBatchMode
+                                    ? 'bg-[#0F6FFF] text-white shadow-xs'
+                                    : 'text-[#5C7A9E] hover:text-[#0B3D91]'
+                            }`}
+                        >
+                            <User className="h-3.5 w-3.5" /> Single Entry
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setIsBatchMode(true)}
+                            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                isBatchMode
+                                    ? 'bg-[#0F6FFF] text-white shadow-xs'
+                                    : 'text-[#5C7A9E] hover:text-[#0B3D91]'
+                            }`}
+                        >
+                            <Layers className="h-3.5 w-3.5" /> Batch / Multi-Line
+                        </button>
+                    </div>
+
                     <Button
                         variant="outline"
                         size="sm"
@@ -674,40 +708,6 @@ export default function AddTransaction({
                     >
                         <ArrowLeft className="mr-1 h-4 w-4" /> Back
                     </Button>
-                    <div>
-                        <h1 className="text-2xl font-bold text-[#0B3D91]">
-                            Add New Transaction
-                        </h1>
-                        <p className="text-xs text-[#5C7A9E]">
-                            Post Accounts Receivable, Payments, Adjustments, or
-                            multi-line law ledger transactions.
-                        </p>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-1 rounded-lg border border-[#CFE3FF] bg-white p-1 shadow-xs">
-                    <button
-                        type="button"
-                        onClick={() => setIsBatchMode(false)}
-                        className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                            !isBatchMode
-                                ? 'bg-[#0F6FFF] text-white shadow-xs'
-                                : 'text-[#5C7A9E] hover:text-[#0B3D91]'
-                        }`}
-                    >
-                        <User className="h-3.5 w-3.5" /> Single Entry
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setIsBatchMode(true)}
-                        className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                            isBatchMode
-                                ? 'bg-[#0F6FFF] text-white shadow-xs'
-                                : 'text-[#5C7A9E] hover:text-[#0B3D91]'
-                        }`}
-                    >
-                        <Layers className="h-3.5 w-3.5" /> Batch / Multi-Line
-                    </button>
                 </div>
             </div>
 

@@ -884,6 +884,13 @@ export default function Index({
                 </div>
 
                 <div className="flex flex-wrap items-center justify-end gap-2">
+                    <Button
+                        className="h-9 bg-[#0F6FFF] text-white hover:bg-[#0B62E0]"
+                        onClick={handleOpenEmailModal}
+                    >
+                        <Mail className="mr-1.5 h-4 w-4" />
+                        Send Email
+                    </Button>
                     <label
                         className={`inline-flex items-center rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm font-medium text-[#0B3D91] transition-colors ${isImporting ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-[#F3F8FF]'}`}
                     >
@@ -906,14 +913,6 @@ export default function Index({
                             'Import Excel/CSV'
                         )}
                     </label>
-                    <Button
-                        variant="outline"
-                        className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
-                        onClick={handleOpenEmailModal}
-                    >
-                        <Mail className="mr-1.5 h-4 w-4" />
-                        Send Email
-                    </Button>
                     <Button
                         variant="outline"
                         className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"

@@ -983,8 +983,7 @@ export default function Index({
 
                     <div className="flex flex-wrap items-center justify-end gap-2">
                         <Button
-                            variant="outline"
-                            className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
+                            className="h-9 bg-[#0F6FFF] text-white hover:bg-[#0B62E0]"
                             onClick={handleOpenEmailModal}
                         >
                             <Mail className="mr-1.5 h-4 w-4" />
