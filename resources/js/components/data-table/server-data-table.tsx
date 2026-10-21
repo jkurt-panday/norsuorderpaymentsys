@@ -262,7 +262,7 @@ export function ServerDataTable<TData extends RowData>({
                             onClick={runSearch}
                             variant="outline"
                             size="icon"
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-400"
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-400 hover:text-white"
                         >
                             <Search className="h-4 w-4" />
                         </Button>
