@@ -1,6 +1,7 @@
 import { Head, usePage } from '@inertiajs/react';
 import { Users, Shield, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import AdminLayout from '@/layouts/admin/layout';
 
 interface AdminDashboardProps {
@@ -67,7 +68,7 @@ export default function AdminDashboardPage() {
             <div className="min-h-screen bg-page-background px-4 py-8">
                 <div className="mx-auto max-w-7xl">
                     <div className="mb-8">
-                        <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
+                        <CardTitle className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                             Admin Dashboard
                         </CardTitle>
                         <p className="text-sm text-slate-500">
@@ -234,13 +235,15 @@ export default function AdminDashboardPage() {
                                 </table>
                             </div>
                             {recentActivity.length > 0 && (
-                                <div className="mt-4 text-right">
-                                    <a
-                                        href="/admin/activity-log"
-                                        className="text-sm font-medium text-blue-600 hover:text-blue-700"
-                                    >
-                                        View all activity →
-                                    </a>
+                                <div className="mt-4 mr-4 text-right">
+                                    <Button variant={'outline'}>
+                                        <a
+                                            href="/admin/activity-log"
+                                            className="text-sm font-medium text-blue-600 hover:text-blue-700"
+                                        >
+                                            View all activity →
+                                        </a>
+                                    </Button>
                                 </div>
                             )}
                         </CardContent>
