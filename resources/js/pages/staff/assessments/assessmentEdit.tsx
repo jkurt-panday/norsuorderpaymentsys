@@ -455,75 +455,79 @@ export default function AssessmentEdit({
                     </CardHeader>
                 </Card>
 
-                <Card className="rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
-                    <CardContent className="space-y-6 p-4 sm:p-6">
-                        <section>
-                            <h2 className="mb-3 text-sm font-bold tracking-wider text-blue-500 uppercase">
-                                Student Information
-                            </h2>
-                            <div className="grid grid-cols-1 gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4 sm:grid-cols-2 md:grid-cols-3">
-                                <Detail
-                                    label="Full Name"
-                                    value={fullName}
-                                    className=""
-                                />
-                                <Detail
-                                    label="Email"
-                                    value={assessment.email}
-                                />
-                                <Detail
-                                    label="Contact Number"
-                                    value={assessment.contact_num
-                                        ?.replace(/\D/g, '')
-                                        .replace(
-                                            /(\d{4})(\d{3})(\d{4})/,
-                                            '$1 $2 $3',
-                                        )}
-                                />
-                                <Detail
-                                    label="Address"
-                                    value={assessment.address}
-                                    className="sm:col-span-2"
-                                />
-                                <Detail
-                                    label="Student ID"
-                                    value={assessment.student_id}
-                                />
-                            </div>
-                        </section>
+                <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
+                    <Card className="h-full rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
+                        <CardContent className="p-4 sm:p-6">
+                            <section>
+                                <h2 className="mb-4 text-sm font-bold tracking-wider text-blue-500 uppercase">
+                                    Student Information
+                                </h2>
+                                <div className="rounded-xl border border-slate-100 bg-transparent px-4">
+                                    <Detail
+                                        label="Full Name"
+                                        value={fullName}
+                                    />
+                                    <Detail
+                                        label="Student ID"
+                                        value={assessment.student_id}
+                                    />
+                                    <Detail
+                                        label="Email"
+                                        value={assessment.email}
+                                    />
+                                    <Detail
+                                        label="Contact Number"
+                                        value={assessment.contact_num
+                                            ?.replace(/\D/g, '')
+                                            .replace(
+                                                /(\d{4})(\d{3})(\d{4})/,
+                                                '$1 $2 $3',
+                                            )}
+                                    />
+                                    <Detail
+                                        label="Address"
+                                        value={assessment.address}
+                                    />
+                                </div>
+                            </section>
+                        </CardContent>
+                    </Card>
 
-                        <section>
-                            <h2 className="mb-3 text-sm font-bold tracking-wider text-blue-500 uppercase">
-                                Course & Academic Information Requested
-                            </h2>
-                            <div className="grid grid-cols-1 gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4 sm:grid-cols-2 md:grid-cols-3">
-                                <Detail
-                                    label="Course Code"
-                                    value={
-                                        assessment.course?.course_code ||
-                                        `ID: ${assessment.course_id}`
-                                    }
-                                />
-                                <Detail
-                                    label="Course Description"
-                                    value={assessment.course?.course_desc}
-                                />
-                                <Detail
-                                    label="Enrolled Under"
-                                    value={assessment.enrolled_under}
-                                />
-                                <Detail
-                                    label="Semester"
-                                    value={assessment.semester}
-                                />
-                                <Detail
-                                    label="SY Last Attended | SY Requested"
-                                    value={assessment.sy_last_attended}
-                                />
-                            </div>
-                        </section>
-                    </CardContent>
-                </Card>
+                    <Card className="h-full rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
+                        <CardContent className="p-4 sm:p-6">
+                            <section>
+                                <h2 className="mb-4 text-sm font-bold tracking-wider text-blue-500 uppercase">
+                                    Course & Academic Information Requested
+                                </h2>
+                                <div className="rounded-xl border border-slate-100 bg-transparent px-4">
+                                    <Detail
+                                        label="Course Code"
+                                        value={
+                                            assessment.course?.course_code ||
+                                            `ID: ${assessment.course_id}`
+                                        }
+                                    />
+                                    <Detail
+                                        label="Course Description"
+                                        value={assessment.course?.course_desc}
+                                    />
+                                    <Detail
+                                        label="Enrolled Under"
+                                        value={assessment.enrolled_under}
+                                    />
+                                    <Detail
+                                        label="Semester"
+                                        value={assessment.semester}
+                                    />
+                                    <Detail
+                                        label="SY Last Attended | SY Requested"
+                                        value={assessment.sy_last_attended}
+                                    />
+                                </div>
+                            </section>
+                        </CardContent>
+                    </Card>
+                </div>
 
                 <Card className="overflow-hidden rounded-2xl border border-blue-100 bg-[#FAFAF5] shadow-sm">
                     <CardHeader className="gap-3 border-b border-blue-100 bg-white sm:flex-row sm:items-start sm:justify-between">
@@ -960,16 +964,16 @@ export default function AssessmentEdit({
 function Detail({
     label,
     value,
-    className = '',
 }: {
     label: string;
     value?: string | null;
-    className?: string;
 }) {
     return (
-        <div className={className}>
-            <span className="text-x font-semibold text-slate-400">{label}</span>
-            <p className="text-lg font-medium text-slate-900">{value || '—'}</p>
+        <div className="flex min-h-16 items-center justify-between gap-4 border-b border-slate-200/70 py-3 last:border-b-0">
+            <span className="text-sm font-semibold text-slate-700">{label}</span>
+            <p className="text-right text-base font-medium text-slate-900">
+                {value || '—'}
+            </p>
         </div>
     );
 }
