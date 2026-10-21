@@ -408,7 +408,7 @@ export default function AdminUserManagement() {
                             Manage system users, roles, and access permissions.
                         </p>
                     </div>
-                    <Button onClick={openCreateDialog} className="gap-2">
+                    <Button onClick={openCreateDialog} className="gap-2 bg-blue-500 text-white" variant="outline">
                         <Plus className="h-4 w-4" />
                         Add User
                     </Button>
