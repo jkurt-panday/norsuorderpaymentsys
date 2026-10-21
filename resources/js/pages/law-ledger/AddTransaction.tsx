@@ -1434,7 +1434,7 @@ export default function AddTransaction({
                                     type="button"
                                     size="sm"
                                     onClick={addBatchRow}
-                                    className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
+                                    className="bg-blue-600 text-white hover:bg-blue-400"
                                 >
                                     <Plus className="mr-1 h-3.5 w-3.5" /> Add
                                     Line Item

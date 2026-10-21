@@ -2503,7 +2503,7 @@ export default function ShowRequest() {
                             <button
                                 type="button"
                                 onClick={openStudentMatch}
-                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-amber-700"
+                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-400"
                             >
                                 <Search className="h-4 w-4" />
                                 Match Student

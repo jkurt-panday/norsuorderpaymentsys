@@ -111,7 +111,7 @@ return data;
                                 type="button"
                                 onClick={runSearch}
                                 aria-label="Search"
-                                className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-700"
+                                className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-400"
                             >
                                 <Search className="h-4 w-4" />
                             </button>

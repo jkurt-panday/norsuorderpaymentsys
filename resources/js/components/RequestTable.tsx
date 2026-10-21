@@ -528,7 +528,7 @@ export default function RequestTable<T extends { id: number | string }>({
                             <div className="flex items-end gap-2 lg:col-span-2">
                                 <Button
                                     type="submit"
-                                    className="h-10 flex-1 gap-2 rounded-lg bg-blue-900 text-white hover:bg-blue-950 lg:flex-none"
+                                    className="h-10 flex-1 gap-2 rounded-lg bg-blue-600 text-white hover:bg-blue-400 lg:flex-none"
                                 >
                                     <Filter className="h-4 w-4" />
                                     <span>Filter</span>

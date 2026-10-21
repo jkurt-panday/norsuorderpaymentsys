@@ -514,7 +514,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                     <Button
                         type="submit"
                         size="sm"
-                        className="h-9 bg-blue-600 text-xs text-white hover:bg-blue-700"
+                        className="h-9 bg-blue-600 text-xs text-white hover:bg-blue-400"
                     >
                         <Search className="mr-1.5 h-3.5 w-3.5" />
                         Search

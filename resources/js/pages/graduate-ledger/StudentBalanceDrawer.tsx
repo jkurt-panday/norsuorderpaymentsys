@@ -325,7 +325,7 @@ setLoading(false);
                     <SheetFooter className="flex flex-row items-center justify-between gap-2 border-t border-[#CFE3FF] bg-white px-6 py-3">
                         <Button
                             onClick={() => router.get(create.url({ query: { student_id: data.student.id, entry_type: 'payment' } }))}
-                            className="flex-1 bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
+                            className="flex-1 bg-blue-600 text-white hover:bg-blue-400"
                         >
                             <PlusCircle className="h-4 w-4" /> Add payment
                         </Button>

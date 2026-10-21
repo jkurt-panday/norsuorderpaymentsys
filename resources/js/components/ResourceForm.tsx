@@ -163,7 +163,7 @@ export default function ResourceForm({
                             <Button
                                 type="submit"
                                 disabled={processing}
-                                className="rounded-md bg-blue-900 text-white hover:bg-blue-950"
+                                className="rounded-md bg-blue-600 text-white hover:bg-blue-400"
                             >
                                 <Save className="h-4 w-4" />
                                 {processing
