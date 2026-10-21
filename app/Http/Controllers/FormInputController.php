@@ -66,8 +66,9 @@ class FormInputController extends Controller
 
     public function store(PublicFormSubmissionRequest $request): RedirectResponse
     {
-
         $validated = $request->validated();
+        $uploadedDocuments = [];
+        $transactionCommitted = false;
 
         try {
             DB::beginTransaction();
@@ -107,13 +108,14 @@ class FormInputController extends Controller
 
             // 4. Handle Uploaded Documents using FileUploadService
             if ($request->hasFile('documents')) {
-                $this->fileUploadService->uploadDocuments(
+                $uploadedDocuments = $this->fileUploadService->uploadDocuments(
                     $request->file('documents'),
                     $formInput
                 );
             }
 
             DB::commit();
+            $transactionCommitted = true;
 
             // success page is in session to prevent access to other resource
             session([
@@ -142,6 +144,10 @@ class FormInputController extends Controller
 
         } catch (\Throwable $e) {
             DB::rollBack();
+
+            if (! $transactionCommitted && $uploadedDocuments !== []) {
+                $this->fileUploadService->cleanupUploadedDocuments($uploadedDocuments);
+            }
 
             \Log::error('Public form submission failed', [
                 'message' => $e->getMessage(),

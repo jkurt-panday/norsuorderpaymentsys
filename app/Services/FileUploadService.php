@@ -11,7 +11,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FileUploadService
 {
-    protected string $disk = 'public';
+    /** The S3 disk is used for all supporting documents and images. */
+    protected string $disk = 's3';
 
     protected string $directory = 'supporting-documents';
 
@@ -45,17 +46,25 @@ class FileUploadService
         // Generate URL
         $fileUrl = Storage::disk($this->disk)->url($this->directory.'/'.$storedFilename);
 
-        // Create database record
-        return SupportingDocument::create([
-            'form_input_id' => $formInput->id,
-            'original_filename' => $file->getClientOriginalName(),
-            'stored_filename' => $storedFilename,
-            'file_url' => $fileUrl,
-            'mime_type' => $file->getMimeType(),
-            'file_extension' => strtolower($file->getClientOriginalExtension()),
-            'file_size' => $file->getSize(),
-            'uploaded_at' => now(),
-        ]);
+        try {
+            // Create database record
+            return SupportingDocument::create([
+                'form_input_id' => $formInput->id,
+                'original_filename' => $file->getClientOriginalName(),
+                'stored_filename' => $storedFilename,
+                'file_url' => $fileUrl,
+                'mime_type' => $file->getMimeType(),
+                'file_extension' => strtolower($file->getClientOriginalExtension()),
+                'file_size' => $file->getSize(),
+                'uploaded_at' => now(),
+            ]);
+        } catch (\Throwable $exception) {
+            // Storage is not part of the database transaction. Remove the object
+            // if its metadata cannot be persisted.
+            Storage::disk($this->disk)->delete($path);
+
+            throw $exception;
+        }
     }
 
     /**
@@ -68,19 +77,42 @@ class FileUploadService
     {
         $uploadedDocuments = [];
 
-        foreach ($files as $file) {
-            if ($file instanceof UploadedFile) {
-                try {
-                    $document = $this->uploadDocument($file, $formInput);
-                    $uploadedDocuments[] = $document;
-                } catch (\Exception $e) {
-                    // Log error but continue with other files
-                    \Log::error('Failed to upload document: '.$e->getMessage());
+        try {
+            foreach ($files as $file) {
+                if ($file instanceof UploadedFile) {
+                    $uploadedDocuments[] = $this->uploadDocument($file, $formInput);
                 }
             }
+        } catch (\Throwable $exception) {
+            // A database transaction cannot roll back objects already written to
+            // S3. Remove all files uploaded during this batch before rethrowing.
+            $this->cleanupUploadedDocuments($uploadedDocuments);
+
+            throw $exception;
         }
 
         return $uploadedDocuments;
+    }
+
+    /**
+     * Remove uploaded objects and their metadata after a failed batch.
+     *
+     * @param  list<SupportingDocument>  $documents
+     */
+    public function cleanupUploadedDocuments(array $documents): void
+    {
+        foreach ($documents as $document) {
+            try {
+                $this->deleteFile($document);
+                $document->delete();
+            } catch (\Throwable $cleanupException) {
+                Log::error('Failed to clean up uploaded document', [
+                    'document_id' => $document->id,
+                    'stored_filename' => $document->stored_filename,
+                    'message' => $cleanupException->getMessage(),
+                ]);
+            }
+        }
     }
 
     /**
