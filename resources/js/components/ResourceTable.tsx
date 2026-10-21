@@ -509,7 +509,7 @@ export default function ResourceTable<T extends { id: number }>({
                 </div>
                 <Link
                     href={addHref}
-                    className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+                    className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-400"
                 >
                     <Plus className="h-4 w-4" />
                     {addLabel}
@@ -549,7 +549,7 @@ export default function ResourceTable<T extends { id: number }>({
                             type="submit"
                             aria-label="Search"
                             title="Search"
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-700"
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-400"
                         >
                             <Search className="h-4 w-4" />
                         </button>

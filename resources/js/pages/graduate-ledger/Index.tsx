@@ -1021,7 +1021,7 @@ export default function Index({
                         </Button>
 
                         <Button
-                            className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
+                            className="bg-blue-600 text-white hover:bg-blue-400"
                             onClick={() => router.get('/graduate-ledger/add')}
                         >
                             <PlusCircle className="mr-1.5 h-4 w-4" />
@@ -1229,7 +1229,7 @@ export default function Index({
                                 <Button
                                     type="submit"
                                     size="sm"
-                                    className="h-9 bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
+                                    className="h-9 bg-blue-600 text-white hover:bg-blue-400"
                                 >
                                     <Search className="mr-1.5 h-4 w-4" /> Search
                                 </Button>
@@ -1242,7 +1242,7 @@ export default function Index({
                                     onClick={() =>
                                         setShowFilters((current) => !current)
                                     }
-                                    className={`h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF] ${
+                                    className={`h-9 border-[#CFE3FF] bg-blue-600 text-white hover:bg-blue-400 ${
                                         activeAdvancedFilters.length > 0
                                             ? 'bg-[#EAF2FF]'
                                             : ''
@@ -2229,7 +2229,7 @@ export default function Index({
                             <Button
                                 type="button"
                                 disabled={!importForm.data.file || isImporting}
-                                className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
+className="bg-blue-600 text-white hover:bg-blue-400"
                                 onClick={handleImport}
                             >
                                 {isImporting && (

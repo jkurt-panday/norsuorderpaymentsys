@@ -833,7 +833,7 @@ export default function EditTransaction({
                                 <Button
                                     type="submit"
                                     disabled={processing}
-                                    className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB] disabled:opacity-60"
+                                    className="bg-blue-600 text-white hover:bg-blue-400 disabled:opacity-60"
                                 >
                                     {processing ? (
                                         <span className="flex items-center gap-2">

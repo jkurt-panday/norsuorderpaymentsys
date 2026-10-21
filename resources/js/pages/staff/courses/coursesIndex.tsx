@@ -26,7 +26,7 @@ export default function CoursesIndex({ courses }: CoursesProps) {
                         </CardTitle>
 
                         <Link href="/staff/courses/create">
-                            <Button className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700">
+                            <Button className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-400">
                                 <div className="flex flex-row items-center gap-1.5">
                                     <Plus className="h-4 w-4 stroke-[2.5]" />
                                     <span>Add Course</span>

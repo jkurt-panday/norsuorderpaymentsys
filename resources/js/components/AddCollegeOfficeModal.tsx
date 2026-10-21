@@ -132,7 +132,7 @@ setError('');
                         type="button"
                         onClick={handleSubmit}
                         disabled={processing}
-                        className='bg-blue-500'
+                        className='bg-blue-600 hover:bg-blue-400'
                     >
                         {processing ? 'Adding...' : 'Add'}
                     </Button>

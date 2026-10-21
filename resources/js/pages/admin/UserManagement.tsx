@@ -408,7 +408,7 @@ export default function AdminUserManagement() {
                             Manage system users, roles, and access permissions.
                         </p>
                     </div>
-                    <Button onClick={openCreateDialog} className="gap-2 bg-blue-500 text-white" variant="outline">
+                    <Button onClick={openCreateDialog} className="gap-2 bg-blue-600 text-white hover:bg-blue-400" variant="outline">
                         <Plus className="h-4 w-4" />
                         Add User
                     </Button>
@@ -468,7 +468,7 @@ export default function AdminUserManagement() {
                             <Button
                                 type="submit"
                                 size="sm"
-                                className="h-9 bg-blue-600 text-xs text-white hover:bg-blue-700"
+                                className="h-9 bg-blue-600 text-xs text-white hover:bg-blue-400"
                             >
                                 <Search className="mr-1.5 h-3.5 w-3.5" />
                                 Search
@@ -998,7 +998,7 @@ export default function AdminUserManagement() {
                                 >
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={processing}>
+                                <Button type="submit" disabled={processing} className="bg-blue-600 text-white hover:bg-blue-400">
                                     {processing
                                         ? 'Saving...'
                                         : editingUser

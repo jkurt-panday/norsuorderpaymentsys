@@ -552,7 +552,7 @@ export default function AssessmentEdit({
                                     ledgerStatement.candidates.length === 0
                                 }
                                 variant="outline"
-                                className="border-blue-200 bg-white text-[#0B3D91] hover:bg-blue-50"
+                                className="bg-blue-600 text-white hover:bg-blue-400"
                             >
                                 <Search className="h-4 w-4" />
                                 Change Student
