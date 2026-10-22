@@ -80,13 +80,20 @@ flashToast('error', flash.error);
         {
             header: 'Bank Name',
             sortable: 'bank_name',
-            render: (row) => <Badge variant="secondary">{row.bank_name}</Badge>,
+            render: (row) => (
+                <Badge
+                    variant="secondary"
+                    className="bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
+                >
+                    {row.bank_name}
+                </Badge>
+            ),
         },
         {
             header: 'Account Number',
             sortable: 'account_num',
             render: (row) => (
-                <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700">
+                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
                     {row.account_num}
                 </code>
             ),

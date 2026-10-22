@@ -55,6 +55,8 @@ export default defineConfig({
         include: [
             'react',
             'react-dom',
+            'react-is',
+            'recharts',
             '@inertiajs/react',
             // Add any other dependencies that might cause issues
         ],

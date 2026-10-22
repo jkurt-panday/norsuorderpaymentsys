@@ -74,7 +74,7 @@ flashToast('error', flash.error);
             header: 'Created At',
             sortable: 'created_at',
             render: (row) => formatDate(row.created_at),
-            className: 'px-4 py-3 text-slate-500',
+            className: 'px-4 py-3 text-muted-foreground',
         },
     ];
 

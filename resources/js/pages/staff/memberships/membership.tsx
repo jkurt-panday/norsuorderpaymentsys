@@ -74,7 +74,7 @@ export default function MembershipsIndex({
             header: 'Member Code',
             sortable: 'member_code',
             render: (row) => (
-                <span className="inline-block rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-900">
+                <span className="inline-block rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary dark:bg-primary/20 dark:text-primary">
                     {row.member_code}
                 </span>
             ),
@@ -88,7 +88,7 @@ export default function MembershipsIndex({
             header: 'Created At',
             sortable: 'created_at',
             render: (row) => formatDate(row.created_at),
-            className: 'px-4 py-3 text-slate-500',
+            className: 'px-4 py-3 text-muted-foreground',
         },
     ];
 

@@ -41,51 +41,51 @@ export type AssessmentType = {
 const getEnrolledUnderBadgeClass = (enrolled_under: string) => {
     switch (enrolled_under) {
         case 'Undergraduate':
-            return 'bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-4 py-3 text-xs';
+            return 'bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/40 hover:bg-emerald-100 dark:hover:bg-emerald-950/70 px-4 py-3 text-xs';
 
         case 'Graduate':
-            return 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-100 px-4 py-3 text-xs';
+            return 'bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800/40 hover:bg-blue-100 dark:hover:bg-blue-950/70 px-4 py-3 text-xs';
 
         case 'School of Law':
-            return 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-100 px-4 py-3 text-xs';
+            return 'bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800/40 hover:bg-amber-100 dark:hover:bg-amber-950/70 px-4 py-3 text-xs';
 
         default:
-            return 'bg-slate-100 text-slate-700 border border-slate-200 px-4';
+            return 'bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700/40 px-4';
     }
 };
 
 const getSemesterBadgeClass = (semester: string) => {
     switch (semester) {
         case 'First Semester':
-            return 'bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-4 py-3 text-xs';
+            return 'bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/40 hover:bg-emerald-100 dark:hover:bg-emerald-950/70 px-4 py-3 text-xs';
 
         case 'Second Semester':
-            return 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-100 px-4 py-3 text-xs';
+            return 'bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800/40 hover:bg-blue-100 dark:hover:bg-blue-950/70 px-4 py-3 text-xs';
 
         case 'Summer':
-            return 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-100 px-4 py-3 text-xs';
+            return 'bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800/40 hover:bg-amber-100 dark:hover:bg-amber-950/70 px-4 py-3 text-xs';
 
         default:
-            return 'bg-slate-100 text-slate-700 border border-slate-200 px-4';
+            return 'bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700/40 px-4';
     }
 };
 
 const getStatusBadgeClass = (status: string) => {
     switch (status) {
         case 'pending':
-            return 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-100 px-4 py-3 text-xs';
+            return 'bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800/40 hover:bg-amber-100 dark:hover:bg-amber-950/70 px-4 py-3 text-xs';
 
         case 'completed':
-            return 'bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-4 py-3 text-xs';
+            return 'bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/40 hover:bg-emerald-100 dark:hover:bg-emerald-950/70 px-4 py-3 text-xs';
 
         case 'rejected':
-            return 'bg-red-100 text-red-700 border border-red-200 hover:bg-red-100 px-4 py-3 text-xs';
+            return 'bg-red-100 text-red-700 border border-red-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800/40 hover:bg-red-100 dark:hover:bg-rose-950/70 px-4 py-3 text-xs';
 
         case 'mailed':
-            return 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-100 px-4 py-3 text-xs';
+            return 'bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800/40 hover:bg-blue-100 dark:hover:bg-blue-950/70 px-4 py-3 text-xs';
 
         default:
-            return 'bg-slate-100 text-slate-700 border border-slate-200 px-4';
+            return 'bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700/40 px-4';
     }
 };
 
@@ -112,14 +112,14 @@ function AssessmentActionsCell({ assessment }: { assessment: AssessmentType }) {
             <div className="grid w-max grid-cols-2">
                 <Link
                     href={`/staff/assessments/edit/${assessment.id}`}
-                    className="flex h-8 w-8 items-center justify-center rounded-l-2xl bg-amber-400 text-white transition-colors hover:bg-amber-500"
+                    className="flex h-8 w-8 items-center justify-center rounded-l-2xl bg-amber-500 text-white transition-colors hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500"
                 >
                     <Pencil className="h-4 w-4" />
                 </Link>
                 <button
                     type="button"
                     onClick={handleDelete}
-                    className="flex h-8 w-8 items-center justify-center rounded-r-2xl bg-red-600 text-white transition-colors hover:bg-red-700"
+                    className="flex h-8 w-8 items-center justify-center rounded-r-2xl bg-destructive text-destructive-foreground transition-colors hover:bg-destructive/90"
                 >
                     <Trash2 className="h-4 w-4" />
                 </button>
@@ -134,7 +134,7 @@ export const columns = columnHelper.columns([
     columnHelper.accessor('reference_number', {
         header: () => <div className="text-center">Reference No.</div>,
         cell: ({ row }) => (
-            <div className="text-center font-medium text-blue-500">
+            <div className="text-center font-medium text-primary">
                 {row.getValue('reference_number')}
             </div>
         ),
@@ -151,7 +151,7 @@ export const columns = columnHelper.columns([
                 : '';
 
             return (
-                <div className="text-center text-slate-700">
+                <div className="text-center text-foreground">
                     {first_name} {middleInitial} {last_name}
                 </div>
             );
@@ -161,7 +161,7 @@ export const columns = columnHelper.columns([
     columnHelper.accessor('email', {
         header: () => <div className="text-center">Email</div>,
         cell: ({ row }) => (
-            <div className="text-center text-slate-600">
+            <div className="text-center text-muted-foreground">
                 {row.getValue('email')}
             </div>
         ),
@@ -182,13 +182,13 @@ export const columns = columnHelper.columns([
             <div className="flex justify-center">
                 <Tooltip>
                     <TooltipTrigger>
-                        <span className="inline-flex rounded-full bg-blue-400 px-3 py-1 text-xs font-semibold tracking-wide text-white">
+                        <span className="inline-flex rounded-full bg-primary/15 border border-primary/30 px-3 py-1 text-xs font-semibold tracking-wide text-primary">
                             {row.original.course.course_code}
                         </span>
                     </TooltipTrigger>
                     <TooltipContent
                         side='bottom'
-                        className='bg-blue-400 text-sm'>
+                        className='bg-popover border border-border text-popover-foreground text-sm'>
                         {row.original.course.course_desc}
                     </TooltipContent>
                 </Tooltip>
@@ -216,7 +216,7 @@ export const columns = columnHelper.columns([
     columnHelper.accessor('sy_last_attended', {
         header: () => <div className="text-center">SY Last Attended</div>,
         cell: ({ row }) => (
-            <div className="text-center text-slate-600">
+            <div className="text-center text-muted-foreground">
                 {row.getValue('sy_last_attended')}
             </div>
         ),
@@ -240,7 +240,7 @@ export const columns = columnHelper.columns([
     columnHelper.accessor('created_at', {
         header: () => <div className="text-center">Submitted</div>,
         cell: ({ row }) => (
-            <div className="text-center text-slate-400">
+            <div className="text-center text-muted-foreground">
                 {new Date(row.getValue('created_at')).toLocaleDateString(
                     'en-US',
                     {

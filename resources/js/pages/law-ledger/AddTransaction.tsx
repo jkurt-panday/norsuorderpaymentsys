@@ -239,39 +239,39 @@ function SearchableStudentSelect({
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex w-full items-center justify-between rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                className="flex w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
             >
                 <span
                     className={
                         selectedStudent
-                            ? 'font-medium text-[#0B3D91]'
-                            : 'text-[#7FA6D6]'
+                            ? 'font-medium text-foreground'
+                            : 'text-muted-foreground'
                     }
                 >
                     {selectedStudent
                         ? formatStudentLabel(selectedStudent)
                         : '-- Select / Search Student --'}
                 </span>
-                <ChevronsUpDown className="h-4 w-4 text-[#7FA6D6]" />
+                <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
             </button>
 
             {isOpen && (
-                <div className="absolute z-50 mt-1 w-full space-y-2 rounded-md border border-[#CFE3FF] bg-white p-2 shadow-lg">
+                <div className="absolute z-50 mt-1 w-full space-y-2 rounded-md border border-border bg-popover p-2 text-popover-foreground shadow-lg">
                     <div className="relative">
-                        <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-[#8AA8CC]" />
+                        <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             type="text"
                             placeholder="Type Student ID or name to filter..."
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
-                            className="h-9 border-[#CFE3FF] pl-8 text-xs"
+                            className="h-9 border-input bg-background pl-8 text-xs text-foreground placeholder:text-muted-foreground"
                             autoFocus
                         />
                         {search && (
                             <button
                                 type="button"
                                 onClick={() => setSearch('')}
-                                className="absolute top-2.5 right-2.5 text-xs text-[#8AA8CC] hover:text-[#0B3D91]"
+                                className="absolute top-2.5 right-2.5 text-xs text-muted-foreground hover:text-foreground"
                                 aria-label="Clear student search"
                             >
                                 <X className="h-4 w-4" />
@@ -279,9 +279,9 @@ function SearchableStudentSelect({
                         )}
                     </div>
 
-                    <div className="max-h-60 divide-y divide-[#EAF2FF] overflow-y-auto rounded-md border border-[#EAF2FF]">
+                    <div className="max-h-60 divide-y divide-border overflow-y-auto rounded-md border border-border">
                         {filteredStudents.length === 0 ? (
-                            <p className="p-3 text-center text-xs text-[#8AA8CC]">
+                            <p className="p-3 text-center text-xs text-muted-foreground">
                                 No students found.
                             </p>
                         ) : (
@@ -298,21 +298,21 @@ function SearchableStudentSelect({
                                                 onChange(student.id);
                                                 setIsOpen(false);
                                             }}
-                                            className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-[#F3F8FF] ${
+                                            className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-muted ${
                                                 isSelected
-                                                    ? 'bg-[#EAF2FF] font-semibold text-[#0B3D91]'
-                                                    : 'text-[#334E68]'
+                                                    ? 'bg-primary/10 font-semibold text-primary'
+                                                    : 'text-foreground'
                                             }`}
                                         >
                                             <span>{formatStudentLabel(student)}</span>
                                             {isSelected && (
-                                                <Check className="h-3.5 w-3.5 text-[#0F6FFF]" />
+                                                <Check className="h-3.5 w-3.5 text-primary" />
                                             )}
                                         </button>
                                     );
                                 })}
                                 {hasMoreStudents && (
-                                    <div className="bg-[#F8FBFF] px-3 py-2 text-center text-[11px] text-[#5C7A9E]">
+                                    <div className="bg-muted/40 px-3 py-2 text-center text-[11px] text-muted-foreground">
                                         Showing first {matchLimit} of{' '}
                                         {filteredStudents.length} students. Type
                                         to narrow search.

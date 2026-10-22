@@ -45,13 +45,13 @@ interface DashboardPageProps {
 const statusBadgeClass = (status?: string) => {
     switch (status) {
         case 'approved':
-            return 'bg-emerald-100 text-emerald-800';
+            return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border dark:border-emerald-800/40';
         case 'cancelled':
-            return 'bg-rose-100 text-rose-800';
+            return 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 dark:border dark:border-rose-800/40';
         case 'pending':
-            return 'bg-amber-100 text-amber-900';
+            return 'bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 dark:border dark:border-amber-800/40';
         default:
-            return 'bg-slate-100 text-slate-800';
+            return 'bg-slate-100 text-slate-800 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40';
     }
 };
 
@@ -125,19 +125,19 @@ export default function Dashboard() {
         <div className="min-h-screen bg-page-background px-4 py-8">
             <Head title="Dashboard" />
             <div className="mx-auto max-w-7xl">
-                <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
+                <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-border bg-card p-6 shadow-sm md:flex-row md:items-center md:justify-between">
                     <div>
                         <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                             Dashboard
                         </CardTitle>
-                        <p className="text-sm text-slate-500">
+                        <p className="text-sm text-muted-foreground">
                             Staff dashboard overview for requests and activity.
                         </p>
                     </div>
-                    <div className="text-right text-sm text-slate-500 md:text-base">
+                    <div className="text-right text-sm text-muted-foreground md:text-base">
                         <p>
                             Total Requests:{' '}
-                            <span className="font-semibold text-slate-900">
+                            <span className="font-semibold text-foreground">
                                 {totalRequests}
                             </span>
                         </p>
@@ -149,37 +149,37 @@ export default function Dashboard() {
                     <StatCard
                         label="Total Requests"
                         value={totalRequests}
-                        bgClass="bg-slate-900"
-                        textClass="text-white"
+                        bgClass="bg-card border border-border"
+                        textClass="text-foreground"
                         subtitle={getDayLabel(totalRequestsLastDate)}
                     />
                     <StatCard
                         label="Pending"
                         value={pendingRequests}
-                        bgClass="bg-amber-100"
-                        textClass="text-slate-950"
+                        bgClass="bg-amber-500/10 border border-amber-500/20"
+                        textClass="text-amber-600 dark:text-amber-400"
                         subtitle={getDayLabel(pendingLastDate)}
                     />
                     <StatCard
                         label="Approved"
                         value={approvedRequests}
-                        bgClass="bg-emerald-100"
-                        textClass="text-slate-950"
+                        bgClass="bg-emerald-500/10 border border-emerald-500/20"
+                        textClass="text-emerald-600 dark:text-emerald-400"
                         subtitle={getDayLabel(approvedLastDate)}
                     />
                     <StatCard
                         label="Cancelled"
                         value={cancelledRequests}
-                        bgClass="bg-rose-100"
-                        textClass="text-slate-950"
+                        bgClass="bg-rose-500/10 border border-rose-500/20"
+                        textClass="text-rose-600 dark:text-rose-400"
                         subtitle={getDayLabel(cancelledLastDate)}
                     />
                     <StatCard
                         label="Unprocessed"
                         value={unprocessedRequests}
-                        bgClass="bg-slate-100" // ← this is Cancelled's color, not grey
-                        textClass="text-slate-950"
-                        subtitle={getDayLabel(unprocessedLastDate)} // ← wrong variable, copy-paste leftover
+                        bgClass="bg-slate-500/10 border border-slate-500/20"
+                        textClass="text-slate-600 dark:text-slate-300"
+                        subtitle={getDayLabel(unprocessedLastDate)}
                     />
                 </div>
 
@@ -220,43 +220,43 @@ export default function Dashboard() {
 
                 {/* Recent Requests + Activity Log */}
                 <div className="mt-6 grid gap-4 lg:grid-cols-2">
-                    <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-                        <div className="flex items-center gap-2 border-b border-slate-200 px-6 py-4">
-                            <h2 className="text-base font-semibold text-slate-900">
+                    <section className="rounded-3xl border border-border bg-card shadow-sm">
+                        <div className="flex items-center gap-2 border-b border-border px-6 py-4">
+                            <h2 className="text-base font-semibold text-foreground">
                                 Recent Requests
                             </h2>
                         </div>
                         <div className="p-4">
                             {recentRequests.length > 0 ? (
                                 <div className="max-h-96 overflow-y-auto">
-                                    <table className="w-full table-fixed text-left text-sm text-slate-700">
-                                        <thead className="sticky top-0 z-10 bg-white">
+                                    <table className="w-full table-fixed text-left text-sm text-foreground">
+                                        <thead className="sticky top-0 z-10 bg-card border-b border-border">
                                             <tr>
-                                                <th className="w-[25%] pb-3 font-medium text-slate-900">
+                                                <th className="w-[25%] pb-3 font-medium text-muted-foreground">
                                                     Reference
                                                 </th>
-                                                <th className="w-[25%] pb-3 font-medium text-slate-900">
+                                                <th className="w-[25%] pb-3 font-medium text-muted-foreground">
                                                     Name
                                                 </th>
-                                                <th className="w-[20%] pb-3 font-medium text-slate-900">
+                                                <th className="w-[20%] pb-3 font-medium text-muted-foreground">
                                                     Status
                                                 </th>
-                                                <th className="w-[20%] pb-3 font-medium text-slate-900">
+                                                <th className="w-[20%] pb-3 font-medium text-muted-foreground">
                                                     Date
                                                 </th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-200">
+                                        <tbody className="divide-y divide-border">
                                             {recentRequests.map((request) => (
                                                 <tr key={request.id}>
                                                     <td className="py-3">
-                                                        <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium whitespace-nowrap text-slate-700">
+                                                        <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium whitespace-nowrap text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40">
                                                             {
                                                                 request.reference_number
                                                             }
                                                         </span>
                                                     </td>
-                                                    <td className="py-3 text-slate-800">
+                                                    <td className="py-3 text-foreground">
                                                         {request.full_name}
                                                     </td>
                                                     <td className="py-3">
@@ -274,7 +274,7 @@ export default function Dashboard() {
                                                                 : 'Unprocessed'}
                                                         </span>
                                                     </td>
-                                                    <td className="py-3 text-slate-600">
+                                                    <td className="py-3 text-muted-foreground">
                                                         {formatDate(
                                                             request.created_at,
                                                         )}
@@ -285,7 +285,7 @@ export default function Dashboard() {
                                     </table>
                                 </div>
                             ) : (
-                                <p className="text-center text-sm text-slate-500">
+                                <p className="text-center text-sm text-muted-foreground">
                                     No recent requests
                                 </p>
                             )}

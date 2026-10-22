@@ -36,3 +36,6 @@ SYSTEM_WORKFLOW_PRESENTATION.md
 /.impeccable
 /plan
 /scratch
+.supa
+.env.supa
+Agents.md
