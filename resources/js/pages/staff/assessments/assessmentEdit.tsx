@@ -364,7 +364,7 @@ export default function AssessmentEdit({
             />
 
             <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-page-background p-3 sm:p-6">
-                <Card className="rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
+                <Card className="rounded-2xl border border-border/70 bg-card px-2! py-2! shadow-sm">
                     <CardHeader className="flex flex-col gap-4 p-3 sm:flex-row sm:items-center sm:justify-between">
                         <CardTitle className="text-xl font-bold text-slate-900">
                             Assessment: {assessment.reference_number}
@@ -381,7 +381,7 @@ export default function AssessmentEdit({
                                     }
                                     disabled={isUpdatingStatus}
                                 >
-                                    <SelectTrigger className="h-10 w-full rounded-xl border-slate-200 bg-slate-50 px-3 shadow-sm transition-colors hover:bg-white focus-visible:border-blue-400 focus-visible:ring-blue-500/20 disabled:opacity-60">
+                                    <SelectTrigger className="h-10 w-full rounded-xl border-border bg-slate-50 px-3 shadow-sm transition-colors hover:bg-card focus-visible:border-blue-400 focus-visible:ring-blue-500/20 disabled:opacity-60">
                                         <SelectValue>
                                             <span className="flex items-center gap-2">
                                                 <span
@@ -408,7 +408,7 @@ export default function AssessmentEdit({
                                     </SelectTrigger>
                                     <SelectContent
                                         sideOffset={6}
-                                        className="min-w-(--anchor-width) rounded-xl border-slate-200 p-1 shadow-xl"
+                                        className="min-w-(--anchor-width) rounded-xl border-border p-1 shadow-xl"
                                     >
                                         <div className="px-2 py-1.5 text-[10px] font-semibold tracking-wider text-slate-500 uppercase">
                                             Change status
@@ -457,7 +457,7 @@ export default function AssessmentEdit({
                 </Card>
 
                 <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
-                    <Card className="h-full rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
+                    <Card className="h-full rounded-2xl border border-border/70 bg-card px-2! py-2! shadow-sm">
                         <CardContent className="p-4 sm:p-6">
                             <section>
                                 <h2 className="mb-4 text-sm font-bold tracking-wider text-blue-500 uppercase">
@@ -494,7 +494,7 @@ export default function AssessmentEdit({
                         </CardContent>
                     </Card>
 
-                    <Card className="h-full rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
+                    <Card className="h-full rounded-2xl border border-border/70 bg-card px-2! py-2! shadow-sm">
                         <CardContent className="p-4 sm:p-6">
                             <section>
                                 <h2 className="mb-4 text-sm font-bold tracking-wider text-blue-500 uppercase">
@@ -530,8 +530,8 @@ export default function AssessmentEdit({
                     </Card>
                 </div>
 
-                <Card className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm">
-                    <CardHeader className="gap-3 border-b border-blue-100 bg-white sm:flex-row sm:items-start sm:justify-between">
+                <Card className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                    <CardHeader className="gap-3 border-b border-border bg-card sm:flex-row sm:items-start sm:justify-between">
                         <div className="space-y-1">
                             <div className="flex flex-wrap items-center gap-2">
                                 <CardTitle className="text-xl font-bold text-foreground">
@@ -566,7 +566,7 @@ export default function AssessmentEdit({
                                 onClick={openEmailPreview}
                                 disabled={!ledgerStatement.selectedStudent}
                                 variant="outline"
-                                className="min-h-11 border-blue-200 bg-white px-4 text-foreground hover:bg-blue-50"
+                                className="min-h-11 border-blue-200 bg-card px-4 text-foreground hover:bg-blue-50"
                             >
                                 <Mail className="h-4 w-4" />
                                 Email Statement
@@ -583,7 +583,7 @@ export default function AssessmentEdit({
                     </CardHeader>
 
                     {isChangingStudent && (
-                        <div className="border-b border-blue-100 bg-blue-50/40 px-4 py-4 sm:px-6">
+                        <div className="border-b border-border bg-blue-50/40 px-4 py-4 sm:px-6">
                             <div className="max-w-xl space-y-2">
                                 <label className="text-sm font-semibold text-foreground">
                                     Select student for statement
@@ -610,7 +610,7 @@ export default function AssessmentEdit({
                                 >
                                     <ComboboxInput
                                         placeholder="Search by name or student ID..."
-                                        className="w-full border-slate-200 bg-white shadow-sm focus-within:border-blue-500! focus-within:ring-2! focus-within:ring-blue-500/20!"
+                                        className="w-full border-border bg-card shadow-sm focus-within:border-blue-500! focus-within:ring-2! focus-within:ring-blue-500/20!"
                                         showClear={
                                             !!selectedStudentComboboxValue
                                         }
@@ -659,7 +659,7 @@ export default function AssessmentEdit({
                         <MatchNotice statement={ledgerStatement} />
 
                         {needsSelection && (
-                            <Card className="border-amber-200 bg-amber-50/60">
+                            <Card className="border-border bg-amber-50/60">
                                 <CardHeader>
                                     <CardTitle className="text-base text-amber-950">
                                         Select the correct student
@@ -678,7 +678,7 @@ export default function AssessmentEdit({
                                                 setSearch(event.target.value)
                                             }
                                             placeholder="Search by name or student ID..."
-                                            className="bg-white pr-9 pl-9"
+                                            className="bg-card pr-9 pl-9"
                                         />
                                         {search && (
                                             <button
@@ -696,7 +696,7 @@ export default function AssessmentEdit({
                                         onChange={(event) =>
                                             selectStudent(event.target.value)
                                         }
-                                        className="w-full rounded-md border border-amber-200 bg-white px-3 py-2 text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                        className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                                     >
                                         <option value="" disabled>
                                             Choose a student
@@ -749,7 +749,7 @@ export default function AssessmentEdit({
                                     />
                                 </div>
 
-                                <Card className="border-blue-100 bg-white">
+                                <Card className="border-border bg-card">
                                     <CardHeader>
                                         <CardTitle className="text-lg text-foreground">
                                             {
@@ -770,7 +770,7 @@ export default function AssessmentEdit({
                                     <CardContent className="overflow-x-auto p-0 sm:p-0">
                                         <table className="w-full min-w-180 border-collapse text-left text-xs">
                                             <thead>
-                                                <tr className="border-y border-blue-100 bg-blue-50/60 font-semibold text-foreground">
+                                                <tr className="border-y border-border bg-blue-50/60 font-semibold text-foreground">
                                                     <th className="px-4 py-3">
                                                         Date
                                                     </th>
@@ -928,14 +928,14 @@ export default function AssessmentEdit({
                             <label className="mb-2 block text-sm font-medium text-slate-700">
                                 Live Preview
                             </label>
-                            <div className="overflow-hidden rounded-xl border border-slate-200">
+                            <div className="overflow-hidden rounded-xl border border-border">
                                 <iframe
                                     title="Email preview"
                                     srcDoc={buildEmailPreviewHtml(
                                         emailRecipientName,
                                         emailNote,
                                     )}
-                                    className="h-112 w-100 bg-white"
+                                    className="h-112 w-100 bg-card"
                                 />
                             </div>
                         </div>
@@ -973,7 +973,7 @@ function Detail({
     value?: string | null;
 }) {
     return (
-        <div className="flex min-h-16 items-center justify-between gap-4 border-b border-slate-200/70 py-3 last:border-b-0">
+        <div className="flex min-h-16 items-center justify-between gap-4 border-b border-border/70 py-3 last:border-b-0">
             <span className="text-sm font-semibold text-slate-700">{label}</span>
             <p className="text-right text-base font-medium text-slate-900">
                 {value || '—'}
@@ -992,7 +992,7 @@ function SummaryCard({
     valueClassName?: string;
 }) {
     return (
-        <Card className="border-blue-100 bg-white p-4">
+        <Card className="border-border bg-card p-4">
             <p className="text-xs text-slate-500">{label}</p>
             <p className={`mt-1 text-base font-bold ${valueClassName}`}>
                 {currencyFormatter.format(value)}
@@ -1004,7 +1004,7 @@ function SummaryCard({
 function MatchNotice({ statement }: { statement: LedgerStatement }) {
     if (statement.matchStatus === 'unsupported') {
         return (
-            <div className="flex gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-slate-700">
+            <div className="flex gap-3 rounded-xl border border-border bg-slate-50 p-4 text-slate-700">
                 <FileQuestion className="mt-0.5 h-5 w-5 shrink-0" />
                 <div>
                     <p className="font-semibold">Ledger unavailable</p>
@@ -1039,7 +1039,7 @@ function MatchNotice({ statement }: { statement: LedgerStatement }) {
     }
 
     return (
-        <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+        <div className="flex gap-3 rounded-xl border border-border bg-amber-50 p-4 text-amber-950">
             <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
             <div>
                 <p className="font-semibold">

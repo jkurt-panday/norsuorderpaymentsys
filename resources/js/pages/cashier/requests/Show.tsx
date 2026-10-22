@@ -62,7 +62,7 @@ const getStatusBadgeConfig = (status: PaymentRequest['status']) => {
         default:
             return {
                 label: status,
-                className: 'bg-slate-100 text-slate-800 border-slate-200',
+                className: 'bg-slate-100 text-slate-800 border-border dark:bg-slate-800 dark:text-slate-300',
             };
     }
 };
@@ -153,13 +153,13 @@ export default function CashierRequestShow({
                     Back to requests
                 </Link>
 
-                <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <div className="flex flex-col gap-3 border-b border-slate-200 pb-5 sm:flex-row sm:items-start sm:justify-between">
+                <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                    <div className="flex flex-col gap-3 border-b border-border pb-5 sm:flex-row sm:items-start sm:justify-between">
                         <div>
-                            <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">
+                            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                                 Reference number
                             </p>
-                            <h1 className="mt-1 text-2xl font-semibold text-slate-900">
+                            <h1 className="mt-1 text-2xl font-semibold text-foreground">
                                 {request.form_input.reference_number}
                             </h1>
                         </div>
@@ -172,7 +172,7 @@ export default function CashierRequestShow({
                             <DropdownMenu>
                                 <DropdownMenuTrigger
                                     render={
-                                        <button className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100" />
+                                        <button className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-slate-100" />
                                     }
                                     className="cursor-pointer"
                                 >
@@ -264,12 +264,12 @@ export default function CashierRequestShow({
                         onSubmit={submit}
                         className="mt-5 space-y-5 rounded-lg border border-blue-200 bg-blue-50/50 p-5"
                     >
-                        <h2 className="font-semibold text-slate-900">
+                        <h2 className="font-semibold text-foreground">
                             Update request details
                         </h2>
 
                         <div className="grid gap-4 sm:grid-cols-3">
-                            <label className="text-sm font-medium text-slate-700">
+                            <label className="text-sm font-medium text-foreground">
                                 Status
                                 <select
                                     value={form.data.status}
@@ -280,7 +280,7 @@ export default function CashierRequestShow({
                                                 .value as PaymentRequest['status'],
                                         )
                                     }
-                                    className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                    className="mt-1.5 w-full rounded-lg border border-border bg-card px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 >
                                     <option value="processed">
                                         Ready for payment
@@ -295,12 +295,12 @@ export default function CashierRequestShow({
                                 )}
                             </label>
 
-                            <label className="text-sm font-medium text-slate-700">
+                            <label className="text-sm font-medium text-foreground">
                                 OR number{' '}
                                 {isPaid ? (
                                     <span className="text-rose-500">*</span>
                                 ) : (
-                                    <span className="text-xs font-normal text-slate-400">
+                                    <span className="text-xs font-normal text-muted-foreground">
                                         (optional)
                                     </span>
                                 )}
@@ -314,7 +314,7 @@ export default function CashierRequestShow({
                                     onChange={(event) =>
                                         handleOrNoChange(event.target.value)
                                     }
-                                    className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                    className="mt-1.5 w-full rounded-lg border border-border bg-card px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 />
                                 {form.errors.or_no && (
                                     <span className="mt-1 block text-xs text-rose-600">
@@ -323,12 +323,12 @@ export default function CashierRequestShow({
                                 )}
                             </label>
 
-                            <label className="text-sm font-medium text-slate-700">
+                            <label className="text-sm font-medium text-foreground">
                                 Payment date{' '}
                                 {isPaid ? (
                                     <span className="text-rose-500">*</span>
                                 ) : (
-                                    <span className="text-xs font-normal text-slate-400">
+                                    <span className="text-xs font-normal text-muted-foreground">
                                         (optional)
                                     </span>
                                 )}
@@ -340,7 +340,7 @@ export default function CashierRequestShow({
                                     onChange={(value) =>
                                         form.setData('or_date', value)
                                     }
-                                    className="mt-1.5 rounded-lg border-slate-300 bg-white px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                    className="mt-1.5 rounded-lg border-border bg-card px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 />
                                 {form.errors.or_date && (
                                     <span className="mt-1 block text-xs text-rose-600">
@@ -366,10 +366,10 @@ export default function CashierRequestShow({
 function Detail({ label, value }: { label: string; value: string }) {
     return (
         <div>
-            <dt className="text-xs font-medium tracking-wide text-slate-500 uppercase">
+            <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                 {label}
             </dt>
-            <dd className="mt-1 text-sm break-words text-slate-900">{value}</dd>
+            <dd className="mt-1 text-sm break-words text-foreground">{value}</dd>
         </div>
     );
 }

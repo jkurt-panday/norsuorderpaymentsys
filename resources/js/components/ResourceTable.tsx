@@ -696,7 +696,7 @@ export default function ResourceTable<T extends { id: number }>({
                                         </TableHead>
                                     );
                                 })}
-                                <TableHead className="h-11 bg-white pr-14 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                                <TableHead className="h-11 bg-muted/50 pr-14 text-right text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                                     Actions
                                 </TableHead>
                             </TableRow>
