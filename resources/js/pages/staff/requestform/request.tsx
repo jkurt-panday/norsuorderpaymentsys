@@ -6,18 +6,18 @@ import type { ColumnDef, PaginatedData } from '@/components/RequestTable';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import staff from '@/routes/staff';
@@ -28,17 +28,17 @@ const EMAIL_JOB_STATUS_URL = '/staff/requests/email-job-status';
 const BULK_EMAIL_OP_URL = '/staff/requests/bulk-email-op';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select';
 
 interface StaffInput {
@@ -145,32 +145,32 @@ const formatFullName = (row: FormInput) => {
 /** Returns a human-readable "X days ago" / "X hours ago" / "X minutes ago" string. */
 const formatTimeAgo = (isoDate: string | null | undefined): string => {
     if (!isoDate) {
-return '';
-}
+        return '';
+    }
 
     const then = new Date(isoDate).getTime();
     const now = Date.now();
     const diffMs = now - then;
 
     if (diffMs < 0) {
-return 'just now';
-}
+        return 'just now';
+    }
 
     const minutes = Math.floor(diffMs / 60000);
     const hours = Math.floor(diffMs / 3600000);
     const days = Math.floor(diffMs / 86400000);
 
     if (days > 0) {
-return `${days} day${days === 1 ? '' : 's'} ago`;
-}
+        return `${days} day${days === 1 ? '' : 's'} ago`;
+    }
 
     if (hours > 0) {
-return `${hours} hour${hours === 1 ? '' : 's'} ago`;
-}
+        return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    }
 
     if (minutes > 0) {
-return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
-}
+        return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    }
 
     return 'just now';
 };
@@ -248,6 +248,10 @@ const ManageRequests: React.FC = () => {
     const [selectedPopoverSearch, setSelectedPopoverSearch] = useState('');
     const popoverRef = useRef<HTMLDivElement>(null);
     const MAX_POLLING_DURATION = 10 * 60 * 1000; // 10 minutes
+    // Used only while the Email Progress dialog remains open.
+    const EMAIL_PROGRESS_POLLING_INTERVAL = 15 * 1000; // 15 seconds
+    // Operational queue: staff need to see new requests promptly.
+    const TABLE_POLLING_INTERVAL = 15 * 1000; // 15 seconds
 
     // Close popover when clicking outside
     useEffect(() => {
@@ -285,8 +289,8 @@ const ManageRequests: React.FC = () => {
     // Filter / Reset / status controls fully functional.
     useEffect(() => {
         if (!isEmailModalOpen) {
-return;
-}
+            return;
+        }
 
         let cancelled = false;
         setIsLoadingRecipients(true);
@@ -303,8 +307,8 @@ return;
             })
             .then((json) => {
                 if (cancelled) {
-return;
-}
+                    return;
+                }
 
                 setAllRecipients(json.data ?? []);
                 setIsQueueStalled(Boolean(json.queue_stalled));
@@ -312,8 +316,8 @@ return;
             })
             .catch((err) => {
                 if (cancelled) {
-return;
-}
+                    return;
+                }
 
                 flashToast('error', 'Failed to load recipients.');
                 setIsLoadingRecipients(false);
@@ -328,7 +332,7 @@ return;
     const allFormInputs: FormInput[] = formInputs.data ?? [];
 
     // Filtered list for the "specific person" search — uses ALL recipients, not just current page
-    const filteredSpecific = useMemo(() => 
+    const filteredSpecific = useMemo(() =>
         emailSearch.trim() === ''
             ? allRecipients
             : allRecipients.filter((row) => {
@@ -336,7 +340,7 @@ return;
                 const fullName = formatFullName(row).toLowerCase();
 
                 return fullName.includes(q) || row.reference_number.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
-            }), 
+            }),
         [allRecipients, emailSearch]
     );
 
@@ -360,7 +364,7 @@ return;
         });
     };
 
-    const bulkRecipients = useMemo(() => 
+    const bulkRecipients = useMemo(() =>
         emailTarget === 'specific'
             ? []
             : eligibleRecipients.filter((row) => {
@@ -372,12 +376,12 @@ return;
                     (emailTarget === 'all_pending' && recipientStatus === 'pending') ||
                     (emailTarget === 'all_cancelled' && recipientStatus === 'cancelled')
                 );
-            }), 
+            }),
         [emailTarget, eligibleRecipients]
     );
 
     // Filter bulk recipients by search query
-    const filteredBulkRecipients = useMemo(() => 
+    const filteredBulkRecipients = useMemo(() =>
         emailSearch.trim() === ''
             ? bulkRecipients
             : bulkRecipients.filter((row) => {
@@ -385,7 +389,7 @@ return;
                 const fullName = formatFullName(row).toLowerCase();
 
                 return fullName.includes(q) || row.reference_number.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
-            }), 
+            }),
         [bulkRecipients, emailSearch]
     );
 
@@ -394,7 +398,7 @@ return;
     useEffect(() => {
         const isBulkMode = emailTarget !== 'specific';
         const wasBulkMode = prevBulkTargetRef.current !== null && prevBulkTargetRef.current !== 'specific';
-        
+
         // Only run when emailTarget actually changes, not when bulkRecipients recalculates
         if (prevBulkTargetRef.current !== emailTarget) {
             if (isBulkMode) {
@@ -590,26 +594,19 @@ return;
                     flashToast('error', `No queue worker is running — ${data.summary.stalled} email job(s) were queued but never picked up. Start one with "php artisan queue:work" (or "composer queue:work"), then send again.`);
                 }
 
-                // Poll every 5 seconds (passive auto-refresh)
-                pollTimeoutRef.current = setTimeout(() => {
-                    void pollProgressWithIds(ids);
-                }, 5000);
+                // Poll only while the progress dialog is open. Fifteen seconds keeps
+                // email delivery status responsive without permanent background traffic.
+                pollTimeoutRef.current = setTimeout(() => pollProgressWithIds(ids), EMAIL_PROGRESS_POLLING_INTERVAL);
             }
         } catch (err) {
-            if (!isPollingRef.current) {
-                return;
-            }
-
-            // Retry after 10 seconds on error
-            pollTimeoutRef.current = setTimeout(() => {
-                void pollProgressWithIds(ids);
-            }, 10000);
+            // Retry at the normal interval after a transient request failure.
+            pollTimeoutRef.current = setTimeout(() => pollProgressWithIds(ids), EMAIL_PROGRESS_POLLING_INTERVAL);
         }
     };
 
     const closeProgressModal = () => {
         setShowProgressModal(false);
-        // Don't stop polling - let it continue in background
+        stopProgressPolling();
     };
 
     const applyFilters = useCallback(() => {
@@ -763,7 +760,7 @@ return;
                 columns={columns}
                 resource={formInputs}
                 resourceKey="formInputs"
-                pollInterval={5000}
+                pollInterval={TABLE_POLLING_INTERVAL}
                 renderActions={renderActions}
                 actionsWidth="60px"
                 emptyIcon={Inbox}
@@ -856,7 +853,7 @@ return;
                         </div>
 
                         {/* Specific person search + checkbox list — only shown when 'specific' is chosen */}
-{emailTarget === 'specific' && (
+                        {emailTarget === 'specific' && (
                             <div className="rounded-lg bg-muted/40 p-3 text-sm text-slate-600">
                                 <div className="flex items-center gap-3 mb-2 flex-wrap">
                                     <div className="flex items-center gap-2">
@@ -920,8 +917,8 @@ return;
                                                             .filter((row): row is typeof row & { id: number } => row !== undefined)
                                                             .filter((row) => {
                                                                 if (!selectedPopoverSearch.trim()) {
-return true;
-}
+                                                                    return true;
+                                                                }
 
                                                                 const q = selectedPopoverSearch.toLowerCase();
                                                                 const fullName = formatFullName(row).toLowerCase();
@@ -969,11 +966,10 @@ return true;
                                             return (
                                                 <div
                                                     key={row.id}
-                                                    className={`flex items-start gap-2 border-b border-border px-3 py-2 text-sm last:border-0 ${
-                                                        eligible
+                                                    className={`flex items-start gap-2 border-b border-border px-3 py-2 text-sm last:border-0 ${eligible
                                                             ? 'cursor-pointer bg-card hover:bg-muted/50 text-foreground'
                                                             : 'bg-muted/40 opacity-60'
-                                                    }`}
+                                                        }`}
                                                     onClick={() => {
                                                         if (eligible) {
                                                             toggleSelectId(row.id);
@@ -997,11 +993,10 @@ return true;
                                                                 {formatFullName(row)}
                                                             </div>
                                                             <span
-                                                                className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                                                                    row.staff_input
+                                                                className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${row.staff_input
                                                                         ? statusBadgeClass(row.staff_input.status)
                                                                         : 'bg-slate-100 text-slate-600'
-                                                                }`}
+                                                                    }`}
                                                             >
                                                                 {row.staff_input?.status ?? 'Unprocessed'}
                                                             </span>
@@ -1054,7 +1049,7 @@ return true;
                                             className="h-9 w-64 text-sm rounded-lg"
                                         />
                                     </div>
-                                    
+
                                     <div className="flex items-center gap-1.5">
                                         {selectedIds.size > 0 && (
                                             <div className="relative">
@@ -1102,8 +1097,8 @@ return true;
                                                                 .filter((row): row is typeof row & { id: number } => row !== undefined)
                                                                 .filter((row) => {
                                                                     if (!selectedPopoverSearch.trim()) {
-return true;
-}
+                                                                        return true;
+                                                                    }
 
                                                                     const q = selectedPopoverSearch.toLowerCase();
                                                                     const fullName = formatFullName(row).toLowerCase();
@@ -1184,11 +1179,10 @@ return true;
                                                                 {formatFullName(row)}
                                                             </div>
                                                             <span
-                                                                className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                                                                    row.staff_input
+                                                                className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${row.staff_input
                                                                         ? statusBadgeClass(row.staff_input.status)
                                                                         : 'bg-slate-100 text-slate-600'
-                                                                }`}
+                                                                    }`}
                                                             >
                                                                 {row.staff_input?.status ?? 'Unprocessed'}
                                                             </span>
@@ -1375,7 +1369,7 @@ return true;
                                     ? <span className="text-rose-600">Waiting for a queue worker...</span>
                                     : (pollingStartTime && Date.now() - pollingStartTime > MAX_POLLING_DURATION * 0.8
                                         ? 'Almost timed out...'
-                                        : <span>Processing... <Loader2 className="h-4 w-4 animate-spin text-emerald-600" /> <span className="text-xs text-slate-400">(auto-refresh every 5s)</span></span>))
+                                        : <span>Processing... <Loader2 className="h-4 w-4 animate-spin text-emerald-600" /> <span className="text-xs text-slate-400">(updates every 15 seconds)</span></span>))
                                 : emailProgress.some(p => p.status === 'failed')
                                     ? `Completed — ${emailProgress.filter(p => p.status === 'failed').length} email(s) failed`
                                     : 'Completed'}

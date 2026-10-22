@@ -51,12 +51,12 @@ export interface ActivityLogItem {
     id: number;
     action: string;
     event:
-        | 'created'
-        | 'updated'
-        | 'deleted'
-        | 'deactivated'
-        | 'reactivated'
-        | 'processed';
+    | 'created'
+    | 'updated'
+    | 'deleted'
+    | 'deactivated'
+    | 'reactivated'
+    | 'processed';
     description: string;
     actor_name: string | null;
     actor_role: string | null;
@@ -241,11 +241,11 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
     const [isNavigating, setIsNavigating] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
 
-    // Keep the feed live: silently refetch only the activity_log data every
-    // 5 seconds. This is a background Inertia visit (no full page reload) and
+    // Silently refetch only the activity_log data every minute. This is
+    // a background Inertia visit (no full page reload) and
     // preserves the current search/sort/page URL, so filters stay intact.
     const { start, stop } = usePoll(
-        300000,
+        60000,
         { only: ['activityLogs'] },
         { autoStart: false },
     );
@@ -553,9 +553,8 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
 
             <CardContent className="p-0">
                 <Table
-                    className={`transition-opacity duration-150 ${
-                        isBusy ? 'opacity-60' : 'opacity-100'
-                    }`}
+                    className={`transition-opacity duration-150 ${isBusy ? 'opacity-60' : 'opacity-100'
+                        }`}
                 >
                     <TableHeader>
                         <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50">
@@ -568,25 +567,21 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                 return (
                                     <TableHead
                                         key={col.label}
-                                        className={`${col.width} ${
-                                            col.label === 'Event' ? 'pl-6' : ''
-                                        } ${
-                                            col.label === 'Date' ? 'pr-6' : ''
-                                        } ${
-                                            sortKeyName
+                                        className={`${col.width} ${col.label === 'Event' ? 'pl-6' : ''
+                                            } ${col.label === 'Date' ? 'pr-6' : ''
+                                            } ${sortKeyName
                                                 ? 'cursor-pointer transition-colors select-none'
                                                 : ''
-                                        } ${
-                                            isActive
+                                            } ${isActive
                                                 ? 'bg-primary/10 font-bold text-primary'
                                                 : 'hover:text-foreground'
-                                        }`}
+                                            }`}
                                         onClick={
                                             sortKeyName
                                                 ? () =>
-                                                      handleSortClick(
-                                                          sortKeyName,
-                                                      )
+                                                    handleSortClick(
+                                                        sortKeyName,
+                                                    )
                                                 : undefined
                                         }
                                     >
@@ -595,7 +590,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                             {sortKeyName &&
                                                 (isActive ? (
                                                     effectiveSortDir ===
-                                                    'asc' ? (
+                                                        'asc' ? (
                                                         <ArrowUp className="h-4 w-4 stroke-[2.5] text-primary" />
                                                     ) : (
                                                         <ArrowDown className="h-4 w-4 stroke-[2.5] text-primary" />
@@ -824,11 +819,10 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                                                 false,
                                                             );
                                                         }}
-                                                        className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
-                                                            page === currentPage
-                                                                ? 'bg-primary/15 font-medium text-primary'
-                                                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                                                        }`}
+                                                        className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${page === currentPage
+                                                            ? 'bg-primary/15 font-medium text-primary'
+                                                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                                            }`}
                                                     >
                                                         Page {page}
                                                     </button>
@@ -883,14 +877,13 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                             isPrev
                                                 ? 'Previous page'
                                                 : isNext
-                                                  ? 'Next page'
-                                                  : `Page ${link.label}`
+                                                    ? 'Next page'
+                                                    : `Page ${link.label}`
                                         }
-                                        className={`h-8 w-8 shrink-0 rounded-md text-sm ${
-                                            link.active
-                                                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                                                : ''
-                                        }`}
+                                        className={`h-8 w-8 shrink-0 rounded-md text-sm ${link.active
+                                            ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                            : ''
+                                            }`}
                                     >
                                         {isPrev ? (
                                             <ChevronLeft className="h-4 w-4" />
