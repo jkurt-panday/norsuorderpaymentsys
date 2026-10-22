@@ -231,7 +231,7 @@ const ReadOnlyRow = ({
     ) : (
         <p
             className={`min-w-0 flex-1 text-sm ${valueClass} ${
-                shouldTruncate ? 'truncate' : 'break-words whitespace-pre-wrap'
+                shouldTruncate ? 'truncate' : 'wrap-break-word whitespace-pre-wrap'
             }`}
             title={shouldTruncate ? stringValue : undefined}
         >

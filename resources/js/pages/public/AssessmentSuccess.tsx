@@ -9,6 +9,7 @@ import {
     Receipt,
     IdCard,
     Printer,
+    Download,
     Hash,
     Home,
 } from 'lucide-react';
@@ -119,6 +120,15 @@ return '';
             `/public/assessment_complete/${assessmentForm.reference_number}/print`,
             '_blank',
         );
+    };
+
+    const handleDownload = () => {
+        const link = document.createElement('a');
+        link.href = `/public/assessment_complete/${assessmentForm.reference_number}/download`;
+        link.download = `Assessment-Transaction-${assessmentForm.reference_number}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
     };
 
     useEffect(() => {
@@ -360,22 +370,41 @@ return '';
                                 </div>
                             </CardContent>
                             <CardFooter className="print-hidden no-print flex flex-col gap-4 border-t px-4 pt-6 pb-6 sm:px-6 sm:pb-8">
-                                <div className="flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row sm:gap-4">
-                                    <Button className="h-11 w-full rounded-xl bg-blue-700 px-6 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-800 hover:shadow-lg active:scale-[0.98] sm:h-12 sm:w-auto sm:px-8 sm:text-base">
+                                <div className="grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                                    <Button className="h-11 w-full rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-400 hover:text-white hover:shadow-lg active:scale-[0.98] sm:h-12 sm:px-8 sm:text-base">
                                         <Link
                                             href="/public/assessmentform"
                                             className="flex h-full w-full items-center justify-center"
                                         >
                                             Submit Another Request
                                         </Link>
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        onClick={handlePrint}
-                                        className="h-11 w-full rounded-xl border-blue-200 px-6 text-sm font-semibold text-blue-700 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800 sm:h-12 sm:w-auto sm:px-8 sm:text-base"
+                                     </Button>
+                                     <Button
+                                         variant="outline"
+className="h-11 w-full rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-400 hover:text-white hover:shadow-lg active:scale-[0.98] sm:h-12 sm:px-8 sm:text-base"
+                                      >
+                                          <Link
+                                              href="/public/opform"
+                                             className="flex h-full w-full items-center justify-center"
+                                         >
+                                             Submit Order of Payment
+                                         </Link>
+                                     </Button>
+                                      <Button
+                                          variant="outline"
+                                          onClick={handleDownload}
+                                         className="h-11 w-full rounded-xl border-blue-200 px-6 text-sm font-semibold text-blue-700 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800 sm:h-12 sm:px-8 sm:text-base"
+                                     >
+                                         <Download className="mr-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
+                                         Download Transaction
+                                     </Button>
+                                     <Button
+                                         variant="outline"
+                                         onClick={handlePrint}
+                                        className="h-11 w-full rounded-xl border-blue-200 px-6 text-sm font-semibold text-blue-700 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800 sm:h-12 sm:px-8 sm:text-base"
                                     >
                                         <Printer className="mr-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
-                                        Print Receipt
+                                        Print Transaction
                                     </Button>
                                     {(() => {
                                         const role = (auth?.user as { role?: string } | undefined)?.role;
@@ -395,7 +424,7 @@ return null;
                                         return (
                                             <Button
                                                 variant="outline"
-                                                className="h-11 w-full rounded-xl border-slate-200 px-6 text-sm font-semibold text-slate-700 transition-all duration-200 hover:bg-slate-50 sm:h-12 sm:w-auto sm:px-8 sm:text-base"
+                                                className="h-11 w-full rounded-xl border-slate-200 px-6 text-sm font-semibold text-slate-700 transition-all duration-200 hover:bg-slate-50 sm:h-12 sm:px-8 sm:text-base"
                                             >
                                                 <Link
                                                     href={homeHref}

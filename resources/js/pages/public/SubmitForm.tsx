@@ -280,7 +280,7 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
             <ThemeToggle className="fixed top-4 right-4 z-50 rounded-full shadow-md bg-white/80 dark:bg-slate-900/80 backdrop-blur" />
             <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-300 to-white px-6 py-12">
                 <div className="mx-auto max-w-4xl">
-                    <div className="mb-10 rounded-2xl border border-blue-100 bg-white px-8 py-8 text-center shadow-md">
+                    <div className="mb-6 rounded-2xl border border-blue-100 bg-white px-8 py-8 text-center shadow-md">
                         <div className="flex justify-center">
                             <img
                                 src="/finance_logo1.png"
@@ -1119,7 +1119,7 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                 files,
                                             );
                                         }}
-                                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,"
+                                        accept=".pdf,.jpg,.jpeg,.png,.webp"
                                         maxSize={10 * 1024 * 1024} // 10MB
                                         allowsMultiple={true}
                                     />

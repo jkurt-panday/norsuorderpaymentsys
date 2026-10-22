@@ -113,7 +113,7 @@ export default function ResourceTable<T extends { id: number }>({
     emptyIcon: EmptyIcon,
     emptyMessage,
     deleteConfirmMessage = 'Are you sure you want to delete this record?',
-    actionsWidth = '96px',
+    actionsWidth = '140px',
     filters,
     pollInterval,
     highlightDuration = 2000,
@@ -549,7 +549,7 @@ export default function ResourceTable<T extends { id: number }>({
                             type="submit"
                             aria-label="Search"
                             title="Search"
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-400"
+                            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-400"
                         >
                             <Search className="h-4 w-4" />
                         </button>
@@ -594,7 +594,7 @@ export default function ResourceTable<T extends { id: number }>({
                                                         optionValue,
                                                     )
                                                 }
-                                                className={`flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-sm transition-colors ${
+                                                className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-2 py-2 text-left text-sm transition-colors ${
                                                     isActive
                                                         ? 'bg-blue-50 font-medium text-blue-700'
                                                         : 'text-slate-600 hover:bg-slate-50'
@@ -614,7 +614,7 @@ export default function ResourceTable<T extends { id: number }>({
                             type="button"
                             onClick={handleReloadAndReset}
                             disabled={isResetting}
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                             aria-label="Reload and reset table"
                             title="Reload and reset table"
                         >
@@ -696,7 +696,7 @@ export default function ResourceTable<T extends { id: number }>({
                                         </TableHead>
                                     );
                                 })}
-                                <TableHead className="h-11 bg-white pr-6 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                                <TableHead className="h-11 bg-white pr-14 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
                                     Actions
                                 </TableHead>
                             </TableRow>
@@ -729,27 +729,27 @@ export default function ResourceTable<T extends { id: number }>({
                                                     {col.render(row, i)}
                                                 </TableCell>
                                             ))}
-                                            <TableCell className="py-3 pr-6 text-right">
-                                                <div className="inline-flex overflow-hidden rounded-full shadow-sm">
+                                            <TableCell className="py-3 pr-10 text-right">
+                                                <div className="mr-2 inline-flex overflow-hidden rounded-full shadow-sm">
                                                     <Link
                                                         href={editHref(row)}
-                                                        className="flex h-8 w-8 items-center justify-center bg-amber-400 text-white transition-colors hover:bg-amber-500"
+                                                        className="flex h-8 w-8 cursor-pointer items-center justify-center bg-amber-400 text-white transition-colors hover:bg-amber-500"
                                                         aria-label="Edit"
                                                         title="Edit"
                                                     >
                                                         <Pencil className="h-4 w-4" />
                                                     </Link>
                                                     <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            handleDeleteClick(
-                                                                row.id,
-                                                            )
-                                                        }
-                                                        className="flex h-8 w-8 items-center justify-center border-l border-white/20 bg-red-600 text-white transition-colors hover:bg-red-700"
-                                                        aria-label="Delete"
-                                                        title="Delete"
-                                                    >
+                                                         type="button"
+                                                         onClick={() =>
+                                                             handleDeleteClick(
+                                                                 row.id,
+                                                             )
+                                                         }
+                                                         className="flex h-8 w-8 cursor-pointer items-center justify-center border-l border-white/20 bg-red-600 text-white transition-colors hover:bg-red-700"
+                                                         aria-label="Delete"
+                                                         title="Delete"
+                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </button>
                                                 </div>
@@ -810,17 +810,17 @@ export default function ResourceTable<T extends { id: number }>({
 
                                 return (
                                     <div className="flex shrink-0 items-center gap-1.5">
-                                        <button
-                                            type="button"
-                                            disabled={!prevLink?.url}
-                                            onClick={() =>
-                                                navigateToPage(
-                                                    resource.current_page - 1,
-                                                )
-                                            }
-                                            aria-label="Previous page"
-                                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 text-sm text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                        >
+                                         <button
+                                             type="button"
+                                             disabled={!prevLink?.url}
+                                             onClick={() =>
+                                                 navigateToPage(
+                                                     resource.current_page - 1,
+                                                 )
+                                             }
+                                             aria-label="Previous page"
+                                             className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border border-slate-200 text-sm text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                         >
                                             <ChevronLeft className="h-4 w-4" />
                                         </button>
 
@@ -894,7 +894,7 @@ export default function ResourceTable<T extends { id: number }>({
                                                     />
                                                     <button
                                                         type="submit"
-                                                        className="h-8 shrink-0 rounded-md bg-blue-900 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-blue-950"
+                                                        className="h-8 shrink-0 cursor-pointer rounded-md bg-blue-900 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-blue-950"
                                                     >
                                                         Go
                                                     </button>
@@ -907,18 +907,18 @@ export default function ResourceTable<T extends { id: number }>({
                                                         },
                                                         (_, i) => i + 1,
                                                     ).map((page) => (
-                                                        <button
-                                                            key={page}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                navigateToPage(
-                                                                    page,
-                                                                );
-                                                                setPageJumpOpen(
-                                                                    false,
-                                                                );
-                                                            }}
-                                                            className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                                                         <button
+                                                             key={page}
+                                                             type="button"
+                                                             onClick={() => {
+                                                                 navigateToPage(
+                                                                     page,
+                                                                 );
+                                                                 setPageJumpOpen(
+                                                                     false,
+                                                                 );
+                                                             }}
+                                                             className={`flex w-full cursor-pointer items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
                                                                 page ===
                                                                 resource.current_page
                                                                     ? 'bg-blue-50 font-medium text-blue-900'
@@ -932,17 +932,17 @@ export default function ResourceTable<T extends { id: number }>({
                                             </PopoverContent>
                                         </Popover>
 
-                                        <button
-                                            type="button"
-                                            disabled={!nextLink?.url}
-                                            onClick={() =>
-                                                navigateToPage(
-                                                    resource.current_page + 1,
-                                                )
-                                            }
-                                            aria-label="Next page"
-                                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 text-sm text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                        >
+                                         <button
+                                             type="button"
+                                             disabled={!nextLink?.url}
+                                             onClick={() =>
+                                                 navigateToPage(
+                                                     resource.current_page + 1,
+                                                 )
+                                             }
+                                             aria-label="Next page"
+                                             className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border border-slate-200 text-sm text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                         >
                                             <ChevronRight className="h-4 w-4" />
                                         </button>
                                     </div>

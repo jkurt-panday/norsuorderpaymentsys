@@ -37,7 +37,7 @@ function CourseActionsCell({ course }: { course: CourseType }) {
     };
 
     return (
-        <div className="grid w-max grid-cols-2 justify-self-end-safe">
+        <div className="grid w-max grid-cols-2 justify-self-end-safe mr-10">
             <Link
                 href={`/staff/courses/${course.id}/edit`}
                 className="flex h-8 w-8 items-center justify-center rounded-l-2xl bg-amber-400 text-white transition-colors hover:bg-amber-500"
@@ -86,7 +86,7 @@ export const columns = columnHelper.columns([
 
     columnHelper.display({
         id: 'actions',
-        header: () => <div className="justify-self-end-safe">Actions</div>,
+        header: () => <div className="justify-self-end-safe mr-10">Actions</div>,
         cell: ({ row }) => <CourseActionsCell course={row.original} />,
     }),
 ]);
