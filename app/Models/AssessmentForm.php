@@ -49,10 +49,10 @@ class AssessmentForm extends Model
      */
     public function scopeFiltered(Builder $query, Request $request): Builder
     {
-        return $query->when($request->search, fn ($q, $search) => $q->where(fn ($q) => $q->where('reference_number', 'ilike', "%{$search}%")
-            ->orWhere('first_name', 'ilike', "%{$search}%")
-            ->orWhere('last_name', 'ilike', "%{$search}%")
-            ->orWhere('email', 'ilike', "%{$search}%")
+        return $query->when($request->search, fn ($q, $search) => $q->where(fn ($q) => $q->where('reference_number', 'like', "%{$search}%")
+            ->orWhere('first_name', 'like', "%{$search}%")
+            ->orWhere('last_name', 'like', "%{$search}%")
+            ->orWhere('email', 'like', "%{$search}%")
         ))
             ->when($request->date_from, fn ($q, $v) => $q->whereDate('created_at', '>=', $v))
             ->when($request->date_to, fn ($q, $v) => $q->whereDate('created_at', '<=', $v))

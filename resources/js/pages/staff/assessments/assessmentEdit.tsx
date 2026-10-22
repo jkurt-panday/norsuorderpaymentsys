@@ -446,6 +446,7 @@ export default function AssessmentEdit({
                                 href={assessmentsIndex.url()}
                                 className={cn(
                                     buttonVariants({ variant: 'outline' }),
+                                    'min-h-11',
                                 )}
                             >
                                 <ArrowLeft className="h-4 w-4" />
@@ -556,7 +557,7 @@ export default function AssessmentEdit({
                                     ledgerStatement.candidates.length === 0
                                 }
                                 variant="outline"
-                                className="bg-blue-600 text-white hover:bg-blue-400"
+                                className="min-h-11 bg-blue-600 px-4 text-white hover:bg-blue-700 hover:text-white"
                             >
                                 <Search className="h-4 w-4" />
                                 Change Student
@@ -565,7 +566,7 @@ export default function AssessmentEdit({
                                 onClick={openEmailPreview}
                                 disabled={!ledgerStatement.selectedStudent}
                                 variant="outline"
-                                className="border-blue-200 bg-white text-[#0B3D91] hover:bg-blue-50"
+                                className="min-h-11 border-blue-200 bg-white px-4 text-[#0B3D91] hover:bg-blue-50"
                             >
                                 <Mail className="h-4 w-4" />
                                 Email Statement
@@ -573,7 +574,7 @@ export default function AssessmentEdit({
                             <Button
                                 onClick={printStatement}
                                 disabled={!ledgerStatement.selectedStudent}
-                                className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
+                                className="min-h-11 bg-blue-600 px-4 text-white hover:bg-blue-700 hover:text-white"
                             >
                                 <Printer className="h-4 w-4" />
                                 Print Statement
@@ -684,7 +685,7 @@ export default function AssessmentEdit({
                                                 type="button"
                                                 onClick={() => setSearch('')}
                                                 aria-label="Clear student search"
-                                                className="absolute top-2.5 right-3 text-slate-400 hover:text-slate-700"
+                                                className="absolute top-1/2 right-1 flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 hover:text-slate-700"
                                             >
                                                 <X className="h-4 w-4" />
                                             </button>
@@ -942,15 +943,18 @@ export default function AssessmentEdit({
                     <DialogFooter className="gap-2">
                         <Button
                             variant="outline"
+                            size="lg"
+                            className="min-h-11"
                             onClick={() => setIsEmailPreviewOpen(false)}
                             disabled={isSendingEmail}
                         >
                             Cancel
                         </Button>
                         <Button
+                            size="lg"
                             onClick={handleConfirmSendEmail}
                             disabled={isSendingEmail}
-                            className="bg-[#0B3D91] hover:bg-[#092D6F]"
+                            className="min-w-32 bg-[#0B3D91] hover:bg-[#092D6F]"
                         >
                             {isSendingEmail ? 'Sending...' : 'Send Email'}
                         </Button>
