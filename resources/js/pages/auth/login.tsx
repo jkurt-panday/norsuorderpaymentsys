@@ -126,12 +126,6 @@ export default function Login({
                         required
                         className={sharedInputClass}
                     />
-                    <p
-                        id="email-hint"
-                        className="mt-1.5 text-[13px] text-[#55667D] dark:text-[#8FA4BF]"
-                    >
-                        Use the email issued by your institution.
-                    </p>
                 </div>
 
                 <div className="mt-4">
@@ -173,14 +167,6 @@ export default function Login({
                         Keep me signed in
                     </label>
 
-                    {canResetPassword && (
-                        <Link
-                            href={forgotPassword.url()}
-                            className="text-sm font-medium text-[#0B5CAD] hover:underline dark:text-[#5AA9F5]"
-                        >
-                            Forgot password?
-                        </Link>
-                    )}
                 </div>
 
                 <button

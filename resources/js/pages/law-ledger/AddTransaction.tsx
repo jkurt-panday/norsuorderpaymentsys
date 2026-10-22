@@ -658,31 +658,31 @@ export default function AddTransaction({
     };
 
     const selectClass =
-        'w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none';
+        'w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none';
 
     return (
         <div className="mx-auto max-w-5xl space-y-6 pb-12">
             <Head title="Add Transaction" />
 
-            <div className="flex flex-col gap-4 border-b border-[#CFE3FF] pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-[#0B3D91]">
+                    <h1 className="text-2xl font-bold text-foreground">
                         Add New Transaction
                     </h1>
-                    <p className="text-xs text-[#5C7A9E]">
+                    <p className="text-xs text-muted-foreground">
                         Post Accounts Receivable, Payments, Adjustments, or multi-line transactions.
                     </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-1 rounded-lg border border-[#CFE3FF] bg-white p-1 shadow-xs">
+                    <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1 shadow-xs">
                         <button
                             type="button"
                             onClick={() => setIsBatchMode(false)}
                             className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
                                 !isBatchMode
-                                    ? 'bg-[#0F6FFF] text-white shadow-xs'
-                                    : 'text-[#5C7A9E] hover:text-[#0B3D91]'
+                                    ? 'bg-primary text-primary-foreground shadow-xs'
+                                    : 'text-muted-foreground hover:text-foreground'
                             }`}
                         >
                             <User className="h-3.5 w-3.5" /> Single Entry
@@ -692,8 +692,8 @@ export default function AddTransaction({
                             onClick={() => setIsBatchMode(true)}
                             className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
                                 isBatchMode
-                                    ? 'bg-[#0F6FFF] text-white shadow-xs'
-                                    : 'text-[#5C7A9E] hover:text-[#0B3D91]'
+                                    ? 'bg-primary text-primary-foreground shadow-xs'
+                                    : 'text-muted-foreground hover:text-foreground'
                             }`}
                         >
                             <Layers className="h-3.5 w-3.5" /> Batch / Multi-Line
@@ -704,7 +704,7 @@ export default function AddTransaction({
                         variant="outline"
                         size="sm"
                         onClick={() => router.get(lawLedgerIndex.url())}
-                        className="border-[#CFE3FF] text-[#0B3D91]"
+                        className="border-border text-foreground"
                     >
                         <ArrowLeft className="mr-1 h-4 w-4" /> Back
                     </Button>
@@ -712,10 +712,10 @@ export default function AddTransaction({
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-                <Card className="overflow-visible border-[#CFE3FF] bg-white">
-                    <CardHeader className="border-b border-[#EAF2FF] bg-[#F8FBFF] pb-3">
+                <Card className="overflow-visible border-border bg-card">
+                    <CardHeader className="border-b border-border/50 bg-muted/30 pb-3">
                         <div className="flex items-center justify-between">
-                            <CardTitle className="text-sm font-bold text-[#0B3D91]">
+                            <CardTitle className="text-sm font-bold text-foreground">
                                 1. Student Information
                             </CardTitle>
                             <button
@@ -736,7 +736,7 @@ export default function AddTransaction({
                                         setData('new_student', null);
                                     }
                                 }}
-                                className="flex items-center gap-1 text-xs font-semibold text-[#0F6FFF] hover:underline"
+                                className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                             >
                                 {showNewStudent ? (
                                     <>
@@ -756,7 +756,7 @@ export default function AddTransaction({
                         {showNewStudent ? (
                             <div className="grid grid-cols-1 gap-3 rounded-lg border border-blue-100 bg-blue-50/60 p-4 sm:grid-cols-2 lg:grid-cols-3">
                                 <div>
-                                    <label className="text-xs font-medium text-[#334E68]">
+                                    <label className="text-xs font-medium text-muted-foreground">
                                         Student ID
                                     </label>
                                     <Input
@@ -788,7 +788,7 @@ export default function AddTransaction({
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-medium text-[#334E68]">
+                                    <label className="text-xs font-medium text-muted-foreground">
                                         Email
                                     </label>
                                     <Input
@@ -814,7 +814,7 @@ export default function AddTransaction({
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-medium text-[#334E68]">
+                                    <label className="text-xs font-medium text-muted-foreground">
                                         Last Name *
                                     </label>
                                     <Input
@@ -830,7 +830,7 @@ export default function AddTransaction({
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-medium text-[#334E68]">
+                                    <label className="text-xs font-medium text-muted-foreground">
                                         First Name *
                                     </label>
                                     <Input
@@ -846,7 +846,7 @@ export default function AddTransaction({
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-medium text-[#334E68]">
+                                    <label className="text-xs font-medium text-muted-foreground">
                                         Middle Name
                                     </label>
                                     <Input
@@ -866,7 +866,7 @@ export default function AddTransaction({
                         ) : (
                             <div className="space-y-3">
                                 <div>
-                                    <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                         Select Student *
                                     </label>
                                     <SearchableStudentSelect
@@ -901,13 +901,13 @@ export default function AddTransaction({
                                 </div>
 
                                 {loadingBalance && (
-                                    <div className="flex items-center gap-2 rounded-lg border border-[#CFE3FF] bg-[#F7FAFF] p-3 text-xs text-[#5C7A9E]">
+                                    <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
                                         <Spinner className="h-3.5 w-3.5" />
                                         Loading student balance summary...
                                     </div>
                                 )}
                                 {!loadingBalance && balancePreview && (
-                                    <div className="grid grid-cols-2 gap-2 rounded-lg border border-[#CFE3FF] bg-[#F7FAFF] p-3 text-xs sm:grid-cols-4">
+                                    <div className="grid grid-cols-2 gap-2 rounded-lg border border-border bg-muted/30 p-3 text-xs sm:grid-cols-4">
                                         <div>
                                             <p className="text-[10px] font-semibold text-blue-700 uppercase">
                                                 Total AR
@@ -966,7 +966,7 @@ export default function AddTransaction({
 
                         <div className="grid grid-cols-1 gap-4 pt-2 sm:grid-cols-2 lg:grid-cols-4">
                             <div>
-                                <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                     Course *
                                 </label>
                                 <select
@@ -996,7 +996,7 @@ export default function AddTransaction({
                             </div>
 
                             <div>
-                                <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                     School Year
                                 </label>
                                 <Input
@@ -1018,7 +1018,7 @@ export default function AddTransaction({
                             </div>
 
                             <div>
-                                <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                     Semester
                                 </label>
                                 <select
@@ -1044,7 +1044,7 @@ export default function AddTransaction({
 
                             <div>
                                 <div className="mb-1 flex items-center justify-between">
-                                    <label className="text-xs font-medium text-[#334E68]">
+                                    <label className="text-xs font-medium text-muted-foreground">
                                         Transaction Date
                                     </label>
                                     <button
@@ -1052,7 +1052,7 @@ export default function AddTransaction({
                                         onClick={() =>
                                             setData('transaction_date', todayStr)
                                         }
-                                        className="text-[11px] font-semibold text-[#0F6FFF] hover:underline"
+                                        className="text-[11px] font-semibold text-primary hover:underline"
                                     >
                                         Today
                                     </button>
@@ -1081,19 +1081,19 @@ export default function AddTransaction({
                 </Card>
 
                 {!isBatchMode ? (
-                    <Card className="border-[#CFE3FF] bg-white">
-                        <CardHeader className="border-b border-[#EAF2FF] bg-[#F8FBFF] pb-3">
-                            <CardTitle className="text-sm font-bold text-[#0B3D91]">
+                    <Card className="border-border bg-card">
+                        <CardHeader className="border-b border-border/50 bg-muted/30 pb-3">
+                            <CardTitle className="text-sm font-bold text-foreground">
                                 2. Transaction Details
                             </CardTitle>
-                            <CardDescription className="text-xs text-[#7FA6D6]">
+                            <CardDescription className="text-xs text-muted-foreground">
                                 Choose the transaction type to reveal the
                                 appropriate financial fields.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-5 pt-4">
                             <div>
-                                <label className="mb-2 block text-xs font-medium text-[#334E68]">
+                                <label className="mb-2 block text-xs font-medium text-muted-foreground">
                                     Transaction Type
                                 </label>
                                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -1113,8 +1113,8 @@ export default function AddTransaction({
                                                 }
                                                 className={`flex items-center gap-2 rounded-lg border p-3 text-left transition-all ${
                                                     isSelected
-                                                        ? `${typeOption.color} ring-2 ring-[#0F6FFF]`
-                                                        : 'border-[#CFE3FF] bg-white text-[#334E68] hover:bg-[#F8FBFF]'
+                                                        ? `${typeOption.color} ring-2 ring-primary`
+                                                        : 'border-border bg-card text-foreground hover:bg-muted/30'
                                                 }`}
                                             >
                                                 <Icon className="h-4 w-4 shrink-0" />
@@ -1128,7 +1128,7 @@ export default function AddTransaction({
                             </div>
 
                             <div>
-                                <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                     Particulars
                                 </label>
                                 <Input
@@ -1140,7 +1140,7 @@ export default function AddTransaction({
                                     className="mb-2"
                                 />
                                 <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                                    <span className="text-[11px] text-[#7FA6D6]">
+                                    <span className="text-[11px] text-muted-foreground">
                                         Presets:
                                     </span>
                                     {particularPresets[data.entry_type].map(
@@ -1154,7 +1154,7 @@ export default function AddTransaction({
                                                         preset,
                                                     )
                                                 }
-                                                className="rounded-md border border-[#CFE3FF] bg-[#F7FAFF] px-2 py-0.5 text-[11px] font-medium text-[#0B3D91] transition-colors hover:bg-[#EAF2FF]"
+                                                className="rounded-md border border-border bg-muted/30 px-2 py-0.5 text-[11px] font-medium text-foreground transition-colors hover:bg-primary/10"
                                             >
                                                 {preset}
                                             </button>
@@ -1164,7 +1164,7 @@ export default function AddTransaction({
                             </div>
 
                             <div>
-                                <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                     {data.entry_type === 'payment'
                                         ? 'Official Receipt (OR) Number *'
                                         : data.entry_type === 'adjustment'
@@ -1190,7 +1190,7 @@ export default function AddTransaction({
                             {data.entry_type === 'ar' ? (
                                 <div className="grid grid-cols-1 gap-4 rounded-lg border border-blue-100 bg-blue-50/40 p-4 sm:grid-cols-3">
                                     <div>
-                                        <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                             Units
                                         </label>
                                         <Input
@@ -1211,7 +1211,7 @@ export default function AddTransaction({
                                     </div>
 
                                     <div>
-                                        <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                             Tuition / Unit (Rate)
                                         </label>
                                         <Input
@@ -1238,7 +1238,7 @@ export default function AddTransaction({
                                     </div>
 
                                     <div>
-                                        <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                             Total AR Amount
                                         </label>
                                         <Input
@@ -1255,7 +1255,7 @@ export default function AddTransaction({
                                             placeholder="Auto-computed"
                                             className="font-bold text-blue-900"
                                         />
-                                        <p className="mt-1 text-[11px] text-[#5C7A9E]">
+                                        <p className="mt-1 text-[11px] text-muted-foreground">
                                             {autoAmount
                                                 ? 'Auto: Units × Rate'
                                                 : 'Manual amount override'}
@@ -1265,16 +1265,16 @@ export default function AddTransaction({
                                         />
                                     </div>
 
-                                    <div className="rounded-md border border-[#CFE3FF] bg-white p-3 sm:col-span-3">
+                                    <div className="rounded-md border border-border bg-card p-3 sm:col-span-3">
                                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                             <div className="flex items-center gap-2">
-                                                <Sparkles className="h-4 w-4 text-[#0F6FFF]" />
+                                                <Sparkles className="h-4 w-4 text-primary" />
                                                 <div>
-                                                    <p className="text-xs font-bold text-[#0B3D91]">
+                                                    <p className="text-xs font-bold text-foreground">
                                                         Apply Latin Honor
                                                         Scholarship
                                                     </p>
-                                                    <p className="text-[11px] text-[#5C7A9E]">
+                                                    <p className="text-[11px] text-muted-foreground">
                                                         Tags the AR and creates
                                                         an automatic matching
                                                         Adjustment entry.
@@ -1359,7 +1359,7 @@ export default function AddTransaction({
                             ) : (
                                 <div className="grid grid-cols-1 gap-4 rounded-lg border border-emerald-100 bg-emerald-50/40 p-4 sm:grid-cols-2">
                                     <div>
-                                        <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                             {data.entry_type === 'payment'
                                                 ? 'Payment Amount (₱) *'
                                                 : 'Adjustment Amount (₱) *'}
@@ -1384,7 +1384,7 @@ export default function AddTransaction({
                                         />
                                     </div>
                                     <div>
-                                        <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                             Remarks
                                         </label>
                                         <Input
@@ -1403,7 +1403,7 @@ export default function AddTransaction({
 
                             {data.entry_type === 'ar' && (
                                 <div>
-                                    <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                         Remarks
                                     </label>
                                     <Input
@@ -1418,14 +1418,14 @@ export default function AddTransaction({
                         </CardContent>
                     </Card>
                 ) : (
-                    <Card className="border-[#CFE3FF] bg-white">
-                        <CardHeader className="border-b border-[#EAF2FF] bg-[#F8FBFF] pb-3">
+                    <Card className="border-border bg-card">
+                        <CardHeader className="border-b border-border/50 bg-muted/30 pb-3">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <CardTitle className="text-sm font-bold text-[#0B3D91]">
+                                    <CardTitle className="text-sm font-bold text-foreground">
                                         2. Multi-Line Transaction Items
                                     </CardTitle>
-                                    <CardDescription className="text-xs text-[#7FA6D6]">
+                                    <CardDescription className="text-xs text-muted-foreground">
                                         Add multiple fees, payments, or
                                         scholarship lines in one submission.
                                     </CardDescription>
@@ -1460,10 +1460,10 @@ export default function AddTransaction({
                                     return (
                                         <div
                                             key={item.id}
-                                            className="relative rounded-lg border border-[#CFE3FF] bg-[#FAFCFF] p-3 shadow-2xs"
+                                            className="relative rounded-lg border border-border bg-muted/20 p-3 shadow-2xs"
                                         >
                                             <div className="mb-2 flex items-center justify-between">
-                                                <span className="text-xs font-bold text-[#0B3D91]">
+                                                <span className="text-xs font-bold text-foreground">
                                                     Line #{index + 1}
                                                 </span>
                                                 {batchItems.length > 1 && (
@@ -1484,7 +1484,7 @@ export default function AddTransaction({
 
                                             <div className="grid grid-cols-1 gap-2 sm:grid-cols-6">
                                                 <div className="sm:col-span-1">
-                                                    <label className="text-[11px] font-medium text-[#334E68]">
+                                                    <label className="text-[11px] font-medium text-muted-foreground">
                                                         Type
                                                     </label>
                                                     <select
@@ -1510,7 +1510,7 @@ export default function AddTransaction({
                                                                 },
                                                             );
                                                         }}
-                                                        className="w-full rounded-md border border-[#CFE3FF] bg-white px-2 py-1.5 text-xs"
+                                                        className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs"
                                                     >
                                                         <option value="ar">
                                                             AR
@@ -1525,7 +1525,7 @@ export default function AddTransaction({
                                                 </div>
 
                                                 <div className="sm:col-span-2">
-                                                    <label className="text-[11px] font-medium text-[#334E68]">
+                                                    <label className="text-[11px] font-medium text-muted-foreground">
                                                         Particulars
                                                     </label>
                                                     <select
@@ -1541,7 +1541,7 @@ export default function AddTransaction({
                                                                 },
                                                             )
                                                         }
-                                                        className="h-8 w-full rounded-md border border-[#CFE3FF] bg-white px-2 py-1.5 text-xs text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                                        className="h-8 w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
                                                     >
                                                         {particularPresets[
                                                             item.entry_type
@@ -1557,7 +1557,7 @@ export default function AddTransaction({
                                                 </div>
 
                                                 <div className="sm:col-span-1">
-                                                    <label className="text-[11px] font-medium text-[#334E68]">
+                                                    <label className="text-[11px] font-medium text-muted-foreground">
                                                         Ref / OR #
                                                     </label>
                                                     <Input
@@ -1583,7 +1583,7 @@ export default function AddTransaction({
                                                 {item.entry_type === 'ar' ? (
                                                     <>
                                                         <div className="sm:col-span-1">
-                                                            <label className="text-[11px] font-medium text-[#334E68]">
+                                                            <label className="text-[11px] font-medium text-muted-foreground">
                                                                 Units × Rate
                                                             </label>
                                                             <div className="flex gap-1">
@@ -1635,7 +1635,7 @@ export default function AddTransaction({
                                                         </div>
 
                                                         <div className="sm:col-span-1">
-                                                            <label className="text-[11px] font-medium text-[#334E68]">
+                                                            <label className="text-[11px] font-medium text-muted-foreground">
                                                                 Amount
                                                             </label>
                                                             <Input
@@ -1678,7 +1678,7 @@ export default function AddTransaction({
                                                     </>
                                                 ) : (
                                                     <div className="sm:col-span-2">
-                                                        <label className="text-[11px] font-medium text-[#334E68]">
+                                                        <label className="text-[11px] font-medium text-muted-foreground">
                                                             Amount (₱)
                                                         </label>
                                                         <Input
@@ -1704,9 +1704,9 @@ export default function AddTransaction({
                                             </div>
 
                                             {item.entry_type === 'ar' && (
-                                                <div className="mt-2 border-t border-[#EAF2FF] pt-2">
+                                                <div className="mt-2 border-t border-border/50 pt-2">
                                                     <div className="flex items-center justify-between text-[11px]">
-                                                        <span className="text-[#5C7A9E]">
+                                                        <span className="text-muted-foreground">
                                                             Latin Honor
                                                             Scholarship:
                                                         </span>
@@ -1801,7 +1801,7 @@ export default function AddTransaction({
                                 })}
                             </div>
 
-                            <div className="grid grid-cols-3 gap-2 rounded-lg border border-[#CFE3FF] bg-[#F7FAFF] p-3 text-xs">
+                            <div className="grid grid-cols-3 gap-2 rounded-lg border border-border bg-muted/30 p-3 text-xs">
                                 <div>
                                     <p className="text-[10px] font-semibold text-blue-700 uppercase">
                                         Total Charges (AR)
@@ -1831,10 +1831,10 @@ export default function AddTransaction({
                     </Card>
                 )}
 
-                <div className="flex items-center justify-between rounded-lg border border-[#CFE3FF] bg-white p-4 shadow-xs">
-                    <div className="text-xs text-[#5C7A9E]">
+                <div className="flex items-center justify-between rounded-lg border border-border bg-card p-4 shadow-xs">
+                    <div className="text-xs text-muted-foreground">
                         Recorded by{' '}
-                        <strong className="text-[#0B3D91]">
+                        <strong className="text-foreground">
                             {authUserName || 'Logged-in Staff'}
                         </strong>
                     </div>
@@ -1842,7 +1842,7 @@ export default function AddTransaction({
                     <Button
                         type="submit"
                         disabled={processing}
-                        className="bg-[#0F6FFF] px-6 text-white hover:bg-[#0B5DDB] disabled:opacity-60"
+                        className="bg-primary px-6 text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
                     >
                         {processing ? (
                             <span className="flex items-center gap-2">

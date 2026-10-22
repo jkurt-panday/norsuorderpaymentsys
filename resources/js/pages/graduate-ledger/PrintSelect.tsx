@@ -55,7 +55,7 @@ function getEntryTypeBadge(type?: string | null): string {
         return 'bg-purple-50 text-purple-700 border-purple-200 font-semibold';
     }
 
-    return 'bg-[#EAF2FF] text-[#0B62E0] border-[#B9D8FF] font-semibold';
+    return 'bg-primary/10 text-primary border-primary/20 font-semibold';
 }
 
 function isDeduction(type?: string | null): boolean {
@@ -287,25 +287,25 @@ export default function PrintSelect({
 
             <div className="mx-auto max-w-5xl space-y-6">
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-[#CFE3FF] pb-4">
+                <div className="flex items-center justify-between border-b border-border pb-4">
                     <div>
                         <div className="flex items-center gap-2">
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => router.get('/graduate-ledger')}
-                                className="border-[#CFE3FF] text-[#0B3D91]"
+                                className="border-border text-foreground"
                             >
                                 <ArrowLeft className="mr-1 h-4 w-4" /> Back
                             </Button>
                             <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                                 Student Statement Printer
                             </CardTitle>
-                            {/* <h1 className="text-2xl font-bold text-[#0B3D91]">
+                            {/* <h1 className="text-2xl font-bold text-foreground">
                                 Search Student
                             </h1> */}
                         </div>
-                        <p className="mt-1 text-sm text-[#5C7A9E]">
+                        <p className="mt-1 text-sm text-muted-foreground">
                             Select a graduate student to review their
                             transaction breakdown and print a formal SOA PDF.
                         </p>
@@ -314,18 +314,18 @@ export default function PrintSelect({
 
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                     {/* Left: Interactive List Search */}
-                    <Card className="border-[#CFE3FF] bg-white md:col-span-1">
+                    <Card className="border-border bg-card md:col-span-1">
                         <CardHeader className="pb-3">
-                            <CardTitle className="text-sm font-semibold text-[#0B3D91]">
+                            <CardTitle className="text-sm font-semibold text-foreground">
                                 Search Student
                             </CardTitle>
-                            <CardDescription className="text-xs text-[#7FA6D6]">
+                            <CardDescription className="text-xs text-muted-foreground">
                                 Click a name to preview records
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="relative">
-                                <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-[#8AA8CC]" />
+                                <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     type="text"
                                     placeholder="Type to filter list..."
@@ -336,7 +336,7 @@ export default function PrintSelect({
                                 {search && (
                                     <button
                                         onClick={() => setSearch('')}
-                                        className="absolute top-2.5 right-2.5 text-[#8AA8CC] hover:text-[#0B3D91]"
+                                        className="absolute top-2.5 right-2.5 text-muted-foreground hover:text-foreground"
                                     >
                                         <X className="h-4 w-4" />
                                     </button>
@@ -348,7 +348,7 @@ export default function PrintSelect({
                                 <select
                                     value={String(selected)}
                                     onChange={handleStudentSelect}
-                                    className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
                                 >
                                     <option value="">
                                         -- Choose Student --
@@ -362,13 +362,13 @@ export default function PrintSelect({
                             </div>
 
                             {/* List for Desktop */}
-                            <div className="hidden max-h-[380px] overflow-y-auto rounded-md border border-[#EAF2FF] md:block">
+                            <div className="hidden max-h-[380px] overflow-y-auto rounded-md border border-border md:block">
                                 {filteredStudents.length === 0 ? (
-                                    <p className="p-4 text-center text-xs text-[#8AA8CC]">
+                                    <p className="p-4 text-center text-xs text-muted-foreground">
                                         No students found.
                                     </p>
                                 ) : (
-                                    <div className="divide-y divide-[#EAF2FF]">
+                                    <div className="divide-y divide-border">
                                         {filteredStudents.map((s) => {
                                             const isActive =
                                                 String(selected) ===
@@ -381,10 +381,10 @@ export default function PrintSelect({
                                                     onClick={() =>
                                                         handleSelect(s.id)
                                                     }
-                                                    className={`w-full px-3 py-2 text-left text-xs transition-colors hover:bg-[#F3F8FF] ${
+                                                    className={`w-full px-3 py-2 text-left text-xs transition-colors hover:bg-muted/40 ${
                                                         isActive
-                                                            ? 'bg-[#EAF2FF] font-medium text-[#0B3D91]'
-                                                            : 'text-[#334E68]'
+                                                            ? 'bg-primary/10 font-medium text-primary'
+                                                            : 'text-foreground'
                                                     }`}
                                                 >
                                                     {s.full_name}
@@ -402,10 +402,10 @@ export default function PrintSelect({
                         {selected ? (
                             <div className="space-y-6">
                                 {/* Selected Student Information */}
-                                <Card className="border-[#CFE3FF] bg-white">
+                                <Card className="border-border bg-card">
                                     <CardHeader className="flex flex-row items-center justify-between pb-3">
                                         <div>
-                                            <CardTitle className="text-lg font-bold text-[#0B3D91]">
+                                            <CardTitle className="text-lg font-bold text-foreground">
                                                 {records[0]?.name ||
                                                     students.find(
                                                         (s) =>
@@ -414,14 +414,14 @@ export default function PrintSelect({
                                                     )?.full_name ||
                                                     'Student Record'}
                                             </CardTitle>
-                                            <CardDescription className="text-xs text-[#7FA6D6]">
+                                            <CardDescription className="text-xs text-muted-foreground">
                                                 Showing {filteredRecords.length}{' '}
                                                 of {records.length} transactions
                                             </CardDescription>
                                         </div>
                                         <Button
                                             onClick={handleOpenPdf}
-                                            className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
+                                            className="bg-primary text-primary-foreground hover:bg-primary/90"
                                             size="sm"
                                         >
                                             <Printer className="mr-1.5 h-4 w-4" />{' '}
@@ -434,16 +434,16 @@ export default function PrintSelect({
                                 <div
                                     className={`grid grid-cols-1 gap-4 ${(summary.totalAdjustments ?? 0) > 0 ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}
                                 >
-                                    <Card className="border-[#CFE3FF] bg-white p-4">
-                                        <p className="text-xs text-[#5C7A9E]">
+                                    <Card className="border-border bg-card p-4">
+                                        <p className="text-xs text-muted-foreground">
                                             Total Billed Charges (AR)
                                         </p>
-                                        <h3 className="mt-1 text-base font-bold text-[#0B3D91]">
+                                        <h3 className="mt-1 text-base font-bold text-foreground">
                                             {currency(summary.totalCharges)}
                                         </h3>
                                     </Card>
-                                    <Card className="border-[#CFE3FF] bg-white p-4">
-                                        <p className="text-xs text-[#5C7A9E]">
+                                    <Card className="border-border bg-card p-4">
+                                        <p className="text-xs text-muted-foreground">
                                             Total Payments Received
                                         </p>
                                         <h3 className="mt-1 text-base font-bold text-emerald-600">
@@ -463,11 +463,11 @@ export default function PrintSelect({
                                             </h3>
                                         </Card>
                                     )}
-                                    <Card className="border-[#CFE3FF] bg-white p-4">
-                                        <p className="text-xs text-[#5C7A9E]">
+                                    <Card className="border-border bg-card p-4">
+                                        <p className="text-xs text-muted-foreground">
                                             Outstanding Balance
                                         </p>
-                                        <h3 className="mt-1 text-base font-bold text-[#0B3D91]">
+                                        <h3 className="mt-1 text-base font-bold text-foreground">
                                             {currency(
                                                 summary.outstandingBalance,
                                             )}
@@ -475,11 +475,11 @@ export default function PrintSelect({
                                     </Card>
                                 </div>
 
-                                <Card className="border-[#CFE3FF] bg-white">
+                                <Card className="border-border bg-card">
                                     <CardContent className="pt-6">
-                                        <div className="mb-5 rounded-lg border border-[#EAF2FF] bg-[#F7FAFE] p-4">
+                                        <div className="mb-5 rounded-lg border border-border bg-muted/30 p-4">
                                             <div className="mb-3 flex items-center justify-between gap-3">
-                                                <div className="flex items-center gap-2 text-sm font-semibold text-[#0B3D91]">
+                                                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                                                     <Filter className="h-4 w-4" />
                                                     Transaction Filters
                                                 </div>
@@ -491,14 +491,14 @@ export default function PrintSelect({
                                                         onClick={
                                                             resetRecordFilters
                                                         }
-                                                        className="h-7 text-xs text-[#0F6FFF]"
+                                                        className="h-7 text-xs text-primary"
                                                     >
                                                         Reset
                                                     </Button>
                                                 )}
                                             </div>
                                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                                                <label className="space-y-1 text-xs text-[#5C7A9E]">
+                                                <label className="space-y-1 text-xs text-muted-foreground">
                                                     <span>School Year</span>
                                                     <select
                                                         value={schoolYearFilter}
@@ -508,7 +508,7 @@ export default function PrintSelect({
                                                                     .value,
                                                             )
                                                         }
-                                                        className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
                                                     >
                                                         <option value="all">
                                                             All school years
@@ -529,7 +529,7 @@ export default function PrintSelect({
                                                         )}
                                                     </select>
                                                 </label>
-                                                <label className="space-y-1 text-xs text-[#5C7A9E]">
+                                                <label className="space-y-1 text-xs text-muted-foreground">
                                                     <span>Term</span>
                                                     <select
                                                         value={semesterFilter}
@@ -539,7 +539,7 @@ export default function PrintSelect({
                                                                     .value,
                                                             )
                                                         }
-                                                        className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
                                                     >
                                                         <option value="all">
                                                             All terms
@@ -560,7 +560,7 @@ export default function PrintSelect({
                                                         )}
                                                     </select>
                                                 </label>
-                                                <label className="space-y-1 text-xs text-[#5C7A9E]">
+                                                <label className="space-y-1 text-xs text-muted-foreground">
                                                     <span>Type</span>
                                                     <select
                                                         value={typeFilter}
@@ -570,7 +570,7 @@ export default function PrintSelect({
                                                                     .value,
                                                             )
                                                         }
-                                                        className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
                                                     >
                                                         <option value="all">
                                                             All types
@@ -591,7 +591,7 @@ export default function PrintSelect({
                                                         )}
                                                     </select>
                                                 </label>
-                                                <label className="space-y-1 text-xs text-[#5C7A9E]">
+                                                <label className="space-y-1 text-xs text-muted-foreground">
                                                     <span>Order</span>
                                                     <select
                                                         value={sortOrder}
@@ -603,7 +603,7 @@ export default function PrintSelect({
                                                                     | 'oldest',
                                                             )
                                                         }
-                                                        className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
                                                     >
                                                         <option value="latest">
                                                             Latest first
@@ -619,7 +619,7 @@ export default function PrintSelect({
                                         <div className="overflow-x-auto">
                                             <table className="w-full border-collapse text-left text-xs">
                                                 <thead>
-                                                    <tr className="border-b border-[#CFE3FF] bg-[#F7FAFE] font-semibold text-[#0B3D91]">
+                                                    <tr className="border-b border-border bg-muted/30 font-semibold text-foreground">
                                                         <th className="px-3 py-3">
                                                             Date
                                                         </th>
@@ -646,7 +646,7 @@ export default function PrintSelect({
                                                         <tr>
                                                             <td
                                                                 colSpan={6}
-                                                                className="py-6 text-center text-[#8AA8CC]"
+                                                                className="py-6 text-center text-muted-foreground"
                                                             >
                                                                 No transactions
                                                                 match the
@@ -659,14 +659,14 @@ export default function PrintSelect({
                                                             (r) => (
                                                                 <tr
                                                                     key={r.id}
-                                                                    className="border-b border-[#EAF2FF] hover:bg-[#F3F8FF]"
+                                                                    className="border-b border-border hover:bg-muted/40"
                                                                 >
-                                                                    <td className="px-3 py-2 text-[#334E68]">
+                                                                    <td className="px-3 py-2 text-foreground">
                                                                         {formatTransactionDate(
                                                                             r.transactionDate,
                                                                         )}
                                                                     </td>
-                                                                    <td className="px-3 py-2 text-[#334E68]">
+                                                                    <td className="px-3 py-2 text-foreground">
                                                                         {
                                                                             r.schoolYear
                                                                         }{' '}
@@ -676,11 +676,11 @@ export default function PrintSelect({
                                                                         }
                                                                         )
                                                                     </td>
-                                                                    <td className="px-3 py-2 text-[#334E68]">
+                                                                    <td className="px-3 py-2 text-foreground">
                                                                         {r.referenceNo ||
                                                                             '-'}
                                                                     </td>
-                                                                    <td className="px-3 py-2 text-[#334E68]">
+                                                                    <td className="px-3 py-2 text-foreground">
                                                                         {r.particulars ||
                                                                             '-'}
                                                                     </td>
@@ -695,7 +695,7 @@ export default function PrintSelect({
                                                                         </Badge>
                                                                     </td>
                                                                     <td
-                                                                        className={`px-3 py-2 text-right font-medium ${isDeduction(r.arPayment) ? (r.arPayment?.toUpperCase().includes('ADJUST') ? 'text-purple-700' : 'text-emerald-700') : 'text-[#0B3D91]'}`}
+                                                                        className={`px-3 py-2 text-right font-medium ${isDeduction(r.arPayment) ? (r.arPayment?.toUpperCase().includes('ADJUST') ? 'text-purple-700' : 'text-emerald-700') : 'text-foreground'}`}
                                                                     >
                                                                         {isDeduction(
                                                                             r.arPayment,
@@ -719,12 +719,12 @@ export default function PrintSelect({
                                 </Card>
                             </div>
                         ) : (
-                            <Card className="flex flex-col items-center justify-center border-dashed border-[#CFE3FF] bg-white p-12 text-center">
-                                <Printer className="mb-4 h-12 w-12 text-[#8AA8CC]" />
-                                <h3 className="text-lg font-semibold text-[#0B3D91]">
+                            <Card className="flex flex-col items-center justify-center border-dashed border-border bg-card p-12 text-center">
+                                <Printer className="mb-4 h-12 w-12 text-muted-foreground" />
+                                <h3 className="text-lg font-semibold text-foreground">
                                     No Student Selected
                                 </h3>
-                                <p className="mt-1 max-w-sm text-sm text-[#7FA6D6]">
+                                <p className="mt-1 max-w-sm text-sm text-muted-foreground">
                                     Choose a graduate student from the left
                                     panel to preview their statement and
                                     generate a print-ready SOA PDF.

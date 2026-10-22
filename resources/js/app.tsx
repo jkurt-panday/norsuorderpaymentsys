@@ -72,8 +72,6 @@ createInertiaApp({
         switch (true) {
             case name === 'welcome' ||
                 name === 'auth/login' ||
-                name === 'auth/forgot-password' ||
-                name === 'auth/reset-password' ||
                 name.startsWith('public/'):
                 return null;
             case name.startsWith('auth/'):

@@ -791,8 +791,8 @@ clearTimeout(pollTimeoutId);
                                 <div className="font-semibold">Queue worker not running</div>
                                 <div className="mt-1 text-xs">
                                     Emails are sent in the background by a queue worker. Start one with{' '}
-                                    <code className="rounded bg-white px-1 py-0.5 font-mono">php artisan queue:work</code>{' '}
-                                    (or <code className="rounded bg-white px-1 py-0.5 font-mono">composer queue:work</code>) before sending —
+                                    <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">php artisan queue:work</code>{' '}
+                                    (or <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">composer queue:work</code>) before sending —
                                     otherwise the requests stay queued and no email goes out.
                                 </div>
                             </div>
@@ -826,10 +826,10 @@ clearTimeout(pollTimeoutId);
 
                         {/* Specific person search + checkbox list — only shown when 'specific' is chosen */}
 {emailTarget === 'specific' && (
-                            <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+                            <div className="rounded-lg bg-muted/40 p-3 text-sm text-slate-600">
                                 <div className="flex items-center gap-3 mb-2 flex-wrap">
                                     <div className="flex items-center gap-2">
-                                        <span className="font-semibold text-slate-800">
+                                        <span className="font-semibold text-foreground">
                                             {filteredSpecific.length}
                                         </span>{''}
                                         <span>recipient(s)</span>
@@ -859,11 +859,11 @@ clearTimeout(pollTimeoutId);
                                             {showSelectedPopover && (
                                                 <div
                                                     ref={popoverRef}
-                                                    className="absolute right-0 top-full mt-1.5 w-80 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-10"
+                                                    className="absolute right-0 top-full mt-1.5 w-80 rounded-lg border border-border bg-card py-1 text-card-foreground shadow-lg z-10"
                                                     onClick={(e) => e.stopPropagation()}
                                                 >
-                                                    <div className="px-3 py-2 border-b border-slate-100 flex items-center justify-between">
-                                                        <span className="text-sm font-medium text-slate-800">Selected Recipients</span>
+                                                    <div className="px-3 py-2 border-b border-border flex items-center justify-between">
+                                                        <span className="text-sm font-medium text-foreground">Selected Recipients</span>
                                                         <Button
                                                             type="button"
                                                             variant="ghost"
@@ -874,7 +874,7 @@ clearTimeout(pollTimeoutId);
                                                             Clear All
                                                         </Button>
                                                     </div>
-                                                    <div className="px-3 py-2 border-b border-slate-100">
+                                                    <div className="px-3 py-2 border-b border-border">
                                                         <Input
                                                             placeholder="Search selected..."
                                                             value={selectedPopoverSearch}
@@ -900,15 +900,15 @@ return true;
                                                             .map((row) => (
                                                                 <div
                                                                     key={row.id}
-                                                                    className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 cursor-pointer"
+                                                                    className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted/40 cursor-pointer"
                                                                     onClick={() => toggleSelectId(row.id)}
                                                                 >
                                                                     <UserX className="h-3.5 w-3.5 text-rose-500 shrink-0" />
                                                                     <div className="min-w-0 flex-1">
-                                                                        <div className="text-sm font-medium text-slate-800 truncate">
+                                                                        <div className="text-sm font-medium text-foreground truncate">
                                                                             {formatFullName(row)}
                                                                         </div>
-                                                                        <div className="text-xs text-slate-500 truncate">
+                                                                        <div className="text-xs text-muted-foreground truncate">
                                                                             {row.reference_number} · {row.email}
                                                                         </div>
                                                                     </div>
@@ -920,7 +920,7 @@ return true;
                                         </div>
                                     )}
                                 </div>
-                                <div className="max-h-72 overflow-y-auto rounded-md border border-slate-200 bg-white">
+                                <div className="max-h-72 overflow-y-auto rounded-md border border-border bg-card text-card-foreground">
                                     {isLoadingRecipients ? (
                                         <div className="flex items-center justify-center p-6">
                                             <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
@@ -938,10 +938,10 @@ return true;
                                             return (
                                                 <div
                                                     key={row.id}
-                                                    className={`flex items-start gap-2 border-b border-slate-100 px-3 py-2 text-sm last:border-0 ${
+                                                    className={`flex items-start gap-2 border-b border-border px-3 py-2 text-sm last:border-0 ${
                                                         eligible
-                                                            ? 'cursor-pointer bg-white hover:bg-slate-50'
-                                                            : 'bg-slate-50 opacity-60'
+                                                            ? 'cursor-pointer bg-card hover:bg-muted/50 text-foreground'
+                                                            : 'bg-muted/40 opacity-60'
                                                     }`}
                                                     onClick={() => {
                                                         if (eligible) {
@@ -962,7 +962,7 @@ return true;
                                                     </div>
                                                     <div className="min-w-0 flex-1">
                                                         <div className="flex min-w-0 items-center gap-2">
-                                                            <div className="truncate font-medium text-slate-800">
+                                                            <div className="truncate font-medium text-foreground">
                                                                 {formatFullName(row)}
                                                             </div>
                                                             <span
@@ -985,7 +985,7 @@ return true;
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <div className="truncate text-xs text-slate-500">
+                                                        <div className="truncate text-xs text-muted-foreground">
                                                             {row.reference_number} · {row.email}
                                                         </div>
                                                         {timeAgo ? (
@@ -1009,10 +1009,10 @@ return true;
                         )}
 
                         {emailTarget !== 'specific' && (
-                            <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+                            <div className="rounded-lg bg-muted/40 p-3 text-sm text-slate-600">
                                 <div className="flex items-center justify-between gap-2 mb-2">
                                     <div className="flex items-center gap-2">
-                                        <span className="font-semibold text-slate-800">
+                                        <span className="font-semibold text-foreground">
                                             {bulkRecipients.length}
                                         </span>{' '}
                                         <span>recipient(s)</span>
@@ -1041,11 +1041,11 @@ return true;
                                                 {showSelectedPopover && (
                                                     <div
                                                         ref={popoverRef}
-                                                        className="absolute right-0 top-full mt-1.5 w-80 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-10"
+                                                        className="absolute right-0 top-full mt-1.5 w-80 rounded-lg border border-border bg-card py-1 text-card-foreground shadow-lg z-10"
                                                         onClick={(e) => e.stopPropagation()}
                                                     >
-                                                        <div className="px-3 py-2 border-b border-slate-100 flex items-center justify-between">
-                                                            <span className="text-sm font-medium text-slate-800">Selected Recipients</span>
+                                                        <div className="px-3 py-2 border-b border-border flex items-center justify-between">
+                                                            <span className="text-sm font-medium text-foreground">Selected Recipients</span>
                                                             <Button
                                                                 type="button"
                                                                 variant="ghost"
@@ -1056,7 +1056,7 @@ return true;
                                                                 Clear All
                                                             </Button>
                                                         </div>
-                                                        <div className="px-3 py-2 border-b border-slate-100">
+                                                        <div className="px-3 py-2 border-b border-border">
                                                             <Input
                                                                 placeholder="Search selected..."
                                                                 value={selectedPopoverSearch}
@@ -1082,15 +1082,15 @@ return true;
                                                                 .map((row) => (
                                                                     <div
                                                                         key={row.id}
-                                                                        className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 cursor-pointer"
+                                                                        className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted/40 cursor-pointer"
                                                                         onClick={() => toggleSelectId(row.id)}
                                                                     >
                                                                         <UserX className="h-3.5 w-3.5 text-rose-500 shrink-0" />
                                                                         <div className="min-w-0 flex-1">
-                                                                            <div className="text-sm font-medium text-slate-800 truncate">
+                                                                            <div className="text-sm font-medium text-foreground truncate">
                                                                                 {formatFullName(row)}
                                                                             </div>
-                                                                            <div className="text-xs text-slate-500 truncate">
+                                                                            <div className="text-xs text-muted-foreground truncate">
                                                                                 {row.reference_number} · {row.email}
                                                                             </div>
                                                                         </div>
@@ -1124,7 +1124,7 @@ return true;
                                         )}
                                     </div>
                                 </div>
-                                <div className="mt-2 max-h-72 overflow-y-auto rounded-md border border-slate-200 bg-white">
+                                <div className="mt-2 max-h-72 overflow-y-auto rounded-md border border-border bg-card text-card-foreground">
                                     {filteredBulkRecipients.length === 0 ? (
                                         <div className="p-4 text-center text-slate-400">
                                             No matching recipients found
@@ -1137,7 +1137,7 @@ return true;
                                             return (
                                                 <div
                                                     key={row.id}
-                                                    className="flex items-start gap-2 border-b border-slate-100 px-3 py-2 text-sm last:border-0 cursor-pointer hover:bg-slate-50"
+                                                    className="flex items-start gap-2 border-b border-border px-3 py-2 text-sm last:border-0 cursor-pointer hover:bg-muted/40"
                                                     onClick={() => toggleSelectId(row.id)}
                                                 >
                                                     <div className="mt-0.5 shrink-0">
@@ -1149,7 +1149,7 @@ return true;
                                                     </div>
                                                     <div className="min-w-0 flex-1">
                                                         <div className="flex min-w-0 items-center gap-2">
-                                                            <div className="truncate font-medium text-slate-800">
+                                                            <div className="truncate font-medium text-foreground">
                                                                 {formatFullName(row)}
                                                             </div>
                                                             <span
@@ -1172,7 +1172,7 @@ return true;
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <div className="truncate text-xs text-slate-500">
+                                                        <div className="truncate text-xs text-muted-foreground">
                                                             {row.reference_number} · {row.email}
                                                         </div>
                                                         {timeAgo ? (
@@ -1192,7 +1192,7 @@ return true;
                                         })
                                     )}
                                 </div>
-                                <div className="mt-2 text-xs text-slate-500">
+                                <div className="mt-2 text-xs text-muted-foreground">
                                     <span className="font-semibold text-slate-700">{selectedIds.size}</span>{' '}
                                     selected
                                 </div>
@@ -1268,33 +1268,33 @@ return true;
 
                     <div className="space-y-4 pb-2">
                         {/* Progress Summary */}
-                        <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-lg">
+                        <div className="flex items-center gap-4 p-4 bg-muted/40 rounded-lg">
                             <div className="flex-1 text-center">
                                 <div className="text-2xl font-bold text-emerald-600">
                                     {emailProgress.filter(p => p.status === 'sent').length}
                                 </div>
-                                <div className="text-xs text-slate-500">Sent</div>
+                                <div className="text-xs text-muted-foreground">Sent</div>
                             </div>
                             <div className="w-px h-10 bg-slate-200" />
                             <div className="flex-1 text-center">
                                 <div className="text-2xl font-bold text-rose-600">
                                     {emailProgress.filter(p => p.status === 'failed').length}
                                 </div>
-                                <div className="text-xs text-slate-500">Failed</div>
+                                <div className="text-xs text-muted-foreground">Failed</div>
                             </div>
                             <div className="w-px h-10 bg-slate-200" />
                             <div className="flex-1 text-center">
                                 <div className="text-2xl font-bold text-slate-600">
                                     {emailProgress.filter(p => p.status === 'pending').length}
                                 </div>
-                                <div className="text-xs text-slate-500">Pending</div>
+                                <div className="text-xs text-muted-foreground">Pending</div>
                             </div>
                             <div className="w-px h-10 bg-slate-200" />
                             <div className="flex-1 text-center">
                                 <div className="text-2xl font-bold text-blue-600">
                                     {emailProgress.length}
                                 </div>
-                                <div className="text-xs text-slate-500">Total</div>
+                                <div className="text-xs text-muted-foreground">Total</div>
                             </div>
                         </div>
 
@@ -1304,8 +1304,8 @@ return true;
                                 <div className="font-semibold">No queue worker is running</div>
                                 <div className="mt-1 text-xs">
                                     These emails were queued but no worker picked them up, so they will not be sent.
-                                    Start a worker with <code className="rounded bg-white px-1 py-0.5 font-mono">php artisan queue:work</code>{' '}
-                                    (or <code className="rounded bg-white px-1 py-0.5 font-mono">composer queue:work</code>) and they will be delivered automatically.
+                                    Start a worker with <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">php artisan queue:work</code>{' '}
+                                    (or <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">composer queue:work</code>) and they will be delivered automatically.
                                 </div>
                             </div>
                         )}
@@ -1321,7 +1321,7 @@ return true;
                                 }}
                             />
                         </div>
-                        <p className="text-sm text-slate-500 text-center flex items-center justify-center gap-2">
+                        <p className="text-sm text-muted-foreground text-center flex items-center justify-center gap-2">
                             {isPollingProgress
                                 ? (emailProgress.some(p => p.stalled)
                                     ? <span className="text-rose-600">Waiting for a queue worker...</span>
@@ -1357,21 +1357,21 @@ return true;
                                         return (
                                             <div
                                                 key={`${progress.form_input_id}-${index}`}
-                                                className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50"
+                                                className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40"
                                             >
                                                 <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${statusColors[progress.status]}`}>
                                                     {statusIcons[progress.status]}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2 truncate">
-                                                        <span className="font-medium text-slate-800 truncate">
+                                                        <span className="font-medium text-foreground truncate">
                                                             {recipient ? formatFullName(recipient) : `ID: ${progress.form_input_id}`}
                                                         </span>
                                                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[progress.status]}`}>
                                                             {progress.status.charAt(0).toUpperCase() + progress.status.slice(1)}
                                                         </span>
                                                     </div>
-                                                    <div className="text-xs text-slate-500 truncate">
+                                                    <div className="text-xs text-muted-foreground truncate">
                                                         {recipient ? `${recipient.reference_number} · ${recipient.email}` : `ID: ${progress.form_input_id}`}
                                                     </div>
                                                     {progress.status === 'sent' && progress.emailed_at && (

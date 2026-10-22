@@ -16,9 +16,9 @@ export default function AppSidebarLayout({
 }: AppLayoutProps) {
     return (
         <SidebarProvider>
-            <div className="flex h-screen w-full bg-[#FAFAF5]">
+            <div className="flex h-screen w-full bg-background">
                 <AppSidebar />
-                <SidebarInset className="overflow-hidden bg-[#FAFAF5]">
+                <SidebarInset className="overflow-hidden bg-background">
                     <AppSidebarHeader breadcrumbs={breadcrumbs} />
                     <main className="min-h-0 flex-1 overflow-auto bg-page-background p-4 md:p-8">
                         {children}

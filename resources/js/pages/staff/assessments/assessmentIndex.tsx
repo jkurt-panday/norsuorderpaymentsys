@@ -47,7 +47,7 @@ export default function AssessmentIndex({
         <>
             <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-page-background p-3 sm:p-6">
                 <Head title="Index Assessment" />
-                <Card className="rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
+                <Card className="rounded-2xl bg-card px-2! py-2! shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between p-3">
                         <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                             Assessments

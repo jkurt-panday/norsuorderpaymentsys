@@ -32,7 +32,7 @@ import { getExpiringLocalStorage } from '@/lib/expiring-local-storage';
 import PublicLayout from '@/pages/layouts/PublicLayout';
 
 const enlarge =
-    'h-12 rounded-xl border-slate-300 bg-white px-4 text-base shadow-sm transition-all duration-200';
+    'h-12 rounded-xl border-border bg-card px-4 text-base shadow-sm transition-all duration-200';
 
 // Generates array of academic years: ["2026-2027", "2025-2026", "2024-2025", ...]
 export const SCHOOL_YEAR_OPTIONS = (() => {
@@ -127,10 +127,10 @@ export default function AssessmentForm({ courses }: Props) {
     return (
         <>
             <Head title="Assessment Form" />
-            <ThemeToggle className="fixed top-4 right-4 z-50 rounded-full shadow-md bg-white/80 dark:bg-slate-900/80 backdrop-blur" />
+            <ThemeToggle className="fixed top-4 right-4 z-50 rounded-full shadow-md bg-card/80 dark:bg-slate-900/80 backdrop-blur" />
             <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-200 to-white px-6 py-12">
                 <div className="mx-auto max-w-4xl">
-                    <div className="mb-6 rounded-2xl border border-blue-100 bg-white px-8 py-8 text-center shadow-md">
+                    <div className="mb-6 rounded-2xl border border-blue-100 bg-card px-8 py-8 text-center shadow-md">
                         <div className="flex justify-center">
                             <img
                                 src="/finance_logo1.png"
@@ -150,8 +150,8 @@ export default function AssessmentForm({ courses }: Props) {
                     </div>
                     {/* card */}
                     <form noValidate onSubmit={handleSubmit}>
-                        <Card className="overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-xl">
-                            <CardHeader className="border-b border-slate-100 bg-white pb-6">
+                        <Card className="overflow-hidden rounded-3xl border border-blue-100 bg-card shadow-xl">
+                            <CardHeader className="border-b border-slate-100 bg-card pb-6">
                                 <CardTitle className="flex items-center gap-3 text-xl font-semibold text-blue-900">
                                     <Mail className="h-5 w-5 text-blue-600" />
                                     Contact Information
@@ -414,7 +414,7 @@ export default function AssessmentForm({ courses }: Props) {
                                             >
                                                 <ComboboxInput
                                                     placeholder="Select course"
-                                                    className={`border-slate-300 focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
+                                                    className={`border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
                                                     showClear={
                                                         !!data.course_id
                                                     }
@@ -651,7 +651,7 @@ export default function AssessmentForm({ courses }: Props) {
                                 >
                                     <ComboboxInput
                                         placeholder="Select School Year"
-                                        className={`border-slate-300 focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
+                                        className={`border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
                                         showClear={!!data.sy_last_attended}
                                     />
                                     <ComboboxContent>
@@ -691,7 +691,7 @@ export default function AssessmentForm({ courses }: Props) {
                                         // Uncomment if clearing local state attachments:
                                         // setSupportingDocuments([]);
                                     }}
-                                    className="cursor-pointer rounded-xl border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+                                    className="cursor-pointer rounded-xl border-border text-slate-700 hover:bg-slate-100 disabled:opacity-50"
                                 >
                                     Reset
                                 </Button>
