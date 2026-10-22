@@ -2,7 +2,6 @@ import { Head, usePage } from '@inertiajs/react';
 import { Users, Shield, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import AdminLayout from '@/layouts/admin/layout';
 
 interface AdminDashboardProps {
     [key: string]: unknown;
@@ -63,7 +62,7 @@ export default function AdminDashboardPage() {
     };
 
     return (
-        <AdminLayout>
+        <>
             <Head title="Admin Dashboard" />
             <div className="min-h-screen bg-page-background px-4 py-8">
                 <div className="mx-auto max-w-7xl">
@@ -250,6 +249,6 @@ export default function AdminDashboardPage() {
                     </Card>
                 </div>
             </div>
-        </AdminLayout>
+        </>
     );
 }

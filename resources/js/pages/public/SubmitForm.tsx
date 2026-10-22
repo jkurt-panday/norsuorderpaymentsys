@@ -4,6 +4,7 @@ import { Mail, User, ClipboardList, FileText, Home, GraduationCap, Plus } from '
 import { useState, useMemo, useEffect } from 'react';
 import AddCollegeOfficeModal from '@/components/AddCollegeOfficeModal';
 import { FileUpload } from '@/components/application/file-upload/file-upload-base';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -110,8 +111,6 @@ const getSubmitFormPrefill = () =>
 
 export default function SubmitForm({ memberships, paymentOptions, course = [], academicTerms = [], collegeOffices = [] }: Props) {
     const { auth } = usePage<any>().props;
-    const user = auth?.user;
-    const profile = user?.profile;
 
     // ? tabs: General (business/default) vs Student (adds Academic Details)
     const [activeTab, setActiveTab] = useState<FormTab>('student');
@@ -121,25 +120,15 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
     const [addModalOpen, setAddModalOpen] = useState(false);
     const prefill = getSubmitFormPrefill();
 
-    // ? form handling
     const { data, setData, post, processing, errors, reset } = useForm({
-        email: prefill?.email ?? user?.email ?? '',
-        contact_num: prefill?.contact_num ?? profile?.contact_num ?? '',
-        firstname_or_office:
-            prefill?.firstname_or_office ?? profile?.firstname_or_office ?? '',
-        middlename_or_project:
-            prefill?.middlename_or_project ??
-            profile?.middlename_or_project ??
-            '',
-        lastname_or_agency:
-            prefill?.lastname_or_agency ?? profile?.lastname_or_agency ?? '',
-        office_or_college:
-            prefill?.office_or_college ?? profile?.office_or_college ?? '',
-        position_or_designation:
-            prefill?.position_or_designation ??
-            profile?.position_or_designation ??
-            '',
-        address: prefill?.address ?? profile?.address ?? '',
+        email: prefill?.email ?? '',
+        contact_num: prefill?.contact_num ?? '',
+        firstname_or_office: prefill?.firstname_or_office ?? '',
+        middlename_or_project: prefill?.middlename_or_project ?? '',
+        lastname_or_agency: prefill?.lastname_or_agency ?? '',
+        office_or_college: prefill?.office_or_college ?? '',
+        position_or_designation: prefill?.position_or_designation ?? '',
+        address: prefill?.address ?? '',
         amount: '',
         request_type: '',
         membership_id: '',
@@ -163,14 +152,11 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
 
         setData(
             'position_or_designation',
-            prefill?.position_or_designation ??
-                profile?.position_or_designation ??
-                '',
+            prefill?.position_or_designation ?? '',
         );
     }, [
         activeTab,
         prefill?.position_or_designation,
-        profile?.position_or_designation,
         setData,
     ]);
 
@@ -291,6 +277,7 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
     return (
         <>
             <Head title="Order of Payment Form" />
+            <ThemeToggle className="fixed top-4 right-4 z-50 rounded-full shadow-md bg-white/80 dark:bg-slate-900/80 backdrop-blur" />
             <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-300 to-white px-6 py-12">
                 <div className="mx-auto max-w-4xl">
                     <div className="mb-10 rounded-2xl border border-blue-100 bg-white px-8 py-8 text-center shadow-md">
@@ -310,20 +297,6 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                             Fill out the form below to submit your request.
                         </p>
                     </div>
-
-                    {user && (
-                        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4 text-sm text-blue-800">
-                            <span className="inline-block h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-blue-600" />
-                            <span>
-                                Logged in as{' '}
-                                <strong className="font-semibold">
-                                    {user.email}
-                                </strong>{' '}
-                                — your saved details have been auto-filled. You
-                                can still edit them before submitting.
-                            </span>
-                        </div>
-                    )}
 
                     {/* Request type tabs: General (business) vs Student */}
                     <Tabs
@@ -586,7 +559,7 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                         items={collegeOfficesList}
                                                         value={data.office_or_college}
                                                         onValueChange={(value) => {
-                                                            setData('office_or_college', value);
+                                                            setData('office_or_college', value ?? '');
                                                         }}
                                                     >
                                                         <ComboboxInput

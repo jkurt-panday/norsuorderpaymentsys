@@ -96,17 +96,17 @@ return;
                 {/* Email Address */}
                 <div className="space-y-2">
                     <Label
-                        className="block text-xs font-semibold tracking-wider text-[#091d2e] uppercase"
+                        className="block text-xs font-semibold tracking-wider text-foreground uppercase"
                         htmlFor="email"
                     >
                         Email Address
                     </Label>
                     <div className="relative">
-                        <span className="material-symbols-outlined absolute top-1/2 left-3 -translate-y-1/2 text-xl text-[#717786]">
+                        <span className="material-symbols-outlined absolute top-1/2 left-3 -translate-y-1/2 text-xl text-muted-foreground">
                             mail
                         </span>
                         <Input
-                            className="w-full rounded-lg border border-[#c1c6d7] bg-white py-3 pr-4 pl-10 text-sm text-[#091d2e] transition-all outline-none placeholder:text-muted-foreground focus:border-[#005ab7] focus:ring-2 focus:ring-[#005ab7]"
+                            className="h-11 w-full rounded-lg border border-input bg-background/50 pr-4 pl-10 text-sm text-foreground transition-all outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
                             id="email"
                             type="email"
                             name="email"
@@ -117,7 +117,7 @@ return;
                         />
                     </div>
                     {errors.email && (
-                        <p className="text-xs font-semibold text-[#ba1a1a]">
+                        <p className="text-xs font-semibold text-destructive">
                             {errors.email}
                         </p>
                     )}
@@ -126,17 +126,17 @@ return;
                 {/* Password */}
                 <div className="space-y-2">
                     <Label
-                        className="block text-xs font-semibold tracking-wider text-[#091d2e] uppercase"
+                        className="block text-xs font-semibold tracking-wider text-foreground uppercase"
                         htmlFor="password"
                     >
                         Password
                     </Label>
                     <div className="relative">
-                        <span className="material-symbols-outlined absolute top-1/2 left-3 -translate-y-1/2 text-xl text-[#717786]">
+                        <span className="material-symbols-outlined absolute top-1/2 left-3 -translate-y-1/2 text-xl text-muted-foreground">
                             lock
                         </span>
                         <Input
-                            className="w-full rounded-lg border border-[#c1c6d7] bg-white py-3 pr-12 pl-10 text-sm text-[#091d2e] transition-all outline-none placeholder:text-muted-foreground focus:border-[#005ab7] focus:ring-2 focus:ring-[#005ab7]"
+                            className="h-11 w-full rounded-lg border border-input bg-background/50 pr-12 pl-10 text-sm text-foreground transition-all outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
                             id="password"
                             type={showPassword ? 'text' : 'password'}
                             name="password"
@@ -150,15 +150,15 @@ return;
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute top-1/2 right-3 -translate-y-1/2 text-[#717786] transition-colors hover:text-[#005ab7]"
+                            className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
                         >
-                            <span className="material-symbols-outlined pt-2 text-xl">
+                            <span className="material-symbols-outlined text-xl">
                                 {showPassword ? 'visibility_off' : 'visibility'}
                             </span>
                         </button>
                     </div>
                     {errors.password && (
-                        <p className="text-xs font-semibold text-[#ba1a1a]">
+                        <p className="text-xs font-semibold text-destructive">
                             {errors.password}
                         </p>
                     )}
@@ -173,11 +173,11 @@ return;
                             onCheckedChange={(checked) =>
                                 setData('remember', checked === true)
                             }
-                            className="cursor-pointer border-[#c1c6d7] focus-visible:ring-2 focus-visible:ring-[#005ab7] data-[state=checked]:border-[#005ab7] data-[state=checked]:bg-[#005ab7] data-[state=checked]:text-white"
+                            className="cursor-pointer border-input focus-visible:ring-2 focus-visible:ring-primary data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                         />
                         <label
                             htmlFor="remember"
-                            className="cursor-pointer text-xs font-medium text-[#414754] select-none"
+                            className="cursor-pointer text-xs font-medium text-muted-foreground select-none"
                         >
                             Remember Me
                         </label>
@@ -186,7 +186,7 @@ return;
                     {canResetPassword && (
                         <Link
                             href={forgotPassword.url()}
-                            className="text-xs font-semibold text-[#005ab7] hover:underline"
+                            className="text-xs font-semibold text-primary hover:underline"
                         >
                             Forgot password?
                         </Link>
@@ -195,7 +195,7 @@ return;
 
                 {/* Login Button */}
                 <Button
-                    className="flex w-full items-center justify-center gap-2 rounded-full border-0 bg-[#0072e5] py-6 text-xs font-semibold tracking-widest text-white uppercase transition-all duration-200 hover:bg-[#005ab7] hover:shadow-lg active:scale-[0.98]"
+                    className="flex h-11 w-full items-center justify-center gap-2 rounded-full border-0 bg-primary py-6 text-xs font-semibold tracking-widest text-primary-foreground uppercase transition-all duration-200 hover:bg-primary/90 hover:shadow-lg active:scale-[0.98]"
                     type="submit"
                     disabled={processing}
                 >

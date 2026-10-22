@@ -44,7 +44,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import AdminLayout from '@/layouts/admin/layout';
 import {
     update as updateAdminUser,
     toggle as toggleAdminUser,
@@ -395,7 +394,7 @@ export default function AdminUserManagement() {
     ];
 
     return (
-        <AdminLayout>
+        <>
             <Head title="User Management" />
 
             <div className="mx-auto max-w-7xl">
@@ -1064,6 +1063,6 @@ export default function AdminUserManagement() {
                     </DialogContent>
                 </Dialog>
             </div>
-        </AdminLayout>
+        </>
     );
 }

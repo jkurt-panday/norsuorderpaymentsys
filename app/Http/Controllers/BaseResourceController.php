@@ -105,7 +105,7 @@ abstract class BaseResourceController extends Controller
             $searchLower = strtolower($search);
             $query->where(function (Builder $q) use ($columns, $searchLower) {
                 foreach ($columns as $column) {
-                    $q->orWhere($column, 'ilike', "%{$searchLower}%");
+                    $q->orWhere($column, 'like', "%{$searchLower}%");
                 }
             });
         }
