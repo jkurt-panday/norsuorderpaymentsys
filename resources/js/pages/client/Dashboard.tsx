@@ -112,9 +112,10 @@ export default function ClientDashboard() {
 
     // Keeps the submissions table live — a staff member could approve/
     // cancel a request while this page is open, and the client should see
-    // that without needing to manually refresh. `only: ['submissions']`
+    // that without needing to manually refresh. The update runs every minute.
+    // `only: ['submissions']`
     // means each poll re-fetches just this prop, not the whole page.
-    usePoll(5000, {
+    usePoll(60000, {
         only: ['submissions'],
     });
 

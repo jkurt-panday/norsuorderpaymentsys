@@ -74,11 +74,11 @@ const formatDate = (value?: string | null) => {
 };
 
 export default function Dashboard() {
-    // Polls the server every 10 seconds and re-fetches this page's props,
+    // Polls the server every minute and re-fetches this page's props,
     // re-rendering automatically with fresh data — no full page reload,
     // no manual refresh needed. `only` limits the refetch to just the
     // data this dashboard needs, instead of every shared prop.
-    usePoll(10000, {
+    usePoll(60000, {
         only: [
             'totalRequests',
             'pendingRequests',

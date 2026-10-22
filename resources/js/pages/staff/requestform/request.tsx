@@ -242,6 +242,10 @@ const ManageRequests: React.FC = () => {
     const [selectedPopoverSearch, setSelectedPopoverSearch] = useState('');
     const popoverRef = useRef<HTMLDivElement>(null);
     const MAX_POLLING_DURATION = 10 * 60 * 1000; // 10 minutes
+    // Used only while the Email Progress dialog remains open.
+    const EMAIL_PROGRESS_POLLING_INTERVAL = 15 * 1000; // 15 seconds
+    // Operational queue: staff need to see new requests promptly.
+    const TABLE_POLLING_INTERVAL = 15 * 1000; // 15 seconds
 
     // Close popover when clicking outside
     useEffect(() => {
@@ -551,13 +555,14 @@ clearTimeout(pollTimeoutId);
                     flashToast('error', `No queue worker is running — ${data.summary.stalled} email job(s) were queued but never picked up. Start one with "php artisan queue:work" (or "composer queue:work"), then send again.`);
                 }
 
-                // Poll every 5 seconds (passive auto-refresh)
-                const timeoutId = setTimeout(() => pollProgressWithIds(ids), 5000);
+                // Poll only while the progress dialog is open. Fifteen seconds keeps
+                // email delivery status responsive without permanent background traffic.
+                const timeoutId = setTimeout(() => pollProgressWithIds(ids), EMAIL_PROGRESS_POLLING_INTERVAL);
                 setPollTimeoutId(timeoutId);
             }
         } catch (err) {
-            // Retry after 10 seconds on error
-            const timeoutId = setTimeout(() => pollProgressWithIds(ids), 10000);
+            // Retry at the normal interval after a transient request failure.
+            const timeoutId = setTimeout(() => pollProgressWithIds(ids), EMAIL_PROGRESS_POLLING_INTERVAL);
             setPollTimeoutId(timeoutId);
         }
     };
@@ -573,7 +578,7 @@ clearTimeout(pollTimeoutId);
 
     const closeProgressModal = () => {
         setShowProgressModal(false);
-        // Don't stop polling - let it continue in background
+        stopProgressPolling();
     };
 
     const applyFilters = useCallback(() => {
@@ -727,7 +732,7 @@ clearTimeout(pollTimeoutId);
                 columns={columns}
                 resource={formInputs}
                 resourceKey="formInputs"
-                pollInterval={5000}
+                pollInterval={TABLE_POLLING_INTERVAL}
                 renderActions={renderActions}
                 actionsWidth="60px"
                 emptyIcon={Inbox}
@@ -1322,7 +1327,7 @@ return true;
                                     ? <span className="text-rose-600">Waiting for a queue worker...</span>
                                     : (pollingStartTime && Date.now() - pollingStartTime > MAX_POLLING_DURATION * 0.8
                                         ? 'Almost timed out...'
-                                        : <span>Processing... <Loader2 className="h-4 w-4 animate-spin text-emerald-600" /> <span className="text-xs text-slate-400">(auto-refresh every 5s)</span></span>))
+                                        : <span>Processing... <Loader2 className="h-4 w-4 animate-spin text-emerald-600" /> <span className="text-xs text-slate-400">(updates every 15 seconds)</span></span>))
                                 : emailProgress.some(p => p.status === 'failed')
                                     ? `Completed — ${emailProgress.filter(p => p.status === 'failed').length} email(s) failed`
                                     : 'Completed'}

@@ -245,7 +245,7 @@ export default function ResourceTable<T extends { id: number }>({
     }, [resource.data]);
 
     const { start, stop } = usePoll(
-        pollInterval ?? 15000,
+        pollInterval ?? 300000,
         {
             only: resourceKey ? [resourceKey] : undefined,
         },
