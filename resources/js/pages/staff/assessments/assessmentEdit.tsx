@@ -530,7 +530,7 @@ export default function AssessmentEdit({
                     </Card>
                 </div>
 
-                <Card className="overflow-hidden rounded-2xl border border-blue-100 bg-[#FAFAF5] shadow-sm">
+                <Card className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm">
                     <CardHeader className="gap-3 border-b border-blue-100 bg-white sm:flex-row sm:items-start sm:justify-between">
                         <div className="space-y-1">
                             <div className="flex flex-wrap items-center gap-2">
