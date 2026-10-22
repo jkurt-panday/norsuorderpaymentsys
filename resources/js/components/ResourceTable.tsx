@@ -548,7 +548,7 @@ export default function ResourceTable<T extends { id: number }>({
                             type="submit"
                             aria-label="Search"
                             title="Search"
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-700"
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-700 cursor-pointer"
                         >
                             <Search className="h-4 w-4" />
                         </button>
@@ -732,7 +732,7 @@ export default function ResourceTable<T extends { id: number }>({
                                                 <div className="inline-flex overflow-hidden rounded-full shadow-sm">
                                                     <Link
                                                         href={editHref(row)}
-                                                        className="flex h-8 w-8 items-center justify-center bg-amber-400 text-white transition-colors hover:bg-amber-500"
+                                                        className="flex h-8 w-8 items-center justify-center bg-amber-400 text-white transition-colors hover:bg-amber-500 cursor-pointer"
                                                         aria-label="Edit"
                                                         title="Edit"
                                                     >
@@ -745,7 +745,7 @@ export default function ResourceTable<T extends { id: number }>({
                                                                 row.id,
                                                             )
                                                         }
-                                                        className="flex h-8 w-8 items-center justify-center border-l border-white/20 bg-red-600 text-white transition-colors hover:bg-red-700"
+                                                        className="flex h-8 w-8 items-center justify-center border-l border-white/20 bg-red-600 text-white transition-colors hover:bg-red-700 cursor-pointer"
                                                         aria-label="Delete"
                                                         title="Delete"
                                                     >

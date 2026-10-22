@@ -3,11 +3,14 @@
 namespace App\Jobs;
 
 use App\Mail\OrderOfPaymentMail;
+use App\Models\ActivityLog;
 use App\Models\FormInput;
 use App\Models\StaffInput;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -29,10 +32,23 @@ class SendOrderOfPaymentEmail implements ShouldQueue
         public ?string $subject = null,
         public ?string $recipientName = null,
         public ?string $note = null,
+        public ?int $actorId = null,
     ) {}
 
     public function handle(): void
     {
+        $actor = null;
+
+        if ($this->actorId) {
+            $actor = User::find($this->actorId);
+
+            if ($actor) {
+                Auth::guard('web')->setUser($actor);
+                app()->instance('email.actor', $actor);
+            }
+        } else {
+            $actor = Auth::guard('web')->user();
+        }
         $formInput = FormInput::query()
             ->with([
                 'staffInput.bankAccount',
@@ -77,6 +93,50 @@ class SendOrderOfPaymentEmail implements ShouldQueue
                 $this->note,
             )
         );
+
+        $subjectText = $this->subject ?? "Order of Payment - {$formInput->reference_number}";
+
+        try {
+            \Illuminate\Support\Facades\Cache::put(
+                'email_actor:'.md5((string)$formInput->email.'|'.$subjectText),
+                [
+                    'id' => $actor?->getAuthIdentifier(),
+                    'name' => $actor?->name,
+                    'role' => $actor?->role,
+                ],
+                now()->addMinutes(10)
+            );
+
+            // Create activity log directly in job so queue worker attributes it to correct actor
+            $log = ActivityLog::create([
+                'actor_id' => $actor?->getAuthIdentifier(),
+                'actor_name' => $actor?->name,
+                'actor_role' => $actor?->role,
+                'action' => 'email.sent',
+                'target_id' => null,
+                'subject_type' => null,
+                'subject_id' => null,
+                'description' => "Email sent to {$formInput->email} with subject \"{$subjectText}\".",
+                'meta' => [
+                    'to' => $formInput->email,
+                    'subject' => $subjectText,
+                ],
+            ]);
+            // Remove any existing null-actor logs for this email
+            ActivityLog::where('action', 'email.sent')
+                ->whereNull('actor_id')
+                ->where('description', $log->description)
+                ->where('id', '!=', $log->id)
+                ->delete();
+            // Delete any null-actor logs that match this exact description except this one
+            ActivityLog::where('action', 'email.sent')
+                ->whereNull('actor_id')
+                ->where('description', $log->description)
+                ->where('id', '!=', $log->id)
+                ->delete();
+        } catch (\Throwable $e) {
+            Log::debug('Failed to log OP email activity in job', ['error' => $e->getMessage()]);
+        }
 
         $formInput->staffInput()->update([
             'emailed_at' => now(),

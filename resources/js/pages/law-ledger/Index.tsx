@@ -21,6 +21,7 @@ import {
   CheckSquare,
   Square,
   Calendar as CalendarIcon,
+  Upload,
 } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import StudentBalanceDrawer from './StudentBalanceDrawer';
@@ -395,7 +396,7 @@ export default function Index({ records, filters, stats, filterOptions }: IndexP
 
         const data = (await res.json()) as typeof allRecipients;
         setAllRecipients(data);
-        setSelectedIds(new Set(data.map((r) => r.id)));
+        setSelectedIds(new Set());
       } catch (e) {
         flashToast('error', 'Failed to load recipients.');
       } finally {
@@ -810,29 +811,38 @@ return 90;
           </div>
 
            <div className="flex flex-wrap items-center justify-end gap-2">
-             <label className={`inline-flex items-center rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm font-medium text-[#0B3D91] transition-colors ${isImporting ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-[#F3F8FF]'}`}>
-               <input
-                 type="file"
-                 accept=".csv,.xlsx,.xls"
-                 disabled={isImporting}
-                 className="hidden"
-                 onChange={(e) => {
-                   const file = e.target.files?.[0] ?? null;
-                   handleImportFile(file, e.target);
-                 }}
-               />
-               {isImporting ? (
-                 <>
-                   <Loader2 className="h-4 w-4 mr-1.5 animate-spin text-[#0F6FFF]" />
-                   Importing...
-                 </>
-               ) : (
-                 'Import Excel/CSV'
-               )}
-             </label>
             <Button variant="outline" className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]" onClick={handleOpenEmailModal}>
               <Mail className="h-4 w-4 mr-1.5" />
               Send Email
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              disabled={isImporting}
+              className={`h-9 px-4 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF] ${isImporting ? 'opacity-60 pointer-events-none' : ''}`}
+            >
+              <label>
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  disabled={isImporting}
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    handleImportFile(file, e.target);
+                  }}
+                />
+                {isImporting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin text-[#0F6FFF]" />
+                    Importing...
+                  </>
+                ) : (
+                  <>
+                    <span className="whitespace-nowrap">Import Excel/CSV</span>
+                  </>
+                )}
+              </label>
             </Button>
              <Button
                variant="outline"
@@ -1404,7 +1414,7 @@ return 90;
                                 event.stopPropagation();
                                 router.get(`/law-ledger/${r.id}/edit`);
                               }}
-                              className="mr-1 inline-flex items-center justify-center rounded p-1.5 text-[#0B62E0] transition-colors hover:bg-[#EAF2FF]"
+                              className="mr-1 inline-flex items-center justify-center rounded p-1.5 text-[#0B62E0] transition-colors hover:bg-[#EAF2FF] cursor-pointer"
                               title="Edit"
                             >
                               <Pencil className="h-3.5 w-3.5" />
@@ -1415,7 +1425,7 @@ return 90;
                                 event.stopPropagation();
                                 setDeleteTarget(r);
                               }}
-                              className="inline-flex items-center justify-center rounded p-1.5 text-red-500 transition-colors hover:bg-red-50"
+                              className="inline-flex items-center justify-center rounded p-1.5 text-red-500 transition-colors hover:bg-red-50 cursor-pointer"
                               title="Delete"
                             >
                               <Trash2 className="h-3.5 w-3.5" />

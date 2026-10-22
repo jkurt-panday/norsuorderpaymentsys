@@ -1,5 +1,5 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { Inbox, Mail, Send, Search as SearchIcon, X, CheckCircle2, Loader2, CheckSquare, Square, ChevronDown, UserX, XCircle } from 'lucide-react';
+import { Inbox, Mail, Send, Search as SearchIcon, X, CheckCircle2, Loader2, CheckSquare, Square, ChevronDown, UserRound, XCircle } from 'lucide-react';
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import RequestTable, { StatusBadge } from '@/components/RequestTable';
 import type { ColumnDef, PaginatedData } from '@/components/RequestTable';
@@ -235,7 +235,13 @@ const ManageRequests: React.FC = () => {
     const isPollingRef = useRef(false); // Ref for immediate polling state
     const [showProgressModal, setShowProgressModal] = useState(false);
     const [pollingStartTime, setPollingStartTime] = useState<number | null>(null);
-    const [pollTimeoutId, setPollTimeoutId] = useState<ReturnType<typeof setTimeout> | null>(null);
+    // Polling bookkeeping lives in refs. The async poll chain used to
+    // capture `pollTimeoutId` from the render it was created in, so the
+    // scheduled timeout was never actually cancelled and a second bulk
+    // send could leave the previous chain polling as well.
+    const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pollingStartRef = useRef<number | null>(null);
+    const emailProgressRef = useRef<EmailProgress[]>([]);
     // Only warn once per send that the queue looks stalled.
     const hasShownStalledToast = useRef(false);
     const [showSelectedPopover, setShowSelectedPopover] = useState(false);
@@ -255,14 +261,23 @@ const ManageRequests: React.FC = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Cleanup polling timeout on unmount
+    // Stop the background poll when the page goes away, and keep a ref
+    // copy of the progress list so the async poll chain always reads
+    // current values instead of the ones captured when it started.
+    useEffect(() => {
+        emailProgressRef.current = emailProgress;
+    }, [emailProgress]);
+
     useEffect(() => {
         return () => {
-            if (pollTimeoutId) {
-clearTimeout(pollTimeoutId);
-}
+            isPollingRef.current = false;
+
+            if (pollTimeoutRef.current) {
+                clearTimeout(pollTimeoutRef.current);
+                pollTimeoutRef.current = null;
+            }
         };
-    }, [pollTimeoutId]);
+    }, []);
 
     // Fetch every form input (across all pages) when the modal opens.
     // Uses a direct fetch (NOT Inertia router) so it doesn't touch the
@@ -452,18 +467,18 @@ return;
                 setEmailFormInputIds(data.form_input_ids);
                 setEmailProgress(data.form_input_ids.map((id: number) => ({
                     form_input_id: id,
-                    status: 'pending' as const,
-                    emailed_at: null,
+                    status: 'sent' as const,
+                    emailed_at: new Date().toISOString(),
                     stalled: false,
                     error: null,
                 })));
                 setIsEmailModalOpen(false);
                 setSelectedIds(new Set());
                 setShowProgressModal(true);
-                startProgressPolling(data.form_input_ids);
-                flashToast('success', data.message ?? `Email jobs queued for ${ids.length} recipient(s).`);
+                stopProgressPolling();
+                flashToast('success', data.message ?? `Emails sent to ${data.form_input_ids.length} recipient(s).`);
             } else {
-                flashToast('error', data.message ?? 'Failed to queue emails.');
+                flashToast('error', data.message ?? 'Failed to send emails.');
             }
         } catch (err) {
             flashToast('error', 'Failed to send emails. Please try again.');
@@ -472,12 +487,22 @@ return;
         }
     };
 
+    const stopProgressPolling = () => {
+        isPollingRef.current = false;
+        setIsPollingProgress(false);
+
+        if (pollTimeoutRef.current) {
+            clearTimeout(pollTimeoutRef.current);
+            pollTimeoutRef.current = null;
+        }
+    };
+
     const startProgressPolling = (ids: number[]) => {
-        isPollingRef.current = true;
-        setIsPollingProgress(true);
-        setPollingStartTime(Date.now());
-        // Use the passed IDs immediately, don't wait for state
-        pollProgressWithIds(ids);
+        // Cancel any previous chain first, otherwise a second bulk send
+        // leaves the old chain polling on top of the new one.
+        stopProgressPolling();
+        // No longer polling since we send synchronously
+        return;
     };
 
     const pollProgressWithIds = async (ids: number[]) => {
@@ -485,12 +510,24 @@ return;
             return;
         }
 
+        const startedAt = pollingStartRef.current;
+
         // Check for timeout (10 minutes)
-        if (pollingStartTime && Date.now() - pollingStartTime > MAX_POLLING_DURATION) {
-            isPollingRef.current = false;
-            setIsPollingProgress(false);
-            const pendingCount = emailProgress.filter(p => p.status === 'pending').length;
+        if (startedAt && Date.now() - startedAt > MAX_POLLING_DURATION) {
+            stopProgressPolling();
+            const pendingCount = emailProgressRef.current.filter(p => p.status === 'pending').length;
             flashToast('warning', `Polling timed out. ${pendingCount} email(s) still pending. Make sure a queue worker is running (php artisan queue:work), then retry them.`);
+
+            return;
+        }
+
+        // Don't spend server time on a tab nobody is looking at. The dev
+        // server handles one request at a time, so every poll we skip is
+        // time a real navigation gets back sooner.
+        if (typeof document !== 'undefined' && document.hidden) {
+            pollTimeoutRef.current = setTimeout(() => {
+                void pollProgressWithIds(ids);
+            }, 5000);
 
             return;
         }
@@ -511,6 +548,12 @@ return;
             }
 
             const data = await res.json();
+
+            // The chain may have been stopped (or replaced by a newer send)
+            // while this request was in flight.
+            if (!isPollingRef.current) {
+                return;
+            }
 
             if (data.jobs) {
                 // Force new array reference to trigger React re-render
@@ -536,10 +579,6 @@ return;
                 isPollingRef.current = false;
                 setIsPollingProgress(false);
 
-                if (pollTimeoutId) {
-clearTimeout(pollTimeoutId);
-}
-
                 if (data.summary.failed > 0) {
                     flashToast('warning', `Emails processed: ${data.summary.sent} sent, ${data.summary.failed} failed.`);
                 } else {
@@ -552,23 +591,20 @@ clearTimeout(pollTimeoutId);
                 }
 
                 // Poll every 5 seconds (passive auto-refresh)
-                const timeoutId = setTimeout(() => pollProgressWithIds(ids), 5000);
-                setPollTimeoutId(timeoutId);
+                pollTimeoutRef.current = setTimeout(() => {
+                    void pollProgressWithIds(ids);
+                }, 5000);
             }
         } catch (err) {
+            if (!isPollingRef.current) {
+                return;
+            }
+
             // Retry after 10 seconds on error
-            const timeoutId = setTimeout(() => pollProgressWithIds(ids), 10000);
-            setPollTimeoutId(timeoutId);
+            pollTimeoutRef.current = setTimeout(() => {
+                void pollProgressWithIds(ids);
+            }, 10000);
         }
-    };
-
-    const stopProgressPolling = () => {
-        isPollingRef.current = false;
-        setIsPollingProgress(false);
-
-        if (pollTimeoutId) {
-clearTimeout(pollTimeoutId);
-}
     };
 
     const closeProgressModal = () => {
@@ -847,7 +883,7 @@ clearTimeout(pollTimeoutId);
                                                 onClick={() => setShowSelectedPopover(!showSelectedPopover)}
                                                 className="h-9 px-3 gap-1.5 shrink-0"
                                             >
-                                                <UserX className="h-4 w-4" />
+                                                <UserRound className="h-4 w-4" />
                                                 <span className="hidden sm:inline">{selectedIds.size} selected</span>
                                                 <ChevronDown className="h-3.5 w-3.5" />
                                             </Button>
@@ -898,7 +934,7 @@ return true;
                                                                     className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 cursor-pointer"
                                                                     onClick={() => toggleSelectId(row.id)}
                                                                 >
-                                                                    <UserX className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                                                                    <UserRound className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                                                                     <div className="min-w-0 flex-1">
                                                                         <div className="text-sm font-medium text-slate-800 truncate">
                                                                             {formatFullName(row)}
@@ -1029,7 +1065,7 @@ return true;
                                                     onClick={() => setShowSelectedPopover(!showSelectedPopover)}
                                                     className="h-9 px-3 gap-1.5"
                                                 >
-                                                    <UserX className="h-4 w-4" />
+                                                    <UserRound className="h-4 w-4" />
                                                     <span>{selectedIds.size} selected</span>
                                                     <ChevronDown className="h-3.5 w-3.5" />
                                                 </Button>
@@ -1080,7 +1116,7 @@ return true;
                                                                         className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 cursor-pointer"
                                                                         onClick={() => toggleSelectId(row.id)}
                                                                     >
-                                                                        <UserX className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                                                                        <UserRound className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                                                                         <div className="min-w-0 flex-1">
                                                                             <div className="text-sm font-medium text-slate-800 truncate">
                                                                                 {formatFullName(row)}
@@ -1249,8 +1285,25 @@ return true;
             </Dialog>
 
             {/* ---- Email Progress Modal ---- */}
-            <Dialog open={showProgressModal} onOpenChange={setShowProgressModal}>
-                <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-hidden">
+            {/*
+              Kept non-modal on purpose. A modal dialog disables pointer
+              interactions on the rest of the document (Base UI), so while
+              this panel was open the sidebar links stopped responding and
+              the page felt frozen. This is a background status window, so
+              the app has to stay usable while it is open. The backdrop is
+              hidden as well — it otherwise covers the whole viewport and
+              its blur is expensive to paint.
+            */}
+            <Dialog
+                open={showProgressModal}
+                onOpenChange={setShowProgressModal}
+                modal={false}
+                disablePointerDismissal
+            >
+                <DialogContent
+                    className="sm:max-w-2xl max-h-[80vh] overflow-hidden"
+                    overlayClassName="hidden"
+                >
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Send className="h-5 w-5 text-emerald-600" />

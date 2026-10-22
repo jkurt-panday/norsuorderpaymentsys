@@ -9,18 +9,19 @@ import {
   Pencil,
   Trash2,
   XCircle,
-  Download,
+  Filter,
   Loader2,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Columns3,
   ChevronDown,
-  Filter,
+  Columns3,
   Mail,
   CheckSquare,
   Square,
   Calendar as CalendarIcon,
+  Upload,
+  Download,
 } from 'lucide-react';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import StudentBalanceDrawer from './StudentBalanceDrawer';
@@ -395,7 +396,7 @@ export default function Index({ records, filters, stats, filterOptions, courses 
 
         const data = (await res.json()) as typeof allRecipients;
         setAllRecipients(data);
-        setSelectedIds(new Set(data.map((r) => r.id)));
+        setSelectedIds(new Set());
       } catch (e) {
         flashToast('error', 'Failed to load recipients.');
       } finally {
@@ -900,7 +901,7 @@ throw new Error('Export failed');
             <Button
               variant="outline"
               disabled={isImporting}
-              className={`border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF] ${isImporting ? 'opacity-60 cursor-not-allowed' : ''}`}
+              className={`h-9 px-4 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF] ${isImporting ? 'opacity-60 cursor-not-allowed' : ''}`}
               onClick={() => setIsImportDialogOpen(true)}
             >
               {isImporting ? (
@@ -909,7 +910,9 @@ throw new Error('Export failed');
                   Importing...
                 </>
               ) : (
-                'Import Excel/CSV'
+                <>
+                  <span className="whitespace-nowrap">Import Excel/CSV</span>
+                </>
               )}
             </Button>
 
@@ -1352,7 +1355,7 @@ throw new Error('Export failed');
                             event.stopPropagation();
                             router.get(`/graduate-ledger/${r.id}/edit`);
                           }}
-                          className="mr-1 inline-flex items-center justify-center rounded p-1.5 text-[#0B62E0] transition-colors hover:bg-[#EAF2FF]"
+                          className="mr-1 inline-flex items-center justify-center rounded p-1.5 text-[#0B62E0] transition-colors hover:bg-[#EAF2FF] cursor-pointer"
                           title="Edit"
                         >
                           <Pencil className="h-3.5 w-3.5" />
@@ -1362,7 +1365,7 @@ throw new Error('Export failed');
                             event.stopPropagation();
                             setDeleteTarget({ id: r.id, name: r.name });
                           }}
-                          className="inline-flex items-center justify-center rounded p-1.5 text-red-500 transition-colors hover:bg-red-50"
+                          className="inline-flex items-center justify-center rounded p-1.5 text-red-500 transition-colors hover:bg-red-50 cursor-pointer"
                           title="Delete"
                         >
                           <Trash2 className="h-3.5 w-3.5" />

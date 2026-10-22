@@ -29,14 +29,57 @@ class LogSentEmails
             return;
         }
 
-        Cache::put($dedupKey, true, 5);
+        Cache::put($dedupKey, true, 5); // short dedup
+        // Skip duplicate logging quickly
+        if (\App\Models\ActivityLog::where('action','email.sent')->where('description','like',"%{$recipientEmails}%")->where('created_at','>=',now()->subSeconds(5))->exists()) {
+            return;
+        }
 
-        $actor = Auth::guard('web')->user();
+        $actor = null;
+
+        if (! $actor) {
+            $cached = \Illuminate\Support\Facades\Cache::get('email_actor:'.md5($recipientEmails.'|'.$subject));
+            if ($cached) {
+                $actor = \App\Models\User::find($cached['id']);
+                if (! $actor) {
+                    $actor = (object) [
+                        'id' => $cached['id'],
+                        'name' => $cached['name'],
+                        'role' => $cached['role'],
+                    ];
+                }
+                app()->instance('email.actor', $actor);
+            }
+        }
+
+        if ($actor && method_exists($actor, 'getAuthIdentifier') && $actor->getAuthIdentifier() === null && Auth::guard('web')->check()) {
+            $actor = Auth::guard('web')->user();
+        } elseif (is_array($actor)) {
+            $found = \App\Models\User::find($actor['id'] ?? null);
+            $actor = $found ?: (object) $actor;
+        } elseif (is_object($actor) && ! method_exists($actor, 'getAuthIdentifier') && isset($actor->id)) {
+            $found = \App\Models\User::find($actor->id);
+            if ($found) {
+                $actor = $found;
+            }
+        }
+
+        // If job likely already created the log, don't create another (prevents system)
+        if (! $actor || (method_exists($actor, 'getAuthIdentifier') && ! $actor->getAuthIdentifier())) {
+            // Check if recent log exists from job
+            $recent = \App\Models\ActivityLog::where('description', 'like', "%{$recipientEmails}%")
+                ->where('description', 'like', "%".str_replace('"', '', $subject)."%")
+                ->latest()
+                ->first();
+            if ($recent && $recent->created_at && $recent->created_at->diffInSeconds(now()) < 30) {
+                return;
+            }
+        }
 
         ActivityLog::create([
             'actor_id' => $actor?->getAuthIdentifier(),
-            'actor_name' => $actor?->name,
-            'actor_role' => $actor?->role,
+            'actor_name' => $actor?->name ?? ($actor?->id ? null : null),
+            'actor_role' => $actor?->role ?? null,
             'action' => 'email.sent',
             'target_id' => null,
             'subject_type' => null,
