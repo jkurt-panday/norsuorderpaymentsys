@@ -35,12 +35,14 @@ Route::name('public.')->prefix('public')->group(function () {
 
     Route::get('/success/{formInput:reference_number}', [FormInputController::class, 'success'])->name('success');
     Route::get('/success/{formInput:reference_number}/print', [FormInputController::class, 'printReceipt'])->name('print');
+    Route::get('/success/{formInput:reference_number}/download', [FormInputController::class, 'downloadReceipt'])->name('download');
 
     Route::get('/assessmentform', [AssessmentFormController::class, 'create'])->name('assessmentform');
     Route::post('/assessmentform', [AssessmentFormController::class, 'store']);
 
     Route::get('/assessment_complete/{assessmentForm:reference_number}', [AssessmentFormController::class, 'complete'])->name('complete');
     Route::get('/assessment_complete/{assessmentForm:reference_number}/print', [AssessmentFormController::class, 'print'])->name('print_req');
+    Route::get('/assessment_complete/{assessmentForm:reference_number}/download', [AssessmentFormController::class, 'downloadReceipt'])->name('download_req');
 });
 
 // Root redirect → public submission form
