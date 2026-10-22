@@ -31,6 +31,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { CardTitle } from '@/components/ui/card';
 
 // ============ TYPE DEFINITIONS ============
 export interface PaginationLink {
@@ -112,7 +113,7 @@ export default function ResourceTable<T extends { id: number }>({
     emptyIcon: EmptyIcon,
     emptyMessage,
     deleteConfirmMessage = 'Are you sure you want to delete this record?',
-    actionsWidth = '96px',
+    actionsWidth = '140px',
     filters,
     pollInterval,
     highlightDuration = 2000,
@@ -488,19 +489,19 @@ export default function ResourceTable<T extends { id: number }>({
         <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-page-background p-3 sm:p-6">
             <Head title={title} />
 
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm">
                 <div className="flex items-center gap-4">
                     {HeaderIcon && (
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100">
-                            <HeaderIcon className="h-5 w-5 text-blue-600" />
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 dark:bg-primary/20">
+                            <HeaderIcon className="h-5 w-5 text-primary" />
                         </div>
                     )}
                     <div>
-                        <h2 className="text-xl font-bold text-slate-900">
+                        <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                             {title}
-                        </h2>
+                        </CardTitle>
                         {description && (
-                            <p className="text-sm text-slate-500">
+                            <p className="text-sm text-muted-foreground">
                                 {description}
                             </p>
                         )}
@@ -508,14 +509,14 @@ export default function ResourceTable<T extends { id: number }>({
                 </div>
                 <Link
                     href={addHref}
-                    className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
                 >
                     <Plus className="h-4 w-4" />
                     {addLabel}
                 </Link>
             </div>
 
-            <Card className="w-full gap-0 overflow-hidden rounded-2xl border-slate-200/70 py-0 shadow-sm">
+            <Card className="w-full gap-0 overflow-hidden rounded-2xl border-border bg-card py-0 text-card-foreground shadow-sm">
                 <div className="relative h-0.5 w-full overflow-hidden bg-transparent">
                     {(isNavigating || isResetting) && (
                         <div className="absolute inset-0 animate-[table-loading-bar_1s_ease-in-out_infinite] bg-blue-500" />
@@ -528,7 +529,7 @@ export default function ResourceTable<T extends { id: number }>({
                     }
                 `}</style>
                 {/* ---- Toolbar row: search form (button/Enter submit) + optional extra filters + sort dropdown ---- */}
-                <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white p-4">
+                <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-card p-4">
                     <form
                         onSubmit={handleSearchSubmit}
                         className="flex w-full max-w-md flex-1 items-center gap-2"
@@ -541,14 +542,14 @@ export default function ResourceTable<T extends { id: number }>({
                                     handleSearchInputChange(e.target.value)
                                 }
                                 placeholder={searchPlaceholder}
-                                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-blue-200"
+                                className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
                             />
                         </div>
                         <button
                             type="submit"
                             aria-label="Search"
                             title="Search"
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-700 cursor-pointer"
+                            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-400"
                         >
                             <Search className="h-4 w-4" />
                         </button>
@@ -561,10 +562,10 @@ export default function ResourceTable<T extends { id: number }>({
                                     <span
                                         role="button"
                                         tabIndex={0}
-                                        className={`inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border text-slate-500 transition-colors hover:bg-slate-50 ${
+                                        className={`inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border text-muted-foreground transition-colors hover:bg-muted ${
                                             activeSortValue
-                                                ? 'border-blue-300 bg-blue-50 text-blue-600'
-                                                : 'border-slate-200 bg-white'
+                                                ? 'border-primary/50 bg-primary/10 text-primary'
+                                                : 'border-input bg-background'
                                         }`}
                                         aria-label="Sort"
                                         title="Sort"
@@ -574,9 +575,9 @@ export default function ResourceTable<T extends { id: number }>({
                                 </PopoverTrigger>
                                 <PopoverContent
                                     align="end"
-                                    className="w-52 space-y-1 p-2"
+                                    className="w-52 space-y-1 border-border bg-popover p-2 text-popover-foreground"
                                 >
-                                    <p className="px-2 py-1.5 text-xs font-semibold text-slate-500 uppercase">
+                                    <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase">
                                         Sort by
                                     </p>
                                     {sortOptions.map((opt) => {
@@ -593,10 +594,10 @@ export default function ResourceTable<T extends { id: number }>({
                                                         optionValue,
                                                     )
                                                 }
-                                                className={`flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-sm transition-colors ${
+                                                className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-2 py-2 text-left text-sm transition-colors ${
                                                     isActive
-                                                        ? 'bg-blue-50 font-medium text-blue-700'
-                                                        : 'text-slate-600 hover:bg-slate-50'
+                                                        ? 'bg-primary/10 font-medium text-primary'
+                                                        : 'text-foreground hover:bg-muted'
                                                 }`}
                                             >
                                                 {opt.label}
@@ -613,7 +614,7 @@ export default function ResourceTable<T extends { id: number }>({
                             type="button"
                             onClick={handleReloadAndReset}
                             disabled={isResetting}
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                             aria-label="Reload and reset table"
                             title="Reload and reset table"
                         >
@@ -644,7 +645,7 @@ export default function ResourceTable<T extends { id: number }>({
                             <col style={{ width: actionsWidth }} />
                         </colgroup>
                         <TableHeader>
-                            <TableRow className="border-b border-slate-200 hover:bg-transparent">
+                            <TableRow className="border-b border-border hover:bg-transparent">
                                 {columns.map((col, i) => {
                                     const sortKey =
                                         typeof col.sortable === 'string'
@@ -661,16 +662,16 @@ export default function ResourceTable<T extends { id: number }>({
                                                 isActiveSort ? (
                                                     currentDirection ===
                                                     'asc' ? (
-                                                        <ArrowUp className="h-3 w-3 text-blue-600" />
+                                                        <ArrowUp className="h-3 w-3 text-primary" />
                                                     ) : (
-                                                        <ArrowDown className="h-3 w-3 text-blue-600" />
+                                                        <ArrowDown className="h-3 w-3 text-primary" />
                                                     )
                                                 ) : (
-                                                    <ArrowUpDown className="h-3 w-3 text-slate-400" />
+                                                    <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
                                                 )
                                             ) : (
                                                 col.sortable && (
-                                                    <ArrowUpDown className="h-3 w-3 text-slate-400" />
+                                                    <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
                                                 )
                                             )}
                                         </span>
@@ -679,9 +680,9 @@ export default function ResourceTable<T extends { id: number }>({
                                     return (
                                         <TableHead
                                             key={i}
-                                            className={`h-11 truncate bg-slate-50/80 text-xs font-semibold tracking-wide text-slate-600 uppercase ${
+                                            className={`h-11 truncate bg-muted/50 text-xs font-semibold tracking-wide text-muted-foreground uppercase ${
                                                 i === 0 ? 'pl-6' : ''
-                                            } ${sortKey ? 'cursor-pointer select-none hover:text-slate-900' : ''}`}
+                                            } ${sortKey ? 'cursor-pointer select-none hover:text-foreground' : ''}`}
                                             onClick={
                                                 sortKey
                                                     ? () =>
@@ -695,7 +696,7 @@ export default function ResourceTable<T extends { id: number }>({
                                         </TableHead>
                                     );
                                 })}
-                                <TableHead className="h-11 bg-white pr-6 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                                <TableHead className="h-11 bg-muted/50 pr-14 text-right text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                                     Actions
                                 </TableHead>
                             </TableRow>
@@ -710,29 +711,29 @@ export default function ResourceTable<T extends { id: number }>({
                                     return (
                                         <TableRow
                                             key={row.id}
-                                            className={`border-b border-slate-100 transition-colors duration-700 last:border-0 hover:bg-blue-50/40 ${
+                                            className={`border-b border-border/50 transition-colors duration-700 last:border-0 hover:bg-muted/40 ${
                                                 isHighlighted
-                                                    ? 'animate-[row-flash_2s_ease-out] bg-blue-50'
+                                                    ? 'animate-[row-flash_2s_ease-out] bg-primary/10'
                                                     : i % 2 === 1
-                                                      ? 'bg-slate-50/30'
-                                                      : ''
+                                                      ? 'bg-muted/20'
+                                                      : 'bg-card'
                                             }`}
                                         >
                                             {columns.map((col, j) => (
                                                 <TableCell
                                                     key={j}
-                                                    className={`py-3 text-sm ${col.className ?? 'truncate text-slate-700'} ${
+                                                    className={`py-3 text-sm ${col.className ?? 'truncate text-foreground'} ${
                                                         j === 0 ? 'pl-6' : ''
                                                     }`}
                                                 >
                                                     {col.render(row, i)}
                                                 </TableCell>
                                             ))}
-                                            <TableCell className="py-3 pr-6 text-right">
-                                                <div className="inline-flex overflow-hidden rounded-full shadow-sm">
+                                            <TableCell className="py-3 pr-10 text-right">
+                                                <div className="mr-2 inline-flex overflow-hidden rounded-full shadow-sm">
                                                     <Link
                                                         href={editHref(row)}
-                                                        className="flex h-8 w-8 items-center justify-center bg-amber-400 text-white transition-colors hover:bg-amber-500 cursor-pointer"
+                                                        className="flex h-8 w-8 cursor-pointer items-center justify-center bg-amber-400 text-white transition-colors hover:bg-amber-500"
                                                         aria-label="Edit"
                                                         title="Edit"
                                                     >
@@ -762,12 +763,12 @@ export default function ResourceTable<T extends { id: number }>({
                                         colSpan={columns.length + 1}
                                         className="h-56"
                                     >
-                                        <div className="flex flex-col items-center justify-center gap-2 text-slate-400">
+                                        <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                                             <EmptyIcon
                                                 className="h-8 w-8"
                                                 strokeWidth={1.5}
                                             />
-                                            <p className="text-sm font-medium text-slate-500">
+                                            <p className="text-sm font-medium text-muted-foreground">
                                                 {emptyMessage}
                                             </p>
                                         </div>
@@ -779,8 +780,8 @@ export default function ResourceTable<T extends { id: number }>({
                 </CardContent>
 
                 {resource.data.length > 0 && (
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3">
-                        <p className="shrink-0 text-xs text-slate-500 sm:text-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-3">
+                        <p className="shrink-0 text-xs text-muted-foreground sm:text-sm">
                             Showing {resource.from ?? 0}-{resource.to ?? 0} of{' '}
                             {resource.total} results
                         </p>
@@ -809,17 +810,17 @@ export default function ResourceTable<T extends { id: number }>({
 
                                 return (
                                     <div className="flex shrink-0 items-center gap-1.5">
-                                        <button
-                                            type="button"
-                                            disabled={!prevLink?.url}
-                                            onClick={() =>
-                                                navigateToPage(
-                                                    resource.current_page - 1,
-                                                )
-                                            }
-                                            aria-label="Previous page"
-                                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 text-sm text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                        >
+                                         <button
+                                             type="button"
+                                             disabled={!prevLink?.url}
+                                             onClick={() =>
+                                                 navigateToPage(
+                                                     resource.current_page - 1,
+                                                 )
+                                             }
+                                             aria-label="Previous page"
+                                             className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border border-slate-200 text-sm text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                         >
                                             <ChevronLeft className="h-4 w-4" />
                                         </button>
 
@@ -841,7 +842,7 @@ export default function ResourceTable<T extends { id: number }>({
                                                 <span
                                                     role="button"
                                                     tabIndex={0}
-                                                    className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+                                                    className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                                                 >
                                                     Page {resource.current_page}{' '}
                                                     of {resource.last_page}
@@ -849,7 +850,7 @@ export default function ResourceTable<T extends { id: number }>({
                                             </PopoverTrigger>
                                             <PopoverContent
                                                 align="center"
-                                                className="w-48 space-y-2 p-2"
+                                                className="w-48 space-y-2 border-border bg-popover p-2 text-popover-foreground"
                                             >
                                                 <form
                                                     onSubmit={(e) => {
@@ -888,40 +889,40 @@ export default function ResourceTable<T extends { id: number }>({
                                                             )
                                                         }
                                                         placeholder={`1–${resource.last_page}`}
-                                                        className="h-8 w-full min-w-0 rounded-md border border-slate-200 px-2 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-200"
+                                                        className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
                                                         autoFocus
                                                     />
                                                     <button
                                                         type="submit"
-                                                        className="h-8 shrink-0 rounded-md bg-blue-900 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-blue-950"
+                                                        className="h-8 shrink-0 cursor-pointer rounded-md bg-blue-900 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-blue-950"
                                                     >
                                                         Go
                                                     </button>
                                                 </form>
 
-                                                <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-slate-100 pt-1.5">
+                                                <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-border pt-1.5">
                                                     {Array.from(
                                                         {
                                                             length: resource.last_page,
                                                         },
                                                         (_, i) => i + 1,
                                                     ).map((page) => (
-                                                        <button
-                                                            key={page}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                navigateToPage(
-                                                                    page,
-                                                                );
-                                                                setPageJumpOpen(
-                                                                    false,
-                                                                );
-                                                            }}
-                                                            className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                                                         <button
+                                                             key={page}
+                                                             type="button"
+                                                             onClick={() => {
+                                                                 navigateToPage(
+                                                                     page,
+                                                                 );
+                                                                 setPageJumpOpen(
+                                                                     false,
+                                                                 );
+                                                             }}
+                                                             className={`flex w-full cursor-pointer items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
                                                                 page ===
                                                                 resource.current_page
-                                                                    ? 'bg-blue-50 font-medium text-blue-900'
-                                                                    : 'text-slate-600 hover:bg-slate-50'
+                                                                    ? 'bg-primary/10 font-medium text-primary'
+                                                                    : 'text-foreground hover:bg-muted'
                                                             }`}
                                                         >
                                                             Page {page}
@@ -931,17 +932,17 @@ export default function ResourceTable<T extends { id: number }>({
                                             </PopoverContent>
                                         </Popover>
 
-                                        <button
-                                            type="button"
-                                            disabled={!nextLink?.url}
-                                            onClick={() =>
-                                                navigateToPage(
-                                                    resource.current_page + 1,
-                                                )
-                                            }
-                                            aria-label="Next page"
-                                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 text-sm text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                        >
+                                         <button
+                                             type="button"
+                                             disabled={!nextLink?.url}
+                                             onClick={() =>
+                                                 navigateToPage(
+                                                     resource.current_page + 1,
+                                                 )
+                                             }
+                                             aria-label="Next page"
+                                             className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border border-slate-200 text-sm text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                         >
                                             <ChevronRight className="h-4 w-4" />
                                         </button>
                                     </div>
@@ -974,10 +975,10 @@ export default function ResourceTable<T extends { id: number }>({
                                             as={link.url ? 'a' : 'span'}
                                             className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border text-sm font-medium transition-colors ${
                                                 link.active
-                                                    ? 'border-blue-600 bg-blue-600 text-white hover:bg-blue-700'
+                                                    ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90'
                                                     : link.url
-                                                      ? 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                                                      : 'cursor-not-allowed border-slate-100 text-slate-300'
+                                                      ? 'border-input bg-background text-foreground hover:bg-muted'
+                                                      : 'cursor-not-allowed border-border text-muted-foreground/40'
                                             } ${link.active ? 'rounded-full' : ''}`}
                                         >
                                             {isPrev ? (

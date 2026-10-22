@@ -55,7 +55,7 @@ return [
             'bucket' => env('SUPABASE_S3_BUCKET'),
             // 'url' => env('AWS_URL'),
             'endpoint' => env('SUPABASE_S3_ENDPOINT'),
-            'use_path_style_endpoint' => false,
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'throw' => true,
             'report' => false,
         ],

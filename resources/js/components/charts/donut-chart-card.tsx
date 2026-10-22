@@ -53,14 +53,14 @@ export function DonutChartCard({
 
     return (
         <Card
-            className={`flex flex-col rounded-2xl border border-slate-200/70 bg-white shadow-sm ${className ?? ''}`}
+            className={`flex flex-col rounded-2xl border border-border bg-card shadow-sm ${className ?? ''}`}
         >
             <CardHeader className="items-center pb-0">
-                <CardTitle className="text-base font-semibold text-slate-900">
+                <CardTitle className="text-base font-semibold text-card-foreground">
                     {title}
                 </CardTitle>
                 {description && (
-                    <CardDescription className="text-sm text-slate-500">
+                    <CardDescription className="text-sm text-muted-foreground">
                         {description}
                     </CardDescription>
                 )}
@@ -68,7 +68,7 @@ export function DonutChartCard({
             <CardContent className="flex-1 pb-0">
                 {data.length === 0 ? (
                     <div
-                        className={`flex ${size} items-center justify-center text-sm text-slate-400`}
+                        className={`flex ${size} items-center justify-center text-sm text-muted-foreground`}
                     >
                         {emptyMessage}
                     </div>

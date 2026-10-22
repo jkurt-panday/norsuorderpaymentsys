@@ -72,10 +72,7 @@ createInertiaApp({
         switch (true) {
             case name === 'welcome' ||
                 name === 'auth/login' ||
-                name === 'auth/forgot-password' ||
-                name === 'auth/reset-password':
-                return null;
-            case name === 'SubmitForm':
+                name.startsWith('public/'):
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
@@ -84,7 +81,7 @@ createInertiaApp({
             case name.startsWith('settings/'):
                 return [AppLayout, SettingsLayout];
             case name.startsWith('admin/'):
-                return null;
+                return AppLayout;
             case name.startsWith('staff/'):
                 return AppLayout;
             default:

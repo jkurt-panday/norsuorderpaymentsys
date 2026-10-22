@@ -23,7 +23,7 @@ function SingleDatePicker({ label, value, onChange }: SingleDatePickerProps) {
 
     return (
         <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-slate-600 whitespace-nowrap">{label}:</span>
+            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">{label}:</span>
             <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger
                     render={

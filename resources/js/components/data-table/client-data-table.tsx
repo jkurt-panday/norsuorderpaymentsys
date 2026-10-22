@@ -91,7 +91,7 @@ return data;
     const rangeEnd = Math.min(totalRows, (pageIndex + 1) * pageSize);
 
     return (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
             {/* Toolbar */}
             <div className="flex items-center justify-between gap-3 px-4 py-4">
                 <div className="flex items-center gap-2">
@@ -105,13 +105,13 @@ return data;
                                 onKeyDown={(e) =>
                                     e.key === 'Enter' && runSearch()
                                 }
-                                className="h-10 w-100 rounded-xl border border-slate-200 px-4 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                                className="h-10 w-100 rounded-xl border border-input bg-background px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-ring/20"
                             />
                             <button
                                 type="button"
                                 onClick={runSearch}
                                 aria-label="Search"
-                                className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-700"
+                                className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
                             >
                                 <Search className="h-4 w-4" />
                             </button>
@@ -119,7 +119,7 @@ return data;
                                 type="button"
                                 onClick={resetAll}
                                 title="Reset table"
-                                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50"
+                                className="flex h-10 w-10 items-center justify-center rounded-xl border border-input bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                             >
                                 <RotateCw className="h-4 w-4" />
                             </button>
@@ -134,7 +134,7 @@ return data;
                     {table.getHeaderGroups().map((headerGroup) => (
                         <TableRow
                             key={headerGroup.id}
-                            className="border-y border-slate-200 bg-slate-50/80 hover:bg-slate-50/80"
+                            className="border-y border-border bg-muted/50 hover:bg-muted/50"
                         >
                             {headerGroup.headers.map((header) => {
                                 const canSort = header.column.getCanSort();
@@ -143,7 +143,7 @@ return data;
                                 return (
                                     <TableHead
                                         key={header.id}
-                                        className="px-4 py-3 text-xs font-semibold tracking-wide text-slate-500 uppercase"
+                                        className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
                                     >
                                         {header.isPlaceholder ? null : canSort ? (
                                             <button
@@ -153,7 +153,7 @@ return data;
                                                         sortDir === 'asc',
                                                     )
                                                 }
-                                                className="inline-flex items-center gap-1.5 hover:text-slate-700"
+                                                className="inline-flex items-center gap-1.5 hover:text-foreground"
                                             >
                                                 <table.FlexRender
                                                     header={header}
@@ -182,15 +182,15 @@ return data;
                                 key={row.id}
                                 className={
                                     (i % 2 === 0
-                                        ? 'bg-white'
-                                        : 'bg-slate-50/60') +
-                                    ' border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-200'
+                                        ? 'bg-card'
+                                        : 'bg-muted/30') +
+                                    ' border-b border-border transition-colors last:border-0 hover:bg-muted/60'
                                 }
                             >
                                 {row.getVisibleCells().map((cell) => (
                                     <TableCell
                                         key={cell.id}
-                                        className="px-4 py-3.5 text-sm text-slate-700"
+                                        className="px-4 py-3.5 text-sm text-foreground"
                                     >
                                         <table.FlexRender cell={cell} />
                                     </TableCell>
@@ -201,7 +201,7 @@ return data;
                         <TableRow>
                             <TableCell
                                 colSpan={columns.length}
-                                className="h-24 text-center text-slate-400"
+                                className="h-24 text-center text-muted-foreground"
                             >
                                 {emptyMessage}
                             </TableCell>
@@ -212,7 +212,7 @@ return data;
 
             {/* Footer */}
             <div className="flex items-center justify-between px-4 py-4">
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-muted-foreground">
                     Showing {rangeStart}-{rangeEnd} of {totalRows} results
                 </p>
                 <DataTablePagination

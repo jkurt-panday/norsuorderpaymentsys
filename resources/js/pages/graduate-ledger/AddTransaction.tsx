@@ -47,9 +47,9 @@ const particularPresets: Record<'ar' | 'payment' | 'adjustment', string[]> = {
 };
 
 const entryTypeOptions = [
-    { value: 'ar', label: 'Accounts Receivable (AR)', short: 'AR', icon: ReceiptText, color: 'border-blue-500 text-blue-700 bg-blue-50' },
-    { value: 'payment', label: 'Payment (OR)', short: 'Payment', icon: Wallet, color: 'border-emerald-500 text-emerald-700 bg-emerald-50' },
-    { value: 'adjustment', label: 'Adjustment', short: 'Adjustment', icon: ArrowDownUp, color: 'border-purple-500 text-purple-700 bg-purple-50' },
+    { value: 'ar', label: 'Accounts Receivable (AR)', short: 'AR', icon: ReceiptText, color: 'border-blue-500 text-blue-700 bg-blue-50 dark:border-blue-500 dark:text-blue-400 dark:bg-blue-950/40' },
+    { value: 'payment', label: 'Payment (OR)', short: 'Payment', icon: Wallet, color: 'border-emerald-500 text-emerald-700 bg-emerald-50 dark:border-emerald-500 dark:text-emerald-400 dark:bg-emerald-950/40' },
+    { value: 'adjustment', label: 'Adjustment', short: 'Adjustment', icon: ArrowDownUp, color: 'border-purple-500 text-purple-700 bg-purple-50 dark:border-purple-500 dark:text-purple-400 dark:bg-purple-950/40' },
 ] as const;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -209,48 +209,48 @@ return;
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex w-full items-center justify-between rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                className="flex w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
             >
                 <span
                     className={
                         selectedStudent
-                            ? 'font-medium text-[#0B3D91]'
-                            : 'text-[#7FA6D6]'
+                            ? 'font-medium text-foreground'
+                            : 'text-muted-foreground'
                     }
                 >
                     {selectedStudent
                         ? formatStudentLabel(selectedStudent)
                         : '-- Select / Search Student --'}
                 </span>
-                <ChevronsUpDown className="h-4 w-4 text-[#7FA6D6]" />
+                <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
             </button>
 
             {isOpen && (
-                <div className="absolute z-50 mt-1 w-full space-y-2 rounded-md border border-[#CFE3FF] bg-white p-2 shadow-lg">
+                <div className="absolute z-50 mt-1 w-full space-y-2 rounded-md border border-border bg-popover p-2 text-popover-foreground shadow-lg">
                     <div className="relative">
-                        <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-[#8AA8CC]" />
+                        <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             type="text"
                             placeholder="Type Student ID or name to filter..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="h-9 border-[#CFE3FF] pl-8 text-xs"
+                            className="h-9 border-input bg-background pl-8 text-xs text-foreground placeholder:text-muted-foreground"
                             autoFocus
                         />
                         {search && (
                             <button
                                 type="button"
                                 onClick={() => setSearch('')}
-                                className="absolute top-2.5 right-2.5 text-xs text-[#8AA8CC] hover:text-[#0B3D91]"
+                                className="absolute top-2.5 right-2.5 text-xs text-muted-foreground hover:text-foreground"
                             >
                                 <X className="h-4 w-4" />
                             </button>
                         )}
                     </div>
 
-                    <div className="max-h-60 divide-y divide-[#EAF2FF] overflow-y-auto rounded-md border border-[#EAF2FF]">
+                    <div className="max-h-60 divide-y divide-border overflow-y-auto rounded-md border border-border">
                         {filteredStudents.length === 0 ? (
-                            <p className="p-3 text-center text-xs text-[#8AA8CC]">
+                            <p className="p-3 text-center text-xs text-muted-foreground">
                                 No students found.
                             </p>
                         ) : (
@@ -267,21 +267,21 @@ return;
                                                 onChange(s.id);
                                                 setIsOpen(false);
                                             }}
-                                            className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-[#F3F8FF] ${
+                                            className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-muted ${
                                                 isSelected
-                                                    ? 'bg-[#EAF2FF] font-semibold text-[#0B3D91]'
-                                                    : 'text-[#334E68]'
+                                                    ? 'bg-primary/10 font-semibold text-primary'
+                                                    : 'text-foreground'
                                             }`}
                                         >
                                             <span>{formatStudentLabel(s)}</span>
                                             {isSelected && (
-                                                <Check className="h-3.5 w-3.5 text-[#0F6FFF]" />
+                                                <Check className="h-3.5 w-3.5 text-primary" />
                                             )}
                                         </button>
                                     );
                                 })}
                                 {hasMoreStudents && (
-                                    <div className="bg-[#F8FBFF] px-3 py-2 text-center text-[11px] text-[#5C7A9E]">
+                                    <div className="bg-muted/40 px-3 py-2 text-center text-[11px] text-muted-foreground">
                                         Showing first {MATCH_LIMIT} of{' '}
                                         {filteredStudents.length} students. Type
                                         to narrow search.
@@ -623,66 +623,67 @@ return;
     };
 
     const selectClass =
-        'w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none';
+        'w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none';
 
     return (
         <div className="mx-auto max-w-5xl space-y-6 pb-12">
             <Head title="Add Transaction" />
 
             {/* ── Top Header ───────────────────────────────────────────── */}
-            <div className="flex flex-col gap-4 border-b border-[#CFE3FF] pb-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-foreground">
+                        Add New Transaction
+                    </h1>
+                    <p className="text-xs text-muted-foreground">
+                        Post Accounts Receivable, Payments, Adjustments, or multi-line transactions.
+                    </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* Single vs Batch Switch */}
+                    <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1 shadow-xs">
+                        <button
+                            type="button"
+                            onClick={() => setIsBatchMode(false)}
+                            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                !isBatchMode
+                                    ? 'bg-primary text-primary-foreground shadow-xs'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            <User className="h-3.5 w-3.5" /> Single Entry
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setIsBatchMode(true)}
+                            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                isBatchMode
+                                    ? 'bg-primary text-primary-foreground shadow-xs'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            <Layers className="h-3.5 w-3.5" /> Batch / Multi-Line
+                        </button>
+                    </div>
+
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={() => router.get(graduateLedgerIndex.url())}
-                        className="border-[#CFE3FF] text-[#0B3D91]"
+                        className="border-border text-foreground"
                     >
                         <ArrowLeft className="mr-1 h-4 w-4" /> Back
                     </Button>
-                    <div>
-                        <h1 className="text-2xl font-bold text-[#0B3D91]">
-                            Add New Transaction
-                        </h1>
-                        <p className="text-xs text-[#5C7A9E]">
-                            Post Accounts Receivable, Payments, Adjustments, or multi-line transactions.
-                        </p>
-                    </div>
-                </div>
-
-                {/* Single vs Batch Switch */}
-                <div className="flex items-center gap-1 rounded-lg border border-[#CFE3FF] bg-white p-1 shadow-xs">
-                    <button
-                        type="button"
-                        onClick={() => setIsBatchMode(false)}
-                        className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                            !isBatchMode
-                                ? 'bg-[#0F6FFF] text-white shadow-xs'
-                                : 'text-[#5C7A9E] hover:text-[#0B3D91]'
-                        }`}
-                    >
-                        <User className="h-3.5 w-3.5" /> Single Entry
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setIsBatchMode(true)}
-                        className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                            isBatchMode
-                                ? 'bg-[#0F6FFF] text-white shadow-xs'
-                                : 'text-[#5C7A9E] hover:text-[#0B3D91]'
-                        }`}
-                    >
-                        <Layers className="h-3.5 w-3.5" /> Batch / Multi-Line
-                    </button>
                 </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 {/* ── 1. Student Selection & Balance Overview Card ─────── */}
-                <Card className="border-[#CFE3FF] bg-white">
-                    <CardHeader className="border-b border-[#EAF2FF] bg-[#F8FBFF] pb-3">
+                <Card className="border-border bg-card">
+                    <CardHeader className="border-b border-border/50 bg-muted/30 pb-3">
                         <div className="flex items-center justify-between">
-                            <CardTitle className="text-sm font-bold text-[#0B3D91]">
+                            <CardTitle className="text-sm font-bold text-foreground">
                                 1. Student Information
                             </CardTitle>
                             <button
@@ -703,7 +704,7 @@ return;
                                         setData('new_student', null);
                                     }
                                 }}
-                                className="flex items-center gap-1 text-xs font-semibold text-[#0F6FFF] hover:underline"
+                                className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                             >
                                 {showNewStudent ? (
                                     <>
@@ -721,7 +722,7 @@ return;
                         {showNewStudent ? (
                             <div className="grid grid-cols-1 gap-3 rounded-lg border border-blue-100 bg-blue-50/60 p-4 sm:grid-cols-2 lg:grid-cols-3">
                                 <div>
-                                    <label className="text-xs font-medium text-[#334E68]">
+                                    <label className="text-xs font-medium text-muted-foreground">
                                         Student ID
                                     </label>
                                     <Input
@@ -742,7 +743,7 @@ return;
                                     <FieldError message={(errors as any)['new_student.student_number']} />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-medium text-[#334E68]">
+                                    <label className="text-xs font-medium text-muted-foreground">
                                         Email
                                     </label>
                                     <Input
@@ -764,7 +765,7 @@ return;
                                     <FieldError message={(errors as any)['new_student.email']} />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-medium text-[#334E68]">
+                                    <label className="text-xs font-medium text-muted-foreground">
                                         Last Name *
                                     </label>
                                     <Input
@@ -780,7 +781,7 @@ return;
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-medium text-[#334E68]">
+                                    <label className="text-xs font-medium text-muted-foreground">
                                         First Name *
                                     </label>
                                     <Input
@@ -796,7 +797,7 @@ return;
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-medium text-[#334E68]">
+                                    <label className="text-xs font-medium text-muted-foreground">
                                         Middle Name
                                     </label>
                                     <Input
@@ -814,7 +815,7 @@ return;
                         ) : (
                             <div className="space-y-3">
                                 <div>
-                                    <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                         Select Student *
                                     </label>
                                     <SearchableStudentSelect
@@ -843,12 +844,12 @@ return;
 
                                 {/* Live Student Balance Pill */}
                                 {loadingBalance && (
-                                    <div className="flex items-center gap-2 rounded-lg border border-[#CFE3FF] bg-[#F7FAFF] p-3 text-xs text-[#5C7A9E]">
+                                    <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
                                         <Spinner className="h-3.5 w-3.5" /> Loading student balance summary...
                                     </div>
                                 )}
                                 {!loadingBalance && balancePreview && (
-                                    <div className="grid grid-cols-2 gap-2 rounded-lg border border-[#CFE3FF] bg-[#F7FAFF] p-3 text-xs sm:grid-cols-4">
+                                    <div className="grid grid-cols-2 gap-2 rounded-lg border border-border bg-muted/30 p-3 text-xs sm:grid-cols-4">
                                         <div>
                                             <p className="text-[10px] font-semibold text-blue-700 uppercase">Total AR</p>
                                             <p className="font-bold text-blue-900">{currency(balancePreview.totalCharges)}</p>
@@ -877,7 +878,7 @@ return;
                         {/* ── Shared Metadata: Course, School Year, Semester, Date ── */}
                         <div className="grid grid-cols-1 gap-4 pt-2 sm:grid-cols-2 lg:grid-cols-4">
                             <div>
-                                <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                     Course *
                                 </label>
                                 <select
@@ -897,7 +898,7 @@ return;
                             </div>
 
                             <div>
-                                <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                     School Year
                                 </label>
                                 <Input
@@ -911,7 +912,7 @@ return;
                             </div>
 
                             <div>
-                                <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                     Semester
                                 </label>
                                 <select
@@ -929,13 +930,13 @@ return;
 
                             <div>
                                 <div className="mb-1 flex items-center justify-between">
-                                    <label className="text-xs font-medium text-[#334E68]">
+                                    <label className="text-xs font-medium text-muted-foreground">
                                         Transaction Date
                                     </label>
                                     <button
                                         type="button"
                                         onClick={() => setData('transaction_date', todayStr)}
-                                        className="text-[11px] font-semibold text-[#0F6FFF] hover:underline"
+                                        className="text-[11px] font-semibold text-primary hover:underline"
                                     >
                                         Today
                                     </button>
@@ -954,19 +955,19 @@ return;
 
                 {/* ── 2. Transaction Lines (Single vs Batch Mode) ─────── */}
                 {!isBatchMode ? (
-                    <Card className="border-[#CFE3FF] bg-white">
-                        <CardHeader className="border-b border-[#EAF2FF] bg-[#F8FBFF] pb-3">
-                            <CardTitle className="text-sm font-bold text-[#0B3D91]">
+                    <Card className="border-border bg-card">
+                        <CardHeader className="border-b border-border/50 bg-muted/30 pb-3">
+                            <CardTitle className="text-sm font-bold text-foreground">
                                 2. Transaction Details
                             </CardTitle>
-                            <CardDescription className="text-xs text-[#7FA6D6]">
+                            <CardDescription className="text-xs text-muted-foreground">
                                 Choose the transaction type to reveal the appropriate financial fields.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-5 pt-4">
                             {/* Type Tabs */}
                             <div>
-                                <label className="mb-2 block text-xs font-medium text-[#334E68]">
+                                <label className="mb-2 block text-xs font-medium text-muted-foreground">
                                     Transaction Type
                                 </label>
                                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -981,8 +982,8 @@ return;
                                                 onClick={() => handleTypeChange(t.value)}
                                                 className={`flex items-center gap-2 rounded-lg border p-3 text-left transition-all ${
                                                     isSelected
-                                                        ? `${t.color} ring-2 ring-[#0F6FFF]`
-                                                        : 'border-[#CFE3FF] bg-white text-[#334E68] hover:bg-[#F8FBFF]'
+                                                        ? `${t.color} ring-2 ring-primary`
+                                                        : 'border-border bg-card text-foreground hover:bg-muted/30'
                                                 }`}
                                             >
                                                 <Icon className="h-4 w-4 shrink-0" />
@@ -995,7 +996,7 @@ return;
 
                             {/* Particulars + Quick Presets */}
                             <div>
-                                <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                     Particulars
                                 </label>
                                 <Input
@@ -1005,13 +1006,13 @@ return;
                                     className="mb-2"
                                 />
                                 <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                                    <span className="text-[11px] text-[#7FA6D6]">Presets:</span>
+                                    <span className="text-[11px] text-muted-foreground">Presets:</span>
                                     {particularPresets[data.entry_type].map((preset) => (
                                         <button
                                             key={preset}
                                             type="button"
                                             onClick={() => setData('particulars', preset)}
-                                            className="rounded-md border border-[#CFE3FF] bg-[#F7FAFF] px-2 py-0.5 text-[11px] font-medium text-[#0B3D91] transition-colors hover:bg-[#EAF2FF]"
+                                            className="rounded-md border border-border bg-muted/30 px-2 py-0.5 text-[11px] font-medium text-foreground transition-colors hover:bg-primary/10"
                                         >
                                             {preset}
                                         </button>
@@ -1021,7 +1022,7 @@ return;
 
                             {/* Reference Number */}
                             <div>
-                                <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                     {data.entry_type === 'payment'
                                         ? 'Official Receipt (OR) Number *'
                                         : data.entry_type === 'adjustment'
@@ -1043,7 +1044,7 @@ return;
                             {data.entry_type === 'ar' ? (
                                 <div className="grid grid-cols-1 gap-4 rounded-lg border border-blue-100 bg-blue-50/40 p-4 sm:grid-cols-3">
                                     <div>
-                                        <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                             Units
                                         </label>
                                         <Input
@@ -1057,7 +1058,7 @@ return;
                                     </div>
 
                                     <div>
-                                        <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                             Tuition / Unit (Rate)
                                         </label>
                                         <Input
@@ -1072,7 +1073,7 @@ return;
                                     </div>
 
                                     <div>
-                                        <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                             Total AR Amount
                                         </label>
                                         <Input
@@ -1084,22 +1085,22 @@ return;
                                             placeholder="Auto-computed"
                                             className="font-bold text-blue-900"
                                         />
-                                        <p className="mt-1 text-[11px] text-[#5C7A9E]">
+                                        <p className="mt-1 text-[11px] text-muted-foreground">
                                             {autoAmount ? 'Auto: Units × Rate' : 'Manual amount override'}
                                         </p>
                                         <FieldError message={(errors as any).amount} />
                                     </div>
 
                                     {/* Inline Membership Scholarship Section for AR */}
-                                    <div className="sm:col-span-3 rounded-md border border-[#CFE3FF] bg-white p-3">
+                                    <div className="sm:col-span-3 rounded-md border border-border bg-card p-3">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
-                                                <Sparkles className="h-4 w-4 text-[#0F6FFF]" />
+                                                <Sparkles className="h-4 w-4 text-primary" />
                                                 <div>
-                                                    <p className="text-xs font-bold text-[#0B3D91]">
+                                                    <p className="text-xs font-bold text-foreground">
                                                         Apply Membership Scholarship (100% Discount)
                                                     </p>
-                                                    <p className="text-[11px] text-[#5C7A9E]">
+                                                    <p className="text-[11px] text-muted-foreground">
                                                         Tags AR with membership and creates an automatic matching Adjustment entry.
                                                     </p>
                                                 </div>
@@ -1155,7 +1156,7 @@ return;
                             ) : (
                                 <div className="grid grid-cols-1 gap-4 rounded-lg border border-emerald-100 bg-emerald-50/40 p-4 sm:grid-cols-2">
                                     <div>
-                                        <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                             {data.entry_type === 'payment' ? 'Payment Amount (₱) *' : 'Adjustment Amount (₱) *'}
                                         </label>
                                         <Input
@@ -1171,7 +1172,7 @@ return;
                                         <FieldError message={(errors as any).amount} />
                                     </div>
                                     <div>
-                                        <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                             Remarks
                                         </label>
                                         <Input
@@ -1186,7 +1187,7 @@ return;
                             {/* Remarks for AR */}
                             {data.entry_type === 'ar' && (
                                 <div>
-                                    <label className="mb-1 block text-xs font-medium text-[#334E68]">
+                                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                         Remarks
                                     </label>
                                     <Input
@@ -1200,14 +1201,14 @@ return;
                     </Card>
                 ) : (
                     /* ── Batch Multi-Line Table ───────────────────────────── */
-                    <Card className="border-[#CFE3FF] bg-white">
-                        <CardHeader className="border-b border-[#EAF2FF] bg-[#F8FBFF] pb-3">
+                    <Card className="border-border bg-card">
+                        <CardHeader className="border-b border-border/50 bg-muted/30 pb-3">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <CardTitle className="text-sm font-bold text-[#0B3D91]">
+                                    <CardTitle className="text-sm font-bold text-foreground">
                                         2. Multi-Line Transaction Items
                                     </CardTitle>
-                                    <CardDescription className="text-xs text-[#7FA6D6]">
+                                    <CardDescription className="text-xs text-muted-foreground">
                                         Add multiple fees, payments, or scholarship lines in one submission.
                                     </CardDescription>
                                 </div>
@@ -1215,7 +1216,7 @@ return;
                                     type="button"
                                     size="sm"
                                     onClick={addBatchRow}
-                                    className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
+                                    className="bg-blue-600 text-white hover:bg-blue-400"
                                 >
                                     <Plus className="mr-1 h-3.5 w-3.5" /> Add Line Item
                                 </Button>
@@ -1231,10 +1232,10 @@ return;
                                     return (
                                         <div
                                             key={item.id}
-                                            className="relative rounded-lg border border-[#CFE3FF] bg-[#FAFCFF] p-3 shadow-2xs"
+                                            className="relative rounded-lg border border-border bg-muted/20 p-3 shadow-2xs"
                                         >
                                             <div className="mb-2 flex items-center justify-between">
-                                                <span className="text-xs font-bold text-[#0B3D91]">
+                                                <span className="text-xs font-bold text-foreground">
                                                     Line #{index + 1}
                                                 </span>
                                                 {batchItems.length > 1 && (
@@ -1251,7 +1252,7 @@ return;
                                             <div className="grid grid-cols-1 gap-2 sm:grid-cols-6">
                                                 {/* Type */}
                                                 <div className="sm:col-span-1">
-                                                    <label className="text-[11px] font-medium text-[#334E68]">Type</label>
+                                                    <label className="text-[11px] font-medium text-muted-foreground">Type</label>
                                                     <select
                                                         value={item.entry_type}
                                                         onChange={(e) => {
@@ -1263,7 +1264,7 @@ return;
                                                                 membership: nextType === 'ar' ? item.membership : '',
                                                             });
                                                         }}
-                                                        className="w-full rounded-md border border-[#CFE3FF] bg-white px-2 py-1.5 text-xs"
+                                                        className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs"
                                                     >
                                                         <option value="ar">AR</option>
                                                         <option value="payment">Payment</option>
@@ -1273,11 +1274,11 @@ return;
 
                                                 {/* Particulars */}
                                                 <div className="sm:col-span-2">
-                                                    <label className="text-[11px] font-medium text-[#334E68]">Particulars</label>
+                                                    <label className="text-[11px] font-medium text-muted-foreground">Particulars</label>
                                                     <select
                                                         value={item.particulars}
                                                         onChange={(e) => updateBatchRow(item.id, { particulars: e.target.value })}
-                                                        className="h-8 w-full rounded-md border border-[#CFE3FF] bg-white px-2 py-1.5 text-xs text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                                        className="h-8 w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
                                                     >
                                                         {particularPresets[item.entry_type].map((preset) => (
                                                             <option key={preset} value={preset}>
@@ -1289,7 +1290,7 @@ return;
 
                                                 {/* Reference */}
                                                 <div className="sm:col-span-1">
-                                                    <label className="text-[11px] font-medium text-[#334E68]">Ref / OR #</label>
+                                                    <label className="text-[11px] font-medium text-muted-foreground">Ref / OR #</label>
                                                     <Input
                                                         value={item.reference_or_jev_number}
                                                         onChange={(e) => updateBatchRow(item.id, { reference_or_jev_number: e.target.value })}
@@ -1302,7 +1303,7 @@ return;
                                                 {item.entry_type === 'ar' ? (
                                                     <>
                                                         <div className="sm:col-span-1">
-                                                            <label className="text-[11px] font-medium text-[#334E68]">Units × Rate</label>
+                                                            <label className="text-[11px] font-medium text-muted-foreground">Units × Rate</label>
                                                             <div className="flex gap-1">
                                                                 <Input
                                                                     type="number"
@@ -1325,7 +1326,7 @@ return;
                                                         </div>
 
                                                         <div className="sm:col-span-1">
-                                                            <label className="text-[11px] font-medium text-[#334E68]">Amount</label>
+                                                            <label className="text-[11px] font-medium text-muted-foreground">Amount</label>
                                                             <Input
                                                                 type="number"
                                                                 step="0.01"
@@ -1339,7 +1340,7 @@ return;
                                                     </>
                                                 ) : (
                                                     <div className="sm:col-span-2">
-                                                        <label className="text-[11px] font-medium text-[#334E68]">Amount (₱)</label>
+                                                        <label className="text-[11px] font-medium text-muted-foreground">Amount (₱)</label>
                                                         <Input
                                                             type="number"
                                                             step="0.01"
@@ -1355,9 +1356,9 @@ return;
 
                                             {/* Line Item Scholarship Toggle for AR + Phantom Row */}
                                             {item.entry_type === 'ar' && (
-                                                <div className="mt-2 border-t border-[#EAF2FF] pt-2">
+                                                <div className="mt-2 border-t border-border/50 pt-2">
                                                     <div className="flex items-center justify-between text-[11px]">
-                                                    <span className="text-[#5C7A9E]">Membership Scholarship:</span>
+                                                    <span className="text-muted-foreground">Membership Scholarship:</span>
                                                     <div className="flex gap-1">
                                                         <button
                                                             type="button"
@@ -1401,7 +1402,7 @@ return;
                             </div>
 
                             {/* Batch Summary Footer */}
-                            <div className="grid grid-cols-3 gap-2 rounded-lg border border-[#CFE3FF] bg-[#F7FAFF] p-3 text-xs">
+                            <div className="grid grid-cols-3 gap-2 rounded-lg border border-border bg-muted/30 p-3 text-xs">
                                 <div>
                                     <p className="text-[10px] font-semibold text-blue-700 uppercase">Total Charges (AR)</p>
                                     <p className="font-bold text-blue-900">{currency(batchTotals.arTotal)}</p>
@@ -1420,15 +1421,15 @@ return;
                 )}
 
                 {/* ── Submit Card ─────────────────────────────────────── */}
-                <div className="flex items-center justify-between rounded-lg border border-[#CFE3FF] bg-white p-4 shadow-xs">
-                    <div className="text-xs text-[#5C7A9E]">
-                        Recorded by <strong className="text-[#0B3D91]">{authUserName || 'Logged-in Staff'}</strong>
+                <div className="flex items-center justify-between rounded-lg border border-border bg-card p-4 shadow-xs">
+                    <div className="text-xs text-muted-foreground">
+                        Recorded by <strong className="text-foreground">{authUserName || 'Logged-in Staff'}</strong>
                     </div>
 
                     <Button
                         type="submit"
                         disabled={processing}
-                        className="bg-[#0F6FFF] px-6 text-white hover:bg-[#0B5DDB] disabled:opacity-60"
+                        className="bg-primary px-6 text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
                     >
                         {processing ? (
                             <span className="flex items-center gap-2">

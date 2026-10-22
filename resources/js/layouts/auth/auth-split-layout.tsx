@@ -1,59 +1,69 @@
-import { usePage } from '@inertiajs/react';
 import React from 'react';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 interface AuthSplitLayoutProps {
     children: React.ReactNode;
 }
 
 export default function AuthSplitLayout({ children }: AuthSplitLayoutProps) {
-    const { flash } = usePage().props as any;
-
     return (
-        <div className="grid min-h-screen grid-cols-1 lg:grid-cols-12">
+        <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[1.05fr_1fr]">
+            {/* Left Brand Panel */}
+            <aside className="relative hidden overflow-hidden bg-[#0B4F9C] p-10 lg:flex lg:flex-col lg:justify-between lg:p-14 dark:bg-[#0A2447]">
+                {/* Background image */}
+                <img
+                    src="/images/norsu-campus.jpg"
+                    alt=""
+                    aria-hidden="true"
+                    className="absolute inset-0 h-full w-full object-cover"
+                />
 
-            {/* LEFT PANEL: Brand Panel — hardcoded NORSU azure so it stays on-brand regardless of theme */}
-            <div className="relative hidden flex-col justify-between bg-[#007BFF] p-10 text-white lg:flex lg:col-span-5">
-                <div className="absolute inset-0 bg-gradient-to-b from-[#007BFF] to-[#0F1E36]/60 pointer-events-none" />
+                {/* Overlays matching mockup .panel::after */}
+                <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 [background:linear-gradient(90deg,rgba(4,22,64,0.66)_0%,rgba(4,22,64,0.38)_18%,rgba(4,22,64,0.12)_42%,transparent_62%),radial-gradient(ellipse_at_62%_36%,transparent_40%,rgba(4,22,64,0.5)_100%),linear-gradient(180deg,rgba(11,79,156,0.3)_0%,rgba(11,79,156,0.14)_36%,rgba(6,40,78,0.74)_68%,rgba(4,24,48,0.96)_100%)] dark:[background:linear-gradient(90deg,rgba(4,22,64,0.75)_0%,rgba(4,22,64,0.45)_18%,rgba(4,22,64,0.18)_42%,transparent_62%),radial-gradient(ellipse_at_62%_36%,transparent_40%,rgba(4,22,64,0.65)_100%),linear-gradient(180deg,rgba(10,36,71,0.4)_0%,rgba(10,36,71,0.2)_36%,rgba(5,18,36,0.85)_68%,rgba(3,10,22,0.98)_100%)]"
+                />
 
-                <div className="relative z-10 flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center font-bold tracking-wider">
-                        N
-                    </div>
-                    <span className="font-semibold text-lg tracking-tight">NORSU Order & Payment System</span>
+                {/* Brand row */}
+                <div className="relative z-10 flex items-center gap-4">
+                    <img
+                        src="/norsu.png"
+                        alt="NORSU seal"
+                        className="h-[52px] w-auto"
+                    />
+                    <div className="h-[34px] w-0.5 bg-[#E5A93A]" />
+                    <span className="font-heading font-semibold tracking-[0.14em] text-white">
+                        NORSU FINANCE
+                    </span>
                 </div>
 
-                <div className="relative z-10 mt-auto">
-                    <blockquote className="space-y-2">
-                        <p className="text-lg font-light leading-relaxed">
-                            "Providing efficient, secure, and transparent digital ledger processing engines for the university community."
-                        </p>
-                        <footer className="text-sm opacity-80 font-mono">
-                            Finance & Accounting Portal — 2026
-                        </footer>
-                    </blockquote>
+                {/* Hero copy */}
+                <div className="relative z-10 my-auto py-8">
+                    <h1 className="font-heading text-[clamp(28px,3vw,42px)] font-bold leading-[1.15] text-white">
+                        Order of Payment System
+                    </h1>
+                    <span className="my-5 block h-1 w-14 rounded-sm bg-[#E5A93A]" />
+                    <p className="max-w-md text-base leading-relaxed text-white/90 lg:text-[19px]">
+                        Manage university payment orders in one place.
+                    </p>
                 </div>
-            </div>
 
-            {/* RIGHT PANEL: Centered form, hardcoded lily-white so it stays on-brand regardless of theme */}
-            <div className="flex flex-col items-center justify-center bg-[#F4F6FC] px-6 py-12 sm:px-8 lg:col-span-7 lg:px-16">
+                {/* Bottom note */}
+                <div className="relative z-10 text-xs font-mono tracking-wider text-white/70">
+                    Finance & Accounting Portal — 2026
+                </div>
+            </aside>
 
-                <div className="w-full max-w-md space-y-6">
+            {/* Right Panel */}
+            <main className="relative flex flex-col items-center justify-center bg-[#F6F7F1] px-6 py-12 dark:bg-[#08111F]">
+                <div className="absolute top-4 right-4">
+                    <ThemeToggle />
+                </div>
 
-                    {flash?.success && (
-                        <div className="rounded-md bg-emerald-50 p-4 text-sm text-emerald-800 border border-emerald-200 shadow-sm">
-                            {flash.success}
-                        </div>
-                    )}
-                    {flash?.error && (
-                        <div className="rounded-md bg-destructive/10 p-4 text-sm text-destructive border border-destructive/20 shadow-sm">
-                            {flash.error}
-                        </div>
-                    )}
-
+                <div className="w-full max-w-[410px]">
                     {children}
                 </div>
-            </div>
-
+            </main>
         </div>
     );
 }

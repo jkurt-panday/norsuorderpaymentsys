@@ -25,415 +25,458 @@ import {
 } from 'lucide-react';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import StudentBalanceDrawer from './StudentBalanceDrawer';
-import { emailRecipients, sendBulkEmail } from '@/actions/App/Http/Controllers/GraduateLedgerController';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogMedia,
-  AlertDialogTitle,
+    emailRecipients,
+    sendBulkEmail,
+} from '@/actions/App/Http/Controllers/GraduateLedgerController';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogMedia,
+    AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+    CardFooter,
 } from '@/components/ui/card';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
 } from '@/components/ui/pagination';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
 } from '@/components/ui/popover';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { flashToast } from '@/utils/flashToast';
 
 export interface LedgerRecord {
-  id: string | number;
-  studentId: number;
-  studentNumber?: string | null;
-  name: string;
-  course: string;
-  schoolYear: string;
-  semester: string;
-  units: number;
-  transactionDate: string;
-  referenceNo: string;
-  particulars: string;
-  tuitionPerUnitOrFeePerSemester: number;
-  arPayment: string;
-  amount: number;
-  remark: string;
-  inputBy: string;
-  membership?: string | null;
-  discountAmount?: number;
-  orLink?: string | null;
+    id: string | number;
+    studentId: number;
+    studentNumber?: string | null;
+    name: string;
+    course: string;
+    schoolYear: string;
+    semester: string;
+    units: number;
+    transactionDate: string;
+    referenceNo: string;
+    particulars: string;
+    tuitionPerUnitOrFeePerSemester: number;
+    arPayment: string;
+    amount: number;
+    remark: string;
+    inputBy: string;
+    membership?: string | null;
+    discountAmount?: number;
+    orLink?: string | null;
 }
 
 export interface LedgerPaginator {
-  data: LedgerRecord[];
-  links?: { url: string | null; label: string; active: boolean }[];
-  meta?: {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-  };
-  current_page?: number;
-  last_page?: number;
-  per_page?: number;
-  total?: number;
+    data: LedgerRecord[];
+    links?: { url: string | null; label: string; active: boolean }[];
+    meta?: {
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    };
+    current_page?: number;
+    last_page?: number;
+    per_page?: number;
+    total?: number;
 }
 
 function currency(n: number) {
-  return `₱${(n ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `₱${(n ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function formatTransactionDate(value?: string | null) {
-  if (!value) {
-    return '-';
-  }
+    if (!value) {
+        return '-';
+    }
 
-  const normalized = String(value).trim();
+    const normalized = String(value).trim();
 
-  if (!normalized) {
-    return '-';
-  }
+    if (!normalized) {
+        return '-';
+    }
 
-  const datePart = normalized.includes('T')
-    ? normalized.split('T')[0]
-    : normalized.split(' ')[0];
-  const parsedDate = new Date(`${datePart}T00:00:00`);
+    const datePart = normalized.includes('T')
+        ? normalized.split('T')[0]
+        : normalized.split(' ')[0];
+    const parsedDate = new Date(`${datePart}T00:00:00`);
 
-  if (Number.isNaN(parsedDate.getTime())) {
-    return datePart;
-  }
+    if (Number.isNaN(parsedDate.getTime())) {
+        return datePart;
+    }
 
-  return parsedDate.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-  });
+    return parsedDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+    });
 }
 
 function formatDateInput(value?: string | null) {
-  if (!value) {
-    return '';
-  }
+    if (!value) {
+        return '';
+    }
 
-  const normalized = String(value).trim();
+    const normalized = String(value).trim();
 
-  if (!normalized) {
-    return '';
-  }
+    if (!normalized) {
+        return '';
+    }
 
-  const datePart = normalized.includes('T')
-    ? normalized.split('T')[0]
-    : normalized.split(' ')[0];
-  const parsedDate = new Date(`${datePart}T00:00:00`);
+    const datePart = normalized.includes('T')
+        ? normalized.split('T')[0]
+        : normalized.split(' ')[0];
+    const parsedDate = new Date(`${datePart}T00:00:00`);
 
-  if (Number.isNaN(parsedDate.getTime())) {
-    return datePart;
-  }
+    if (Number.isNaN(parsedDate.getTime())) {
+        return datePart;
+    }
 
-  return parsedDate.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-  });
+    return parsedDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+    });
 }
 
 function getEntryTypeBadge(type?: string): string {
-  const normalized = (type ?? '').trim().toUpperCase();
+    const normalized = (type ?? '').trim().toUpperCase();
 
-  if (normalized === 'PAYMENT' || normalized === 'P') {
-    return 'bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold';
-  }
+    if (normalized === 'PAYMENT' || normalized === 'P') {
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/40 font-semibold';
+    }
 
-  if (normalized === 'ADJUSTMENT' || normalized === 'ADJ' || normalized.includes('ADJUST')) {
-    return 'bg-purple-50 text-purple-700 border-purple-200 font-semibold';
-  }
+    if (
+        normalized === 'ADJUSTMENT' ||
+        normalized === 'ADJ' ||
+        normalized.includes('ADJUST')
+    ) {
+        return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800/40 font-semibold';
+    }
 
-  return 'bg-[#EAF2FF] text-[#0B62E0] border-[#B9D8FF] font-semibold';
+    return 'bg-primary/10 text-primary border-primary/20 dark:bg-primary/20 dark:text-primary font-semibold';
 }
 
 function getRemarkBadge(remark?: string): string {
-  const normalized = (remark ?? '').trim().toLowerCase();
+    const normalized = (remark ?? '').trim().toLowerCase();
 
-  if (normalized === 'outstanding') {
-    return 'bg-amber-50 text-amber-800 border-amber-300 font-semibold';
-  }
+    if (normalized === 'outstanding') {
+        return 'bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/40 font-semibold';
+    }
 
-  if (normalized === 'settled') {
-    return 'bg-emerald-50 text-emerald-800 border-emerald-300 font-semibold';
-  }
+    if (normalized === 'settled') {
+        return 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/40 font-semibold';
+    }
 
-  return 'bg-gray-50 text-gray-700 border-gray-200';
+    return 'bg-muted text-muted-foreground border-border';
 }
 
 interface IndexProps {
-  records?: LedgerPaginator;
-  filters?: {
-    search?: string;
-    school_year?: string;
-    semester?: string;
-    course?: string;
-    date_from?: string;
-    date_to?: string;
-    balance_status?: string;
-  };
-  stats?: {
-    totalStudents?: number;
-    totalAssessments?: number;
-    totalPayments?: number;
-    outstandingBalance?: number;
-  };
-  filterOptions: {
-    courses: string[];
-    schoolYears: string[];
-    semesters: string[];
-  };
-  courses?: { id: number; code: string }[];
-  academicTerms?: { id: number; school_year: string; semester: string }[];
+    records?: LedgerPaginator;
+    filters?: {
+        search?: string;
+        school_year?: string;
+        semester?: string;
+        course?: string;
+        date_from?: string;
+        date_to?: string;
+        balance_status?: string;
+    };
+    stats?: {
+        totalStudents?: number;
+        totalAssessments?: number;
+        totalPayments?: number;
+        outstandingBalance?: number;
+    };
+    filterOptions: {
+        courses: string[];
+        schoolYears: string[];
+        semesters: string[];
+    };
+    courses?: { id: number; code: string }[];
+    academicTerms?: { id: number; school_year: string; semester: string }[];
 }
 
 const defaultVisibleColumns = {
-  course: true,
-  schoolYear: true,
-  semester: true,
-  units: true,
-  transactionDate: true,
-  referenceNo: true,
-  particulars: true,
-  feeRate: false,
-  entryType: true,
-  remark: true,
-  inputBy: true,
+    course: true,
+    schoolYear: true,
+    semester: true,
+    units: true,
+    transactionDate: true,
+    referenceNo: true,
+    particulars: true,
+    feeRate: false,
+    entryType: true,
+    remark: true,
+    inputBy: true,
 };
 
 type OptionalColumn = keyof typeof defaultVisibleColumns;
 
 const optionalColumnLabels: Record<OptionalColumn, string> = {
-  course: 'Course',
-  schoolYear: 'School Year',
-  semester: 'Semester',
-  units: 'Units',
-  transactionDate: 'Transaction Date',
-  referenceNo: 'Reference Number',
-  particulars: 'Particulars',
-  feeRate: 'Tuition/Unit or Reg. & Misc. Fee',
-  entryType: 'AR/Payment',
-  remark: 'Remark',
-  inputBy: 'Input By',
+    course: 'Course',
+    schoolYear: 'School Year',
+    semester: 'Semester',
+    units: 'Units',
+    transactionDate: 'Transaction Date',
+    referenceNo: 'Reference Number',
+    particulars: 'Particulars',
+    feeRate: 'Tuition/Unit or Reg. & Misc. Fee',
+    entryType: 'AR/Payment',
+    remark: 'Remark',
+    inputBy: 'Input By',
 };
 
-export default function Index({ records, filters, stats, filterOptions, courses = [], academicTerms = [] }: IndexProps) {
-  const rows: LedgerRecord[] = records?.data ?? [];
-  const importForm = useForm<{ file: File | null; preset_course_id: string; preset_academic_term_id: string }>({
-    file: null,
-    preset_course_id: '',
-    preset_academic_term_id: '',
-  });
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string | number; name: string } | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [membershipTarget, setMembershipTarget] = useState<LedgerRecord | null>(null);
-  const [selectedMembership, setSelectedMembership] = useState<'NAPU' | 'NORSUFFA' | ''>('');
-  const [isApplyingMembership, setIsApplyingMembership] = useState(false);
-  const [drawerSelection, setDrawerSelection] = useState<{
-    studentId: number;
-    transactionId: string | number;
-  } | null>(null);
-  const [showFilters, setShowFilters] = useState(() =>
-    Boolean(
-      filters?.school_year ||
-      filters?.semester ||
-      filters?.course ||
-      filters?.date_from ||
-      filters?.date_to ||
-      filters?.balance_status,
-    ),
-  );
-  const [visibleColumns, setVisibleColumns] = useState(() => {
-    if (typeof window === 'undefined') {
-      return defaultVisibleColumns;
-    }
-
-    try {
-      const saved = JSON.parse(
-        window.localStorage.getItem('graduate-ledger.visible-columns') ?? '{}',
-      ) as Partial<typeof defaultVisibleColumns>;
-
-      return { ...defaultVisibleColumns, ...saved };
-    } catch {
-      return defaultVisibleColumns;
-    }
-  });
-
-  const toggleColumn = (column: OptionalColumn) => {
-    setVisibleColumns((current) => {
-      const next = { ...current, [column]: !current[column] };
-      window.localStorage.setItem('graduate-ledger.visible-columns', JSON.stringify(next));
-
-      return next;
+export default function Index({
+    records,
+    filters,
+    stats,
+    filterOptions,
+    courses = [],
+    academicTerms = [],
+}: IndexProps) {
+    const rows: LedgerRecord[] = records?.data ?? [];
+    const importForm = useForm<{
+        file: File | null;
+        preset_course_id: string;
+        preset_academic_term_id: string;
+    }>({
+        file: null,
+        preset_course_id: '',
+        preset_academic_term_id: '',
     });
-  };
-
-  const visibleColumnCount = 3 + Object.values(visibleColumns).filter(Boolean).length;
-
-  // ── Single filter state object to avoid stale-closure bugs ────────────────
-  const [filterState, setFilterState] = useState({
-    search:         filters?.search         ?? '',
-    school_year:    filters?.school_year    ?? '',
-    semester:       filters?.semester       ?? '',
-    course:         filters?.course         ?? '',
-    date_from:      filters?.date_from      ?? '',
-    date_to:        filters?.date_to        ?? '',
-    balance_status: filters?.balance_status ?? '',
-  });
-
-  const [goToPage, setGoToPage] = useState('');
-  const [isFiltering, setIsFiltering] = useState(false);
-
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportProgress, setExportProgress] = useState(0);
-  const [exportSuccess, setExportSuccess] = useState(false);
-
-  const [isImporting, setIsImporting] = useState(false);
-  const [importProgress, setImportProgress] = useState(0);
-  const [importSuccess, setImportSuccess] = useState(false);
-
-  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-  const [emailTarget, setEmailTarget] = useState<'all_matching' | 'specific' | 'all_outstanding'>('all_matching');
-  const [emailSearch, setEmailSearch] = useState('');
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [allRecipients, setAllRecipients] = useState<Array<{
-    id: number;
-    student_number: string | null;
-    full_name: string;
-    email: string;
-    balance: number;
-    balance_status: string;
-  }>>([]);
-  const [isLoadingRecipients, setIsLoadingRecipients] = useState(false);
-  const [emailSubject, setEmailSubject] = useState('');
-  const [emailNote, setEmailNote] = useState('');
-  const [examPeriod, setExamPeriod] = useState<'Midterm' | 'Final' | ''>('');
-  const [examDeadline, setExamDeadline] = useState('');
-  const [isSendingEmails, setIsSendingEmails] = useState(false);
-  const [showEmailProcessingModal, setShowEmailProcessingModal] = useState(false);
-  const [isEmailProcessingDone, setIsEmailProcessingDone] = useState(false);
-  const [emailProcessingSeconds, setEmailProcessingSeconds] = useState(0);
-  const [emailProcessingMessage, setEmailProcessingMessage] = useState('');
-
-  useEffect(() => {
-    if (!showEmailProcessingModal || isEmailProcessingDone) {
-      return;
-    }
-
-    const timer = setInterval(() => {
-      setEmailProcessingSeconds((seconds) => seconds + 1);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [showEmailProcessingModal, isEmailProcessingDone]);
-
-  useEffect(() => {
-    if (!isEmailModalOpen) {
-      return;
-    }
-
-    const fetchRecipients = async () => {
-      setIsLoadingRecipients(true);
-
-      try {
-        const params = new URLSearchParams();
-        Object.entries(filterState).forEach(([key, value]) => {
-          if (value && value.trim()) {
-            params.append(key, value.trim());
-          }
-        });
-
-        const res = await fetch(emailRecipients.url({ query: Object.fromEntries(params) }), {
-          headers: { Accept: 'application/json' },
-        });
-
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
+    const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<{
+        id: string | number;
+        name: string;
+    } | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [membershipTarget, setMembershipTarget] =
+        useState<LedgerRecord | null>(null);
+    const [selectedMembership, setSelectedMembership] = useState<
+        'NAPU' | 'NORSUFFA' | ''
+    >('');
+    const [isApplyingMembership, setIsApplyingMembership] = useState(false);
+    const [drawerSelection, setDrawerSelection] = useState<{
+        studentId: number;
+        transactionId: string | number;
+    } | null>(null);
+    const [showFilters, setShowFilters] = useState(() =>
+        Boolean(
+            filters?.school_year ||
+            filters?.semester ||
+            filters?.course ||
+            filters?.date_from ||
+            filters?.date_to ||
+            filters?.balance_status,
+        ),
+    );
+    const [visibleColumns, setVisibleColumns] = useState(() => {
+        if (typeof window === 'undefined') {
+            return defaultVisibleColumns;
         }
 
-        const data = (await res.json()) as typeof allRecipients;
-        setAllRecipients(data);
-        setSelectedIds(new Set());
-      } catch (e) {
-        flashToast('error', 'Failed to load recipients.');
-      } finally {
-        setIsLoadingRecipients(false);
-      }
+        try {
+            const saved = JSON.parse(
+                window.localStorage.getItem(
+                    'graduate-ledger.visible-columns',
+                ) ?? '{}',
+            ) as Partial<typeof defaultVisibleColumns>;
+
+            return { ...defaultVisibleColumns, ...saved };
+        } catch {
+            return defaultVisibleColumns;
+        }
+    });
+
+    const toggleColumn = (column: OptionalColumn) => {
+        setVisibleColumns((current) => {
+            const next = { ...current, [column]: !current[column] };
+            window.localStorage.setItem(
+                'graduate-ledger.visible-columns',
+                JSON.stringify(next),
+            );
+
+            return next;
+        });
     };
 
-    fetchRecipients();
-  }, [isEmailModalOpen]);
+    const visibleColumnCount =
+        3 + Object.values(visibleColumns).filter(Boolean).length;
 
-  const handleOpenEmailModal = () => {
-    setEmailSubject('');
-    setEmailNote('');
-    setExamPeriod('');
-    setExamDeadline('');
-    setEmailSearch('');
-    setEmailTarget('all_matching');
-    setSelectedIds(new Set());
-    setIsEmailModalOpen(true);
-  };
+    // ── Single filter state object to avoid stale-closure bugs ────────────────
+    const [filterState, setFilterState] = useState({
+        search: filters?.search ?? '',
+        school_year: filters?.school_year ?? '',
+        semester: filters?.semester ?? '',
+        course: filters?.course ?? '',
+        date_from: filters?.date_from ?? '',
+        date_to: filters?.date_to ?? '',
+        balance_status: filters?.balance_status ?? '',
+    });
 
-  const escapeHtml = (value: string) =>
-    value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+    const [goToPage, setGoToPage] = useState('');
+    const [isFiltering, setIsFiltering] = useState(false);
 
-  const buildEmailPreviewHtml = (note: string, period: string, deadline: string) => {
-    const noteHtml = note.trim()
-      ? `<p>${escapeHtml(note).replace(/\n/g, '<br>')}</p>`
-      : '';
-    const examHtml = (period || deadline) ?
-      `<p class="text-sm text-slate-500">Exam period: ${escapeHtml(period)}.${deadline ? ' Payment deadline: ' + escapeHtml(formatDateInput(deadline || '')) + '.' : ''}</p>`
-      : '';
+    const [isExporting, setIsExporting] = useState(false);
+    const [exportProgress, setExportProgress] = useState(0);
+    const [exportSuccess, setExportSuccess] = useState(false);
 
-    return `<!DOCTYPE html>
+    const [isImporting, setIsImporting] = useState(false);
+    const [importProgress, setImportProgress] = useState(0);
+    const [importSuccess, setImportSuccess] = useState(false);
+
+    const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+    const [emailTarget, setEmailTarget] = useState<
+        'all_matching' | 'specific' | 'all_outstanding'
+    >('all_matching');
+    const [emailSearch, setEmailSearch] = useState('');
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const [allRecipients, setAllRecipients] = useState<
+        Array<{
+            id: number;
+            student_number: string | null;
+            full_name: string;
+            email: string;
+            balance: number;
+            balance_status: string;
+        }>
+    >([]);
+    const [isLoadingRecipients, setIsLoadingRecipients] = useState(false);
+    const [emailSubject, setEmailSubject] = useState('');
+    const [emailNote, setEmailNote] = useState('');
+    const [examPeriod, setExamPeriod] = useState<'Midterm' | 'Final' | ''>('');
+    const [examDeadline, setExamDeadline] = useState('');
+    const [isSendingEmails, setIsSendingEmails] = useState(false);
+    const [showEmailProcessingModal, setShowEmailProcessingModal] =
+        useState(false);
+    const [isEmailProcessingDone, setIsEmailProcessingDone] = useState(false);
+    const [emailProcessingSeconds, setEmailProcessingSeconds] = useState(0);
+    const [emailProcessingMessage, setEmailProcessingMessage] = useState('');
+
+    useEffect(() => {
+        if (!showEmailProcessingModal || isEmailProcessingDone) {
+            return;
+        }
+
+        const timer = setInterval(() => {
+            setEmailProcessingSeconds((seconds) => seconds + 1);
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [showEmailProcessingModal, isEmailProcessingDone]);
+
+    useEffect(() => {
+        if (!isEmailModalOpen) {
+            return;
+        }
+
+        const fetchRecipients = async () => {
+            setIsLoadingRecipients(true);
+
+            try {
+                const params = new URLSearchParams();
+                Object.entries(filterState).forEach(([key, value]) => {
+                    if (value && value.trim()) {
+                        params.append(key, value.trim());
+                    }
+                });
+
+                const res = await fetch(
+                    emailRecipients.url({ query: Object.fromEntries(params) }),
+                    {
+                        headers: { Accept: 'application/json' },
+                    },
+                );
+
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+
+                const data = (await res.json()) as typeof allRecipients;
+                setAllRecipients(data);
+                setSelectedIds(new Set(data.map((r) => r.id)));
+            } catch (e) {
+                flashToast('error', 'Failed to load recipients.');
+            } finally {
+                setIsLoadingRecipients(false);
+            }
+        };
+
+        fetchRecipients();
+    }, [isEmailModalOpen]);
+
+    const handleOpenEmailModal = () => {
+        setEmailSubject('');
+        setEmailNote('');
+        setExamPeriod('');
+        setExamDeadline('');
+        setEmailSearch('');
+        setEmailTarget('all_matching');
+        setSelectedIds(new Set());
+        setIsEmailModalOpen(true);
+    };
+
+    const escapeHtml = (value: string) =>
+        value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+
+    const buildEmailPreviewHtml = (
+        note: string,
+        period: string,
+        deadline: string,
+    ) => {
+        const noteHtml = note.trim()
+            ? `<p>${escapeHtml(note).replace(/\n/g, '<br>')}</p>`
+            : '';
+        const examHtml =
+            period || deadline
+                ? `<p class="text-sm text-slate-500">Exam period: ${escapeHtml(period)}.${deadline ? ' Payment deadline: ' + escapeHtml(formatDateInput(deadline || '')) + '.' : ''}</p>`
+                : '';
+
+        return `<!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; color: #1e293b; margin:0; padding:16px;">
     <p>Dear Student,</p>
@@ -451,1887 +494,2661 @@ export default function Index({ records, filters, stats, filterOptions, courses 
     <p>Regards,<br>NORSU Accounting Office</p>
 </body>
 </html>`;
-  };
-
-  const toggleSelectId = (id: number) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-
-      return next;
-    });
-  };
-
-  const getEffectiveRecipientIds = (): number[] => {
-    if (emailTarget === 'specific') {
-      return Array.from(selectedIds);
-    }
-
-    return allRecipients
-      .filter((r) => {
-        if (emailTarget === 'all_outstanding' && r.balance <= 0) {
-          return false;
-        }
-
-        return selectedIds.has(r.id);
-      })
-      .map((r) => r.id);
-  };
-
-  const visibleRecipients = allRecipients
-    .filter((r) => {
-      if (emailSearch.trim()) {
-        const q = emailSearch.toLowerCase();
-
-        return r.full_name.toLowerCase().includes(q)
-          || r.email.toLowerCase().includes(q)
-          || (r.student_number ?? '').toLowerCase().includes(q);
-      }
-
-      return true;
-    });
-
-  const bulkRecipients = useMemo(() =>
-    allRecipients.filter((r) => {
-      if (emailSearch.trim()) {
-        const q = emailSearch.toLowerCase();
-
-        return r.full_name.toLowerCase().includes(q)
-          || r.email.toLowerCase().includes(q)
-          || (r.student_number ?? '').toLowerCase().includes(q);
-      }
-
-      return true;
-    }),
-    [allRecipients, emailSearch]
-  );
-
-  const prevEmailTargetRef = useRef<string | null>(null);
-  useEffect(() => {
-    const isBulkMode = emailTarget !== 'specific';
-
-    if (isBulkMode && prevEmailTargetRef.current !== emailTarget) {
-      setSelectedIds(new Set(bulkRecipients.map((r) => r.id)));
-    }
-
-    prevEmailTargetRef.current = emailTarget;
-  }, [emailTarget, bulkRecipients]);
-
-  const handleSendEmails = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (isSendingEmails) {
-      return;
-    }
-
-    const targetIds = getEffectiveRecipientIds();
-
-    if (targetIds.length === 0) {
-      flashToast('error', 'No recipients selected.');
-
-      return;
-    }
-
-    const params: Record<string, string | number[]> = {};
-    Object.entries(filterState).forEach(([key, value]) => {
-      if (value && value.trim()) {
-        params[key] = value.trim();
-      }
-    });
-    params.student_ids = targetIds;
-
-    if (emailSubject) {
-      params.subject = emailSubject;
-    }
-
-    if (emailNote) {
-      params.note = emailNote;
-    }
-
-    if (examPeriod) {
-      params.exam_period = examPeriod;
-    }
-
-    if (examDeadline) {
-      params.exam_deadline = examDeadline;
-    }
-
-    setIsSendingEmails(true);
-    setShowEmailProcessingModal(true);
-    setIsEmailProcessingDone(false);
-    setEmailProcessingSeconds(0);
-    setEmailProcessingMessage(`Sending statement of account to ${targetIds.length} student(s). Please do not close this window.`);
-    setIsEmailModalOpen(false);
-    router.post(sendBulkEmail.url(), params, {
-      preserveScroll: true,
-      preserveState: true,
-      onSuccess: (page) => {
-        const flash = page.props.flash as { success?: string; error?: string } | undefined;
-
-        if (flash?.success) {
-          setEmailProcessingMessage(flash.success);
-          flashToast('success', flash.success);
-        } else if (flash?.error) {
-          setEmailProcessingMessage(flash.error);
-          flashToast('error', flash.error);
-        } else {
-          setEmailProcessingMessage('Emails sent successfully.');
-          flashToast('success', 'Emails sent successfully.');
-        }
-
-        setIsEmailProcessingDone(true);
-        setEmailSubject('');
-        setEmailNote('');
-        setExamPeriod('');
-        setExamDeadline('');
-      },
-      onError: (errors) => {
-        const firstError = Object.values(errors ?? {})[0];
-        const message = typeof firstError === 'string' ? firstError : 'Failed to send emails. Please try again.';
-
-        setEmailProcessingMessage(message);
-        setIsEmailProcessingDone(true);
-        flashToast('error', message);
-      },
-      onFinish: () => setIsSendingEmails(false),
-    });
-  };
-
-  const handleImport = () => {
-    if (!importForm.data.file || isImporting) {
-return;
-}
-
-    setIsImporting(true);
-    setImportProgress(10);
-    setImportSuccess(false);
-
-    const interval = setInterval(() => {
-      setImportProgress((prev) => {
-        if (prev >= 90) {
-return 90;
-}
-
-        return prev + Math.floor(Math.random() * 8) + 5;
-      });
-    }, 250);
-
-    importForm.post('/graduate-ledger/import', {
-      forceFormData: true,
-      preserveScroll: true,
-      onSuccess: () => {
-        clearInterval(interval);
-        setImportProgress(100);
-        setTimeout(() => {
-          setIsImporting(false);
-          setImportSuccess(true);
-          setIsImportDialogOpen(false);
-          importForm.reset();
-          setTimeout(() => setImportSuccess(false), 4000);
-        }, 300);
-      },
-      onError: () => {
-        clearInterval(interval);
-        setIsImporting(false);
-        setImportProgress(0);
-      },
-    });
-  };
-
-  const handleExport = async () => {
-    if (isExporting) {
-return;
-}
-
-    setIsExporting(true);
-    setExportProgress(10);
-    setExportSuccess(false);
-
-    // Smoothly increment progress while waiting for the server
-    const interval = setInterval(() => {
-      setExportProgress((prev) => {
-        if (prev >= 90) {
-return 90;
-}
-
-        return prev + Math.floor(Math.random() * 8) + 5;
-      });
-    }, 250);
-
-    try {
-      const params = new URLSearchParams();
-
-      if (filterState.search)      {
-params.set('search',      filterState.search);
-}
-
-      if (filterState.school_year) {
-params.set('school_year', filterState.school_year);
-}
-
-      if (filterState.semester)    {
-params.set('semester',    filterState.semester);
-}
-
-      if (filterState.course)      {
-params.set('course',      filterState.course);
-}
-
-      if (filterState.date_from)   {
-params.set('date_from',   filterState.date_from);
-}
-
-      if (filterState.date_to)     {
-params.set('date_to',     filterState.date_to);
-}
-
-      if (filterState.balance_status) {
-params.set('balance_status', filterState.balance_status);
-}
-
-      const qs = params.toString();
-      const url = '/graduate-ledger/export' + (qs ? '?' + qs : '');
-
-      const response = await fetch(url, { method: 'GET' });
-
-      if (!response.ok) {
-throw new Error('Export failed');
-}
-
-      const blob = await response.blob();
-      clearInterval(interval);
-      setExportProgress(100);
-
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      a.download = `graduate_ledger_export_${timestamp}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(downloadUrl);
-
-      setTimeout(() => {
-        setIsExporting(false);
-        setExportSuccess(true);
-        setTimeout(() => setExportSuccess(false), 4000);
-      }, 300);
-    } catch (error) {
-      clearInterval(interval);
-      console.error('Export error:', error);
-      setIsExporting(false);
-      setExportProgress(0);
-      flashToast('error', 'Export failed. Please try again.');
-    }
-  };
-
-  const handleConfirmDelete = () => {
-    if (!deleteTarget || isDeleting) {
-      return;
-    }
-
-    const targetId = deleteTarget.id;
-
-    setIsDeleting(true);
-    router.delete(`/graduate-ledger/${targetId}`, {
-      preserveScroll: true,
-      preserveState: true,
-      onSuccess: () => {
-        flashToast('success', 'Transaction deleted.');
-      },
-      onError: (errors) => {
-        const firstError = Object.values(errors ?? {})[0];
-        const message = typeof firstError === 'string' ? firstError : 'Failed to delete transaction.';
-
-        flashToast('error', message);
-      },
-      onFinish: () => {
-        setIsDeleting(false);
-        setDeleteTarget(null);
-      },
-    });
-  };
-
-  const applyMembershipDiscount = () => {
-    if (!membershipTarget || !selectedMembership || isApplyingMembership) {
-      return;
-    }
-
-    setIsApplyingMembership(true);
-    router.post(`/graduate-ledger/${membershipTarget.id}/apply-membership`, {
-      membership: selectedMembership,
-    }, {
-      preserveScroll: true,
-      onFinish: () => {
-        setIsApplyingMembership(false);
-        setMembershipTarget(null);
-        setSelectedMembership('');
-      },
-    });
-  };
-
-  // Convenience aliases for the template
-  const searchQuery   = filterState.search;
-  const schoolYear    = filterState.school_year;
-  const semester      = filterState.semester;
-  const course        = filterState.course;
-  const dateFrom      = filterState.date_from;
-  const dateTo        = filterState.date_to;
-  const balanceStatus = filterState.balance_status;
-
-  const activeAdvancedFilters = [
-    schoolYear && { key: 'school_year', label: `School year: ${schoolYear}` },
-    semester && { key: 'semester', label: semester },
-    course && { key: 'course', label: `Course: ${course}` },
-    balanceStatus && {
-      key: 'balance_status',
-      label: balanceStatus === 'with_balance' ? 'Outstanding balance' : 'Fully paid',
-    },
-    dateFrom && { key: 'date_from', label: `From: ${formatTransactionDate(dateFrom)}` },
-    dateTo && { key: 'date_to', label: `To: ${formatTransactionDate(dateTo)}` },
-  ].filter(Boolean) as { key: keyof typeof filterState; label: string }[];
-
-  /**
-   * Merge overrides into the current filter state, then immediately
-   * navigate — uses the merged object directly so there is no stale closure.
-   */
-  const applyFilters = (overrides: Record<string, string> = {}) => {
-    const merged = { ...filterState, ...overrides };
-    setFilterState(merged);
-
-    const params: Record<string, string> = {};
-    Object.entries(merged).forEach(([key, value]) => {
-      if (value && value.trim()) {
-        params[key] = value.trim();
-      }
-    });
-
-    router.get('/graduate-ledger', params, {
-      preserveState: true,
-      replace: true,
-      onStart: () => setIsFiltering(true),
-      onFinish: () => setIsFiltering(false),
-    });
-  };
-
-  const applyDatePreset = (preset: 'today' | 'month' | 'clear') => {
-    if (preset === 'clear') {
-      applyFilters({ date_from: '', date_to: '' });
-
-      return;
-    }
-
-    const now = new Date();
-    const toDateInput = (date: Date) => {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-
-      return `${year}-${month}-${day}`;
     };
-    const today = toDateInput(now);
 
-    if (preset === 'today') {
-      applyFilters({ date_from: today, date_to: today });
-
-      return;
-    }
-
-    applyFilters({
-      date_from: toDateInput(new Date(now.getFullYear(), now.getMonth(), 1)),
-      date_to: today,
-    });
-  };
-
-  const handleSearchSubmit = (e: React.SyntheticEvent) => {
-    e.preventDefault();
-    applyFilters();
-  };
-
-  const handleGoToPage = (e: React.SyntheticEvent) => {
-    e.preventDefault();
-    const pageNum = parseInt(goToPage, 10);
-    const last = records?.meta?.last_page ?? records?.last_page ?? 1;
-
-    if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= last) {
-      const currentParams = new URLSearchParams(window.location.search);
-      currentParams.set('page', String(pageNum));
-      router.get(`/graduate-ledger?${currentParams.toString()}`, {}, { preserveState: true, preserveScroll: true });
-    }
-  };
-
-  const totalStudents = stats?.totalStudents ?? 0;
-  const totalAssessments = stats?.totalAssessments ?? 0;
-  const totalPayments = stats?.totalPayments ?? 0;
-  const outstandingBalance = stats?.outstandingBalance ?? 0;
-
-  const currentPage = records?.meta?.current_page ?? records?.current_page ?? 1;
-  const lastPage = records?.meta?.last_page ?? records?.last_page ?? 1;
-  const totalRecordCount = records?.meta?.total ?? records?.total ?? rows.length;
-  const paginationLinks = records?.links ?? [];
-
-  return (
-    <>
-      <div className="max-w-7xl mx-auto space-y-6">
-      <Head title="Graduate School Ledger" />
-
-        {/* Top Header / Action Bar */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#CFE3FF] pb-5">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight text-[#0B3D91]">Graduate School Ledger</h1>
-              <Badge variant="outline" className="bg-[#EAF2FF] text-[#0B62E0] border-[#B9D8FF] font-semibold">
-                Graduate School
-              </Badge>
-            </div>
-            <p className="text-sm text-[#5C7A9E] mt-0.5">Tuition, fees, and payment transactions for graduate students.</p>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-end gap-2">
-                        <Button variant="outline" className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]" onClick={handleOpenEmailModal}>
-              <Mail className="h-4 w-4 mr-1.5" />
-              Send Email
-            </Button>
-            <Button
-              variant="outline"
-              disabled={isImporting}
-              className={`h-9 px-4 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF] ${isImporting ? 'opacity-60 cursor-not-allowed' : ''}`}
-              onClick={() => setIsImportDialogOpen(true)}
-            >
-              {isImporting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin text-[#0F6FFF]" />
-                  Importing...
-                </>
-              ) : (
-                <>
-                  <span className="whitespace-nowrap">Import Excel/CSV</span>
-                </>
-              )}
-            </Button>
-
-            <Button
-              variant="outline"
-              disabled={isExporting}
-              className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
-              onClick={handleExport}
-            >
-              {isExporting ? (
-                <Loader2 className="h-4 w-4 mr-1.5 animate-spin text-[#0F6FFF]" />
-              ) : (
-                <Download className="h-4 w-4 mr-1.5" />
-              )}
-              {isExporting ? 'Exporting...' : 'Export Excel'}
-            </Button>
-
-            <Button className="bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white" onClick={() => router.get('/graduate-ledger/add')}>
-              <PlusCircle className="h-4 w-4 mr-1.5" />
-              New Transaction
-            </Button>
-
-          </div>
-        </div>
-
-        {/* Metrics Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="shadow-xs border border-[#CFE3FF] bg-white">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-[#5C7A9E]">Students on Ledger</CardTitle>
-              <GraduationCap className="h-4 w-4 text-[#0F6FFF]" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{totalStudents}</div>
-              <p className="text-[10px] text-[#8AA8CC] mt-1">Unique graduate students</p>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-xs border border-[#CFE3FF] bg-white">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-[#5C7A9E]">Total Accounts Receivable</CardTitle>
-              <DollarSign className="h-4 w-4 text-[#0F6FFF]" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{currency(totalAssessments)}</div>
-              <p className="text-[10px] text-[#8AA8CC] mt-1">Total tuition + fees billed</p>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-xs border border-[#CFE3FF] bg-white">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-[#5C7A9E]">Total Payments</CardTitle>
-              <Wallet className="h-4 w-4 text-[#0F6FFF]" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{currency(totalPayments)}</div>
-              <p className="text-[10px] text-[#8AA8CC] mt-1">Total payments received</p>
-            </CardContent>
-          </Card>
-
-          <Card
-            onClick={() => applyFilters({ balance_status: balanceStatus === 'with_balance' ? '' : 'with_balance' })}
-            className={`shadow-xs border transition-all cursor-pointer select-none ${
-              balanceStatus === 'with_balance'
-                ? 'border-orange-400 bg-orange-50/70 ring-2 ring-orange-300'
-                : 'border-[#CFE3FF] bg-white hover:border-orange-300 hover:bg-orange-50/30'
-            }`}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-[#5C7A9E] flex items-center gap-1.5">
-                Outstanding Balance
-                {balanceStatus === 'with_balance' && (
-                  <Badge variant="outline" className="text-[10px] bg-orange-100 text-orange-800 border-orange-300 px-1.5 py-0 h-4">
-                    Active Filter
-                  </Badge>
-                )}
-              </CardTitle>
-              <AlertTriangle className={`h-4 w-4 ${balanceStatus === 'with_balance' ? 'text-orange-600 animate-pulse' : 'text-orange-500'}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">{currency(outstandingBalance)}</div>
-              <p className="text-[10px] text-[#8AA8CC] mt-1">
-                {balanceStatus === 'with_balance' ? 'Click to show all records' : 'Click to filter students with balance'}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Transaction Ledger Table with Filter Bar */}
-        <Card className="border border-[#CFE3FF] bg-white">
-          <CardHeader className="border-b border-[#CFE3FF] pb-4">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <CardTitle className="text-md text-[#0B3D91]">Transaction Ledger</CardTitle>
-                <CardDescription className="text-[#7FA6D6] mt-0.5">
-                  <span className="inline-flex items-center gap-1.5">
-                    {isFiltering && <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0F6FFF]" />}
-                    {isFiltering
-                      ? 'Updating results...'
-                      : `Showing ${rows.length} of ${totalRecordCount} record${totalRecordCount === 1 ? '' : 's'}`}
-                  </span>
-                </CardDescription>
-              </div>
-
-              <form onSubmit={handleSearchSubmit} className="flex flex-1 flex-wrap items-center gap-2 md:justify-end">
-                <Popover>
-                  <PopoverTrigger>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
-                    >
-                      <Columns3 className="h-4 w-4" /> Columns
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent align="end" className="w-72 p-3">
-                    <div className="mb-2">
-                      <p className="text-sm font-semibold text-[#0B3D91]">Visible columns</p>
-                      <p className="text-xs text-[#7FA6D6]">Name, Amount, and Actions always remain visible.</p>
-                    </div>
-                    <div className="grid gap-1">
-                      {(Object.keys(optionalColumnLabels) as OptionalColumn[]).map((column) => (
-                        <label key={column} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[#334E68] hover:bg-[#F3F8FF]">
-                          <input
-                            type="checkbox"
-                            checked={visibleColumns[column]}
-                            onChange={() => toggleColumn(column)}
-                            className="h-4 w-4 rounded border-[#B9D8FF] accent-[#0F6FFF]"
-                          />
-                          <span>{optionalColumnLabels[column]}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                <div className="relative w-full sm:w-64">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#7FA6D6]" />
-                  <Input
-                    type="search"
-                    placeholder="Search name, course, or ref #..."
-                    className="pl-8 h-9 bg-white border-[#CFE3FF] focus-visible:ring-[#0F6FFF]"
-                    value={searchQuery}
-                    onChange={(e) =>
-                      setFilterState((prev) => ({ ...prev, search: e.target.value }))
-                    }
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  size="sm"
-                  className="h-9 bg-[#0F6FFF] hover:bg-[#0B5DDB] text-white"
-                >
-                  <Search className="h-4 w-4 mr-1.5" /> Search
-                </Button>
-
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  aria-expanded={showFilters}
-                  onClick={() => setShowFilters((current) => !current)}
-                  className={`h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF] ${
-                    activeAdvancedFilters.length > 0 ? 'bg-[#EAF2FF]' : ''
-                  }`}
-                >
-                  <Filter className="h-4 w-4" />
-                  Filters
-                  {activeAdvancedFilters.length > 0 && (
-                    <span className="rounded-full bg-[#0F6FFF] px-1.5 py-0.5 text-[10px] font-bold text-white">
-                      {activeAdvancedFilters.length}
-                    </span>
-                  )}
-                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-                </Button>
-
-                {showFilters && (
-                <div className="flex basis-full flex-wrap items-end gap-2 rounded-lg border border-[#DCEAFF] bg-[#F8FBFF] p-3">
-                <select
-                  value={schoolYear}
-                  onChange={(e) => applyFilters({ school_year: e.target.value })}
-                  className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
-                >
-                  <option value="">All School Years</option>
-                  {(filterOptions?.schoolYears ?? []).map((sy) => (
-                    <option key={sy} value={sy}>{sy}</option>
-                  ))}
-                </select>
-
-                <select
-                  value={semester}
-                  onChange={(e) => applyFilters({ semester: e.target.value })}
-                  className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
-                >
-                  <option value="">All Semesters</option>
-                  {(filterOptions?.semesters ?? []).map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-
-                <select
-                  value={course}
-                  onChange={(e) => applyFilters({ course: e.target.value })}
-                  className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
-                >
-                  <option value="">All Courses</option>
-                  {(filterOptions?.courses ?? []).map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-
-                <select
-                  value={balanceStatus}
-                  onChange={(e) => applyFilters({ balance_status: e.target.value })}
-                  className={`h-9 rounded-md border px-3 text-sm font-medium transition-colors ${
-                    balanceStatus === 'with_balance'
-                      ? 'border-orange-400 bg-orange-50 text-orange-900 font-semibold'
-                      : balanceStatus === 'cleared'
-                      ? 'border-emerald-400 bg-emerald-50 text-emerald-900 font-semibold'
-                      : 'border-[#CFE3FF] bg-white text-[#0B3D91]'
-                  }`}
-                >
-                  <option value="">All Balances</option>
-                  <option value="with_balance">With Outstanding Balance</option>
-                  <option value="cleared">Cleared / Fully Paid</option>
-                </select>
-
-                <label className="grid gap-1 text-xs font-medium text-[#5C7A9E]">
-                  From
-                  <input
-                    type="date"
-                    value={dateFrom}
-                    max={dateTo || undefined}
-                    onChange={(e) => applyFilters({ date_from: e.target.value })}
-                    className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm font-normal text-[#0B3D91]"
-                  />
-                </label>
-
-                <label className="grid gap-1 text-xs font-medium text-[#5C7A9E]">
-                  To
-                  <input
-                    type="date"
-                    value={dateTo}
-                    min={dateFrom || undefined}
-                    onChange={(e) => applyFilters({ date_to: e.target.value })}
-                    className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm font-normal text-[#0B3D91]"
-                  />
-                </label>
-
-                <div className="flex flex-wrap items-center gap-1 self-end" aria-label="Date filter shortcuts">
-                  <Button type="button" size="sm" variant="outline" onClick={() => applyDatePreset('today')} className="h-9 border-[#CFE3FF] text-[#0B3D91]">
-                    Today
-                  </Button>
-                  <Button type="button" size="sm" variant="outline" onClick={() => applyDatePreset('month')} className="h-9 border-[#CFE3FF] text-[#0B3D91]">
-                    This month
-                  </Button>
-                  {(dateFrom || dateTo) && (
-                    <Button type="button" size="sm" variant="ghost" onClick={() => applyDatePreset('clear')} className="h-9 text-[#5C7A9E]">
-                      Clear dates
-                    </Button>
-                  )}
-                </div>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
-                  onClick={() => {
-                    applyFilters({
-                      search: '',
-                      school_year: '',
-                      semester: '',
-                      course: '',
-                      date_from: '',
-                      date_to: '',
-                      balance_status: '',
-                    });
-                  }}
-                >
-                  <XCircle className="h-4 w-4 mr-1.5" />
-                  Clear Filters
-                </Button>
-                </div>
-                )}
-
-                {activeAdvancedFilters.length > 0 && (
-                  <div className="flex basis-full flex-wrap items-center gap-1.5">
-                    <span className="mr-1 text-xs font-medium text-[#5C7A9E]">Active:</span>
-                    {activeAdvancedFilters.map((filter) => (
-                      <button
-                        key={filter.key}
-                        type="button"
-                        onClick={() => applyFilters({ [filter.key]: '' })}
-                        className="inline-flex items-center gap-1 rounded-full border border-[#B9D8FF] bg-[#EAF2FF] px-2.5 py-1 text-xs font-medium text-[#0B62E0] transition-colors hover:border-[#0F6FFF] hover:bg-[#DCEAFF]"
-                        title={`Remove ${filter.label} filter`}
-                      >
-                        {filter.label}
-                        <XCircle className="h-3.5 w-3.5" />
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        applyFilters({
-                          school_year: '',
-                          semester: '',
-                          course: '',
-                          date_from: '',
-                          date_to: '',
-                          balance_status: '',
-                        });
-                      }}
-                      className="px-2 py-1 text-xs font-semibold text-[#5C7A9E] hover:text-[#0B3D91] hover:underline"
-                    >
-                      Clear all
-                    </button>
-                  </div>
-                )}
-              </form>
-            </div>
-                  </CardHeader>
-        {isFiltering && (
-          <div className="h-1 w-full overflow-hidden bg-[#EAF2FF]" role="progressbar" aria-label="Filtering ledger records">
-            <div className="h-full w-1/3 animate-[pulse_1s_ease-in-out_infinite] rounded-full bg-[#0F6FFF]" />
-          </div>
-        )}
-        <div
-          aria-busy={isFiltering}
-          className={`rotate-180 overflow-x-auto custom-scrollbar border-collapse transition-opacity ${
-            isFiltering ? 'pointer-events-none opacity-45' : 'opacity-100'
-          }`}
-        >
-            <div className="rotate-180 min-w-max">
-          <CardContent className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b border-[#CFE3FF] bg-[#F3F8FF]">
-                  <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 pl-2 whitespace-nowrap">Name</th>
-                  {visibleColumns.course && <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Course</th>}
-                  {visibleColumns.schoolYear && <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">School Year</th>}
-                  {visibleColumns.semester && <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Semester</th>}
-                  {visibleColumns.units && <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Units</th>}
-                  {visibleColumns.transactionDate && <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Trans. Date</th>}
-                  {visibleColumns.referenceNo && <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Ref. (JEV/OR #)</th>}
-                  {visibleColumns.particulars && <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Particulars</th>}
-                  {visibleColumns.feeRate && (
-                    <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Tuition/Unit or Reg. & Misc. Fee</th>
-                  )}
-                  {visibleColumns.entryType && <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">AR/Payment</th>}
-                  <th className="text-right font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Amount</th>
-                  {visibleColumns.remark && <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Remark</th>}
-                  {visibleColumns.inputBy && <th className="text-left font-medium text-[#5C7A9E] py-2 pr-4 whitespace-nowrap">Input By</th>}
-                  <th className="py-2 pr-2 text-center font-medium whitespace-nowrap text-[#5C7A9E]">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.length === 0 ? (
-                  <tr>
-                    <td colSpan={visibleColumnCount} className="text-center text-sm text-[#8AA8CC] py-8">
-                      No transactions found. Upload a CSV/Excel file or add one manually.
-                    </td>
-                  </tr>
-                ) : (
-                  rows.map((r) => (
-                    <tr
-                      key={r.id}
-                      role="button"
-                      tabIndex={0}
-                      aria-label={`View ${r.name}'s balance and transaction history`}
-                      onClick={() => setDrawerSelection({ studentId: r.studentId, transactionId: r.id })}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          setDrawerSelection({ studentId: r.studentId, transactionId: r.id });
-                        }
-                      }}
-                      className="cursor-pointer border-b border-[#EAF2FF] transition-colors hover:bg-[#F3F8FF] focus-visible:bg-[#F3F8FF] focus-visible:outline-2 focus-visible:outline-[#0F6FFF]"
-                    >
-                      <td className="py-2 pr-4 pl-2 font-medium whitespace-nowrap text-[#0B3D91]">{r.name}</td>
-                      {visibleColumns.course && <td className="py-2 pr-4 text-[#334E68]">{r.course}</td>}
-                      {visibleColumns.schoolYear && <td className="py-2 pr-4 text-[#334E68]">{r.schoolYear}</td>}
-                      {visibleColumns.semester && <td className="py-2 pr-4 text-[#334E68]">{r.semester}</td>}
-                      {visibleColumns.units && <td className="py-2 pr-4 text-right text-[#334E68]">{r.units}</td>}
-                      {visibleColumns.transactionDate && <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">{formatTransactionDate(r.transactionDate)}</td>}
-                      {visibleColumns.referenceNo && <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">
-                          {r.orLink ? (
-                              <a
-                                  href={r.orLink}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 font-medium text-[#0B62E0] hover:underline"
-                              >
-                                  {r.referenceNo}
-                              </a>
-                          ) : (
-                              r.referenceNo || '—'
-                          )}
-                      </td>}
-                      {visibleColumns.particulars && <td className="py-2 pr-4 text-[#334E68]">{r.particulars}</td>}
-                      {visibleColumns.feeRate && (
-                        <td className="py-2 pr-4 text-right text-[#334E68]">{currency(r.tuitionPerUnitOrFeePerSemester)}</td>
-                      )}
-                      {visibleColumns.entryType && <td className="py-2 pr-4">
-                        <Badge
-                          variant="outline"
-                          className={`${getEntryTypeBadge(r.arPayment)} ${
-                            r.arPayment?.toUpperCase() === 'AR' && !r.membership
-                              ? 'cursor-pointer hover:ring-2 hover:ring-[#0F6FFF]'
-                              : ''
-                          }`}
-                          onClick={(e) => {
-                            if (r.arPayment?.toUpperCase() === 'AR' && !r.membership) {
-                              e.stopPropagation();
-                              setMembershipTarget(r);
-                              setSelectedMembership('');
-                            }
-                          }}
-                          title={
-                            r.arPayment?.toUpperCase() === 'AR' && !r.membership
-                              ? 'Click to apply Membership Scholarship'
-                              : r.membership
-                              ? `${r.membership} Membership Scholarship applied`
-                              : undefined
-                          }
-                        >
-                          {r.arPayment}
-                        </Badge>
-                      </td>}
-                      <td className="py-2 pr-4 text-right font-medium text-[#0B3D91]">{currency(r.amount)}</td>
-                      {visibleColumns.remark && <td className="py-2 pr-4">
-                        <Badge variant="outline" className={`text-xs ${getRemarkBadge(r.remark)}`}>
-                          {r.remark || '—'}
-                        </Badge>
-                      </td>}
-                      {visibleColumns.inputBy && <td className="py-2 pr-4 text-[#8AA8CC]">{r.inputBy}</td>}
-                      <td className="py-2 pr-2 text-center whitespace-nowrap">
-                        <button
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            router.get(`/graduate-ledger/${r.id}/edit`);
-                          }}
-                          className="mr-1 inline-flex items-center justify-center rounded p-1.5 text-[#0B62E0] transition-colors hover:bg-[#EAF2FF] cursor-pointer"
-                          title="Edit"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setDeleteTarget({ id: r.id, name: r.name });
-                          }}
-                          className="inline-flex items-center justify-center rounded p-1.5 text-red-500 transition-colors hover:bg-red-50 cursor-pointer"
-                          title="Delete"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-                          </CardContent>
-                      </div>
-                  </div>
-
-          {paginationLinks.length > 3 && (
-            <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-[#CFE3FF] pt-4 pb-4 gap-4">
-              <div className="flex items-center gap-4 text-xs text-[#5C7A9E]">
-                <div>
-                  {totalRecordCount === 0
-                    ? 'Showing 0 of 0'
-                    : `Showing ${currentPage} of ${lastPage}`}
-                </div>
-                <span className="text-[#8AA8CC]">|</span>
-                <div>
-                  <span className="font-semibold text-[#0B3D91]">{totalRecordCount}</span> total records
-                </div>
-              </div>
-
-              {lastPage > 5 ? (
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="outline"
-                    disabled={currentPage <= 1}
-                    onClick={() => {
-                      const url = new URL(window.location.href);
-                      url.searchParams.set('page', String(currentPage - 1));
-                      router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true });
-                    }}
-                    aria-label="Previous page"
-                    className="h-8 w-8 shrink-0 rounded-md border-[#CFE3FF] text-[#0B3D91] text-sm hover:bg-[#F3F8FF]"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-
-                  <Popover>
-                    <PopoverTrigger>
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm font-medium text-[#0B3D91] transition-colors hover:bg-[#F3F8FF]"
-                      >
-                        Page {currentPage} of {lastPage}
-                      </span>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      align="center"
-                      className="w-48 space-y-2 p-2"
-                    >
-                      <form onSubmit={handleGoToPage} className="flex items-center gap-1.5">
-                        <input
-                          type="number"
-                          min={1}
-                          max={lastPage}
-                          value={goToPage}
-                          onChange={(e) => setGoToPage(e.target.value)}
-                          placeholder={String(currentPage)}
-                          className="h-8 w-full min-w-0 rounded-md border border-[#CFE3FF] bg-white px-2 text-sm text-[#0B3D91] outline-none focus:ring-2 focus:ring-[#0B62E0]"
-                          autoFocus
-                        />
-                        <button
-                          type="submit"
-                          className="h-8 shrink-0 rounded-md bg-[#0F6FFF] px-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#0B5DDB]"
-                        >
-                          Go
-                        </button>
-                      </form>
-
-                      <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-[#EAF2FF] pt-1.5">
-                        {Array.from({ length: lastPage }, (_, i) => i + 1).map((page) => (
-                          <button
-                            key={page}
-                            type="button"
-                            onClick={() => {
-                              const url = new URL(window.location.href);
-                              url.searchParams.set('page', String(page));
-                              router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true });
-                            }}
-                            className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
-                              page === currentPage
-                                ? 'bg-[#EAF2FF] font-medium text-[#0B62E0]'
-                                : 'text-[#334E68] hover:bg-[#F3F8FF]'
-                            }`}
-                          >
-                            Page {page}
-                          </button>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="outline"
-                    disabled={currentPage >= lastPage}
-                    onClick={() => {
-                      const url = new URL(window.location.href);
-                      url.searchParams.set('page', String(currentPage + 1));
-                      router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true });
-                    }}
-                    aria-label="Next page"
-                    className="h-8 w-8 shrink-0 rounded-md border-[#CFE3FF] text-[#0B3D91] text-sm hover:bg-[#F3F8FF]"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <Pagination className="justify-end w-auto mx-0">
-                  <PaginationContent className="gap-1">
-                    {paginationLinks.map((link, index) => {
-                      const isPrev = index === 0;
-                      const isNext = index === paginationLinks.length - 1;
-
-                      if (isPrev) {
-                        return (
-                          <PaginationItem key={index}>
-                            <PaginationPrevious
-                              href={link.url ?? '#'}
-                              onClick={(e) => {
-                                e.preventDefault();
-
-                                if (link.url) {
-                                  router.get(link.url, {}, { preserveState: true, preserveScroll: true });
-                                }
-                              }}
-                              className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                            />
-                          </PaginationItem>
-                        );
-                      }
-
-                      if (isNext) {
-                        return (
-                          <PaginationItem key={index}>
-                            <PaginationNext
-                              href={link.url ?? '#'}
-                              onClick={(e) => {
-                                e.preventDefault();
-
-                                if (link.url) {
-                                  router.get(link.url, {}, { preserveState: true, preserveScroll: true });
-                                }
-                              }}
-                              className={!link.url ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                            />
-                          </PaginationItem>
-                        );
-                      }
-
-                      return (
-                        <PaginationItem key={index}>
-                          <PaginationLink
-                            href={link.url ?? '#'}
-                            isActive={link.active}
-                            onClick={(e) => {
-                              e.preventDefault();
-
-                              if (link.url) {
-                                router.get(link.url, {}, { preserveState: true, preserveScroll: true });
-                              }
-                            }}
-                            className={`cursor-pointer font-medium ${
-                              link.active
-                                ? '!bg-[#0F6FFF] !text-white font-bold hover:!bg-[#0B3D91] hover:!text-white shadow-sm'
-                                : 'text-[#334E68] hover:bg-[#EAF2FF] hover:text-[#0B62E0]'
-                            }`}
-                          >
-                            {link.label}
-                          </PaginationLink>
-                        </PaginationItem>
-                      );
-                    })}
-                  </PaginationContent>
-                </Pagination>
-              )}
-            </CardFooter>
-          )}
-        </Card>
-      </div>
-
-      {/* Import preset dialog */}
-      {isImportDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4" role="dialog" aria-modal="true" aria-labelledby="import-dialog-title">
-          <div className="w-full max-w-lg rounded-xl border border-[#CFE3FF] bg-white p-6 shadow-2xl">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div>
-                <h2 id="import-dialog-title" className="text-lg font-bold text-[#0B3D91]">Import Graduate Ledger</h2>
-                <p className="mt-1 text-sm text-[#5C7A9E]">
-                  The importer uses each row&apos;s course and academic term first. Optional presets are used only when a row is blank or cannot be recognized.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="rounded-md p-1 text-[#5C7A9E] hover:bg-[#F3F8FF] hover:text-[#0B3D91]"
-                onClick={() => {
-                  if (!isImporting) {
-                    setIsImportDialogOpen(false);
-                    importForm.clearErrors();
-                  }
-                }}
-                aria-label="Close import dialog"
-              >
-                <XCircle className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="ledger-import-file" className="mb-1.5 block text-sm font-semibold text-[#0B3D91]">
-                  Spreadsheet file <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  id="ledger-import-file"
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  disabled={isImporting}
-                  className="border-[#CFE3FF]"
-                  onChange={(event) => importForm.setData('file', event.target.files?.[0] ?? null)}
-                />
-                {importForm.errors.file && <p className="mt-1 text-xs text-red-600">{importForm.errors.file}</p>}
-              </div>
-
-              <div>
-                <label htmlFor="preset-course" className="mb-1.5 block text-sm font-semibold text-[#0B3D91]">
-                  Fallback course <span className="font-normal text-[#7FA6D6]">(optional)</span>
-                </label>
-                <select
-                  id="preset-course"
-                  value={importForm.data.preset_course_id}
-                  disabled={isImporting}
-                  onChange={(event) => importForm.setData('preset_course_id', event.target.value)}
-                  className="h-10 w-full rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
-                >
-                  <option value="">No fallback — skip unmatched courses</option>
-                  {courses.map((item) => (
-                    <option key={item.id} value={item.id}>{item.code}</option>
-                  ))}
-                </select>
-                {importForm.errors.preset_course_id && <p className="mt-1 text-xs text-red-600">{importForm.errors.preset_course_id}</p>}
-              </div>
-
-              <div>
-                <label htmlFor="preset-term" className="mb-1.5 block text-sm font-semibold text-[#0B3D91]">
-                  Fallback academic term <span className="font-normal text-[#7FA6D6]">(optional)</span>
-                </label>
-                <select
-                  id="preset-term"
-                  value={importForm.data.preset_academic_term_id}
-                  disabled={isImporting}
-                  onChange={(event) => importForm.setData('preset_academic_term_id', event.target.value)}
-                  className="h-10 w-full rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
-                >
-                  <option value="">No fallback — skip unmatched terms</option>
-                  {academicTerms.map((term) => (
-                    <option key={term.id} value={term.id}>{term.school_year} — {term.semester}</option>
-                  ))}
-                </select>
-                {importForm.errors.preset_academic_term_id && <p className="mt-1 text-xs text-red-600">{importForm.errors.preset_academic_term_id}</p>}
-              </div>
-
-              <div className="rounded-lg border border-[#B9D8FF] bg-[#F3F8FF] p-3 text-xs leading-relaxed text-[#334E68]">
-                Course spellings such as <strong>MS-MATH</strong>, <strong>MS Math</strong>, and <strong>M.S. Math</strong> are normalized before matching. Importing will not create new course or academic-term master records.
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isImporting}
-                className="border-[#CFE3FF] text-[#0B3D91]"
-                onClick={() => {
-                  setIsImportDialogOpen(false);
-                  importForm.reset();
-                  importForm.clearErrors();
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                disabled={!importForm.data.file || isImporting}
-                className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
-                onClick={handleImport}
-              >
-                {isImporting && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-                {isImporting ? 'Importing...' : 'Start Import'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Floating Bottom-Right Import Progress Bar & Toast */}
-      {(isImporting || importSuccess) && (
-        <div className="fixed bottom-6 right-6 z-50 flex min-w-[320px] flex-col gap-2.5 rounded-xl border border-[#CFE3FF] bg-white p-4 shadow-xl transition-all duration-300">
-          {isImporting ? (
-            <>
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-[#E8F0FE] p-2 text-[#0F6FFF]">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-[#0B3D91]">Importing Spreadsheet...</p>
-                  <p className="text-xs text-[#5C7A9E]">Processing and saving dataset records ({importProgress}%)</p>
-                </div>
-              </div>
-
-              {/* Animated Progress Bar */}
-              <div className="mt-1 w-full">
-                <div className="h-2 w-full overflow-hidden rounded-full bg-[#E8F0FE]">
-                  <div
-                    className="h-full rounded-full bg-[#0F6FFF] transition-all duration-300 ease-out"
-                    style={{ width: `${importProgress}%` }}
-                  />
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-emerald-100 p-2 text-emerald-600">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-emerald-900">Import Complete!</p>
-                <p className="text-xs text-emerald-700">Spreadsheet records have been imported.</p>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Floating Bottom-Right Export Progress Bar & Toast */}
-      {(isExporting || exportSuccess) && (
-        <div className="fixed bottom-6 right-6 z-50 flex min-w-[320px] flex-col gap-2.5 rounded-xl border border-[#CFE3FF] bg-white p-4 shadow-xl transition-all duration-300">
-          {isExporting ? (
-            <>
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-[#E8F0FE] p-2 text-[#0F6FFF]">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-[#0B3D91]">Generating Excel Export...</p>
-                  <p className="text-xs text-[#5C7A9E]">Processing dataset rows ({exportProgress}%)</p>
-                </div>
-              </div>
-
-              {/* Animated Progress Bar */}
-              <div className="mt-1 w-full">
-                <div className="h-2 w-full overflow-hidden rounded-full bg-[#E8F0FE]">
-                  <div
-                    className="h-full rounded-full bg-[#0F6FFF] transition-all duration-300 ease-out"
-                    style={{ width: `${exportProgress}%` }}
-                  />
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-emerald-100 p-2 text-emerald-600">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-emerald-900">Export Complete!</p>
-                <p className="text-xs text-emerald-700">Your Excel file has been downloaded.</p>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      <StudentBalanceDrawer
-        open={drawerSelection !== null}
-        studentId={drawerSelection?.studentId ?? null}
-        selectedTransactionId={drawerSelection?.transactionId ?? null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDrawerSelection(null);
-          }
-        }}
-      />
-
-      {/* Email SOA Modal */}
-      <Dialog open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen}>
-        <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5 text-emerald-600" />
-              Email Statement of Account
-            </DialogTitle>
-            <DialogDescription>
-              Choose which students should receive their SOA statement via email.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-6 md:grid-cols-[2fr_1fr]">
-            <div className="space-y-4 overflow-y-auto">
-            {/* Recipient selection dropdown */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700">
-                Whom do you want to send email to?
-              </label>
-              <Select
-                value={emailTarget}
-                onValueChange={(v) => {
-                  if (v === 'all_matching' || v === 'specific' || v === 'all_outstanding') {
-                    setEmailTarget(v);
-                  }
-                }}
-              >
-                <SelectTrigger className="h-10 w-full rounded-lg border-slate-200 bg-white shadow-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all_matching">All matching filters</SelectItem>
-                  <SelectItem value="all_outstanding">All outstanding (balance &gt; 0)</SelectItem>
-                  <SelectItem value="specific">Specific person</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Specific person search + checkbox list — only shown when 'specific' is chosen */}
-            {emailTarget === 'specific' && (
-              <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-                <div className="flex items-center gap-3 mb-2 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-800">
-                      {visibleRecipients.length}
-                    </span>
-                    <span>recipient(s)</span>
-                  </div>
-                  <div className="relative flex-1 max-w-md">
-                    <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <Input
-                      placeholder="Search by name, email, or student number"
-                      value={emailSearch}
-                      onChange={(e) => setEmailSearch(e.target.value)}
-                      className="h-9 pl-9 text-sm rounded-lg"
-                    />
-                  </div>
-                  {selectedIds.size > 0 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedIds(new Set())}
-                      className="h-9 px-3 gap-1.5 shrink-0"
-                    >
-                      <XCircle className="h-4 w-4" />
-                      <span className="hidden sm:inline">Clear ({selectedIds.size})</span>
-                    </Button>
-                  )}
-                </div>
-
-                <div className="max-h-60 overflow-y-auto border border-slate-200 rounded-lg bg-white">
-                  {isLoadingRecipients ? (
-                    <div className="p-4 text-center text-slate-500">Loading recipients...</div>
-                  ) : visibleRecipients.length === 0 ? (
-                    <div className="p-4 text-center text-slate-500">No recipients found.</div>
-                  ) : (
-                    <div>
-                      <div
-                        className="flex items-center gap-3 p-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100"
-                        onClick={() => {
-                          setSelectedIds((prev) => {
-                            const next = new Set(prev);
-
-                            if (visibleRecipients.every((r) => next.has(r.id))) {
-                              visibleRecipients.forEach((r) => next.delete(r.id));
-                            } else {
-                              visibleRecipients.forEach((r) => next.add(r.id));
-                            }
-
-                            return next;
-                          });
-                        }}
-                      >
-                        <div className="flex items-center justify-center w-4 h-4">
-                          {visibleRecipients.every((r) => selectedIds.has(r.id)) ? (
-                            <CheckSquare className="h-4 w-4 text-emerald-600" />
-                          ) : (
-                            <Square className="h-4 w-4 text-slate-400" />
-                          )}
-                        </div>
-                        <span className="font-medium text-slate-700">Select All ({visibleRecipients.length})</span>
-                      </div>
-                      {visibleRecipients.map((row) => (
-                        <div
-                          key={row.id}
-                          className="flex items-center gap-3 p-2 hover:bg-slate-50 cursor-pointer"
-                          onClick={() => toggleSelectId(row.id)}
-                        >
-                          <div className="flex items-center justify-center w-4 h-4">
-                            {selectedIds.has(row.id) ? (
-                              <CheckSquare className="h-4 w-4 text-emerald-600" />
-                            ) : (
-                              <Square className="h-4 w-4 text-slate-400" />
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="font-medium text-slate-800 truncate">
-                              {row.full_name}
-                            </div>
-                            <div className="text-xs text-slate-500 truncate">
-                              {row.student_number ?? '-'} · {row.email}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <span className={row.balance > 0 ? 'text-amber-600' : 'text-emerald-600'}>
-                              ₱{(row.balance ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Bulk recipient list — shown when NOT 'specific' */}
-            {emailTarget !== 'specific' && (
-              <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-800">
-                      {bulkRecipients.length}
-                    </span>
-                    <span>recipient(s)</span>
-                    <Input
-                      placeholder="Search by name, email, or ID"
-                      value={emailSearch}
-                      onChange={(e) => setEmailSearch(e.target.value)}
-                      className="h-9 w-64 text-sm rounded-lg"
-                    />
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    {bulkRecipients.every((r) => selectedIds.has(r.id)) && bulkRecipients.length > 0 ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedIds(new Set())}
-                        className="h-9 px-3"
-                      >
-                        Unselect All
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedIds(new Set(bulkRecipients.map((r) => r.id)))}
-                        className="h-9 px-3"
-                      >
-                        Select All
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="max-h-60 overflow-y-auto border border-slate-200 rounded-lg bg-white">
-                  {isLoadingRecipients ? (
-                    <div className="p-4 text-center text-slate-500">Loading recipients...</div>
-                  ) : bulkRecipients.length === 0 ? (
-                    <div className="p-4 text-center text-slate-500">No recipients found.</div>
-                  ) : (
-                    <div>
-                      {bulkRecipients.map((row) => {
-                        const isSelected = selectedIds.has(row.id);
-
-                        return (
-                          <div
-                            key={row.id}
-                            className="flex items-center gap-3 p-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0"
-                            onClick={() => toggleSelectId(row.id)}
-                          >
-                            <div className="flex items-center justify-center w-4 h-4">
-                              {isSelected ? (
-                                <CheckSquare className="h-4 w-4 text-emerald-600" />
-                              ) : (
-                                <Square className="h-4 w-4 text-slate-400" />
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="font-medium text-slate-800 truncate">
-                                {row.full_name}
-                              </div>
-                              <div className="text-xs text-slate-500 truncate">
-                                {row.student_number ?? '-'} · {row.email}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <span className={row.balance > 0 ? 'text-amber-600' : 'text-emerald-600'}>
-                                ₱{(row.balance ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-slate-700">
-                  Subject (optional)
-                </label>
-                <Input
-                  placeholder="Leave blank for default subject"
-                  value={emailSubject}
-                  onChange={(e) => setEmailSubject(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700">
-                  Exam Period (optional)
-                </label>
-                <Select
-                  value={examPeriod}
-                  onValueChange={(v) => {
-                    if (v === 'Midterm' || v === 'Final' || v === '') {
-                      setExamPeriod(v);
-
-                      if (v === '') {
-                        setExamDeadline('');
-                      }
-                    }
-                  }}
-                >
-                  <SelectTrigger className="h-10 w-full rounded-lg border-slate-200 bg-white shadow-sm">
-                    <SelectValue placeholder="Select exam period" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Midterm">Midterm</SelectItem>
-                    <SelectItem value="Final">Final</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="mt-1 text-xs text-slate-400">
-                  Leave empty if not tied to an exam period.
-                </p>
-              </div>
-
-              {examPeriod && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">
-                    Payment Deadline (optional)
-                  </label>
-                  <Popover>
-                    <PopoverTrigger
-                      render={
-                        <Button
-                          variant="outline"
-                          className={`w-full justify-start text-left font-normal ${!examDeadline && 'text-slate-400'}`}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {examDeadline ? formatDateInput(examDeadline) : 'Pick a deadline'}
-                        </Button>
-                      }
-                    />
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={examDeadline ? new Date(`${examDeadline}T00:00:00`) : undefined}
-                        onSelect={(date) => {
-                          if (!date) {
-                            setExamDeadline('');
-
-                            return;
-                          }
-
-                          const y = date.getFullYear();
-                          const m = String(date.getMonth() + 1).padStart(2, '0');
-                          const d = String(date.getDate()).padStart(2, '0');
-                          setExamDeadline(`${y}-${m}-${d}`);
-                        }}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <p className="mt-1 text-xs text-slate-400">
-                    Deadline for SOA payment related to {examPeriod}.
-                  </p>
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-medium text-slate-700">
-                  Additional Note (optional)
-                </label>
-                <Textarea
-                  placeholder="Add a personal note..."
-                  value={emailNote}
-                  onChange={(e) => setEmailNote(e.target.value)}
-                  rows={5}
-                />
-                <p className="mt-1 text-xs text-slate-400">
-                  Plain text only — no formatting needed, it's inserted as its own paragraph.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Live Preview
-            </label>
-            <div className="overflow-hidden rounded-xl border border-slate-200">
-              <iframe
-                title="Email preview"
-                srcDoc={buildEmailPreviewHtml(emailNote, examPeriod, examDeadline)}
-                className="h-[28rem] w-[500px] bg-white"
-              />
-            </div>
-          </div>
-         </div>
-
-        <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsEmailModalOpen(false)}
-              disabled={isSendingEmails}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="bg-[#0B3D91] text-white hover:bg-[#092D6F]"
-              disabled={isSendingEmails || getEffectiveRecipientIds().length === 0}
-              onClick={handleSendEmails}
-            >
-              {isSendingEmails ? 'Sending...' : `Send (${getEffectiveRecipientIds().length})`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Email Processing Modal */}
-      <Dialog
-        open={showEmailProcessingModal}
-        onOpenChange={(open) => {
-          if (!open && isEmailProcessingDone) {
-            setShowEmailProcessingModal(false);
-          }
-        }}
-      >
-        <DialogContent
-          className="sm:max-w-md"
-          showCloseButton={false}
-        >
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {isEmailProcessingDone ? (
-                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-              ) : (
-                <Loader2 className="h-5 w-5 animate-spin text-[#0F6FFF]" />
-              )}
-              {isEmailProcessingDone ? 'Email Sending Complete' : 'Sending Emails...'}
-            </DialogTitle>
-            <DialogDescription>
-              {isEmailProcessingDone
-                ? 'The statement of account emails have finished processing.'
-                : 'Please wait while the statement of account PDFs are generated and emailed. Do not close or refresh this page.'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3">
-            <div className="h-2 w-full overflow-hidden rounded-full bg-[#E8F0FE]">
-              <div
-                className={
-                  isEmailProcessingDone
-                    ? 'h-full w-full rounded-full bg-emerald-600'
-                    : 'h-full w-full animate-pulse rounded-full bg-[#0F6FFF]'
+    const toggleSelectId = (id: number) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+
+            return next;
+        });
+    };
+
+    const getEffectiveRecipientIds = (): number[] => {
+        if (emailTarget === 'specific') {
+            return Array.from(selectedIds);
+        }
+
+        return allRecipients
+            .filter((r) => {
+                if (emailTarget === 'all_outstanding' && r.balance <= 0) {
+                    return false;
                 }
-              />
+
+                return selectedIds.has(r.id);
+            })
+            .map((r) => r.id);
+    };
+
+    const visibleRecipients = allRecipients.filter((r) => {
+        if (emailSearch.trim()) {
+            const q = emailSearch.toLowerCase();
+
+            return (
+                r.full_name.toLowerCase().includes(q) ||
+                r.email.toLowerCase().includes(q) ||
+                (r.student_number ?? '').toLowerCase().includes(q)
+            );
+        }
+
+        return true;
+    });
+
+    const bulkRecipients = useMemo(
+        () =>
+            allRecipients.filter((r) => {
+                if (emailSearch.trim()) {
+                    const q = emailSearch.toLowerCase();
+
+                    return (
+                        r.full_name.toLowerCase().includes(q) ||
+                        r.email.toLowerCase().includes(q) ||
+                        (r.student_number ?? '').toLowerCase().includes(q)
+                    );
+                }
+
+                return true;
+            }),
+        [allRecipients, emailSearch],
+    );
+
+    const prevEmailTargetRef = useRef<string | null>(null);
+    useEffect(() => {
+        const isBulkMode = emailTarget !== 'specific';
+
+        if (isBulkMode && prevEmailTargetRef.current !== emailTarget) {
+            setSelectedIds(new Set(bulkRecipients.map((r) => r.id)));
+        }
+
+        prevEmailTargetRef.current = emailTarget;
+    }, [emailTarget, bulkRecipients]);
+
+    const handleSendEmails = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (isSendingEmails) {
+            return;
+        }
+
+        const targetIds = getEffectiveRecipientIds();
+
+        if (targetIds.length === 0) {
+            flashToast('error', 'No recipients selected.');
+
+            return;
+        }
+
+        const params: Record<string, string | number[]> = {};
+        Object.entries(filterState).forEach(([key, value]) => {
+            if (value && value.trim()) {
+                params[key] = value.trim();
+            }
+        });
+        params.student_ids = targetIds;
+
+        if (emailSubject) {
+            params.subject = emailSubject;
+        }
+
+        if (emailNote) {
+            params.note = emailNote;
+        }
+
+        if (examPeriod) {
+            params.exam_period = examPeriod;
+        }
+
+        if (examDeadline) {
+            params.exam_deadline = examDeadline;
+        }
+
+        setIsSendingEmails(true);
+        setShowEmailProcessingModal(true);
+        setIsEmailProcessingDone(false);
+        setEmailProcessingSeconds(0);
+        setEmailProcessingMessage(
+            `Sending statement of account to ${targetIds.length} student(s). Please do not close this window.`,
+        );
+        setIsEmailModalOpen(false);
+        router.post(sendBulkEmail.url(), params, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: (page) => {
+                const flash = page.props.flash as
+                    { success?: string; error?: string } | undefined;
+
+                if (flash?.success) {
+                    setEmailProcessingMessage(flash.success);
+                    flashToast('success', flash.success);
+                } else if (flash?.error) {
+                    setEmailProcessingMessage(flash.error);
+                    flashToast('error', flash.error);
+                } else {
+                    setEmailProcessingMessage('Emails sent successfully.');
+                    flashToast('success', 'Emails sent successfully.');
+                }
+
+                setIsEmailProcessingDone(true);
+                setEmailSubject('');
+                setEmailNote('');
+                setExamPeriod('');
+                setExamDeadline('');
+            },
+            onError: (errors) => {
+                const firstError = Object.values(errors ?? {})[0];
+                const message =
+                    typeof firstError === 'string'
+                        ? firstError
+                        : 'Failed to send emails. Please try again.';
+
+                setEmailProcessingMessage(message);
+                setIsEmailProcessingDone(true);
+                flashToast('error', message);
+            },
+            onFinish: () => setIsSendingEmails(false),
+        });
+    };
+
+    const handleImport = () => {
+        if (!importForm.data.file || isImporting) {
+            return;
+        }
+
+        setIsImporting(true);
+        setImportProgress(10);
+        setImportSuccess(false);
+
+        const interval = setInterval(() => {
+            setImportProgress((prev) => {
+                if (prev >= 90) {
+                    return 90;
+                }
+
+                return prev + Math.floor(Math.random() * 8) + 5;
+            });
+        }, 250);
+
+        importForm.post('/graduate-ledger/import', {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                clearInterval(interval);
+                setImportProgress(100);
+                setTimeout(() => {
+                    setIsImporting(false);
+                    setImportSuccess(true);
+                    setIsImportDialogOpen(false);
+                    importForm.reset();
+                    setTimeout(() => setImportSuccess(false), 4000);
+                }, 300);
+            },
+            onError: () => {
+                clearInterval(interval);
+                setIsImporting(false);
+                setImportProgress(0);
+            },
+        });
+    };
+
+    const handleExport = async () => {
+        if (isExporting) {
+            return;
+        }
+
+        setIsExporting(true);
+        setExportProgress(10);
+        setExportSuccess(false);
+
+        // Smoothly increment progress while waiting for the server
+        const interval = setInterval(() => {
+            setExportProgress((prev) => {
+                if (prev >= 90) {
+                    return 90;
+                }
+
+                return prev + Math.floor(Math.random() * 8) + 5;
+            });
+        }, 250);
+
+        try {
+            const params = new URLSearchParams();
+
+            if (filterState.search) {
+                params.set('search', filterState.search);
+            }
+
+            if (filterState.school_year) {
+                params.set('school_year', filterState.school_year);
+            }
+
+            if (filterState.semester) {
+                params.set('semester', filterState.semester);
+            }
+
+            if (filterState.course) {
+                params.set('course', filterState.course);
+            }
+
+            if (filterState.date_from) {
+                params.set('date_from', filterState.date_from);
+            }
+
+            if (filterState.date_to) {
+                params.set('date_to', filterState.date_to);
+            }
+
+            if (filterState.balance_status) {
+                params.set('balance_status', filterState.balance_status);
+            }
+
+            const qs = params.toString();
+            const url = '/graduate-ledger/export' + (qs ? '?' + qs : '');
+
+            const response = await fetch(url, { method: 'GET' });
+
+            if (!response.ok) {
+                throw new Error('Export failed');
+            }
+
+            const blob = await response.blob();
+            clearInterval(interval);
+            setExportProgress(100);
+
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            const timestamp = new Date()
+                .toISOString()
+                .replace(/[:.]/g, '-')
+                .slice(0, 19);
+            a.download = `graduate_ledger_export_${timestamp}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(downloadUrl);
+
+            setTimeout(() => {
+                setIsExporting(false);
+                setExportSuccess(true);
+                setTimeout(() => setExportSuccess(false), 4000);
+            }, 300);
+        } catch (error) {
+            clearInterval(interval);
+            console.error('Export error:', error);
+            setIsExporting(false);
+            setExportProgress(0);
+            flashToast('error', 'Export failed. Please try again.');
+        }
+    };
+
+    const handleConfirmDelete = () => {
+        if (!deleteTarget || isDeleting) {
+            return;
+        }
+
+        const targetId = deleteTarget.id;
+
+        setIsDeleting(true);
+        router.delete(`/graduate-ledger/${targetId}`, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                flashToast('success', 'Transaction deleted.');
+            },
+            onError: (errors) => {
+                const firstError = Object.values(errors ?? {})[0];
+                const message =
+                    typeof firstError === 'string'
+                        ? firstError
+                        : 'Failed to delete transaction.';
+
+                flashToast('error', message);
+            },
+            onFinish: () => {
+                setIsDeleting(false);
+                setDeleteTarget(null);
+            },
+        });
+    };
+
+    const applyMembershipDiscount = () => {
+        if (!membershipTarget || !selectedMembership || isApplyingMembership) {
+            return;
+        }
+
+        setIsApplyingMembership(true);
+        router.post(
+            `/graduate-ledger/${membershipTarget.id}/apply-membership`,
+            {
+                membership: selectedMembership,
+            },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    setIsApplyingMembership(false);
+                    setMembershipTarget(null);
+                    setSelectedMembership('');
+                },
+            },
+        );
+    };
+
+    // Convenience aliases for the template
+    const searchQuery = filterState.search;
+    const schoolYear = filterState.school_year;
+    const semester = filterState.semester;
+    const course = filterState.course;
+    const dateFrom = filterState.date_from;
+    const dateTo = filterState.date_to;
+    const balanceStatus = filterState.balance_status;
+
+    const activeAdvancedFilters = [
+        schoolYear && {
+            key: 'school_year',
+            label: `School year: ${schoolYear}`,
+        },
+        semester && { key: 'semester', label: semester },
+        course && { key: 'course', label: `Course: ${course}` },
+        balanceStatus && {
+            key: 'balance_status',
+            label:
+                balanceStatus === 'with_balance'
+                    ? 'Outstanding balance'
+                    : 'Fully paid',
+        },
+        dateFrom && {
+            key: 'date_from',
+            label: `From: ${formatTransactionDate(dateFrom)}`,
+        },
+        dateTo && {
+            key: 'date_to',
+            label: `To: ${formatTransactionDate(dateTo)}`,
+        },
+    ].filter(Boolean) as { key: keyof typeof filterState; label: string }[];
+
+    /**
+     * Merge overrides into the current filter state, then immediately
+     * navigate — uses the merged object directly so there is no stale closure.
+     */
+    const applyFilters = (overrides: Record<string, string> = {}) => {
+        const merged = { ...filterState, ...overrides };
+        setFilterState(merged);
+
+        const params: Record<string, string> = {};
+        Object.entries(merged).forEach(([key, value]) => {
+            if (value && value.trim()) {
+                params[key] = value.trim();
+            }
+        });
+
+        router.get('/graduate-ledger', params, {
+            preserveState: true,
+            replace: true,
+            onStart: () => setIsFiltering(true),
+            onFinish: () => setIsFiltering(false),
+        });
+    };
+
+    const applyDatePreset = (preset: 'today' | 'month' | 'clear') => {
+        if (preset === 'clear') {
+            applyFilters({ date_from: '', date_to: '' });
+
+            return;
+        }
+
+        const now = new Date();
+        const toDateInput = (date: Date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+
+            return `${year}-${month}-${day}`;
+        };
+        const today = toDateInput(now);
+
+        if (preset === 'today') {
+            applyFilters({ date_from: today, date_to: today });
+
+            return;
+        }
+
+        applyFilters({
+            date_from: toDateInput(
+                new Date(now.getFullYear(), now.getMonth(), 1),
+            ),
+            date_to: today,
+        });
+    };
+
+    const handleSearchSubmit = (e: React.SyntheticEvent) => {
+        e.preventDefault();
+        applyFilters();
+    };
+
+    const handleGoToPage = (e: React.SyntheticEvent) => {
+        e.preventDefault();
+        const pageNum = parseInt(goToPage, 10);
+        const last = records?.meta?.last_page ?? records?.last_page ?? 1;
+
+        if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= last) {
+            const currentParams = new URLSearchParams(window.location.search);
+            currentParams.set('page', String(pageNum));
+            router.get(
+                `/graduate-ledger?${currentParams.toString()}`,
+                {},
+                { preserveState: true, preserveScroll: true },
+            );
+        }
+    };
+
+    const totalStudents = stats?.totalStudents ?? 0;
+    const totalAssessments = stats?.totalAssessments ?? 0;
+    const totalPayments = stats?.totalPayments ?? 0;
+    const outstandingBalance = stats?.outstandingBalance ?? 0;
+
+    const currentPage =
+        records?.meta?.current_page ?? records?.current_page ?? 1;
+    const lastPage = records?.meta?.last_page ?? records?.last_page ?? 1;
+    const totalRecordCount =
+        records?.meta?.total ?? records?.total ?? rows.length;
+    const paginationLinks = records?.links ?? [];
+
+    return (
+        <>
+            <div className="mx-auto max-w-7xl space-y-6">
+                <Head title="Graduate School Ledger" />
+
+                {/* Top Header / Action Bar */}
+                <div className="flex flex-col gap-4 border-b border-border pb-5 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
+                                Graduate School Ledger
+                            </CardTitle>
+                        </div>
+                        <p className="mt-0.5 text-sm text-muted-foreground">
+                            Tuition, fees, and payment transactions for graduate
+                            students.
+                        </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                        <Button
+                            className="h-9 bg-primary text-primary-foreground hover:bg-primary/90"
+                            onClick={handleOpenEmailModal}
+                        >
+                            <Mail className="mr-1.5 h-4 w-4" />
+                            Send Email
+                        </Button>
+                        <Button
+                            variant="outline"
+                            disabled={isImporting}
+                            className={`border-input text-foreground hover:bg-muted ${isImporting ? 'cursor-not-allowed opacity-60' : ''}`}
+                            onClick={() => setIsImportDialogOpen(true)}
+                        >
+                            {isImporting ? (
+                                <>
+                                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin text-primary" />
+                                    Importing...
+                                </>
+                            ) : (
+                                'Import Excel/CSV'
+                            )}
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            disabled={isExporting}
+                            className="h-9 border-input text-foreground hover:bg-muted"
+                            onClick={handleExport}
+                        >
+                            {isExporting ? (
+                                <Loader2 className="mr-1.5 h-4 w-4 animate-spin text-primary" />
+                            ) : (
+                                <Download className="mr-1.5 h-4 w-4" />
+                            )}
+                            {isExporting ? 'Exporting...' : 'Export Excel'}
+                        </Button>
+
+                        <Button
+                            className="bg-primary text-primary-foreground hover:bg-primary/90"
+                            onClick={() => router.get('/graduate-ledger/add')}
+                        >
+                            <PlusCircle className="mr-1.5 h-4 w-4" />
+                            New Transaction
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Metrics Row */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <Card className="border border-border bg-card shadow-xs">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                                Students on Ledger
+                            </CardTitle>
+                            <GraduationCap className="h-4 w-4 text-primary" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold tracking-tight text-foreground">
+                                {totalStudents}
+                            </div>
+                            <p className="mt-1 text-[10px] text-muted-foreground">
+                                Unique graduate students
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border border-border bg-card shadow-xs">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                                Total Accounts Receivable
+                            </CardTitle>
+                            <DollarSign className="h-4 w-4 text-primary" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold tracking-tight text-foreground">
+                                {currency(totalAssessments)}
+                            </div>
+                            <p className="mt-1 text-[10px] text-muted-foreground">
+                                Total tuition + fees billed
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border border-border bg-card shadow-xs">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                                Total Payments
+                            </CardTitle>
+                            <Wallet className="h-4 w-4 text-primary" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold tracking-tight text-foreground">
+                                {currency(totalPayments)}
+                            </div>
+                            <p className="mt-1 text-[10px] text-muted-foreground">
+                                Total payments received
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card
+                        onClick={() =>
+                            applyFilters({
+                                balance_status:
+                                    balanceStatus === 'with_balance'
+                                        ? ''
+                                        : 'with_balance',
+                            })
+                        }
+                        className={`cursor-pointer border shadow-xs transition-all select-none ${
+                            balanceStatus === 'with_balance'
+                                ? 'border-orange-400 bg-orange-50/70 ring-2 ring-orange-300 dark:border-orange-800 dark:bg-orange-950/30 dark:ring-orange-800'
+                                : 'border-border bg-card hover:border-orange-300 hover:bg-orange-50/30 dark:hover:border-orange-800 dark:hover:bg-orange-950/20'
+                        }`}
+                    >
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+                                Outstanding Balance
+                                {balanceStatus === 'with_balance' && (
+                                    <Badge
+                                        variant="outline"
+                                        className="h-4 border-orange-300 bg-orange-100 px-1.5 py-0 text-[10px] text-orange-800 dark:border-orange-800 dark:bg-orange-950/60 dark:text-orange-400"
+                                    >
+                                        Active Filter
+                                    </Badge>
+                                )}
+                            </CardTitle>
+                            <AlertTriangle
+                                className={`h-4 w-4 ${balanceStatus === 'with_balance' ? 'animate-pulse text-orange-600 dark:text-orange-400' : 'text-orange-500'}`}
+                            />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold tracking-tight text-foreground">
+                                {currency(outstandingBalance)}
+                            </div>
+                            <p className="mt-1 text-[10px] text-muted-foreground">
+                                {balanceStatus === 'with_balance'
+                                    ? 'Click to show all records'
+                                    : 'Click to filter students with balance'}
+                            </p>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Transaction Ledger Table with Filter Bar */}
+                <Card className="border border-border bg-card">
+                    <CardHeader className="border-b border-border pb-4">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <CardTitle className="text-md text-foreground">
+                                    Transaction Ledger
+                                </CardTitle>
+                                <CardDescription className="mt-0.5 text-muted-foreground">
+                                    <span className="inline-flex items-center gap-1.5">
+                                        {isFiltering && (
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                                        )}
+                                        {isFiltering
+                                            ? 'Updating results...'
+                                            : `Showing ${rows.length} of ${totalRecordCount} record${totalRecordCount === 1 ? '' : 's'}`}
+                                    </span>
+                                </CardDescription>
+                            </div>
+
+                            <form
+                                onSubmit={handleSearchSubmit}
+                                className="flex flex-1 flex-wrap items-center gap-2 md:justify-end"
+                            >
+                                <Popover>
+                                    <PopoverTrigger>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-9 border-input text-foreground hover:bg-muted"
+                                        >
+                                            <Columns3 className="h-4 w-4" />{' '}
+                                            Columns
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                        align="end"
+                                        className="w-72 border-border bg-popover p-3 text-popover-foreground"
+                                    >
+                                        <div className="mb-2">
+                                            <p className="text-sm font-semibold text-foreground">
+                                                Visible columns
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Name, Amount, and Actions always
+                                                remain visible.
+                                            </p>
+                                        </div>
+                                        <div className="grid gap-1">
+                                            {(
+                                                Object.keys(
+                                                    optionalColumnLabels,
+                                                ) as OptionalColumn[]
+                                            ).map((column) => (
+                                                <label
+                                                    key={column}
+                                                    className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground hover:bg-muted"
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={
+                                                            visibleColumns[
+                                                                column
+                                                            ]
+                                                        }
+                                                        onChange={() =>
+                                                            toggleColumn(column)
+                                                        }
+                                                        className="h-4 w-4 rounded border-input accent-primary"
+                                                    />
+                                                    <span>
+                                                        {
+                                                            optionalColumnLabels[
+                                                                column
+                                                            ]
+                                                        }
+                                                    </span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                                <div className="relative w-full sm:w-64">
+                                    <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        type="search"
+                                        placeholder="Search name, course, or ref #..."
+                                        className="h-9 border-input bg-background pl-8 text-foreground placeholder:text-muted-foreground focus-visible:ring-ring"
+                                        value={searchQuery}
+                                        onChange={(e) =>
+                                            setFilterState((prev) => ({
+                                                ...prev,
+                                                search: e.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
+
+                                <Button
+                                    type="submit"
+                                    size="sm"
+                                    className="h-9 bg-primary text-primary-foreground hover:bg-primary/90"
+                                >
+                                    <Search className="mr-1.5 h-4 w-4" /> Search
+                                </Button>
+
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    aria-expanded={showFilters}
+                                    onClick={() =>
+                                        setShowFilters((current) => !current)
+                                    }
+                                    className={`h-9 border-input text-foreground hover:bg-muted ${
+                                        activeAdvancedFilters.length > 0
+                                            ? 'bg-primary/10 text-primary'
+                                            : ''
+                                    }`}
+                                >
+                                    <Filter className="h-4 w-4" />
+                                    Filters
+                                    {activeAdvancedFilters.length > 0 && (
+                                        <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                                            {activeAdvancedFilters.length}
+                                        </span>
+                                    )}
+                                    <ChevronDown
+                                        className={`h-3.5 w-3.5 transition-transform ${showFilters ? 'rotate-180' : ''}`}
+                                    />
+                                </Button>
+
+                                {showFilters && (
+                                    <div className="flex basis-full flex-wrap items-end gap-2 rounded-lg border border-border bg-muted/30 p-3">
+                                        <select
+                                            value={schoolYear}
+                                            onChange={(e) =>
+                                                applyFilters({
+                                                    school_year: e.target.value,
+                                                })
+                                            }
+                                            className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                                        >
+                                            <option value="">
+                                                All School Years
+                                            </option>
+                                            {(
+                                                filterOptions?.schoolYears ?? []
+                                            ).map((sy) => (
+                                                <option key={sy} value={sy}>
+                                                    {sy}
+                                                </option>
+                                            ))}
+                                        </select>
+
+                                        <select
+                                            value={semester}
+                                            onChange={(e) =>
+                                                applyFilters({
+                                                    semester: e.target.value,
+                                                })
+                                            }
+                                            className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                                        >
+                                            <option value="">
+                                                All Semesters
+                                            </option>
+                                            {(
+                                                filterOptions?.semesters ?? []
+                                            ).map((s) => (
+                                                <option key={s} value={s}>
+                                                    {s}
+                                                </option>
+                                            ))}
+                                        </select>
+
+                                        <select
+                                            value={course}
+                                            onChange={(e) =>
+                                                applyFilters({
+                                                    course: e.target.value,
+                                                })
+                                            }
+                                            className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                                        >
+                                            <option value="">
+                                                All Courses
+                                            </option>
+                                            {(filterOptions?.courses ?? []).map(
+                                                (c) => (
+                                                    <option key={c} value={c}>
+                                                        {c}
+                                                    </option>
+                                                ),
+                                            )}
+                                        </select>
+
+                                        <select
+                                            value={balanceStatus}
+                                            onChange={(e) =>
+                                                applyFilters({
+                                                    balance_status:
+                                                        e.target.value,
+                                                })
+                                            }
+                                            className={`h-9 rounded-md border px-3 text-sm font-medium transition-colors ${
+                                                balanceStatus === 'with_balance'
+                                                    ? 'border-orange-400 bg-orange-50 font-semibold text-orange-900 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-300'
+                                                    : balanceStatus ===
+                                                        'cleared'
+                                                      ? 'border-emerald-400 bg-emerald-50 font-semibold text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                                                      : 'border-input bg-background text-foreground'
+                                            }`}
+                                        >
+                                            <option value="">
+                                                All Balances
+                                            </option>
+                                            <option value="with_balance">
+                                                With Outstanding Balance
+                                            </option>
+                                            <option value="cleared">
+                                                Cleared / Fully Paid
+                                            </option>
+                                        </select>
+
+                                        <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+                                            From
+                                            <input
+                                                type="date"
+                                                value={dateFrom}
+                                                max={dateTo || undefined}
+                                                onChange={(e) =>
+                                                    applyFilters({
+                                                        date_from:
+                                                            e.target.value,
+                                                    })
+                                                }
+                                                className="h-9 rounded-md border border-input bg-background px-3 text-sm font-normal text-foreground"
+                                            />
+                                        </label>
+
+                                        <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+                                            To
+                                            <input
+                                                type="date"
+                                                value={dateTo}
+                                                min={dateFrom || undefined}
+                                                onChange={(e) =>
+                                                    applyFilters({
+                                                        date_to: e.target.value,
+                                                    })
+                                                }
+                                                className="h-9 rounded-md border border-input bg-background px-3 text-sm font-normal text-foreground"
+                                            />
+                                        </label>
+
+                                        <div
+                                            className="flex flex-wrap items-center gap-1 self-end"
+                                            aria-label="Date filter shortcuts"
+                                        >
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    applyDatePreset('today')
+                                                }
+                                                className="h-9 border-input text-foreground hover:bg-muted"
+                                            >
+                                                Today
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    applyDatePreset('month')
+                                                }
+                                                className="h-9 border-input text-foreground hover:bg-muted"
+                                            >
+                                                This month
+                                            </Button>
+                                            {(dateFrom || dateTo) && (
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() =>
+                                                        applyDatePreset('clear')
+                                                    }
+                                                    className="h-9 text-muted-foreground hover:text-foreground"
+                                                >
+                                                    Clear dates
+                                                </Button>
+                                            )}
+                                        </div>
+
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="h-9 border-input text-foreground hover:bg-muted"
+                                            onClick={() => {
+                                                applyFilters({
+                                                    search: '',
+                                                    school_year: '',
+                                                    semester: '',
+                                                    course: '',
+                                                    date_from: '',
+                                                    date_to: '',
+                                                    balance_status: '',
+                                                });
+                                            }}
+                                        >
+                                            <XCircle className="mr-1.5 h-4 w-4" />
+                                            Clear Filters
+                                        </Button>
+                                    </div>
+                                )}
+
+                                {activeAdvancedFilters.length > 0 && (
+                                    <div className="flex basis-full flex-wrap items-center gap-1.5">
+                                        <span className="mr-1 text-xs font-medium text-muted-foreground">
+                                            Active:
+                                        </span>
+                                        {activeAdvancedFilters.map((filter) => (
+                                            <button
+                                                key={filter.key}
+                                                type="button"
+                                                onClick={() =>
+                                                    applyFilters({
+                                                        [filter.key]: '',
+                                                    })
+                                                }
+                                                className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+                                                title={`Remove ${filter.label} filter`}
+                                            >
+                                                {filter.label}
+                                                <XCircle className="h-3.5 w-3.5" />
+                                            </button>
+                                        ))}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                applyFilters({
+                                                    school_year: '',
+                                                    semester: '',
+                                                    course: '',
+                                                    date_from: '',
+                                                    date_to: '',
+                                                    balance_status: '',
+                                                });
+                                            }}
+                                            className="px-2 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground hover:underline"
+                                        >
+                                            Clear all
+                                        </button>
+                                    </div>
+                                )}
+                            </form>
+                        </div>
+                    </CardHeader>
+                    {isFiltering && (
+                        <div
+                            className="h-1 w-full overflow-hidden bg-muted"
+                            role="progressbar"
+                            aria-label="Filtering ledger records"
+                        >
+                            <div className="h-full w-1/3 animate-[pulse_1s_ease-in-out_infinite] rounded-full bg-primary" />
+                        </div>
+                    )}
+                    <div
+                        aria-busy={isFiltering}
+                        className={`custom-scrollbar border-collapse rotate-180 overflow-x-auto transition-opacity ${
+                            isFiltering
+                                ? 'pointer-events-none opacity-45'
+                                : 'opacity-100'
+                        }`}
+                    >
+                        <div className="min-w-max rotate-180">
+                            <CardContent className="overflow-x-auto">
+                                <table className="w-full border-collapse text-sm">
+                                    <thead>
+                                        <tr className="border-b border-border bg-muted/50">
+                                            <th className="py-2 pr-4 pl-2 text-left font-medium whitespace-nowrap text-muted-foreground">
+                                                Name
+                                            </th>
+                                            {visibleColumns.course && (
+                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground">
+                                                    Course
+                                                </th>
+                                            )}
+                                            {visibleColumns.schoolYear && (
+                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground">
+                                                    School Year
+                                                </th>
+                                            )}
+                                            {visibleColumns.semester && (
+                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground">
+                                                    Semester
+                                                </th>
+                                            )}
+                                            {visibleColumns.units && (
+                                                <th className="py-2 pr-4 text-right font-medium whitespace-nowrap text-muted-foreground">
+                                                    Units
+                                                </th>
+                                            )}
+                                            {visibleColumns.transactionDate && (
+                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground">
+                                                    Trans. Date
+                                                </th>
+                                            )}
+                                            {visibleColumns.referenceNo && (
+                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground">
+                                                    Ref. (JEV/OR #)
+                                                </th>
+                                            )}
+                                            {visibleColumns.particulars && (
+                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground">
+                                                    Particulars
+                                                </th>
+                                            )}
+                                            {visibleColumns.feeRate && (
+                                                <th className="py-2 pr-4 text-right font-medium whitespace-nowrap text-muted-foreground">
+                                                    Tuition/Unit or Reg. & Misc.
+                                                    Fee
+                                                </th>
+                                            )}
+                                            {visibleColumns.entryType && (
+                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground">
+                                                    AR/Payment
+                                                </th>
+                                            )}
+                                            <th className="py-2 pr-4 text-right font-medium whitespace-nowrap text-muted-foreground">
+                                                Amount
+                                            </th>
+                                            {visibleColumns.remark && (
+                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground">
+                                                    Remark
+                                                </th>
+                                            )}
+                                            {visibleColumns.inputBy && (
+                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground">
+                                                    Input By
+                                                </th>
+                                            )}
+                                            <th className="py-2 pr-2 text-center font-medium whitespace-nowrap text-muted-foreground">
+                                                Actions
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {rows.length === 0 ? (
+                                            <tr>
+                                                <td
+                                                    colSpan={visibleColumnCount}
+                                                    className="py-8 text-center text-sm text-muted-foreground"
+                                                >
+                                                    No transactions found.
+                                                    Upload a CSV/Excel file or
+                                                    add one manually.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            rows.map((r) => (
+                                                <tr
+                                                    key={r.id}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    aria-label={`View ${r.name}'s balance and transaction history`}
+                                                    onClick={() =>
+                                                        setDrawerSelection({
+                                                            studentId:
+                                                                r.studentId,
+                                                            transactionId: r.id,
+                                                        })
+                                                    }
+                                                    onKeyDown={(event) => {
+                                                        if (
+                                                            event.key ===
+                                                                'Enter' ||
+                                                            event.key === ' '
+                                                        ) {
+                                                            event.preventDefault();
+                                                            setDrawerSelection({
+                                                                studentId:
+                                                                    r.studentId,
+                                                                transactionId:
+                                                                    r.id,
+                                                            });
+                                                        }
+                                                    }}
+                                                    className="cursor-pointer border-b border-border/50 transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-2 focus-visible:outline-ring"
+                                                >
+                                                    <td className="py-2 pr-4 pl-2 font-medium whitespace-nowrap text-foreground">
+                                                        {r.name}
+                                                    </td>
+                                                    {visibleColumns.course && (
+                                                        <td className="py-2 pr-4 text-muted-foreground">
+                                                            {r.course}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.schoolYear && (
+                                                        <td className="py-2 pr-4 text-muted-foreground">
+                                                            {r.schoolYear}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.semester && (
+                                                        <td className="py-2 pr-4 text-muted-foreground">
+                                                            {r.semester}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.units && (
+                                                        <td className="py-2 pr-4 text-right text-muted-foreground">
+                                                            {r.units}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.transactionDate && (
+                                                        <td className="py-2 pr-4 whitespace-nowrap text-muted-foreground">
+                                                            {formatTransactionDate(
+                                                                r.transactionDate,
+                                                            )}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.referenceNo && (
+                                                        <td className="py-2 pr-4 whitespace-nowrap text-muted-foreground">
+                                                            {r.orLink ? (
+                                                                <a
+                                                                    href={
+                                                                        r.orLink
+                                                                    }
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                                                                >
+                                                                    {
+                                                                        r.referenceNo
+                                                                    }
+                                                                </a>
+                                                            ) : (
+                                                                r.referenceNo ||
+                                                                '—'
+                                                            )}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.particulars && (
+                                                        <td className="py-2 pr-4 text-muted-foreground">
+                                                            {r.particulars}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.feeRate && (
+                                                        <td className="py-2 pr-4 text-right text-muted-foreground">
+                                                            {currency(
+                                                                r.tuitionPerUnitOrFeePerSemester,
+                                                            )}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.entryType && (
+                                                        <td className="py-2 pr-4">
+                                                            <Badge
+                                                                variant="outline"
+                                                                className={`${getEntryTypeBadge(r.arPayment)} ${
+                                                                    r.arPayment?.toUpperCase() ===
+                                                                        'AR' &&
+                                                                    !r.membership
+                                                                        ? 'cursor-pointer hover:ring-2 hover:ring-primary'
+                                                                        : ''
+                                                                }`}
+                                                                onClick={(
+                                                                    e,
+                                                                ) => {
+                                                                    if (
+                                                                        r.arPayment?.toUpperCase() ===
+                                                                            'AR' &&
+                                                                        !r.membership
+                                                                    ) {
+                                                                        e.stopPropagation();
+                                                                        setMembershipTarget(
+                                                                            r,
+                                                                        );
+                                                                        setSelectedMembership(
+                                                                            '',
+                                                                        );
+                                                                    }
+                                                                }}
+                                                                title={
+                                                                    r.arPayment?.toUpperCase() ===
+                                                                        'AR' &&
+                                                                    !r.membership
+                                                                        ? 'Click to apply Membership Scholarship'
+                                                                        : r.membership
+                                                                          ? `${r.membership} Membership Scholarship applied`
+                                                                          : undefined
+                                                                }
+                                                            >
+                                                                {r.arPayment}
+                                                            </Badge>
+                                                        </td>
+                                                    )}
+                                                    <td className="py-2 pr-4 text-right font-medium text-foreground">
+                                                        {currency(r.amount)}
+                                                    </td>
+                                                    {visibleColumns.remark && (
+                                                        <td className="py-2 pr-4">
+                                                            <Badge
+                                                                variant="outline"
+                                                                className={`text-xs ${getRemarkBadge(r.remark)}`}
+                                                            >
+                                                                {r.remark ||
+                                                                    '—'}
+                                                            </Badge>
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.inputBy && (
+                                                        <td className="py-2 pr-4 text-muted-foreground">
+                                                            {r.inputBy}
+                                                        </td>
+                                                    )}
+                                                    <td className="py-2 pr-2 text-center whitespace-nowrap">
+                                                        <button
+                                                            onClick={(
+                                                                event,
+                                                            ) => {
+                                                                event.stopPropagation();
+                                                                router.get(
+                                                                    `/graduate-ledger/${r.id}/edit`,
+                                                                );
+                                                            }}
+                                                            className="mr-1 inline-flex items-center justify-center rounded p-1.5 text-primary transition-colors hover:bg-primary/10"
+                                                            title="Edit"
+                                                        >
+                                                            <Pencil className="h-3.5 w-3.5" />
+                                                        </button>
+                                                        <button
+                                                            onClick={(
+                                                                event,
+                                                            ) => {
+                                                                event.stopPropagation();
+                                                                setDeleteTarget(
+                                                                    {
+                                                                        id: r.id,
+                                                                        name: r.name,
+                                                                    },
+                                                                );
+                                                            }}
+                                                            className="inline-flex items-center justify-center rounded p-1.5 text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
+                                                            title="Delete"
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </CardContent>
+                        </div>
+                    </div>
+
+                    {paginationLinks.length > 3 && (
+                        <CardFooter className="flex flex-col items-center justify-between gap-4 border-t border-border pt-4 pb-4 sm:flex-row">
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                <div>
+                                    {totalRecordCount === 0
+                                        ? 'Showing 0 of 0'
+                                        : `Showing ${currentPage} of ${lastPage}`}
+                                </div>
+                                <span className="text-muted-foreground/60">|</span>
+                                <div>
+                                    <span className="font-semibold text-foreground">
+                                        {totalRecordCount}
+                                    </span>{' '}
+                                    total records
+                                </div>
+                            </div>
+
+                            {lastPage > 5 ? (
+                                <div className="flex shrink-0 items-center gap-1.5">
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="outline"
+                                        disabled={currentPage <= 1}
+                                        onClick={() => {
+                                            const url = new URL(
+                                                window.location.href,
+                                            );
+                                            url.searchParams.set(
+                                                'page',
+                                                String(currentPage - 1),
+                                            );
+                                            router.get(
+                                                url.pathname + url.search,
+                                                {},
+                                                {
+                                                    preserveState: true,
+                                                    preserveScroll: true,
+                                                },
+                                            );
+                                        }}
+                                        aria-label="Previous page"
+                                        className="h-8 w-8 shrink-0 rounded-md border-input text-sm text-foreground hover:bg-muted"
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                    </Button>
+
+                                    <Popover>
+                                        <PopoverTrigger>
+                                            <span
+                                                role="button"
+                                                tabIndex={0}
+                                                className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                                            >
+                                                Page {currentPage} of {lastPage}
+                                            </span>
+                                        </PopoverTrigger>
+                                        <PopoverContent
+                                            align="center"
+                                            className="w-48 space-y-2 border-border bg-popover p-2 text-popover-foreground"
+                                        >
+                                            <form
+                                                onSubmit={handleGoToPage}
+                                                className="flex items-center gap-1.5"
+                                            >
+                                                <input
+                                                    type="number"
+                                                    min={1}
+                                                    max={lastPage}
+                                                    value={goToPage}
+                                                    onChange={(e) =>
+                                                        setGoToPage(
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    placeholder={String(
+                                                        currentPage,
+                                                    )}
+                                                    className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+                                                    autoFocus
+                                                />
+                                                <button
+                                                    type="submit"
+                                                    className="h-8 shrink-0 rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                                                >
+                                                    Go
+                                                </button>
+                                            </form>
+
+                                            <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-border pt-1.5">
+                                                {Array.from(
+                                                    { length: lastPage },
+                                                    (_, i) => i + 1,
+                                                ).map((page) => (
+                                                    <button
+                                                        key={page}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const url = new URL(
+                                                                window.location
+                                                                    .href,
+                                                            );
+                                                            url.searchParams.set(
+                                                                'page',
+                                                                String(page),
+                                                            );
+                                                            router.get(
+                                                                url.pathname +
+                                                                    url.search,
+                                                                {},
+                                                                {
+                                                                    preserveState: true,
+                                                                    preserveScroll: true,
+                                                                },
+                                                            );
+                                                        }}
+                                                        className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                                                            page === currentPage
+                                                                ? 'bg-primary/10 font-medium text-primary'
+                                                                : 'text-foreground hover:bg-muted'
+                                                        }`}
+                                                    >
+                                                        Page {page}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
+
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="outline"
+                                        disabled={currentPage >= lastPage}
+                                        onClick={() => {
+                                            const url = new URL(
+                                                window.location.href,
+                                            );
+                                            url.searchParams.set(
+                                                'page',
+                                                String(currentPage + 1),
+                                            );
+                                            router.get(
+                                                url.pathname + url.search,
+                                                {},
+                                                {
+                                                    preserveState: true,
+                                                    preserveScroll: true,
+                                                },
+                                            );
+                                        }}
+                                        aria-label="Next page"
+                                        className="h-8 w-8 shrink-0 rounded-md border-input text-sm text-foreground hover:bg-muted"
+                                    >
+                                        <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ) : (
+                                <Pagination className="mx-0 w-auto justify-end">
+                                    <PaginationContent className="gap-1">
+                                        {paginationLinks.map((link, index) => {
+                                            const isPrev = index === 0;
+                                            const isNext =
+                                                index ===
+                                                paginationLinks.length - 1;
+
+                                            if (isPrev) {
+                                                return (
+                                                    <PaginationItem key={index}>
+                                                        <PaginationPrevious
+                                                            href={
+                                                                link.url ?? '#'
+                                                            }
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+
+                                                                if (link.url) {
+                                                                    router.get(
+                                                                        link.url,
+                                                                        {},
+                                                                        {
+                                                                            preserveState: true,
+                                                                            preserveScroll: true,
+                                                                        },
+                                                                    );
+                                                                }
+                                                            }}
+                                                            className={
+                                                                !link.url
+                                                                    ? 'pointer-events-none opacity-50'
+                                                                    : 'cursor-pointer'
+                                                            }
+                                                        />
+                                                    </PaginationItem>
+                                                );
+                                            }
+
+                                            if (isNext) {
+                                                return (
+                                                    <PaginationItem key={index}>
+                                                        <PaginationNext
+                                                            href={
+                                                                link.url ?? '#'
+                                                            }
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+
+                                                                if (link.url) {
+                                                                    router.get(
+                                                                        link.url,
+                                                                        {},
+                                                                        {
+                                                                            preserveState: true,
+                                                                            preserveScroll: true,
+                                                                        },
+                                                                    );
+                                                                }
+                                                            }}
+                                                            className={
+                                                                !link.url
+                                                                    ? 'pointer-events-none opacity-50'
+                                                                    : 'cursor-pointer'
+                                                            }
+                                                        />
+                                                    </PaginationItem>
+                                                );
+                                            }
+
+                                            return (
+                                                <PaginationItem key={index}>
+                                                    <PaginationLink
+                                                        href={link.url ?? '#'}
+                                                        isActive={link.active}
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+
+                                                            if (link.url) {
+                                                                router.get(
+                                                                    link.url,
+                                                                    {},
+                                                                    {
+                                                                        preserveState: true,
+                                                                        preserveScroll: true,
+                                                                    },
+                                                                );
+                                                            }
+                                                        }}
+                                                        className={`cursor-pointer font-medium ${
+                                                            link.active
+                                                                ? '!bg-primary font-bold !text-primary-foreground shadow-sm hover:!bg-primary/90'
+                                                                : 'text-foreground hover:bg-muted'
+                                                        }`}
+                                                    >
+                                                        {link.label}
+                                                    </PaginationLink>
+                                                </PaginationItem>
+                                            );
+                                        })}
+                                    </PaginationContent>
+                                </Pagination>
+                            )}
+                        </CardFooter>
+                    )}
+                </Card>
             </div>
 
-            <p className="text-sm text-slate-600">{emailProcessingMessage}</p>
-            <p className="text-xs text-slate-400">
-              Elapsed time: {Math.floor(emailProcessingSeconds / 60)}m {emailProcessingSeconds % 60}s
-            </p>
-          </div>
+            {/* Import preset dialog */}
+            {isImportDialogOpen && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-xs p-4"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="import-dialog-title"
+                >
+                    <div className="w-full max-w-lg rounded-xl border border-border bg-card p-6 text-card-foreground shadow-2xl">
+                        <div className="mb-5 flex items-start justify-between gap-4">
+                            <div>
+                                <h2
+                                    id="import-dialog-title"
+                                    className="text-lg font-bold text-foreground"
+                                >
+                                    Import Graduate Ledger
+                                </h2>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    The importer uses each row&apos;s course and
+                                    academic term first. Optional presets are
+                                    used only when a row is blank or cannot be
+                                    recognized.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                onClick={() => {
+                                    if (!isImporting) {
+                                        setIsImportDialogOpen(false);
+                                        importForm.clearErrors();
+                                    }
+                                }}
+                                aria-label="Close import dialog"
+                            >
+                                <XCircle className="h-5 w-5" />
+                            </button>
+                        </div>
 
-          {isEmailProcessingDone && (
-            <DialogFooter>
-              <Button
-                type="button"
-                className="w-full gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
-                onClick={() => {
-                  setShowEmailProcessingModal(false);
-                  setEmailProcessingMessage('');
-                  setEmailProcessingSeconds(0);
+                        <div className="space-y-4">
+                            <div>
+                                <label
+                                    htmlFor="ledger-import-file"
+                                    className="mb-1.5 block text-sm font-semibold text-foreground"
+                                >
+                                    Spreadsheet file{' '}
+                                    <span className="text-destructive">*</span>
+                                </label>
+                                <Input
+                                    id="ledger-import-file"
+                                    type="file"
+                                    accept=".csv,.xlsx,.xls"
+                                    disabled={isImporting}
+                                    className="border-input"
+                                    onChange={(event) =>
+                                        importForm.setData(
+                                            'file',
+                                            event.target.files?.[0] ?? null,
+                                        )
+                                    }
+                                />
+                                {importForm.errors.file && (
+                                    <p className="mt-1 text-xs text-destructive">
+                                        {importForm.errors.file}
+                                    </p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label
+                                    htmlFor="preset-course"
+                                    className="mb-1.5 block text-sm font-semibold text-foreground"
+                                >
+                                    Fallback course{' '}
+                                    <span className="font-normal text-muted-foreground">
+                                        (optional)
+                                    </span>
+                                </label>
+                                <select
+                                    id="preset-course"
+                                    value={importForm.data.preset_course_id}
+                                    disabled={isImporting}
+                                    onChange={(event) =>
+                                        importForm.setData(
+                                            'preset_course_id',
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                                >
+                                    <option value="">
+                                        No fallback — skip unmatched courses
+                                    </option>
+                                    {courses.map((item) => (
+                                        <option key={item.id} value={item.id}>
+                                            {item.code}
+                                        </option>
+                                    ))}
+                                </select>
+                                {importForm.errors.preset_course_id && (
+                                    <p className="mt-1 text-xs text-destructive">
+                                        {importForm.errors.preset_course_id}
+                                    </p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label
+                                    htmlFor="preset-term"
+                                    className="mb-1.5 block text-sm font-semibold text-foreground"
+                                >
+                                    Fallback academic term{' '}
+                                    <span className="font-normal text-muted-foreground">
+                                        (optional)
+                                    </span>
+                                </label>
+                                <select
+                                    id="preset-term"
+                                    value={
+                                        importForm.data.preset_academic_term_id
+                                    }
+                                    disabled={isImporting}
+                                    onChange={(event) =>
+                                        importForm.setData(
+                                            'preset_academic_term_id',
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                                >
+                                    <option value="">
+                                        No fallback — skip unmatched terms
+                                    </option>
+                                    {academicTerms.map((term) => (
+                                        <option key={term.id} value={term.id}>
+                                            {term.school_year} — {term.semester}
+                                        </option>
+                                    ))}
+                                </select>
+                                {importForm.errors.preset_academic_term_id && (
+                                    <p className="mt-1 text-xs text-destructive">
+                                        {
+                                            importForm.errors
+                                                .preset_academic_term_id
+                                        }
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
+                                Course spellings such as{' '}
+                                <strong className="text-foreground">MS-MATH</strong>,{' '}
+                                <strong className="text-foreground">MS Math</strong>, and{' '}
+                                <strong className="text-foreground">M.S. Math</strong> are normalized before
+                                matching. Importing will not create new course
+                                or academic-term master records.
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex justify-end gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={isImporting}
+                                className="border-input text-foreground"
+                                onClick={() => {
+                                    setIsImportDialogOpen(false);
+                                    importForm.reset();
+                                    importForm.clearErrors();
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="button"
+                                disabled={!importForm.data.file || isImporting}
+                                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                                onClick={handleImport}
+                            >
+                                {isImporting && (
+                                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                                )}
+                                {isImporting ? 'Importing...' : 'Start Import'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Floating Bottom-Right Import Progress Bar & Toast */}
+            {(isImporting || importSuccess) && (
+                <div className="fixed right-6 bottom-6 z-50 flex min-w-[320px] flex-col gap-2.5 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-xl transition-all duration-300">
+                    {isImporting ? (
+                        <>
+                            <div className="flex items-center gap-3">
+                                <div className="rounded-lg bg-primary/10 p-2 text-primary">
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-semibold text-foreground">
+                                        Importing Spreadsheet...
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Processing and saving dataset records (
+                                        {importProgress}%)
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Animated Progress Bar */}
+                            <div className="mt-1 w-full">
+                                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                                    <div
+                                        className="h-full rounded-full bg-primary transition-all duration-300 ease-out"
+                                        style={{ width: `${importProgress}%` }}
+                                    />
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex items-center gap-3">
+                            <div className="rounded-lg bg-emerald-100 p-2 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
+                                <CheckCircle2 className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-300">
+                                    Import Complete!
+                                </p>
+                                <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                                    Spreadsheet records have been imported.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Floating Bottom-Right Export Progress Bar & Toast */}
+            {(isExporting || exportSuccess) && (
+                <div className="fixed right-6 bottom-6 z-50 flex min-w-[320px] flex-col gap-2.5 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-xl transition-all duration-300">
+                    {isExporting ? (
+                        <>
+                            <div className="flex items-center gap-3">
+                                <div className="rounded-lg bg-primary/10 p-2 text-primary">
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-semibold text-foreground">
+                                        Generating Excel Export...
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Processing dataset rows (
+                                        {exportProgress}%)
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Animated Progress Bar */}
+                            <div className="mt-1 w-full">
+                                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                                    <div
+                                        className="h-full rounded-full bg-primary transition-all duration-300 ease-out"
+                                        style={{ width: `${exportProgress}%` }}
+                                    />
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex items-center gap-3">
+                            <div className="rounded-lg bg-emerald-100 p-2 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
+                                <CheckCircle2 className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-300">
+                                    Export Complete!
+                                </p>
+                                <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                                    Your Excel file has been downloaded.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            <StudentBalanceDrawer
+                open={drawerSelection !== null}
+                studentId={drawerSelection?.studentId ?? null}
+                selectedTransactionId={drawerSelection?.transactionId ?? null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDrawerSelection(null);
+                    }
                 }}
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                Done
-              </Button>
-            </DialogFooter>
-          )}
-        </DialogContent>
-      </Dialog>
+            />
 
-      {/* Membership Scholarship Dialog */}
-      <AlertDialog
-        open={membershipTarget !== null}
-        onOpenChange={(open) => {
-          if (!open && !isApplyingMembership) {
-            setMembershipTarget(null);
-            setSelectedMembership('');
-          }
-        }}
-      >
-        <AlertDialogContent className="max-w-md gap-0 overflow-hidden border border-[#CFE3FF] bg-white p-0 shadow-xl sm:max-w-md">
-          <AlertDialogHeader className="gap-3 p-5 sm:place-items-start sm:text-left">
-            <AlertDialogMedia className="mb-0 size-11 rounded-full bg-purple-50 text-purple-600">
-              <GraduationCap className="size-5" />
-            </AlertDialogMedia>
-            <AlertDialogTitle className="text-lg font-semibold text-[#0B3D91]">
-              Apply Membership Scholarship
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm text-[#5C7A9E]">
-              Select the faculty or personnel union membership to apply a 100% scholarship adjustment to this AR.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+            {/* Email SOA Modal */}
+            <Dialog open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen}>
+                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Mail className="h-5 w-5 text-emerald-600" />
+                            Email Statement of Account
+                        </DialogTitle>
+                        <DialogDescription>
+                            Choose which students should receive their SOA
+                            statement via email.
+                        </DialogDescription>
+                    </DialogHeader>
 
-          {membershipTarget && (
-            <div className="mx-5 mb-5 space-y-4">
-              <div className="rounded-lg border border-[#EAF2FF] bg-[#F8FBFF] p-3">
-                <p className="text-sm font-semibold text-[#0B3D91]">{membershipTarget.name}</p>
-                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-[#5C7A9E]">
-                  <div>
-                    <span className="block text-[11px] uppercase tracking-wide text-[#8AA8CC]">AR Amount</span>
-                    <span className="font-medium text-[#334E68]">{currency(membershipTarget.amount)}</span>
-                  </div>
-                  <div>
-                    <span className="block text-[11px] uppercase tracking-wide text-[#8AA8CC]">Term</span>
-                    <span className="font-medium text-[#334E68]">{membershipTarget.schoolYear} {membershipTarget.semester}</span>
-                  </div>
-                </div>
-              </div>
+                    <div className="grid gap-6 md:grid-cols-[2fr_1fr]">
+                        <div className="space-y-4 overflow-y-auto">
+                            {/* Recipient selection dropdown */}
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-medium text-foreground">
+                                    Whom do you want to send email to?
+                                </label>
+                                <Select
+                                    value={emailTarget}
+                                    onValueChange={(v) => {
+                                        if (
+                                            v === 'all_matching' ||
+                                            v === 'specific' ||
+                                            v === 'all_outstanding'
+                                        ) {
+                                            setEmailTarget(v);
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger className="h-10 w-full rounded-lg border-border bg-card shadow-sm">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all_matching">
+                                            All matching filters
+                                        </SelectItem>
+                                        <SelectItem value="all_outstanding">
+                                            All outstanding (balance &gt; 0)
+                                        </SelectItem>
+                                        <SelectItem value="specific">
+                                            Specific person
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-[#0B3D91]">Select Membership</label>
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedMembership('NAPU')}
-                    className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
-                      selectedMembership === 'NAPU'
-                        ? 'border-purple-600 bg-purple-50/60'
-                        : 'border-[#CFE3FF] bg-white hover:border-purple-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-[#0B3D91]">NAPU</p>
-                        <p className="text-xs text-[#5C7A9E]">NORSU Administrative Personnel Union (100%)</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-purple-700">−{currency(membershipTarget.amount)}</p>
-                        <p className="text-xs text-[#8AA8CC]">Adjustment</p>
-                      </div>
+                            {/* Specific person search + checkbox list — only shown when 'specific' is chosen */}
+                            {emailTarget === 'specific' && (
+                                <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+                                    <div className="mb-2 flex flex-wrap items-center gap-3">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-semibold text-foreground">
+                                                {visibleRecipients.length}
+                                            </span>
+                                            <span>recipient(s)</span>
+                                        </div>
+                                        <div className="relative max-w-md flex-1">
+                                            <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                            <Input
+                                                placeholder="Search by name, email, or student number"
+                                                value={emailSearch}
+                                                onChange={(e) =>
+                                                    setEmailSearch(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="h-9 rounded-lg pl-9 text-sm"
+                                            />
+                                        </div>
+                                        {selectedIds.size > 0 && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() =>
+                                                    setSelectedIds(new Set())
+                                                }
+                                                className="h-9 shrink-0 gap-1.5 px-3"
+                                            >
+                                                <XCircle className="h-4 w-4" />
+                                                <span className="hidden sm:inline">
+                                                    Clear ({selectedIds.size})
+                                                </span>
+                                            </Button>
+                                        )}
+                                    </div>
+
+                                    <div className="max-h-60 overflow-y-auto rounded-lg border border-border bg-card">
+                                        {isLoadingRecipients ? (
+                                            <div className="p-4 text-center text-slate-500">
+                                                Loading recipients...
+                                            </div>
+                                        ) : visibleRecipients.length === 0 ? (
+                                            <div className="p-4 text-center text-slate-500">
+                                                No recipients found.
+                                            </div>
+                                        ) : (
+                                            <div>
+                                                <div
+                                                    className="flex cursor-pointer items-center gap-3 border-b border-slate-100 p-2 hover:bg-slate-50"
+                                                    onClick={() => {
+                                                        setSelectedIds(
+                                                            (prev) => {
+                                                                const next =
+                                                                    new Set(
+                                                                        prev,
+                                                                    );
+
+                                                                if (
+                                                                    visibleRecipients.every(
+                                                                        (r) =>
+                                                                            next.has(
+                                                                                r.id,
+                                                                            ),
+                                                                    )
+                                                                ) {
+                                                                    visibleRecipients.forEach(
+                                                                        (r) =>
+                                                                            next.delete(
+                                                                                r.id,
+                                                                            ),
+                                                                    );
+                                                                } else {
+                                                                    visibleRecipients.forEach(
+                                                                        (r) =>
+                                                                            next.add(
+                                                                                r.id,
+                                                                            ),
+                                                                    );
+                                                                }
+
+                                                                return next;
+                                                            },
+                                                        );
+                                                    }}
+                                                >
+                                                    <div className="flex h-4 w-4 items-center justify-center">
+                                                        {visibleRecipients.every(
+                                                            (r) =>
+                                                                selectedIds.has(
+                                                                    r.id,
+                                                                ),
+                                                        ) ? (
+                                                            <CheckSquare className="h-4 w-4 text-emerald-600" />
+                                                        ) : (
+                                                            <Square className="h-4 w-4 text-slate-400" />
+                                                        )}
+                                                    </div>
+                                                    <span className="font-medium text-foreground">
+                                                        Select All (
+                                                        {
+                                                            visibleRecipients.length
+                                                        }
+                                                        )
+                                                    </span>
+                                                </div>
+                                                {visibleRecipients.map(
+                                                    (row) => (
+                                                        <div
+                                                            key={row.id}
+                                                            className="flex cursor-pointer items-center gap-3 p-2 hover:bg-slate-50"
+                                                            onClick={() =>
+                                                                toggleSelectId(
+                                                                    row.id,
+                                                                )
+                                                            }
+                                                        >
+                                                            <div className="flex h-4 w-4 items-center justify-center">
+                                                                {selectedIds.has(
+                                                                    row.id,
+                                                                ) ? (
+                                                                    <CheckSquare className="h-4 w-4 text-emerald-600" />
+                                                                ) : (
+                                                                    <Square className="h-4 w-4 text-slate-400" />
+                                                                )}
+                                                            </div>
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="truncate font-medium text-foreground">
+                                                                    {
+                                                                        row.full_name
+                                                                    }
+                                                                </div>
+                                                                <div className="truncate text-xs text-slate-500">
+                                                                    {row.student_number ??
+                                                                        '-'}{' '}
+                                                                    ·{' '}
+                                                                    {row.email}
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <span
+                                                                    className={
+                                                                        row.balance >
+                                                                        0
+                                                                            ? 'text-amber-600'
+                                                                            : 'text-emerald-600'
+                                                                    }
+                                                                >
+                                                                    ₱
+                                                                    {(
+                                                                        row.balance ??
+                                                                        0
+                                                                    ).toLocaleString(
+                                                                        'en-PH',
+                                                                        {
+                                                                            minimumFractionDigits: 2,
+                                                                            maximumFractionDigits: 2,
+                                                                        },
+                                                                    )}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    ),
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Bulk recipient list — shown when NOT 'specific' */}
+                            {emailTarget !== 'specific' && (
+                                <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+                                    <div className="mb-2 flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-semibold text-foreground">
+                                                {bulkRecipients.length}
+                                            </span>
+                                            <span>recipient(s)</span>
+                                            <Input
+                                                placeholder="Search by name, email, or ID"
+                                                value={emailSearch}
+                                                onChange={(e) =>
+                                                    setEmailSearch(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="h-9 w-64 rounded-lg text-sm"
+                                            />
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            {bulkRecipients.every((r) =>
+                                                selectedIds.has(r.id),
+                                            ) && bulkRecipients.length > 0 ? (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        setSelectedIds(
+                                                            new Set(),
+                                                        )
+                                                    }
+                                                    className="h-9 px-3"
+                                                >
+                                                    Unselect All
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        setSelectedIds(
+                                                            new Set(
+                                                                bulkRecipients.map(
+                                                                    (r) => r.id,
+                                                                ),
+                                                            ),
+                                                        )
+                                                    }
+                                                    className="h-9 px-3"
+                                                >
+                                                    Select All
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="max-h-60 overflow-y-auto rounded-lg border border-border bg-card">
+                                        {isLoadingRecipients ? (
+                                            <div className="p-4 text-center text-slate-500">
+                                                Loading recipients...
+                                            </div>
+                                        ) : bulkRecipients.length === 0 ? (
+                                            <div className="p-4 text-center text-slate-500">
+                                                No recipients found.
+                                            </div>
+                                        ) : (
+                                            <div>
+                                                {bulkRecipients.map((row) => {
+                                                    const isSelected =
+                                                        selectedIds.has(row.id);
+
+                                                    return (
+                                                        <div
+                                                            key={row.id}
+                                                            className="flex cursor-pointer items-center gap-3 border-b border-slate-100 p-2 last:border-0 hover:bg-slate-50"
+                                                            onClick={() =>
+                                                                toggleSelectId(
+                                                                    row.id,
+                                                                )
+                                                            }
+                                                        >
+                                                            <div className="flex h-4 w-4 items-center justify-center">
+                                                                {isSelected ? (
+                                                                    <CheckSquare className="h-4 w-4 text-emerald-600" />
+                                                                ) : (
+                                                                    <Square className="h-4 w-4 text-slate-400" />
+                                                                )}
+                                                            </div>
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="truncate font-medium text-foreground">
+                                                                    {
+                                                                        row.full_name
+                                                                    }
+                                                                </div>
+                                                                <div className="truncate text-xs text-slate-500">
+                                                                    {row.student_number ??
+                                                                        '-'}{' '}
+                                                                    ·{' '}
+                                                                    {row.email}
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <span
+                                                                    className={
+                                                                        row.balance >
+                                                                        0
+                                                                            ? 'text-amber-600'
+                                                                            : 'text-emerald-600'
+                                                                    }
+                                                                >
+                                                                    ₱
+                                                                    {(
+                                                                        row.balance ??
+                                                                        0
+                                                                    ).toLocaleString(
+                                                                        'en-PH',
+                                                                        {
+                                                                            minimumFractionDigits: 2,
+                                                                            maximumFractionDigits: 2,
+                                                                        },
+                                                                    )}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-foreground">
+                                        Subject (optional)
+                                    </label>
+                                    <Input
+                                        placeholder="Leave blank for default subject"
+                                        value={emailSubject}
+                                        onChange={(e) =>
+                                            setEmailSubject(e.target.value)
+                                        }
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-foreground">
+                                        Exam Period (optional)
+                                    </label>
+                                    <Select
+                                        value={examPeriod}
+                                        onValueChange={(v) => {
+                                            if (
+                                                v === 'Midterm' ||
+                                                v === 'Final' ||
+                                                v === ''
+                                            ) {
+                                                setExamPeriod(v);
+
+                                                if (v === '') {
+                                                    setExamDeadline('');
+                                                }
+                                            }
+                                        }}
+                                    >
+                                        <SelectTrigger className="h-10 w-full rounded-lg border-border bg-card shadow-sm">
+                                            <SelectValue placeholder="Select exam period" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Midterm">
+                                                Midterm
+                                            </SelectItem>
+                                            <SelectItem value="Final">
+                                                Final
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="mt-1 text-xs text-slate-400">
+                                        Leave empty if not tied to an exam
+                                        period.
+                                    </p>
+                                </div>
+
+                                {examPeriod && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-foreground">
+                                            Payment Deadline (optional)
+                                        </label>
+                                        <Popover>
+                                            <PopoverTrigger
+                                                render={
+                                                    <Button
+                                                        variant="outline"
+                                                        className={`w-full justify-start text-left font-normal ${!examDeadline && 'text-slate-400'}`}
+                                                    >
+                                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                                        {examDeadline
+                                                            ? formatDateInput(
+                                                                  examDeadline,
+                                                              )
+                                                            : 'Pick a deadline'}
+                                                    </Button>
+                                                }
+                                            />
+                                            <PopoverContent className="w-auto p-0">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={
+                                                        examDeadline
+                                                            ? new Date(
+                                                                  `${examDeadline}T00:00:00`,
+                                                              )
+                                                            : undefined
+                                                    }
+                                                    onSelect={(date) => {
+                                                        if (!date) {
+                                                            setExamDeadline('');
+
+                                                            return;
+                                                        }
+
+                                                        const y =
+                                                            date.getFullYear();
+                                                        const m = String(
+                                                            date.getMonth() + 1,
+                                                        ).padStart(2, '0');
+                                                        const d = String(
+                                                            date.getDate(),
+                                                        ).padStart(2, '0');
+                                                        setExamDeadline(
+                                                            `${y}-${m}-${d}`,
+                                                        );
+                                                    }}
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                        <p className="mt-1 text-xs text-slate-400">
+                                            Deadline for SOA payment related to{' '}
+                                            {examPeriod}.
+                                        </p>
+                                    </div>
+                                )}
+                                <div>
+                                    <label className="block text-sm font-medium text-foreground">
+                                        Additional Note (optional)
+                                    </label>
+                                    <Textarea
+                                        placeholder="Add a personal note..."
+                                        value={emailNote}
+                                        onChange={(e) =>
+                                            setEmailNote(e.target.value)
+                                        }
+                                        rows={5}
+                                    />
+                                    <p className="mt-1 text-xs text-slate-400">
+                                        Plain text only — no formatting needed,
+                                        it's inserted as its own paragraph.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-foreground">
+                                Live Preview
+                            </label>
+                            <div className="overflow-hidden rounded-xl border border-border">
+                                <iframe
+                                    title="Email preview"
+                                    srcDoc={buildEmailPreviewHtml(
+                                        emailNote,
+                                        examPeriod,
+                                        examDeadline,
+                                    )}
+                                    className="h-[28rem] w-[500px] bg-card"
+                                />
+                            </div>
+                        </div>
                     </div>
-                  </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setSelectedMembership('NORSUFFA')}
-                    className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
-                      selectedMembership === 'NORSUFFA'
-                        ? 'border-purple-600 bg-purple-50/60'
-                        : 'border-[#CFE3FF] bg-white hover:border-purple-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-[#0B3D91]">NORSUFFA</p>
-                        <p className="text-xs text-[#5C7A9E]">NORSU Federated Faculty Association (100%)</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-purple-700">−{currency(membershipTarget.amount)}</p>
-                        <p className="text-xs text-[#8AA8CC]">Adjustment</p>
-                      </div>
+                    <DialogFooter className="gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsEmailModalOpen(false)}
+                            disabled={isSendingEmails}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            className="bg-[#0B3D91] text-white hover:bg-[#092D6F]"
+                            disabled={
+                                isSendingEmails ||
+                                getEffectiveRecipientIds().length === 0
+                            }
+                            onClick={handleSendEmails}
+                        >
+                            {isSendingEmails
+                                ? 'Sending...'
+                                : `Send (${getEffectiveRecipientIds().length})`}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Email Processing Modal */}
+            <Dialog
+                open={showEmailProcessingModal}
+                onOpenChange={(open) => {
+                    if (!open && isEmailProcessingDone) {
+                        setShowEmailProcessingModal(false);
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-md" showCloseButton={false}>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            {isEmailProcessingDone ? (
+                                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                            ) : (
+                                <Loader2 className="h-5 w-5 animate-spin text-[#0F6FFF]" />
+                            )}
+                            {isEmailProcessingDone
+                                ? 'Email Sending Complete'
+                                : 'Sending Emails...'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {isEmailProcessingDone
+                                ? 'The statement of account emails have finished processing.'
+                                : 'Please wait while the statement of account PDFs are generated and emailed. Do not close or refresh this page.'}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-3">
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-[#E8F0FE]">
+                            <div
+                                className={
+                                    isEmailProcessingDone
+                                        ? 'h-full w-full rounded-full bg-emerald-600'
+                                        : 'h-full w-full animate-pulse rounded-full bg-[#0F6FFF]'
+                                }
+                            />
+                        </div>
+
+                        <p className="text-sm text-slate-600">
+                            {emailProcessingMessage}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                            Elapsed time:{' '}
+                            {Math.floor(emailProcessingSeconds / 60)}m{' '}
+                            {emailProcessingSeconds % 60}s
+                        </p>
                     </div>
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
-          <AlertDialogFooter className="border-t border-[#CFE3FF] bg-[#F8FBFF] px-5 py-3">
-            <AlertDialogCancel
-              disabled={isApplyingMembership}
-              onClick={() => {
-                setMembershipTarget(null);
-                setSelectedMembership('');
-              }}
-              className="border-[#CFE3FF] text-[#0B3D91]"
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              disabled={!selectedMembership || isApplyingMembership}
-              onClick={applyMembershipDiscount}
-              className="bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50"
-            >
-              {isApplyingMembership && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-              {isApplyingMembership ? 'Applying...' : 'Apply Scholarship'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+                    {isEmailProcessingDone && (
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                className="w-full gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
+                                onClick={() => {
+                                    setShowEmailProcessingModal(false);
+                                    setEmailProcessingMessage('');
+                                    setEmailProcessingSeconds(0);
+                                }}
+                            >
+                                <CheckCircle2 className="h-4 w-4" />
+                                Done
+                            </Button>
+                        </DialogFooter>
+                    )}
+                </DialogContent>
+            </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={deleteTarget !== null}
-        onOpenChange={(open) => {
-          if (!open && !isDeleting) {
-            setDeleteTarget(null);
-          }
-        }}
-      >
-        <AlertDialogContent className="max-w-md gap-0 overflow-hidden border border-[#CFE3FF] bg-white p-0 shadow-xl sm:max-w-md">
-          <AlertDialogHeader className="gap-3 p-5 sm:place-items-start sm:text-left">
-            <AlertDialogMedia className="mb-0 size-11 rounded-full bg-red-50 text-red-600">
-              <Trash2 className="size-5" />
-            </AlertDialogMedia>
-            <AlertDialogTitle className="text-lg font-semibold text-[#0B3D91]">
-              Delete Transaction
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm text-[#5C7A9E]">
-              Are you sure you want to delete the transaction for{' '}
-              <strong className="text-[#0B3D91]">{deleteTarget?.name}</strong>? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="border-t border-[#CFE3FF] bg-[#F8FBFF] px-5 py-3">
-            <AlertDialogCancel
-              disabled={isDeleting}
-              onClick={() => setDeleteTarget(null)}
-              className="border-[#CFE3FF] text-[#0B3D91]"
+            {/* Membership Scholarship Dialog */}
+            <AlertDialog
+                open={membershipTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open && !isApplyingMembership) {
+                        setMembershipTarget(null);
+                        setSelectedMembership('');
+                    }
+                }}
             >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              disabled={isDeleting}
-              onClick={handleConfirmDelete}
-              className="bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                <AlertDialogContent className="max-w-md gap-0 overflow-hidden border border-border bg-card p-0 text-card-foreground shadow-xl sm:max-w-md">
+                    <AlertDialogHeader className="gap-3 p-5 sm:place-items-start sm:text-left">
+                        <AlertDialogMedia className="mb-0 size-11 rounded-full bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400">
+                            <GraduationCap className="size-5" />
+                        </AlertDialogMedia>
+                        <AlertDialogTitle className="text-lg font-semibold text-foreground">
+                            Apply Membership Scholarship
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-sm text-muted-foreground">
+                            Select the faculty or personnel union membership to
+                            apply a 100% scholarship adjustment to this AR.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+
+                    {membershipTarget && (
+                        <div className="mx-5 mb-5 space-y-4">
+                            <div className="rounded-lg border border-border bg-muted/30 p-3">
+                                <p className="text-sm font-semibold text-foreground">
+                                    {membershipTarget.name}
+                                </p>
+                                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+                                    <div>
+                                        <span className="block text-[11px] tracking-wide text-muted-foreground/80 uppercase">
+                                            AR Amount
+                                        </span>
+                                        <span className="font-medium text-foreground">
+                                            {currency(membershipTarget.amount)}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="block text-[11px] tracking-wide text-muted-foreground/80 uppercase">
+                                            Term
+                                        </span>
+                                        <span className="font-medium text-foreground">
+                                            {membershipTarget.schoolYear}{' '}
+                                            {membershipTarget.semester}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-foreground">
+                                    Select Membership
+                                </label>
+                                <div className="space-y-2">
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setSelectedMembership('NAPU')
+                                        }
+                                        className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
+                                            selectedMembership === 'NAPU'
+                                                ? 'border-purple-600 bg-purple-50/60 dark:border-purple-500 dark:bg-purple-950/40'
+                                                : 'border-border bg-card hover:border-purple-300 dark:hover:border-purple-700'
+                                        }`}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="font-semibold text-foreground">
+                                                    NAPU
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    NORSU Administrative
+                                                    Personnel Union (100%)
+                                                </p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-sm font-bold text-purple-700 dark:text-purple-400">
+                                                    −
+                                                    {currency(
+                                                        membershipTarget.amount,
+                                                    )}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Adjustment
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setSelectedMembership('NORSUFFA')
+                                        }
+                                        className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
+                                            selectedMembership === 'NORSUFFA'
+                                                ? 'border-purple-600 bg-purple-50/60 dark:border-purple-500 dark:bg-purple-950/40'
+                                                : 'border-border bg-card hover:border-purple-300 dark:hover:border-purple-700'
+                                        }`}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="font-semibold text-foreground">
+                                                    NORSUFFA
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    NORSU Federated Faculty
+                                                    Association (100%)
+                                                </p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-sm font-bold text-purple-700 dark:text-purple-400">
+                                                    −
+                                                    {currency(
+                                                        membershipTarget.amount,
+                                                    )}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Adjustment
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <AlertDialogFooter className="border-t border-border bg-muted/30 px-5 py-3">
+                        <AlertDialogCancel
+                            disabled={isApplyingMembership}
+                            onClick={() => {
+                                setMembershipTarget(null);
+                                setSelectedMembership('');
+                            }}
+                            className="border-input text-foreground"
+                        >
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={
+                                !selectedMembership || isApplyingMembership
+                            }
+                            onClick={applyMembershipDiscount}
+                            className="bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50"
+                        >
+                            {isApplyingMembership && (
+                                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                            )}
+                            {isApplyingMembership
+                                ? 'Applying...'
+                                : 'Apply Scholarship'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog
+                open={deleteTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open && !isDeleting) {
+                        setDeleteTarget(null);
+                    }
+                }}
             >
-              {isDeleting && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-              {isDeleting ? 'Deleting...' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
-  );
+                <AlertDialogContent className="max-w-md gap-0 overflow-hidden border border-border bg-card p-0 text-card-foreground shadow-xl sm:max-w-md">
+                    <AlertDialogHeader className="gap-3 p-5 sm:place-items-start sm:text-left">
+                        <AlertDialogMedia className="mb-0 size-11 rounded-full bg-destructive/10 text-destructive">
+                            <Trash2 className="size-5" />
+                        </AlertDialogMedia>
+                        <AlertDialogTitle className="text-lg font-semibold text-foreground">
+                            Delete Transaction
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-sm text-muted-foreground">
+                            Are you sure you want to delete the transaction for{' '}
+                            <strong className="text-foreground">
+                                {deleteTarget?.name}
+                            </strong>
+                            ? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="border-t border-border bg-muted/30 px-5 py-3">
+                        <AlertDialogCancel
+                            disabled={isDeleting}
+                            onClick={() => setDeleteTarget(null)}
+                            className="border-input text-foreground"
+                        >
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={isDeleting}
+                            onClick={handleConfirmDelete}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+                        >
+                            {isDeleting && (
+                                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                            )}
+                            {isDeleting ? 'Deleting...' : 'Delete'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
+    );
 }

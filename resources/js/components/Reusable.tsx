@@ -143,11 +143,11 @@ export function ChartCard({
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-base font-semibold text-slate-900">
+                <CardTitle className="text-base font-semibold text-foreground">
                     {title}
                 </CardTitle>
                 {description && (
-                    <p className="text-sm text-slate-500">{description}</p>
+                    <p className="text-sm text-muted-foreground">{description}</p>
                 )}
             </CardHeader>
             <CardContent>
@@ -162,11 +162,12 @@ export function ChartCard({
                                 >
                                     <CartesianGrid
                                         strokeDasharray="3 3"
-                                        stroke="#e2e8f0"
+                                        stroke="var(--border)"
                                     />
                                     <XAxis
                                         type="number"
-                                        tick={{ fontSize: 12, fill: '#64748b' }}
+                                        tick={{ fontSize: 12, fill: 'currentColor' }}
+                                        className="text-muted-foreground"
                                         allowDecimals={false}
                                         domain={[
                                             0,
@@ -177,13 +178,16 @@ export function ChartCard({
                                     <YAxis
                                         type="category"
                                         dataKey={xKey}
-                                        tick={{ fontSize: 11, fill: '#64748b' }}
+                                        tick={{ fontSize: 11, fill: 'currentColor' }}
+                                        className="text-muted-foreground"
                                         width={100}
                                     />
                                     <Tooltip
                                         contentStyle={{
                                             borderRadius: 8,
-                                            border: '1px solid #e2e8f0',
+                                            border: '1px solid var(--border)',
+                                            backgroundColor: 'var(--card)',
+                                            color: 'var(--foreground)',
                                             fontSize: 12,
                                         }}
                                     />
@@ -198,20 +202,24 @@ export function ChartCard({
                                 <LineChart data={data}>
                                     <CartesianGrid
                                         strokeDasharray="3 3"
-                                        stroke="#e2e8f0"
+                                        stroke="var(--border)"
                                     />
                                     <XAxis
                                         dataKey={xKey}
-                                        tick={{ fontSize: 12, fill: '#64748b' }}
+                                        tick={{ fontSize: 12, fill: 'currentColor' }}
+                                        className="text-muted-foreground"
                                     />
                                     <YAxis
-                                        tick={{ fontSize: 12, fill: '#64748b' }}
+                                        tick={{ fontSize: 12, fill: 'currentColor' }}
+                                        className="text-muted-foreground"
                                         allowDecimals={false}
                                     />
                                     <Tooltip
                                         contentStyle={{
                                             borderRadius: 8,
-                                            border: '1px solid #e2e8f0',
+                                            border: '1px solid var(--border)',
+                                            backgroundColor: 'var(--card)',
+                                            color: 'var(--foreground)',
                                             fontSize: 12,
                                         }}
                                         labelFormatter={(label) =>
@@ -237,7 +245,9 @@ export function ChartCard({
                                     <Tooltip
                                         contentStyle={{
                                             borderRadius: 8,
-                                            border: '1px solid #e2e8f0',
+                                            border: '1px solid var(--border)',
+                                            backgroundColor: 'var(--card)',
+                                            color: 'var(--foreground)',
                                             fontSize: 12,
                                         }}
                                     />
@@ -272,10 +282,10 @@ export function ChartCard({
                     </div>
                     {type === 'pie' && (
                         <div className="pointer-events-none absolute inset-0 z-0 flex flex-col items-center justify-center pb-9">
-                            <span className="text-2xl font-bold text-slate-900">
+                            <span className="text-2xl font-bold text-foreground">
                                 {pieTotal}
                             </span>
-                            <span className="text-xs text-slate-500">
+                            <span className="text-xs text-muted-foreground">
                                 Total
                             </span>
                         </div>
@@ -310,22 +320,22 @@ const EVENT_CONFIG: Record<
 > = {
     created: {
         icon: Plus,
-        badgeClass: 'bg-emerald-100 text-emerald-800',
+        badgeClass: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border dark:border-emerald-800/40',
         label: 'Created',
     },
     updated: {
         icon: Pencil,
-        badgeClass: 'bg-amber-100 text-amber-900',
+        badgeClass: 'bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 dark:border dark:border-amber-800/40',
         label: 'Updated',
     },
     deleted: {
         icon: Trash2,
-        badgeClass: 'bg-rose-100 text-rose-800',
+        badgeClass: 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 dark:border dark:border-rose-800/40',
         label: 'Deleted',
     },
     processed: {
         icon: CheckCircle2,
-        badgeClass: 'bg-blue-100 text-blue-800',
+        badgeClass: 'bg-blue-100 text-blue-800 dark:bg-sky-950/60 dark:text-sky-300 dark:border dark:border-sky-800/40',
         label: 'Processed',
     },
 };
@@ -333,7 +343,7 @@ const EVENT_CONFIG: Record<
 const getEventConfig = (event: string) =>
     EVENT_CONFIG[event] ?? {
         icon: Activity,
-        badgeClass: 'bg-slate-100 text-slate-700',
+        badgeClass: 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40',
         label: event,
     };
 
@@ -387,13 +397,13 @@ export function ActivityLogList({
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-base font-semibold text-slate-900">
+                <CardTitle className="text-base font-semibold text-foreground">
                     {title}
                 </CardTitle>
             </CardHeader>
             <CardContent>
                 {visibleLogs.length === 0 ? (
-                    <p className="py-6 text-center text-sm text-slate-500">
+                    <p className="py-6 text-center text-sm text-muted-foreground">
                         {emptyMessage}
                     </p>
                 ) : (
@@ -425,17 +435,17 @@ export function ActivityLogList({
                                             >
                                                 {label}
                                             </Badge>
-                                            <span className="text-xs text-slate-400">
+                                            <span className="text-xs text-muted-foreground">
                                                 {formatRelativeOrDate(
                                                     log.createdAt,
                                                 )}
                                             </span>
                                         </div>
-                                        <p className="mt-1 text-sm text-slate-700">
+                                        <p className="mt-1 text-sm text-foreground">
                                             {log.description}
                                         </p>
                                         {log.causerName && (
-                                            <p className="mt-0.5 text-xs text-slate-400">
+                                            <p className="mt-0.5 text-xs text-muted-foreground">
                                                 by {log.causerName}
                                             </p>
                                         )}

@@ -131,7 +131,7 @@ export default function Dashboard() {
                                 </div>
                             </CardContent>
                             <CardFooter>
-                                <Button type="submit" disabled={processing}>
+                                <Button type="submit" disabled={processing} className="bg-blue-600 text-white hover:bg-blue-400">
                                     {processing ? 'Creating…' : 'Create staff account'}
                                 </Button>
                             </CardFooter>

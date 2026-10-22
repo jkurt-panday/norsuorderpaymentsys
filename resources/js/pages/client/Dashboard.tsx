@@ -123,27 +123,27 @@ export default function ClientDashboard() {
             <Head title="Client Dashboard" />
 
             {/* Header Banner */}
-            <div className="flex flex-col gap-4 border-b border-[#CFE3FF] pb-5 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-4 border-b border-border pb-5 md:flex-row md:items-center md:justify-between">
                 <div>
                     <div className="flex items-center gap-2">
-                        <h1 className="text-2xl font-bold tracking-tight text-[#0B3D91]">
+                        <h1 className="text-2xl font-bold tracking-tight text-foreground">
                             Welcome back, {user?.name || 'Client'}!
                         </h1>
                         <Badge
                             variant="outline"
-                            className="border-[#B9D8FF] bg-[#EAF2FF] font-semibold text-[#0B62E0] capitalize"
+                            className="border-primary/20 bg-primary/10 font-semibold text-primary capitalize"
                         >
                             {user?.role || 'Client'} Account
                         </Badge>
                     </div>
-                    <p className="mt-1 text-sm text-[#5C7A9E]">
+                    <p className="mt-1 text-sm text-muted-foreground">
                         NORSU Order of Payment System — Client Portal
                     </p>
                 </div>
 
                 <div>
                     <Link href="/public/opform">
-                        <Button className="gap-2 bg-[#0F6FFF] text-white shadow-sm hover:bg-[#0B5DDB]">
+                        <Button className="gap-2 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90">
                             <FileText className="h-4 w-4" />
                             Submit New Request
                             <ArrowRight className="h-4 w-4" />
@@ -155,33 +155,33 @@ export default function ClientDashboard() {
             {/* Main Cards Grid */}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 {/* Account Details Card */}
-                <Card className="border-[#CFE3FF] bg-white shadow-sm">
+                <Card className="border-border bg-card shadow-sm">
                     <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base text-[#0B3D91]">
-                            <User className="h-4 w-4 text-[#0F6FFF]" />
+                        <CardTitle className="flex items-center gap-2 text-base text-foreground">
+                            <User className="h-4 w-4 text-primary" />
                             Account Information
                         </CardTitle>
-                        <CardDescription className="text-[#7FA6D6]">
+                        <CardDescription className="text-muted-foreground">
                             Your registered client profile details
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-3 text-sm text-[#334E68]">
-                        <div className="flex justify-between border-b border-[#EAF2FF] py-2">
-                            <span className="text-[#7FA6D6]">Full Name</span>
-                            <span className="font-medium text-[#0B3D91]">
+                    <CardContent className="space-y-3 text-sm text-muted-foreground">
+                        <div className="flex justify-between border-b border-border py-2">
+                            <span className="text-muted-foreground">Full Name</span>
+                            <span className="font-medium text-foreground">
                                 {user?.name}
                             </span>
                         </div>
-                        <div className="flex justify-between border-b border-[#EAF2FF] py-2">
-                            <span className="text-[#7FA6D6]">
+                        <div className="flex justify-between border-b border-border py-2">
+                            <span className="text-muted-foreground">
                                 Email Address
                             </span>
-                            <span className="font-medium text-[#0B3D91]">
+                            <span className="font-medium text-foreground">
                                 {user?.email}
                             </span>
                         </div>
                         <div className="flex justify-between py-2">
-                            <span className="text-[#7FA6D6]">
+                            <span className="text-muted-foreground">
                                 Account Status
                             </span>
                             <span className="inline-flex items-center gap-1 font-semibold text-emerald-600">
@@ -192,31 +192,31 @@ export default function ClientDashboard() {
                 </Card>
 
                 {/* Quick Actions Card */}
-                <Card className="border-[#CFE3FF] bg-white shadow-sm">
+                <Card className="border-border bg-card shadow-sm">
                     <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base text-[#0B3D91]">
-                            <ShieldCheck className="h-4 w-4 text-[#0F6FFF]" />
+                        <CardTitle className="flex items-center gap-2 text-base text-foreground">
+                            <ShieldCheck className="h-4 w-4 text-primary" />
                             Services & Actions
                         </CardTitle>
-                        <CardDescription className="text-[#7FA6D6]">
+                        <CardDescription className="text-muted-foreground">
                             Available client services for payment processing
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="flex items-start gap-3 rounded-lg border border-[#EAF2FF] bg-[#F8FAFC] p-4">
-                            <FileText className="mt-0.5 h-5 w-5 shrink-0 text-[#0F6FFF]" />
+                        <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-4">
+                            <FileText className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                             <div>
-                                <h4 className="text-sm font-semibold text-[#0B3D91]">
+                                <h4 className="text-sm font-semibold text-foreground">
                                     Submit Order of Payment
                                 </h4>
-                                <p className="mt-1 text-xs text-[#5C7A9E]">
+                                <p className="mt-1 text-xs text-muted-foreground">
                                     Fill out and submit an order of payment
                                     request form directly to the university
                                     cashier.
                                 </p>
                                 <Link
                                     href="/public/opform"
-                                    className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#0F6FFF] hover:underline"
+                                    className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                                 >
                                     Go to Submission Form →
                                 </Link>
@@ -227,13 +227,13 @@ export default function ClientDashboard() {
             </div>
 
             {/* Recent Submissions */}
-            <Card className="border-[#CFE3FF] bg-white shadow-sm">
+            <Card className="border-border bg-card shadow-sm">
                 <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-base text-[#0B3D91]">
-                        <Clock className="h-4 w-4 text-[#0F6FFF]" />
+                    <CardTitle className="flex items-center gap-2 text-base text-foreground">
+                        <Clock className="h-4 w-4 text-primary" />
                         Recent Submissions
                     </CardTitle>
-                    <CardDescription className="text-[#7FA6D6]">
+                    <CardDescription className="text-muted-foreground">
                         Your submitted order of payment requests
                     </CardDescription>
                 </CardHeader>
@@ -241,26 +241,26 @@ export default function ClientDashboard() {
                     {submissions.length > 0 ? (
                         <Table>
                             <TableHeader>
-                                <TableRow className="border-b border-[#EAF2FF] hover:bg-transparent">
-                                    <TableHead className="text-[#7FA6D6]">
+                                <TableRow className="border-b border-border hover:bg-transparent">
+                                    <TableHead className="text-muted-foreground">
                                         Reference
                                     </TableHead>
-                                    <TableHead className="text-[#7FA6D6]">
+                                    <TableHead className="text-muted-foreground">
                                         Type
                                     </TableHead>
-                                    <TableHead className="text-[#7FA6D6]">
+                                    <TableHead className="text-muted-foreground">
                                         Payment Option
                                     </TableHead>
-                                    <TableHead className="text-right text-[#7FA6D6]">
+                                    <TableHead className="text-right text-muted-foreground">
                                         Amount
                                     </TableHead>
-                                    <TableHead className="text-[#7FA6D6]">
+                                    <TableHead className="text-muted-foreground">
                                         Status
                                     </TableHead>
-                                    <TableHead className="text-[#7FA6D6]">
+                                    <TableHead className="text-muted-foreground">
                                         Date
                                     </TableHead>
-                                    <TableHead className="text-center text-[#7FA6D6]">
+                                    <TableHead className="text-center text-muted-foreground">
                                         Actions
                                     </TableHead>
                                 </TableRow>
@@ -269,19 +269,19 @@ export default function ClientDashboard() {
                                 {submissions.map((submission) => (
                                     <TableRow
                                         key={submission.id}
-                                        className="border-b border-[#EAF2FF] last:border-0"
+                                        className="border-b border-border last:border-0"
                                     >
-                                        <TableCell className="font-medium text-[#0B3D91]">
+                                        <TableCell className="font-medium text-foreground">
                                             {submission.reference_number}
                                         </TableCell>
-                                        <TableCell className="text-[#334E68]">
+                                        <TableCell className="text-muted-foreground">
                                             {submission.request_type}
                                         </TableCell>
-                                        <TableCell className="text-[#334E68]">
+                                        <TableCell className="text-muted-foreground">
                                             {submission.payment_detail_option
                                                 ?.payment_desc ?? 'N/A'}
                                         </TableCell>
-                                        <TableCell className="text-right font-medium text-[#0B3D91]">
+                                        <TableCell className="text-right font-medium text-foreground">
                                             {formatCurrency(submission.amount)}
                                         </TableCell>
                                         <TableCell>
@@ -298,7 +298,7 @@ export default function ClientDashboard() {
                                                 )}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="text-[#5C7A9E]">
+                                        <TableCell className="text-muted-foreground">
                                             {formatDate(submission.created_at)}
                                         </TableCell>
                                         <TableCell className="text-right">
@@ -307,7 +307,7 @@ export default function ClientDashboard() {
                                                     render={
                                                         <button
                                                             type="button"
-                                                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[#CFE3FF] px-3 text-xs font-medium text-[#0F6FFF] hover:bg-[#EAF2FF] hover:text-[#0B5DDB]"
+                                                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-xs font-medium text-primary hover:bg-primary/10 hover:text-primary/90"
                                                         >
                                                             <Printer className="h-3.5 w-3.5" />
                                                             Print
@@ -351,7 +351,7 @@ export default function ClientDashboard() {
                             </TableBody>
                         </Table>
                     ) : (
-                        <p className="py-8 text-center text-sm text-[#7FA6D6]">
+                        <p className="py-8 text-center text-sm text-muted-foreground">
                             You haven't submitted any requests yet.
                         </p>
                     )}

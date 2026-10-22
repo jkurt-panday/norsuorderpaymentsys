@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "systematic-debugging": {
+      "source": "spencerpauly/awesome-cursor-skills",
+      "sourceType": "github",
+      "skillPath": "resources/systematic-debugging/SKILL.md",
+      "computedHash": "9c3be9fce61dec1eba1a64126c10739de4a50b8559c24c535e6eea4f75aed6d6"
+    }
+  }
+}

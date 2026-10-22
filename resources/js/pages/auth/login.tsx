@@ -1,5 +1,6 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
+import AuthSplitLayout from '@/layouts/auth/auth-split-layout';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -12,9 +13,11 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import AuthLayout from '@/layouts/auth-layout';
 import { login } from '@/routes';
 import { request as forgotPassword } from '@/routes/password';
+
+const sharedInputClass =
+    'min-h-[54px] w-full rounded-[9px] border-[1.5px] border-[#D3DCE6] bg-white px-4 py-3 text-[#0F1E33] placeholder:text-[#55667D] placeholder:opacity-70 focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#0B7BE0] aria-invalid:border-[#B3261E] dark:border-[#243652] dark:bg-[#101D31] dark:text-[#E6EEF8] dark:focus-visible:outline-[#5AA9F5] dark:aria-invalid:border-[#FF8A80]';
 
 export default function Login({
     status,
@@ -40,8 +43,8 @@ export default function Login({
     // them to their role dashboard immediately.
     useEffect(() => {
         if (!auth?.user) {
-return;
-}
+            return;
+        }
 
         const role = auth.user.role;
 
@@ -80,131 +83,104 @@ return;
     };
 
     return (
-        <AuthLayout
-            title="Payment of Order System"
-            description="Enter your institutional credentials to continue."
-        >
-            <Head title="Payment of Order System - Login" />
+        <AuthSplitLayout>
+            <Head title="Order of Payment System – Sign in" />
+
+            <h2 className="font-heading text-[30px] font-bold leading-tight text-[#0F1E33] dark:text-[#E6EEF8]">
+                Sign in
+            </h2>
+            <p className="mt-1 mb-6 text-[#55667D] dark:text-[#8FA4BF]">
+                Access your university finance account.
+            </p>
 
             {status && (
-                <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-600">
+                <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-400">
                     {status}
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Email Address */}
-                <div className="space-y-2">
-                    <Label
-                        className="block text-xs font-semibold tracking-wider text-[#091d2e] uppercase"
-                        htmlFor="email"
-                    >
-                        Email Address
+            <div
+                role="alert"
+                aria-live="polite"
+                className="mb-3.5 min-h-[22px] text-sm text-destructive"
+            >
+                {errors.email || errors.password}
+            </div>
+
+            <form onSubmit={handleSubmit}>
+                <div>
+                    <Label htmlFor="email" className="mb-2">
+                        Email address
                     </Label>
-                    <div className="relative">
-                        <span className="material-symbols-outlined absolute top-1/2 left-3 -translate-y-1/2 text-xl text-[#717786]">
-                            mail
-                        </span>
-                        <Input
-                            className="w-full rounded-lg border border-[#c1c6d7] bg-white py-3 pr-4 pl-10 text-sm text-[#091d2e] transition-all outline-none placeholder:text-muted-foreground focus:border-[#005ab7] focus:ring-2 focus:ring-[#005ab7]"
-                            id="email"
-                            type="email"
-                            name="email"
-                            placeholder="e.g. name@university.edu"
-                            value={data.email}
-                            onChange={(e) => setData('email', e.target.value)}
-                            required
-                        />
-                    </div>
-                    {errors.email && (
-                        <p className="text-xs font-semibold text-[#ba1a1a]">
-                            {errors.email}
-                        </p>
-                    )}
+                    <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        autoComplete="email"
+                        inputMode="email"
+                        aria-describedby="email-hint"
+                        aria-invalid={errors.email ? 'true' : undefined}
+                        placeholder="e.g. cashier@university.edu"
+                        value={data.email}
+                        onChange={(e) => setData('email', e.target.value)}
+                        required
+                        className={sharedInputClass}
+                    />
                 </div>
 
-                {/* Password */}
-                <div className="space-y-2">
-                    <Label
-                        className="block text-xs font-semibold tracking-wider text-[#091d2e] uppercase"
-                        htmlFor="password"
-                    >
+                <div className="mt-4">
+                    <Label htmlFor="password" className="mb-2">
                         Password
                     </Label>
                     <div className="relative">
-                        <span className="material-symbols-outlined absolute top-1/2 left-3 -translate-y-1/2 text-xl text-[#717786]">
-                            lock
-                        </span>
                         <Input
-                            className="w-full rounded-lg border border-[#c1c6d7] bg-white py-3 pr-12 pl-10 text-sm text-[#091d2e] transition-all outline-none placeholder:text-muted-foreground focus:border-[#005ab7] focus:ring-2 focus:ring-[#005ab7]"
                             id="password"
-                            type={showPassword ? 'text' : 'password'}
                             name="password"
-                            placeholder="••••••••"
+                            type={showPassword ? 'text' : 'password'}
+                            autoComplete="current-password"
+                            aria-invalid={errors.password ? 'true' : undefined}
+                            placeholder="Enter your password"
                             value={data.password}
-                            onChange={(e) =>
-                                setData('password', e.target.value)
-                            }
+                            onChange={(e) => setData('password', e.target.value)}
                             required
+                            className={`${sharedInputClass} pr-[76px]`}
                         />
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute top-1/2 right-3 -translate-y-1/2 text-[#717786] transition-colors hover:text-[#005ab7]"
+                            aria-controls="password"
+                            aria-pressed={showPassword}
+                            className="absolute top-[9px] right-0 bottom-[9px] flex items-center border-l border-[#D3DCE6] px-[18px] text-[15px] font-medium text-[#0B5CAD] dark:border-[#243652] dark:text-[#5AA9F5]"
                         >
-                            <span className="material-symbols-outlined pt-2 text-xl">
-                                {showPassword ? 'visibility_off' : 'visibility'}
-                            </span>
+                            {showPassword ? 'Hide' : 'Show'}
                         </button>
                     </div>
-                    {errors.password && (
-                        <p className="text-xs font-semibold text-[#ba1a1a]">
-                            {errors.password}
-                        </p>
-                    )}
                 </div>
 
-                {/* Remember + Forgot Password */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
+                <div className="my-5 flex items-center justify-between gap-3 text-sm">
+                    <label className="flex cursor-pointer items-center gap-2 font-normal select-none">
                         <Checkbox
                             id="remember"
                             checked={data.remember}
-                            onCheckedChange={(checked) =>
-                                setData('remember', checked === true)
-                            }
-                            className="cursor-pointer border-[#c1c6d7] focus-visible:ring-2 focus-visible:ring-[#005ab7] data-[state=checked]:border-[#005ab7] data-[state=checked]:bg-[#005ab7] data-[state=checked]:text-white"
+                            onCheckedChange={(c) => setData('remember', c === true)}
                         />
-                        <label
-                            htmlFor="remember"
-                            className="cursor-pointer text-xs font-medium text-[#414754] select-none"
-                        >
-                            Remember Me
-                        </label>
-                    </div>
+                        Keep me signed in
+                    </label>
 
-                    {canResetPassword && (
-                        <Link
-                            href={forgotPassword.url()}
-                            className="text-xs font-semibold text-[#005ab7] hover:underline"
-                        >
-                            Forgot password?
-                        </Link>
-                    )}
                 </div>
 
-                {/* Login Button */}
-                <Button
-                    className="flex w-full items-center justify-center gap-2 rounded-full border-0 bg-[#0072e5] py-6 text-xs font-semibold tracking-widest text-white uppercase transition-all duration-200 hover:bg-[#005ab7] hover:shadow-lg active:scale-[0.98]"
+                <button
                     type="submit"
                     disabled={processing}
+                    className="min-h-[50px] w-full rounded-[9px] bg-[#0B5CAD] text-base font-semibold text-white hover:brightness-110 disabled:opacity-70 dark:bg-[#5AA9F5] dark:text-[#04152B]"
                 >
-                    <span>{processing ? 'LOGGING IN...' : 'LOG IN'}</span>
-                    <span className="material-symbols-outlined text-sm">
-                        login
-                    </span>
-                </Button>
+                    {processing ? 'Signing in…' : 'Sign in'}
+                </button>
             </form>
+
+            <p className="mt-6 border-t border-[#D3DCE6] pt-[18px] text-center text-[13.5px] text-[#55667D] dark:border-[#243652] dark:text-[#8FA4BF]">
+                Need access? Contact your system administrator.
+            </p>
 
             <Dialog open={isDeactivatedOpen} onOpenChange={setIsDeactivatedOpen}>
                 <DialogContent className="max-w-md">
@@ -225,6 +201,6 @@ return;
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </AuthLayout>
+        </AuthSplitLayout>
     );
 }

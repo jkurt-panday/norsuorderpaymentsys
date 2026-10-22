@@ -103,32 +103,32 @@ const EVENT_UI: Record<
     created: {
         label: 'Created',
         icon: Plus,
-        badgeClass: '!bg-emerald-100 !text-emerald-800',
+        badgeClass: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border dark:border-emerald-800/40',
     },
     updated: {
         label: 'Updated',
         icon: Pencil,
-        badgeClass: '!bg-amber-100 !text-amber-900',
+        badgeClass: 'bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-400 dark:border dark:border-amber-800/40',
     },
     deleted: {
         label: 'Deleted',
         icon: Trash2,
-        badgeClass: '!bg-rose-100 !text-rose-800',
+        badgeClass: 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 dark:border dark:border-rose-800/40',
     },
     deactivated: {
         label: 'Deactivated',
         icon: Trash2,
-        badgeClass: '!bg-orange-100 !text-orange-800',
+        badgeClass: 'bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-400 dark:border dark:border-orange-800/40',
     },
     reactivated: {
         label: 'Reactivated',
         icon: RotateCcw,
-        badgeClass: '!bg-teal-100 !text-teal-800',
+        badgeClass: 'bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-400 dark:border dark:border-teal-800/40',
     },
     processed: {
         label: 'Processed',
         icon: CheckCircle2,
-        badgeClass: '!bg-blue-100 !text-blue-800',
+        badgeClass: 'bg-blue-100 text-blue-800 dark:bg-sky-950/60 dark:text-sky-400 dark:border dark:border-sky-800/40',
     },
 };
 
@@ -146,7 +146,7 @@ function getEventUi(event: string) {
         EVENT_UI[event] ?? {
             label: event,
             icon: Activity,
-            badgeClass: '!bg-slate-100 !text-slate-700',
+            badgeClass: 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40',
         }
     );
 }
@@ -174,12 +174,12 @@ function formatDateTime(value?: string | null) {
 function roleTextColorClass(role?: string | null) {
     switch ((role ?? '').toLowerCase()) {
         case 'admin':
-            return 'text-emerald-700 font-bold';
+            return 'text-emerald-700 dark:text-emerald-400 font-bold';
         case 'staff':
-            return 'text-blue-700 font-bold';
+            return 'text-blue-700 dark:text-sky-400 font-bold';
         case 'customer':
         default:
-            return 'text-slate-600 font-medium';
+            return 'text-muted-foreground font-medium';
     }
 }
 
@@ -454,10 +454,10 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
     const isBusy = isNavigating || isResetting;
 
     return (
-        <Card className="border border-slate-200 bg-white shadow-sm">
+        <Card className="border border-border bg-card shadow-sm">
             <div className="relative h-0.5 w-full overflow-hidden bg-transparent">
                 {isBusy && (
-                    <div className="absolute inset-0 animate-[table-loading-bar_1s_ease-in-out_infinite] bg-blue-500" />
+                    <div className="absolute inset-0 animate-[table-loading-bar_1s_ease-in-out_infinite] bg-primary" />
                 )}
             </div>
             <style>{`
@@ -467,13 +467,13 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                 }
             `}</style>
 
-            <CardHeader className="border-b border-slate-200 px-6 py-3.5">
+            <CardHeader className="border-b border-border px-6 py-3.5">
                 <form
                     onSubmit={handleSearchSubmit}
                     className="flex w-full flex-wrap items-center gap-2"
                 >
                     <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
-                        <Search className="pointer-events-none absolute top-2.5 left-2.5 h-4 w-4 text-slate-400" />
+                        <Search className="pointer-events-none absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             type="search"
                             placeholder="Search action, name, role, description..."
@@ -530,7 +530,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                     <Button
                         type="submit"
                         size="sm"
-                        className="h-9 bg-blue-600 text-xs text-white hover:bg-blue-700"
+                        className="h-9 bg-primary text-xs text-primary-foreground hover:bg-primary/90"
                     >
                         <Search className="mr-1.5 h-3.5 w-3.5" />
                         Search
@@ -560,7 +560,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                     }`}
                 >
                     <TableHeader>
-                        <TableRow className="bg-slate-50 hover:bg-slate-50">
+                        <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50">
                             {COLUMNS.map((col) => {
                                 const sortKeyName = col.sortable;
                                 const isActive = sortKeyName
@@ -580,8 +580,8 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                                 : ''
                                         } ${
                                             isActive
-                                                ? 'bg-blue-50/80 font-bold text-blue-600'
-                                                : 'hover:text-slate-900'
+                                                ? 'bg-primary/10 font-bold text-primary'
+                                                : 'hover:text-foreground'
                                         }`}
                                         onClick={
                                             sortKeyName
@@ -598,12 +598,12 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                                 (isActive ? (
                                                     effectiveSortDir ===
                                                     'asc' ? (
-                                                        <ArrowUp className="h-4 w-4 stroke-[2.5] text-blue-600" />
+                                                        <ArrowUp className="h-4 w-4 stroke-[2.5] text-primary" />
                                                     ) : (
-                                                        <ArrowDown className="h-4 w-4 stroke-[2.5] text-blue-600" />
+                                                        <ArrowDown className="h-4 w-4 stroke-[2.5] text-primary" />
                                                     )
                                                 ) : (
-                                                    <ArrowUpDown className="h-3.5 w-3.5 text-slate-400" />
+                                                    <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/60" />
                                                 ))}
                                         </span>
                                     </TableHead>
@@ -616,7 +616,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                             <TableRow>
                                 <TableCell
                                     colSpan={5}
-                                    className="py-10 text-center text-sm text-slate-500"
+                                    className="py-10 text-center text-sm text-muted-foreground"
                                 >
                                     No activity found.
                                 </TableCell>
@@ -629,7 +629,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                 const actorRole = log.actor_role ?? '—';
 
                                 return (
-                                    <TableRow key={log.id}>
+                                    <TableRow key={log.id} className="border-b border-border hover:bg-muted/50">
                                         <TableCell className="pl-6">
                                             <Badge
                                                 variant="secondary"
@@ -639,18 +639,18 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                                 {ui.label}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="text-sm text-slate-700">
+                                        <TableCell className="text-sm text-foreground">
                                             <div>{log.description}</div>
                                             {log.changes &&
                                                 log.changes.length > 0 && (
-                                                    <ul className="mt-1 space-y-0.5 text-xs text-slate-500">
+                                                    <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
                                                         {log.changes.map(
                                                             (c, i) => (
                                                                 <li
                                                                     key={i}
                                                                     className="flex flex-wrap items-center gap-1"
                                                                 >
-                                                                    <span className="font-medium text-slate-600">
+                                                                    <span className="font-medium text-foreground">
                                                                         {
                                                                             c.field
                                                                         }
@@ -658,17 +658,17 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                                                     </span>
                                                                     {c.old ? (
                                                                         <>
-                                                                            <span className="line-through decoration-slate-300">
+                                                                            <span className="line-through decoration-muted-foreground/60">
                                                                                 {
                                                                                     c.old
                                                                                 }
                                                                             </span>
-                                                                            <span className="text-slate-400">
+                                                                            <span className="text-muted-foreground">
                                                                                 →
                                                                             </span>
                                                                         </>
                                                                     ) : null}
-                                                                    <span className="text-slate-700">
+                                                                    <span className="text-foreground">
                                                                         {c.new ??
                                                                             '—'}
                                                                     </span>
@@ -678,8 +678,8 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                                     </ul>
                                                 )}
                                         </TableCell>
-                                        <TableCell className="text-sm text-slate-800">
-                                            <span className="font-semibold text-slate-900">
+                                        <TableCell className="text-sm text-foreground">
+                                            <span className="font-semibold text-foreground">
                                                 ({actorName})
                                             </span>
                                             {actorRole && actorRole !== '—' && (
@@ -690,10 +690,10 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                                 </span>
                                             )}
                                         </TableCell>
-                                        <TableCell className="text-sm text-slate-600">
+                                        <TableCell className="text-sm text-muted-foreground">
                                             {log.type}
                                         </TableCell>
-                                        <TableCell className="pr-6 text-sm text-slate-500">
+                                        <TableCell className="pr-6 text-sm text-muted-foreground">
                                             {formatDateTime(log.created_at)}
                                         </TableCell>
                                     </TableRow>
@@ -705,8 +705,8 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
             </CardContent>
 
             {rows.length > 0 && (
-                <div className="flex items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 sm:px-5">
-                    <p className="shrink-0 text-xs text-slate-500 sm:text-sm">
+                <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3 sm:px-5">
+                    <p className="shrink-0 text-xs text-muted-foreground sm:text-sm">
                         Showing {logs.from ?? 0}-{logs.to ?? 0} of {logs.total}{' '}
                         results
                     </p>
@@ -760,7 +760,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                             render={
                                                 <button
                                                     type="button"
-                                                    className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+                                                    className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                                                 >
                                                     Page {currentPage} of{' '}
                                                     {lastPage}
@@ -769,7 +769,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                         />
                                         <PopoverContent
                                             align="center"
-                                            className="w-48 space-y-2 p-2"
+                                            className="w-48 space-y-2 p-2 border-border bg-popover"
                                         >
                                             <form
                                                 onSubmit={(e) => {
@@ -799,18 +799,18 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                                         )
                                                     }
                                                     placeholder={`1–${lastPage}`}
-                                                    className="h-8 w-full min-w-0 rounded-md border border-slate-200 px-2 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-200"
+                                                    className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring/20"
                                                     autoFocus
                                                 />
                                                 <button
                                                     type="submit"
-                                                    className="h-8 shrink-0 rounded-md bg-blue-900 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-blue-950"
+                                                    className="h-8 shrink-0 rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                                                 >
                                                     Go
                                                 </button>
                                             </form>
 
-                                            <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-slate-100 pt-1.5">
+                                            <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-border pt-1.5">
                                                 {Array.from(
                                                     { length: lastPage },
                                                     (_, i) => i + 1,
@@ -828,8 +828,8 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                                         }}
                                                         className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
                                                             page === currentPage
-                                                                ? 'bg-blue-50 font-medium text-blue-900'
-                                                                : 'text-slate-600 hover:bg-slate-50'
+                                                                ? 'bg-primary/15 font-medium text-primary'
+                                                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                                                         }`}
                                                     >
                                                         Page {page}
@@ -890,7 +890,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                         }
                                         className={`h-8 w-8 shrink-0 rounded-md text-sm ${
                                             link.active
-                                                ? 'bg-blue-900 text-white hover:bg-blue-950'
+                                                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                                                 : ''
                                         }`}
                                     >
