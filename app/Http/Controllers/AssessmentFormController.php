@@ -136,6 +136,7 @@ class AssessmentFormController extends Controller
 
         return $this->receiptPdfService
             ->assessmentPrint($assessmentForm)
+            ->name("Assessment-Transaction-{$assessmentForm->reference_number}.pdf")
             ->inline();
     }
 
@@ -150,7 +151,7 @@ class AssessmentFormController extends Controller
 
         return $this->receiptPdfService
             ->assessmentPrint($assessmentForm)
-            ->name("receipt-{$assessmentForm->reference_number}.pdf");
+            ->name("Assessment-Transaction-{$assessmentForm->reference_number}.pdf");
     }
 
     /**

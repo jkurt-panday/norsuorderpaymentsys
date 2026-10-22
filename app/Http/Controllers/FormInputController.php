@@ -223,11 +223,12 @@ class FormInputController extends Controller
                 ? Pdf::loadView('pdf.op-landscape', compact('formInput', 'copyLabels'))->setPaper('legal', 'landscape')
                 : Pdf::loadView('pdf.op-a6', compact('formInput', 'copyLabels'))->setPaper('a6', 'portrait');
 
-            return $pdf->stream("OP-{$formInput->reference_number}.pdf");
+            return $pdf->stream("OP-Transaction-{$formInput->reference_number}.pdf");
         }
 
         return $this->receiptPDFService
             ->orderOfPaymentPrint($formInput)
+            ->name("OP-Transaction-{$formInput->reference_number}.pdf")
             ->inline();
     }
 
@@ -242,7 +243,7 @@ class FormInputController extends Controller
 
         return $this->receiptPDFService
             ->orderOfPaymentPrint($formInput)
-            ->name("receipt-{$formInput->reference_number}.pdf");
+            ->name("OP-Transaction-{$formInput->reference_number}.pdf");
     }
 
     /**
