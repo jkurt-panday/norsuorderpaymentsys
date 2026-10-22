@@ -534,7 +534,7 @@ export default function AssessmentEdit({
                     <CardHeader className="gap-3 border-b border-blue-100 bg-white sm:flex-row sm:items-start sm:justify-between">
                         <div className="space-y-1">
                             <div className="flex flex-wrap items-center gap-2">
-                                <CardTitle className="text-xl font-bold text-[#0B3D91]">
+                                <CardTitle className="text-xl font-bold text-foreground">
                                     Student Statement Printer
                                 </CardTitle>
                                 <Badge variant="outline">
@@ -566,7 +566,7 @@ export default function AssessmentEdit({
                                 onClick={openEmailPreview}
                                 disabled={!ledgerStatement.selectedStudent}
                                 variant="outline"
-                                className="min-h-11 border-blue-200 bg-white px-4 text-[#0B3D91] hover:bg-blue-50"
+                                className="min-h-11 border-blue-200 bg-white px-4 text-foreground hover:bg-blue-50"
                             >
                                 <Mail className="h-4 w-4" />
                                 Email Statement
@@ -585,7 +585,7 @@ export default function AssessmentEdit({
                     {isChangingStudent && (
                         <div className="border-b border-blue-100 bg-blue-50/40 px-4 py-4 sm:px-6">
                             <div className="max-w-xl space-y-2">
-                                <label className="text-sm font-semibold text-[#0B3D91]">
+                                <label className="text-sm font-semibold text-foreground">
                                     Select student for statement
                                 </label>
                                 <Combobox
@@ -751,7 +751,7 @@ export default function AssessmentEdit({
 
                                 <Card className="border-blue-100 bg-white">
                                     <CardHeader>
-                                        <CardTitle className="text-lg text-[#0B3D91]">
+                                        <CardTitle className="text-lg text-foreground">
                                             {
                                                 ledgerStatement.selectedStudent
                                                     .name
@@ -770,7 +770,7 @@ export default function AssessmentEdit({
                                     <CardContent className="overflow-x-auto p-0 sm:p-0">
                                         <table className="w-full min-w-180 border-collapse text-left text-xs">
                                             <thead>
-                                                <tr className="border-y border-blue-100 bg-blue-50/60 font-semibold text-[#0B3D91]">
+                                                <tr className="border-y border-blue-100 bg-blue-50/60 font-semibold text-foreground">
                                                     <th className="px-4 py-3">
                                                         Date
                                                     </th>
@@ -841,7 +841,7 @@ export default function AssessmentEdit({
                                                                             '—'}
                                                                     </Badge>
                                                                 </td>
-                                                                <td className="px-4 py-3 text-right font-medium text-[#0B3D91]">
+                                                                <td className="px-4 py-3 text-right font-medium text-foreground">
                                                                     {currencyFormatter.format(
                                                                         record.amount,
                                                                     )}
@@ -954,7 +954,7 @@ export default function AssessmentEdit({
                             size="lg"
                             onClick={handleConfirmSendEmail}
                             disabled={isSendingEmail}
-                            className="min-w-32 bg-[#0B3D91] hover:bg-[#092D6F]"
+                            className="min-w-32 bg-primary hover:bg-primary/90"
                         >
                             {isSendingEmail ? 'Sending...' : 'Send Email'}
                         </Button>
@@ -985,7 +985,7 @@ function Detail({
 function SummaryCard({
     label,
     value,
-    valueClassName = 'text-[#0B3D91]',
+    valueClassName = 'text-foreground',
 }: {
     label: string;
     value: number;
