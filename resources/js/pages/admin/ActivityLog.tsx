@@ -4,7 +4,6 @@ import type {
     ActivityLogFilters,
     ActivityLogPaginator,
 } from '@/components/ActivityLogTable';
-import AdminLayout from '@/layouts/admin/layout';
 import { CardTitle } from '@/components/ui/card';
 
 interface AdminActivityLogPageProps {
@@ -18,7 +17,7 @@ export default function AdminActivityLogPage() {
         usePage<AdminActivityLogPageProps>().props;
 
     return (
-        <AdminLayout>
+        <>
             <Head title="Activity Log" />
             <div className="min-h-screen bg-page-background px-4 py-8">
                 <div className="mx-auto max-w-7xl">
@@ -41,6 +40,6 @@ export default function AdminActivityLogPage() {
                     />
                 </div>
             </div>
-        </AdminLayout>
+        </>
     );
 }

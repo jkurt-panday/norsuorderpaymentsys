@@ -66,7 +66,7 @@ export default function AuthorizedOfficialIndex({
             sortable: 'name',
             width: '240px',
             render: (row) => (
-                <span className="block font-medium text-slate-900">
+                <span className="block font-medium text-foreground">
                     {row.name}
                 </span>
             ),
@@ -88,14 +88,14 @@ export default function AuthorizedOfficialIndex({
             className: 'text-center',
             render: (row) =>
                 row.is_active ? (
-                    <span className="inline-flex items-center justify-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800">
+                    <span className="inline-flex items-center justify-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800 dark:border dark:border-emerald-800/40 dark:bg-emerald-950/50 dark:text-emerald-400">
                         Current
                     </span>
                 ) : (
                     <button
                         type="button"
                         onClick={() => handleSetActive(row.id)}
-                        className="inline-flex items-center justify-center gap-1 rounded-full bg-blue-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-blue-700"
+                        className="inline-flex items-center justify-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                         title="Set as current signatory"
                     >
                         <Shield className="h-3 w-3" />
@@ -107,7 +107,7 @@ export default function AuthorizedOfficialIndex({
             header: 'Date added',
             sortable: 'created_at',
             width: '160px',
-            className: 'whitespace-nowrap text-slate-600',
+            className: 'whitespace-nowrap text-muted-foreground',
             render: (row) =>
                 new Date(row.created_at).toLocaleDateString('en-US', {
                     year: 'numeric',

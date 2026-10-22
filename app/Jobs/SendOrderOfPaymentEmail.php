@@ -4,15 +4,16 @@ namespace App\Jobs;
 
 use App\Mail\OrderOfPaymentMail;
 use App\Models\FormInput;
+use App\Models\StaffInput;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Throwable;
 
-class SendOrderOfPaymentEmail implements ShouldBeUnique, ShouldQueue
+class SendOrderOfPaymentEmail implements ShouldQueue
 {
     use Queueable;
 
@@ -30,16 +31,6 @@ class SendOrderOfPaymentEmail implements ShouldBeUnique, ShouldQueue
         public ?string $note = null,
     ) {}
 
-    public function uniqueId(): string
-    {
-        return (string) $this->formInputId;
-    }
-
-    public function uniqueFor(): int
-    {
-        return 3600;
-    }
-
     public function handle(): void
     {
         $formInput = FormInput::query()
@@ -48,9 +39,19 @@ class SendOrderOfPaymentEmail implements ShouldBeUnique, ShouldQueue
                 'staffInput.uacs',
                 'staffInput.referenceDocument',
             ])
-            ->findOrFail($this->formInputId);
+            ->find($this->formInputId);
+
+        if (! $formInput) {
+            Log::warning('Order of Payment email skipped — form input missing', [
+                'form_input_id' => $this->formInputId,
+            ]);
+
+            return;
+        }
 
         if (! $formInput->staffInput || ! $formInput->email) {
+            $this->markFailed('Order of Payment record or recipient email is missing.');
+
             return;
         }
 
@@ -77,7 +78,11 @@ class SendOrderOfPaymentEmail implements ShouldBeUnique, ShouldQueue
             )
         );
 
-        $formInput->staffInput()->update(['emailed_at' => now()]);
+        $formInput->staffInput()->update([
+            'emailed_at' => now(),
+            'email_status' => 'sent',
+            'email_error' => null,
+        ]);
     }
 
     public function failed(?Throwable $exception): void
@@ -86,5 +91,21 @@ class SendOrderOfPaymentEmail implements ShouldBeUnique, ShouldQueue
             'form_input_id' => $this->formInputId,
             'message' => $exception->getMessage(),
         ]);
+
+        $this->markFailed($exception->getMessage());
+    }
+
+    /**
+     * Persist a terminal failure so the bulk-email progress UI stops
+     * reporting the recipient as "pending" forever.
+     */
+    private function markFailed(string $reason): void
+    {
+        StaffInput::query()
+            ->where('form_input_id', $this->formInputId)
+            ->update([
+                'email_status' => 'failed',
+                'email_error' => Str::limit($reason, 500),
+            ]);
     }
 }

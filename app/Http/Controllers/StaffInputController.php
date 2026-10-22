@@ -28,6 +28,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -39,6 +40,24 @@ class StaffInputController extends Controller
         "Cash Unit's Copy",
         "Accounting Unit's Copy",
     ];
+
+    /**
+     * How long a queued email job is considered "live" for de-duplication.
+     *
+     * Re-sending to a recipient whose job is still waiting in the queue
+     * would deliver the same email twice; once the window lapses the job
+     * is considered stuck and may be queued again.
+     */
+    public const EMAIL_QUEUE_WINDOW_MINUTES = 15;
+
+    /**
+     * How long a queued job may sit untouched before it is considered
+     * stalled (i.e. no queue worker is consuming the queue).
+     */
+    public const QUEUE_STALL_SECONDS = 60;
+
+    /** @var array<string, bool> */
+    private static array $queueSchemaCache = [];
 
     /**
      * Display the staff dashboard.
@@ -818,21 +837,61 @@ class StaffInputController extends Controller
 
         $skipped = count($requestedIds) - count($eligibleIds);
 
-        $dispatchedIds = [];
-        foreach ($eligibleIds as $formInputId) {
+        // A recipient that already has a live (unprocessed) job must not be
+        // queued twice, otherwise the same email is delivered twice.
+        $alreadyQueued = StaffInput::query()
+            ->whereIn('form_input_id', $eligibleIds)
+            ->where('email_status', 'pending')
+            ->where('email_queued_at', '>=', now()->subMinutes(self::EMAIL_QUEUE_WINDOW_MINUTES))
+            ->pluck('form_input_id')
+            ->all();
+
+        $queueIds = array_values(array_diff($eligibleIds, $alreadyQueued));
+
+        // Mark every eligible recipient as pending for *this* send so the
+        // progress UI reflects the current attempt instead of a stale
+        // emailed_at coming from an earlier send.
+        $now = now();
+
+        if ($eligibleIds !== []) {
+            StaffInput::query()
+                ->whereIn('form_input_id', $eligibleIds)
+                ->update([
+                    'email_status' => 'pending',
+                    'email_error' => null,
+                    'updated_at' => $now,
+                ]);
+        }
+
+        if ($queueIds !== []) {
+            StaffInput::query()
+                ->whereIn('form_input_id', $queueIds)
+                ->update(['email_queued_at' => $now]);
+        }
+
+        foreach ($queueIds as $formInputId) {
             SendOrderOfPaymentEmail::dispatch(
                 $formInputId,
                 $validated['subject'] ?? null,
                 $validated['recipient_name'] ?? null,
                 $validated['note'] ?? null,
             );
-            $dispatchedIds[] = $formInputId;
+        }
+
+        $messages = [count($queueIds).' email job(s) queued successfully.'];
+
+        if (count($alreadyQueued) > 0) {
+            $messages[] = count($alreadyQueued).' request(s) were already queued and will not be sent twice.';
+        }
+
+        if ($skipped > 0) {
+            $messages[] = "{$skipped} request(s) were skipped (no email or not yet processed).";
         }
 
         return response()->json([
             'success' => true,
-            'message' => count($eligibleIds).' email job(s) queued successfully.'.($skipped > 0 ? " {$skipped} request(s) were skipped (no email or not yet processed)." : ''),
-            'form_input_ids' => $dispatchedIds,
+            'message' => implode(' ', $messages),
+            'form_input_ids' => array_values($eligibleIds),
             'total' => count($eligibleIds),
         ]);
     }
@@ -847,32 +906,62 @@ class StaffInputController extends Controller
             'form_input_ids.*' => ['integer', 'exists:form_inputs,id'],
         ]);
 
-        $formInputIds = $request->input('form_input_ids');
+        $formInputIds = array_map('intval', $request->input('form_input_ids'));
 
-        // Check staff_input for emailed_at
-        $emailedStatus = DB::table('staff_inputs')
+        $rows = StaffInput::query()
             ->whereIn('form_input_id', $formInputIds)
-            ->pluck('emailed_at', 'form_input_id');
+            ->get(['form_input_id', 'emailed_at', 'email_status', 'email_error'])
+            ->keyBy('form_input_id');
 
         $results = [];
         $sentCount = 0;
         $pendingCount = 0;
+        $failedCount = 0;
+        $stalledCount = 0;
+
+        $stalledJobIds = $this->stalledEmailJobIds();
 
         foreach ($formInputIds as $formInputId) {
-            $emailedAt = $emailedStatus[$formInputId] ?? null;
+            $row = $rows->get($formInputId);
 
-            if ($emailedAt) {
-                $status = 'sent';
-                $sentCount++;
-            } else {
-                $status = 'pending';
-                $pendingCount++;
+            if (! $row) {
+                $failedCount++;
+                $results[] = [
+                    'form_input_id' => $formInputId,
+                    'status' => 'failed',
+                    'emailed_at' => null,
+                    'stalled' => false,
+                    'error' => 'Order of Payment record not found.',
+                ];
+
+                continue;
+            }
+
+            $status = in_array($row->email_status, StaffInput::EMAIL_STATUSES, true)
+                ? $row->email_status
+                // Records emailed before per-recipient tracking existed.
+                : ($row->emailed_at ? 'sent' : 'pending');
+
+            $stalled = $status === 'pending' && isset($stalledJobIds[$formInputId]);
+
+            match ($status) {
+                'sent' => $sentCount++,
+                'failed' => $failedCount++,
+                default => $pendingCount++,
+            };
+
+            if ($stalled) {
+                $stalledCount++;
             }
 
             $results[] = [
                 'form_input_id' => $formInputId,
                 'status' => $status,
-                'emailed_at' => $emailedAt,
+                'emailed_at' => $row->emailed_at,
+                'stalled' => $stalled,
+                'error' => $stalled
+                    ? 'Queued but never picked up — no queue worker is running. Start one with "php artisan queue:work".'
+                    : $row->email_error,
             ];
         }
 
@@ -881,8 +970,9 @@ class StaffInputController extends Controller
             'summary' => [
                 'total' => count($formInputIds),
                 'sent' => $sentCount,
-                'failed' => 0,
+                'failed' => $failedCount,
                 'pending' => $pendingCount,
+                'stalled' => $stalledCount,
             ],
             'completed' => $pendingCount === 0,
         ]);
@@ -899,12 +989,65 @@ class StaffInputController extends Controller
     {
         $formInputs = FormInput::with([
             'staffInput' => function ($q) {
-                $q->select('id', 'form_input_id', 'status', 'emailed_at');
+                $q->select('id', 'form_input_id', 'status', 'emailed_at', 'email_status');
             },
         ])->orderBy('id')->get();
 
         return response()->json([
             'data' => $formInputs,
+            'queue_stalled' => count($this->stalledEmailJobIds()) > 0,
         ]);
+    }
+
+    /**
+     * Form input IDs whose queued email job is sitting in the queue
+     * untouched — neither reserved nor attempted.
+     *
+     * A running worker reserves a job within a couple of seconds, so a job
+     * left unreserved for more than QUEUE_STALL_SECONDS means no worker is
+     * consuming the queue and the emails will never be delivered.
+     *
+     * @return array<int, true>
+     */
+    private function stalledEmailJobIds(): array
+    {
+        if (config('queue.default') !== 'database') {
+            return [];
+        }
+
+        if (! array_key_exists('has_jobs_table', self::$queueSchemaCache)) {
+            self::$queueSchemaCache['has_jobs_table'] = Schema::hasTable('jobs');
+        }
+
+        if (! self::$queueSchemaCache['has_jobs_table']) {
+            return [];
+        }
+
+        // `created_at` is an unsigned unix timestamp on the database queue
+        // driver, so the age check is done in PHP rather than in SQL.
+        $rows = DB::table('jobs')
+            ->whereNull('reserved_at')
+            ->where('attempts', 0)
+            ->get(['payload', 'created_at']);
+
+        $cutoff = now()->subSeconds(self::QUEUE_STALL_SECONDS)->getTimestamp();
+
+        $stalled = [];
+
+        foreach ($rows as $row) {
+            $createdAt = is_numeric($row->created_at)
+                ? (int) $row->created_at
+                : strtotime((string) $row->created_at);
+
+            if ($createdAt === false || $createdAt >= $cutoff) {
+                continue;
+            }
+
+            if (preg_match('/formInputId[^0-9]+(\d+)/', $row->payload, $matches) === 1) {
+                $stalled[(int) $matches[1]] = true;
+            }
+        }
+
+        return $stalled;
     }
 }

@@ -44,7 +44,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import AdminLayout from '@/layouts/admin/layout';
 import {
     update as updateAdminUser,
     toggle as toggleAdminUser,
@@ -90,10 +89,10 @@ interface UserFilters {
 }
 
 const ROLE_BADGE_CLASSES: Record<string, string> = {
-    admin: 'bg-emerald-100 text-emerald-800',
-    staff: 'bg-blue-100 text-blue-800',
-    cashier: 'bg-amber-100 text-amber-800',
-    client: 'bg-slate-100 text-slate-800',
+    admin: 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 dark:border dark:border-blue-800/40',
+    staff: 'bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 dark:border dark:border-purple-800/40',
+    cashier: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:border dark:border-amber-800/40',
+    client: 'bg-slate-100 text-slate-800 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40',
 };
 
 const ROLE_OPTIONS = [
@@ -395,29 +394,29 @@ export default function AdminUserManagement() {
     ];
 
     return (
-        <AdminLayout>
+        <>
             <Head title="User Management" />
 
             <div className="mx-auto max-w-7xl">
-                <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
+                <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-border bg-card p-6 shadow-sm md:flex-row md:items-center md:justify-between">
                     <div>
                         <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                             User Management
                         </CardTitle>
-                        <p className="text-sm text-slate-500">
+                        <p className="text-sm text-muted-foreground">
                             Manage system users, roles, and access permissions.
                         </p>
                     </div>
-                    <Button onClick={openCreateDialog} className="gap-2 bg-blue-600 text-white hover:bg-blue-400" variant="outline">
+                    <Button onClick={openCreateDialog} className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
                         <Plus className="h-4 w-4" />
                         Add User
                     </Button>
                 </div>
 
-                <Card className="border border-slate-200 bg-white shadow-sm">
+                <Card className="border border-border bg-card shadow-sm">
                     <div className="relative h-0.5 w-full overflow-hidden bg-transparent">
                         {isBusy && (
-                            <div className="absolute inset-0 animate-[table-loading-bar_1s_ease-in-out_infinite] bg-blue-500" />
+                            <div className="absolute inset-0 animate-[table-loading-bar_1s_ease-in-out_infinite] bg-primary" />
                         )}
                     </div>
                     <style>{`
@@ -427,13 +426,13 @@ export default function AdminUserManagement() {
                         }
                     `}</style>
 
-                    <CardHeader className="border-b border-slate-200 px-6 py-3.5">
+                    <CardHeader className="border-b border-border px-6 py-3.5">
                         <form
                             onSubmit={handleSearchSubmit}
                             className="flex w-full flex-wrap items-center gap-2"
                         >
                             <div className="relative min-w-50 flex-1 sm:max-w-xs">
-                                <Search className="pointer-events-none absolute top-2.5 left-2.5 h-4 w-4 text-slate-400" />
+                                <Search className="pointer-events-none absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     type="search"
                                     placeholder="Search name, email, role..."
@@ -468,7 +467,7 @@ export default function AdminUserManagement() {
                             <Button
                                 type="submit"
                                 size="sm"
-                                className="h-9 bg-blue-600 text-xs text-white hover:bg-blue-400"
+                                className="h-9 bg-primary text-xs text-primary-foreground hover:bg-primary/90"
                             >
                                 <Search className="mr-1.5 h-3.5 w-3.5" />
                                 Search
@@ -496,7 +495,7 @@ export default function AdminUserManagement() {
                             className={`transition-opacity duration-150 ${isBusy ? 'opacity-60' : 'opacity-100'}`}
                         >
                             <TableHeader>
-                                <TableRow className="bg-slate-50 hover:bg-slate-50">
+                                <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50">
                                     {COLUMNS.map((col) => {
                                         const sortKeyName = col.sortable;
                                         const isActive = sortKeyName
@@ -510,7 +509,7 @@ export default function AdminUserManagement() {
                                                     sortKeyName
                                                         ? 'cursor-pointer transition-colors select-none'
                                                         : ''
-                                                } ${isActive ? 'bg-blue-50/80 font-bold text-blue-600' : 'hover:text-slate-900'}`}
+                                                } ${isActive ? 'bg-primary/10 font-bold text-primary' : 'hover:text-foreground'}`}
                                                 onClick={
                                                     sortKeyName
                                                         ? () =>
@@ -526,12 +525,12 @@ export default function AdminUserManagement() {
                                                         (isActive ? (
                                                             effectiveSortDir ===
                                                             'asc' ? (
-                                                                <ChevronLeft className="h-4 w-4 stroke-[2.5] text-blue-600" />
+                                                                <ChevronLeft className="h-4 w-4 stroke-[2.5] text-primary" />
                                                             ) : (
-                                                                <ChevronRight className="h-4 w-4 stroke-[2.5] text-blue-600" />
+                                                                <ChevronRight className="h-4 w-4 stroke-[2.5] text-primary" />
                                                             )
                                                         ) : (
-                                                            <ChevronRight className="h-3.5 w-3.5 rotate-90 text-slate-400" />
+                                                            <ChevronRight className="h-3.5 w-3.5 rotate-90 text-muted-foreground/60" />
                                                         ))}
                                                 </span>
                                             </TableHead>
@@ -544,18 +543,18 @@ export default function AdminUserManagement() {
                                     <TableRow>
                                         <TableCell
                                             colSpan={6}
-                                            className="py-10 text-center text-sm text-slate-500"
+                                            className="py-10 text-center text-sm text-muted-foreground"
                                         >
                                             No users found.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
                                     rows.map((user) => (
-                                        <TableRow key={user.id}>
-                                            <TableCell className="font-medium text-slate-900">
+                                        <TableRow key={user.id} className="border-b border-border hover:bg-muted/50">
+                                            <TableCell className="font-medium text-foreground">
                                                 {user.name}
                                             </TableCell>
-                                            <TableCell className="text-sm text-slate-700">
+                                            <TableCell className="text-sm text-foreground">
                                                 {user.email}
                                             </TableCell>
                                             <TableCell>
@@ -565,7 +564,7 @@ export default function AdminUserManagement() {
                                                         ROLE_BADGE_CLASSES[
                                                             user.role
                                                         ] ||
-                                                        'bg-slate-100 text-slate-800'
+                                                        'bg-slate-100 text-slate-800 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40'
                                                     }
                                                 >
                                                     {user.role
@@ -574,24 +573,24 @@ export default function AdminUserManagement() {
                                                         user.role.slice(1)}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell className="text-sm text-slate-600">
+                                            <TableCell className="text-sm text-muted-foreground">
                                                 {user.deleted_at ? (
                                                     <Badge
                                                         variant="secondary"
-                                                        className="bg-rose-100 text-rose-800"
+                                                        className="bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 dark:border dark:border-rose-800/40"
                                                     >
                                                         Deactivated
                                                     </Badge>
                                                 ) : (
                                                     <Badge
                                                         variant="secondary"
-                                                        className="bg-emerald-100 text-emerald-800"
+                                                        className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border dark:border-emerald-800/40"
                                                     >
                                                         Active
                                                     </Badge>
                                                 )}
                                             </TableCell>
-                                            <TableCell className="text-sm text-slate-500">
+                                            <TableCell className="text-sm text-muted-foreground">
                                                 {formatDateTime(
                                                     user.created_at,
                                                 )}
@@ -605,7 +604,7 @@ export default function AdminUserManagement() {
                                                             openEditDialog(user)
                                                         }
                                                         title="Edit user"
-                                                        className="text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                                                        className="text-muted-foreground hover:bg-muted hover:text-foreground"
                                                     >
                                                         <Pencil className="h-4 w-4" />
                                                     </Button>
@@ -622,8 +621,8 @@ export default function AdminUserManagement() {
                                                         }
                                                         className={
                                                             user.deleted_at
-                                                                ? 'text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700'
-                                                                : 'text-slate-600 hover:bg-rose-50 hover:text-rose-600'
+                                                                ? 'text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-950/50'
+                                                                : 'text-muted-foreground hover:bg-destructive/15 hover:text-destructive'
                                                         }
                                                     >
                                                         <Power className="h-4 w-4" />
@@ -637,8 +636,8 @@ export default function AdminUserManagement() {
                         </Table>
 
                         {rows.length > 0 && (
-                            <div className="flex items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 sm:px-5">
-                                <p className="shrink-0 text-xs text-slate-500 sm:text-sm">
+                            <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3 sm:px-5">
+                                <p className="shrink-0 text-xs text-muted-foreground sm:text-sm">
                                     Showing {users.from ?? 0}-{users.to ?? 0} of{' '}
                                     {users.total} results
                                 </p>
@@ -696,7 +695,7 @@ export default function AdminUserManagement() {
                                                         render={
                                                             <button
                                                                 type="button"
-                                                                className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+                                                                className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                                                             >
                                                                 Page{' '}
                                                                 {currentPage} of{' '}
@@ -706,7 +705,7 @@ export default function AdminUserManagement() {
                                                     />
                                                     <PopoverContent
                                                         align="center"
-                                                        className="w-48 space-y-2 p-2"
+                                                        className="w-48 space-y-2 p-2 border-border bg-popover"
                                                     >
                                                         <form
                                                             onSubmit={(e) => {
@@ -749,17 +748,17 @@ export default function AdminUserManagement() {
                                                                     )
                                                                 }
                                                                 placeholder={`1–${lastPage}`}
-                                                                className="h-8 w-full min-w-0 rounded-md border border-slate-200 px-2 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-200"
+                                                                className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring/20"
                                                                 autoFocus
                                                             />
                                                             <button
                                                                 type="submit"
-                                                                className="h-8 shrink-0 rounded-md bg-blue-900 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-blue-950"
+                                                                className="h-8 shrink-0 rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                                                             >
                                                                 Go
                                                             </button>
                                                         </form>
-                                                        <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-slate-100 pt-1.5">
+                                                        <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-border pt-1.5">
                                                             {Array.from(
                                                                 {
                                                                     length: lastPage,
@@ -777,7 +776,7 @@ export default function AdminUserManagement() {
                                                                             false,
                                                                         );
                                                                     }}
-                                                                    className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${page === currentPage ? 'bg-blue-50 font-medium text-blue-900' : 'text-slate-600 hover:bg-slate-50'}`}
+                                                                    className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${page === currentPage ? 'bg-primary/15 font-medium text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
                                                                 >
                                                                     Page {page}
                                                                 </button>
@@ -843,7 +842,7 @@ export default function AdminUserManagement() {
                                                               ? 'Next page'
                                                               : `Page ${link.label}`
                                                     }
-                                                    className={`h-8 w-8 shrink-0 rounded-md text-sm ${link.active ? 'bg-blue-900 text-white hover:bg-blue-950' : ''}`}
+                                                    className={`h-8 w-8 shrink-0 rounded-md text-sm ${link.active ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}`}
                                                 >
                                                     {isPrev ? (
                                                         <ChevronLeft className="h-4 w-4" />
@@ -998,7 +997,7 @@ export default function AdminUserManagement() {
                                 >
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={processing} className="bg-blue-600 text-white hover:bg-blue-400">
+                                <Button type="submit" disabled={processing} className="bg-primary text-primary-foreground hover:bg-primary/90">
                                     {processing
                                         ? 'Saving...'
                                         : editingUser
@@ -1064,6 +1063,6 @@ export default function AdminUserManagement() {
                     </DialogContent>
                 </Dialog>
             </div>
-        </AdminLayout>
+        </>
     );
 }

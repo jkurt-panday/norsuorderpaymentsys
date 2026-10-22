@@ -47,9 +47,9 @@ const particularPresets: Record<'ar' | 'payment' | 'adjustment', string[]> = {
 };
 
 const entryTypeOptions = [
-    { value: 'ar', label: 'Accounts Receivable (AR)', short: 'AR', icon: ReceiptText, color: 'border-blue-500 text-blue-700 bg-blue-50' },
-    { value: 'payment', label: 'Payment (OR)', short: 'Payment', icon: Wallet, color: 'border-emerald-500 text-emerald-700 bg-emerald-50' },
-    { value: 'adjustment', label: 'Adjustment', short: 'Adjustment', icon: ArrowDownUp, color: 'border-purple-500 text-purple-700 bg-purple-50' },
+    { value: 'ar', label: 'Accounts Receivable (AR)', short: 'AR', icon: ReceiptText, color: 'border-blue-500 text-blue-700 bg-blue-50 dark:border-blue-500 dark:text-blue-400 dark:bg-blue-950/40' },
+    { value: 'payment', label: 'Payment (OR)', short: 'Payment', icon: Wallet, color: 'border-emerald-500 text-emerald-700 bg-emerald-50 dark:border-emerald-500 dark:text-emerald-400 dark:bg-emerald-950/40' },
+    { value: 'adjustment', label: 'Adjustment', short: 'Adjustment', icon: ArrowDownUp, color: 'border-purple-500 text-purple-700 bg-purple-50 dark:border-purple-500 dark:text-purple-400 dark:bg-purple-950/40' },
 ] as const;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -209,48 +209,48 @@ return;
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex w-full items-center justify-between rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                className="flex w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
             >
                 <span
                     className={
                         selectedStudent
-                            ? 'font-medium text-[#0B3D91]'
-                            : 'text-[#7FA6D6]'
+                            ? 'font-medium text-foreground'
+                            : 'text-muted-foreground'
                     }
                 >
                     {selectedStudent
                         ? formatStudentLabel(selectedStudent)
                         : '-- Select / Search Student --'}
                 </span>
-                <ChevronsUpDown className="h-4 w-4 text-[#7FA6D6]" />
+                <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
             </button>
 
             {isOpen && (
-                <div className="absolute z-50 mt-1 w-full space-y-2 rounded-md border border-[#CFE3FF] bg-white p-2 shadow-lg">
+                <div className="absolute z-50 mt-1 w-full space-y-2 rounded-md border border-border bg-popover p-2 text-popover-foreground shadow-lg">
                     <div className="relative">
-                        <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-[#8AA8CC]" />
+                        <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             type="text"
                             placeholder="Type Student ID or name to filter..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="h-9 border-[#CFE3FF] pl-8 text-xs"
+                            className="h-9 border-input bg-background pl-8 text-xs text-foreground placeholder:text-muted-foreground"
                             autoFocus
                         />
                         {search && (
                             <button
                                 type="button"
                                 onClick={() => setSearch('')}
-                                className="absolute top-2.5 right-2.5 text-xs text-[#8AA8CC] hover:text-[#0B3D91]"
+                                className="absolute top-2.5 right-2.5 text-xs text-muted-foreground hover:text-foreground"
                             >
                                 <X className="h-4 w-4" />
                             </button>
                         )}
                     </div>
 
-                    <div className="max-h-60 divide-y divide-[#EAF2FF] overflow-y-auto rounded-md border border-[#EAF2FF]">
+                    <div className="max-h-60 divide-y divide-border overflow-y-auto rounded-md border border-border">
                         {filteredStudents.length === 0 ? (
-                            <p className="p-3 text-center text-xs text-[#8AA8CC]">
+                            <p className="p-3 text-center text-xs text-muted-foreground">
                                 No students found.
                             </p>
                         ) : (
@@ -267,21 +267,21 @@ return;
                                                 onChange(s.id);
                                                 setIsOpen(false);
                                             }}
-                                            className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-[#F3F8FF] ${
+                                            className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-muted ${
                                                 isSelected
-                                                    ? 'bg-[#EAF2FF] font-semibold text-[#0B3D91]'
-                                                    : 'text-[#334E68]'
+                                                    ? 'bg-primary/10 font-semibold text-primary'
+                                                    : 'text-foreground'
                                             }`}
                                         >
                                             <span>{formatStudentLabel(s)}</span>
                                             {isSelected && (
-                                                <Check className="h-3.5 w-3.5 text-[#0F6FFF]" />
+                                                <Check className="h-3.5 w-3.5 text-primary" />
                                             )}
                                         </button>
                                     );
                                 })}
                                 {hasMoreStudents && (
-                                    <div className="bg-[#F8FBFF] px-3 py-2 text-center text-[11px] text-[#5C7A9E]">
+                                    <div className="bg-muted/40 px-3 py-2 text-center text-[11px] text-muted-foreground">
                                         Showing first {MATCH_LIMIT} of{' '}
                                         {filteredStudents.length} students. Type
                                         to narrow search.
@@ -631,7 +631,42 @@ return;
 
             {/* ── Top Header ───────────────────────────────────────────── */}
             <div className="flex flex-col gap-4 border-b border-[#CFE3FF] pb-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
+                <div>
+                    <h1 className="text-2xl font-bold text-[#0B3D91]">
+                        Add New Transaction
+                    </h1>
+                    <p className="text-xs text-[#5C7A9E]">
+                        Post Accounts Receivable, Payments, Adjustments, or multi-line transactions.
+                    </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* Single vs Batch Switch */}
+                    <div className="flex items-center gap-1 rounded-lg border border-[#CFE3FF] bg-white p-1 shadow-xs">
+                        <button
+                            type="button"
+                            onClick={() => setIsBatchMode(false)}
+                            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                !isBatchMode
+                                    ? 'bg-[#0F6FFF] text-white shadow-xs'
+                                    : 'text-[#5C7A9E] hover:text-[#0B3D91]'
+                            }`}
+                        >
+                            <User className="h-3.5 w-3.5" /> Single Entry
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setIsBatchMode(true)}
+                            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                isBatchMode
+                                    ? 'bg-[#0F6FFF] text-white shadow-xs'
+                                    : 'text-[#5C7A9E] hover:text-[#0B3D91]'
+                            }`}
+                        >
+                            <Layers className="h-3.5 w-3.5" /> Batch / Multi-Line
+                        </button>
+                    </div>
+
                     <Button
                         variant="outline"
                         size="sm"
@@ -640,40 +675,6 @@ return;
                     >
                         <ArrowLeft className="mr-1 h-4 w-4" /> Back
                     </Button>
-                    <div>
-                        <h1 className="text-2xl font-bold text-[#0B3D91]">
-                            Add New Transaction
-                        </h1>
-                        <p className="text-xs text-[#5C7A9E]">
-                            Post Accounts Receivable, Payments, Adjustments, or multi-line transactions.
-                        </p>
-                    </div>
-                </div>
-
-                {/* Single vs Batch Switch */}
-                <div className="flex items-center gap-1 rounded-lg border border-[#CFE3FF] bg-white p-1 shadow-xs">
-                    <button
-                        type="button"
-                        onClick={() => setIsBatchMode(false)}
-                        className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                            !isBatchMode
-                                ? 'bg-[#0F6FFF] text-white shadow-xs'
-                                : 'text-[#5C7A9E] hover:text-[#0B3D91]'
-                        }`}
-                    >
-                        <User className="h-3.5 w-3.5" /> Single Entry
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setIsBatchMode(true)}
-                        className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                            isBatchMode
-                                ? 'bg-[#0F6FFF] text-white shadow-xs'
-                                : 'text-[#5C7A9E] hover:text-[#0B3D91]'
-                        }`}
-                    >
-                        <Layers className="h-3.5 w-3.5" /> Batch / Multi-Line
-                    </button>
                 </div>
             </div>
 

@@ -32,3 +32,10 @@ yarn-error.log
 *.csv
 GRADUATE_LEDGER_DATA_REVIEW.md
 SYSTEM_WORKFLOW_PRESENTATION.md
+/.opencode
+/.impeccable
+/plan
+/scratch
+.supa
+.env.supa
+Agents.md

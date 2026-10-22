@@ -63,7 +63,7 @@ export function DataTablePagination({
                 onClick={() => onPageChange(currentPage - 1)}
                 disabled={currentPage <= 1}
                 aria-label="Previous page"
-                className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-input bg-background text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
             >
                 <ChevronLeft className="h-4 w-4" />
             </button>
@@ -71,7 +71,7 @@ export function DataTablePagination({
                 p === 'ellipsis' ? (
                     <span
                         key={`ellipsis-${i}`}
-                        className="px-1 text-sm text-slate-400"
+                        className="px-1 text-sm text-muted-foreground"
                     >
                         …
                     </span>
@@ -82,8 +82,8 @@ export function DataTablePagination({
                         onClick={() => onPageChange(p)}
                         className={
                             p === currentPage
-                                ? 'flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-sm font-semibold text-white'
-                                : 'flex h-9 w-9 items-center justify-center rounded-xl text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50'
+                                ? 'flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground'
+                                : 'flex h-9 w-9 items-center justify-center rounded-xl text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
                         }
                     >
                         {p}
@@ -95,7 +95,7 @@ export function DataTablePagination({
                 onClick={() => onPageChange(currentPage + 1)}
                 disabled={currentPage >= totalPages}
                 aria-label="Next page"
-                className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-input bg-background text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
             >
                 <ChevronRight className="h-4 w-4" />
             </button>
@@ -115,13 +115,13 @@ commitGoTo();
                     }}
                     placeholder="Go to"
                     aria-label="Go to page"
-                    className="h-9 w-16 rounded-xl border border-slate-200 bg-white px-2 text-sm text-slate-600 outline-none transition-colors focus:border-blue-400 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    className="h-9 w-16 rounded-xl border border-input bg-background px-2 text-sm text-foreground outline-none transition-colors focus:border-primary [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
                 <button
                     type="button"
                     onClick={commitGoTo}
                     disabled={!goToValue}
-                    className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="h-9 rounded-xl border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
                 >
                     Go
                 </button>

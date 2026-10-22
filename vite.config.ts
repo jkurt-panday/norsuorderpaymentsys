@@ -17,11 +17,9 @@ export default defineConfig({
             input: ['resources/css/app.css', 'resources/js/app.tsx'],
             refresh: true,
             fonts: [
-                bunny('Instrument Sans', {
-                    weights: [400, 500, 600],
-                    // Add specific font display strategy
+                bunny('Karla', {
+                    weights: [400, 500, 600, 700],
                     fontDisplay: 'swap',
-                    // preload: false,
                 }),
             ],
         }),
@@ -57,6 +55,8 @@ export default defineConfig({
         include: [
             'react',
             'react-dom',
+            'react-is',
+            'recharts',
             '@inertiajs/react',
             // Add any other dependencies that might cause issues
         ],

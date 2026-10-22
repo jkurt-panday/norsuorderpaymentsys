@@ -60,7 +60,7 @@ flashToast('error', flash.error);
             render: (row) => (
                 <Badge
                     variant="secondary"
-                    className="bg-slate-800 text-white hover:bg-slate-800"
+                    className="border-primary/20 bg-primary/10 font-mono text-primary hover:bg-primary/20 dark:bg-primary/20 dark:text-primary"
                 >
                     {row.object_code}
                 </Badge>

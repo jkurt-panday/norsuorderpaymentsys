@@ -181,7 +181,7 @@ function getEntryTypeBadge(type?: string): string {
     const normalized = (type ?? '').trim().toUpperCase();
 
     if (normalized === 'PAYMENT' || normalized === 'P') {
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold';
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/40 font-semibold';
     }
 
     if (
@@ -189,24 +189,24 @@ function getEntryTypeBadge(type?: string): string {
         normalized === 'ADJ' ||
         normalized.includes('ADJUST')
     ) {
-        return 'bg-purple-50 text-purple-700 border-purple-200 font-semibold';
+        return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800/40 font-semibold';
     }
 
-    return 'bg-[#EAF2FF] text-[#0B62E0] border-[#B9D8FF] font-semibold';
+    return 'bg-primary/10 text-primary border-primary/20 dark:bg-primary/20 dark:text-primary font-semibold';
 }
 
 function getRemarkBadge(remark?: string): string {
     const normalized = (remark ?? '').trim().toLowerCase();
 
     if (normalized === 'outstanding') {
-        return 'bg-amber-50 text-amber-800 border-amber-300 font-semibold';
+        return 'bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/40 font-semibold';
     }
 
     if (normalized === 'settled') {
-        return 'bg-emerald-50 text-emerald-800 border-emerald-300 font-semibold';
+        return 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/40 font-semibold';
     }
 
-    return 'bg-gray-50 text-gray-700 border-gray-200';
+    return 'bg-muted text-muted-foreground border-border';
 }
 
 interface IndexProps {
@@ -964,18 +964,14 @@ export default function Index({
                 <Head title="Graduate School Ledger" />
 
                 {/* Top Header / Action Bar */}
-                <div className="flex flex-col gap-4 border-b border-[#CFE3FF] pb-5 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-col gap-4 border-b border-border pb-5 md:flex-row md:items-center md:justify-between">
                     <div>
                         <div className="flex items-center gap-2">
-                            {/* <h1 className="text-2xl font-bold tracking-tight text-[#0B3D91]">Graduate School Ledger</h1> */}
                             <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                                 Graduate School Ledger
                             </CardTitle>
-                            {/* <Badge variant="outline" className="bg-[#EAF2FF] text-[#0B62E0] border-[#B9D8FF] font-semibold">
-                Graduate School
-              </Badge> */}
                         </div>
-                        <p className="mt-0.5 text-sm text-[#5C7A9E]">
+                        <p className="mt-0.5 text-sm text-muted-foreground">
                             Tuition, fees, and payment transactions for graduate
                             students.
                         </p>
@@ -983,8 +979,7 @@ export default function Index({
 
                     <div className="flex flex-wrap items-center justify-end gap-2">
                         <Button
-                            variant="outline"
-                            className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
+                            className="h-9 bg-primary text-primary-foreground hover:bg-primary/90"
                             onClick={handleOpenEmailModal}
                         >
                             <Mail className="mr-1.5 h-4 w-4" />
@@ -993,12 +988,12 @@ export default function Index({
                         <Button
                             variant="outline"
                             disabled={isImporting}
-                            className={`border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF] ${isImporting ? 'cursor-not-allowed opacity-60' : ''}`}
+                            className={`border-input text-foreground hover:bg-muted ${isImporting ? 'cursor-not-allowed opacity-60' : ''}`}
                             onClick={() => setIsImportDialogOpen(true)}
                         >
                             {isImporting ? (
                                 <>
-                                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin text-[#0F6FFF]" />
+                                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin text-primary" />
                                     Importing...
                                 </>
                             ) : (
@@ -1009,11 +1004,11 @@ export default function Index({
                         <Button
                             variant="outline"
                             disabled={isExporting}
-                            className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
+                            className="h-9 border-input text-foreground hover:bg-muted"
                             onClick={handleExport}
                         >
                             {isExporting ? (
-                                <Loader2 className="mr-1.5 h-4 w-4 animate-spin text-[#0F6FFF]" />
+                                <Loader2 className="mr-1.5 h-4 w-4 animate-spin text-primary" />
                             ) : (
                                 <Download className="mr-1.5 h-4 w-4" />
                             )}
@@ -1021,7 +1016,7 @@ export default function Index({
                         </Button>
 
                         <Button
-                            className="bg-blue-600 text-white hover:bg-blue-400"
+                            className="bg-primary text-primary-foreground hover:bg-primary/90"
                             onClick={() => router.get('/graduate-ledger/add')}
                         >
                             <PlusCircle className="mr-1.5 h-4 w-4" />
@@ -1032,52 +1027,52 @@ export default function Index({
 
                 {/* Metrics Row */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <Card className="border border-[#CFE3FF] bg-white shadow-xs">
+                    <Card className="border border-border bg-card shadow-xs">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-[#5C7A9E]">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
                                 Students on Ledger
                             </CardTitle>
-                            <GraduationCap className="h-4 w-4 text-[#0F6FFF]" />
+                            <GraduationCap className="h-4 w-4 text-primary" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">
+                            <div className="text-2xl font-bold tracking-tight text-foreground">
                                 {totalStudents}
                             </div>
-                            <p className="mt-1 text-[10px] text-[#8AA8CC]">
+                            <p className="mt-1 text-[10px] text-muted-foreground">
                                 Unique graduate students
                             </p>
                         </CardContent>
                     </Card>
 
-                    <Card className="border border-[#CFE3FF] bg-white shadow-xs">
+                    <Card className="border border-border bg-card shadow-xs">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-[#5C7A9E]">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
                                 Total Accounts Receivable
                             </CardTitle>
-                            <DollarSign className="h-4 w-4 text-[#0F6FFF]" />
+                            <DollarSign className="h-4 w-4 text-primary" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">
+                            <div className="text-2xl font-bold tracking-tight text-foreground">
                                 {currency(totalAssessments)}
                             </div>
-                            <p className="mt-1 text-[10px] text-[#8AA8CC]">
+                            <p className="mt-1 text-[10px] text-muted-foreground">
                                 Total tuition + fees billed
                             </p>
                         </CardContent>
                     </Card>
 
-                    <Card className="border border-[#CFE3FF] bg-white shadow-xs">
+                    <Card className="border border-border bg-card shadow-xs">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-[#5C7A9E]">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
                                 Total Payments
                             </CardTitle>
-                            <Wallet className="h-4 w-4 text-[#0F6FFF]" />
+                            <Wallet className="h-4 w-4 text-primary" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">
+                            <div className="text-2xl font-bold tracking-tight text-foreground">
                                 {currency(totalPayments)}
                             </div>
-                            <p className="mt-1 text-[10px] text-[#8AA8CC]">
+                            <p className="mt-1 text-[10px] text-muted-foreground">
                                 Total payments received
                             </p>
                         </CardContent>
@@ -1094,31 +1089,31 @@ export default function Index({
                         }
                         className={`cursor-pointer border shadow-xs transition-all select-none ${
                             balanceStatus === 'with_balance'
-                                ? 'border-orange-400 bg-orange-50/70 ring-2 ring-orange-300'
-                                : 'border-[#CFE3FF] bg-white hover:border-orange-300 hover:bg-orange-50/30'
+                                ? 'border-orange-400 bg-orange-50/70 ring-2 ring-orange-300 dark:border-orange-800 dark:bg-orange-950/30 dark:ring-orange-800'
+                                : 'border-border bg-card hover:border-orange-300 hover:bg-orange-50/30 dark:hover:border-orange-800 dark:hover:bg-orange-950/20'
                         }`}
                     >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="flex items-center gap-1.5 text-sm font-medium text-[#5C7A9E]">
+                            <CardTitle className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
                                 Outstanding Balance
                                 {balanceStatus === 'with_balance' && (
                                     <Badge
                                         variant="outline"
-                                        className="h-4 border-orange-300 bg-orange-100 px-1.5 py-0 text-[10px] text-orange-800"
+                                        className="h-4 border-orange-300 bg-orange-100 px-1.5 py-0 text-[10px] text-orange-800 dark:border-orange-800 dark:bg-orange-950/60 dark:text-orange-400"
                                     >
                                         Active Filter
                                     </Badge>
                                 )}
                             </CardTitle>
                             <AlertTriangle
-                                className={`h-4 w-4 ${balanceStatus === 'with_balance' ? 'animate-pulse text-orange-600' : 'text-orange-500'}`}
+                                className={`h-4 w-4 ${balanceStatus === 'with_balance' ? 'animate-pulse text-orange-600 dark:text-orange-400' : 'text-orange-500'}`}
                             />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold tracking-tight text-[#0B3D91]">
+                            <div className="text-2xl font-bold tracking-tight text-foreground">
                                 {currency(outstandingBalance)}
                             </div>
-                            <p className="mt-1 text-[10px] text-[#8AA8CC]">
+                            <p className="mt-1 text-[10px] text-muted-foreground">
                                 {balanceStatus === 'with_balance'
                                     ? 'Click to show all records'
                                     : 'Click to filter students with balance'}
@@ -1128,17 +1123,17 @@ export default function Index({
                 </div>
 
                 {/* Transaction Ledger Table with Filter Bar */}
-                <Card className="border border-[#CFE3FF] bg-white">
-                    <CardHeader className="border-b border-[#CFE3FF] pb-4">
+                <Card className="border border-border bg-card">
+                    <CardHeader className="border-b border-border pb-4">
                         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                             <div>
-                                <CardTitle className="text-md text-[#0B3D91]">
+                                <CardTitle className="text-md text-foreground">
                                     Transaction Ledger
                                 </CardTitle>
-                                <CardDescription className="mt-0.5 text-[#7FA6D6]">
+                                <CardDescription className="mt-0.5 text-muted-foreground">
                                     <span className="inline-flex items-center gap-1.5">
                                         {isFiltering && (
-                                            <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0F6FFF]" />
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
                                         )}
                                         {isFiltering
                                             ? 'Updating results...'
@@ -1157,7 +1152,7 @@ export default function Index({
                                             type="button"
                                             size="sm"
                                             variant="outline"
-                                            className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
+                                            className="h-9 border-input text-foreground hover:bg-muted"
                                         >
                                             <Columns3 className="h-4 w-4" />{' '}
                                             Columns
@@ -1165,13 +1160,13 @@ export default function Index({
                                     </PopoverTrigger>
                                     <PopoverContent
                                         align="end"
-                                        className="w-72 p-3"
+                                        className="w-72 border-border bg-popover p-3 text-popover-foreground"
                                     >
                                         <div className="mb-2">
-                                            <p className="text-sm font-semibold text-[#0B3D91]">
+                                            <p className="text-sm font-semibold text-foreground">
                                                 Visible columns
                                             </p>
-                                            <p className="text-xs text-[#7FA6D6]">
+                                            <p className="text-xs text-muted-foreground">
                                                 Name, Amount, and Actions always
                                                 remain visible.
                                             </p>
@@ -1184,7 +1179,7 @@ export default function Index({
                                             ).map((column) => (
                                                 <label
                                                     key={column}
-                                                    className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[#334E68] hover:bg-[#F3F8FF]"
+                                                    className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground hover:bg-muted"
                                                 >
                                                     <input
                                                         type="checkbox"
@@ -1196,7 +1191,7 @@ export default function Index({
                                                         onChange={() =>
                                                             toggleColumn(column)
                                                         }
-                                                        className="h-4 w-4 rounded border-[#B9D8FF] accent-[#0F6FFF]"
+                                                        className="h-4 w-4 rounded border-input accent-primary"
                                                     />
                                                     <span>
                                                         {
@@ -1211,11 +1206,11 @@ export default function Index({
                                     </PopoverContent>
                                 </Popover>
                                 <div className="relative w-full sm:w-64">
-                                    <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-[#7FA6D6]" />
+                                    <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
                                     <Input
                                         type="search"
                                         placeholder="Search name, course, or ref #..."
-                                        className="h-9 border-[#CFE3FF] bg-white pl-8 focus-visible:ring-[#0F6FFF]"
+                                        className="h-9 border-input bg-background pl-8 text-foreground placeholder:text-muted-foreground focus-visible:ring-ring"
                                         value={searchQuery}
                                         onChange={(e) =>
                                             setFilterState((prev) => ({
@@ -1229,7 +1224,7 @@ export default function Index({
                                 <Button
                                     type="submit"
                                     size="sm"
-                                    className="h-9 bg-blue-600 text-white hover:bg-blue-400"
+                                    className="h-9 bg-primary text-primary-foreground hover:bg-primary/90"
                                 >
                                     <Search className="mr-1.5 h-4 w-4" /> Search
                                 </Button>
@@ -1242,16 +1237,16 @@ export default function Index({
                                     onClick={() =>
                                         setShowFilters((current) => !current)
                                     }
-                                    className={`h-9 border-[#CFE3FF] bg-blue-600 text-white hover:bg-blue-400 ${
+                                    className={`h-9 border-input text-foreground hover:bg-muted ${
                                         activeAdvancedFilters.length > 0
-                                            ? 'bg-[#EAF2FF]'
+                                            ? 'bg-primary/10 text-primary'
                                             : ''
                                     }`}
                                 >
                                     <Filter className="h-4 w-4" />
                                     Filters
                                     {activeAdvancedFilters.length > 0 && (
-                                        <span className="rounded-full bg-[#0F6FFF] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                                        <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
                                             {activeAdvancedFilters.length}
                                         </span>
                                     )}
@@ -1261,7 +1256,7 @@ export default function Index({
                                 </Button>
 
                                 {showFilters && (
-                                    <div className="flex basis-full flex-wrap items-end gap-2 rounded-lg border border-[#DCEAFF] bg-[#F8FBFF] p-3">
+                                    <div className="flex basis-full flex-wrap items-end gap-2 rounded-lg border border-border bg-muted/30 p-3">
                                         <select
                                             value={schoolYear}
                                             onChange={(e) =>
@@ -1269,7 +1264,7 @@ export default function Index({
                                                     school_year: e.target.value,
                                                 })
                                             }
-                                            className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                                            className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
                                         >
                                             <option value="">
                                                 All School Years
@@ -1290,7 +1285,7 @@ export default function Index({
                                                     semester: e.target.value,
                                                 })
                                             }
-                                            className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                                            className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
                                         >
                                             <option value="">
                                                 All Semesters
@@ -1311,7 +1306,7 @@ export default function Index({
                                                     course: e.target.value,
                                                 })
                                             }
-                                            className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                                            className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
                                         >
                                             <option value="">
                                                 All Courses
@@ -1335,11 +1330,11 @@ export default function Index({
                                             }
                                             className={`h-9 rounded-md border px-3 text-sm font-medium transition-colors ${
                                                 balanceStatus === 'with_balance'
-                                                    ? 'border-orange-400 bg-orange-50 font-semibold text-orange-900'
+                                                    ? 'border-orange-400 bg-orange-50 font-semibold text-orange-900 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-300'
                                                     : balanceStatus ===
                                                         'cleared'
-                                                      ? 'border-emerald-400 bg-emerald-50 font-semibold text-emerald-900'
-                                                      : 'border-[#CFE3FF] bg-white text-[#0B3D91]'
+                                                      ? 'border-emerald-400 bg-emerald-50 font-semibold text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                                                      : 'border-input bg-background text-foreground'
                                             }`}
                                         >
                                             <option value="">
@@ -1353,7 +1348,7 @@ export default function Index({
                                             </option>
                                         </select>
 
-                                        <label className="grid gap-1 text-xs font-medium text-[#5C7A9E]">
+                                        <label className="grid gap-1 text-xs font-medium text-muted-foreground">
                                             From
                                             <input
                                                 type="date"
@@ -1365,11 +1360,11 @@ export default function Index({
                                                             e.target.value,
                                                     })
                                                 }
-                                                className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm font-normal text-[#0B3D91]"
+                                                className="h-9 rounded-md border border-input bg-background px-3 text-sm font-normal text-foreground"
                                             />
                                         </label>
 
-                                        <label className="grid gap-1 text-xs font-medium text-[#5C7A9E]">
+                                        <label className="grid gap-1 text-xs font-medium text-muted-foreground">
                                             To
                                             <input
                                                 type="date"
@@ -1380,7 +1375,7 @@ export default function Index({
                                                         date_to: e.target.value,
                                                     })
                                                 }
-                                                className="h-9 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm font-normal text-[#0B3D91]"
+                                                className="h-9 rounded-md border border-input bg-background px-3 text-sm font-normal text-foreground"
                                             />
                                         </label>
 
@@ -1395,7 +1390,7 @@ export default function Index({
                                                 onClick={() =>
                                                     applyDatePreset('today')
                                                 }
-                                                className="h-9 border-[#CFE3FF] text-[#0B3D91]"
+                                                className="h-9 border-input text-foreground hover:bg-muted"
                                             >
                                                 Today
                                             </Button>
@@ -1406,7 +1401,7 @@ export default function Index({
                                                 onClick={() =>
                                                     applyDatePreset('month')
                                                 }
-                                                className="h-9 border-[#CFE3FF] text-[#0B3D91]"
+                                                className="h-9 border-input text-foreground hover:bg-muted"
                                             >
                                                 This month
                                             </Button>
@@ -1418,7 +1413,7 @@ export default function Index({
                                                     onClick={() =>
                                                         applyDatePreset('clear')
                                                     }
-                                                    className="h-9 text-[#5C7A9E]"
+                                                    className="h-9 text-muted-foreground hover:text-foreground"
                                                 >
                                                     Clear dates
                                                 </Button>
@@ -1428,7 +1423,7 @@ export default function Index({
                                         <Button
                                             type="button"
                                             variant="outline"
-                                            className="h-9 border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
+                                            className="h-9 border-input text-foreground hover:bg-muted"
                                             onClick={() => {
                                                 applyFilters({
                                                     search: '',
@@ -1449,7 +1444,7 @@ export default function Index({
 
                                 {activeAdvancedFilters.length > 0 && (
                                     <div className="flex basis-full flex-wrap items-center gap-1.5">
-                                        <span className="mr-1 text-xs font-medium text-[#5C7A9E]">
+                                        <span className="mr-1 text-xs font-medium text-muted-foreground">
                                             Active:
                                         </span>
                                         {activeAdvancedFilters.map((filter) => (
@@ -1461,7 +1456,7 @@ export default function Index({
                                                         [filter.key]: '',
                                                     })
                                                 }
-                                                className="inline-flex items-center gap-1 rounded-full border border-[#B9D8FF] bg-[#EAF2FF] px-2.5 py-1 text-xs font-medium text-[#0B62E0] transition-colors hover:border-[#0F6FFF] hover:bg-[#DCEAFF]"
+                                                className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
                                                 title={`Remove ${filter.label} filter`}
                                             >
                                                 {filter.label}
@@ -1480,7 +1475,7 @@ export default function Index({
                                                     balance_status: '',
                                                 });
                                             }}
-                                            className="px-2 py-1 text-xs font-semibold text-[#5C7A9E] hover:text-[#0B3D91] hover:underline"
+                                            className="px-2 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground hover:underline"
                                         >
                                             Clear all
                                         </button>
@@ -1491,11 +1486,11 @@ export default function Index({
                     </CardHeader>
                     {isFiltering && (
                         <div
-                            className="h-1 w-full overflow-hidden bg-[#EAF2FF]"
+                            className="h-1 w-full overflow-hidden bg-muted"
                             role="progressbar"
                             aria-label="Filtering ledger records"
                         >
-                            <div className="h-full w-1/3 animate-[pulse_1s_ease-in-out_infinite] rounded-full bg-[#0F6FFF]" />
+                            <div className="h-full w-1/3 animate-[pulse_1s_ease-in-out_infinite] rounded-full bg-primary" />
                         </div>
                     )}
                     <div
@@ -1510,70 +1505,70 @@ export default function Index({
                             <CardContent className="overflow-x-auto">
                                 <table className="w-full border-collapse text-sm">
                                     <thead>
-                                        <tr className="border-b border-[#CFE3FF] bg-[#F3F8FF]">
-                                            <th className="py-2 pr-4 pl-2 text-left font-medium whitespace-nowrap text-[#5C7A9E]">
+                                        <tr className="border-b border-border bg-muted/50">
+                                            <th className="py-2 pr-4 pl-2 text-left font-medium whitespace-nowrap text-muted-foreground">
                                                 Name
                                             </th>
                                             {visibleColumns.course && (
-                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-[#5C7A9E]">
+                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground">
                                                     Course
                                                 </th>
                                             )}
                                             {visibleColumns.schoolYear && (
-                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-[#5C7A9E]">
+                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground">
                                                     School Year
                                                 </th>
                                             )}
                                             {visibleColumns.semester && (
-                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-[#5C7A9E]">
+                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground">
                                                     Semester
                                                 </th>
                                             )}
                                             {visibleColumns.units && (
-                                                <th className="py-2 pr-4 text-right font-medium whitespace-nowrap text-[#5C7A9E]">
+                                                <th className="py-2 pr-4 text-right font-medium whitespace-nowrap text-muted-foreground">
                                                     Units
                                                 </th>
                                             )}
                                             {visibleColumns.transactionDate && (
-                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-[#5C7A9E]">
+                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground">
                                                     Trans. Date
                                                 </th>
                                             )}
                                             {visibleColumns.referenceNo && (
-                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-[#5C7A9E]">
+                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground">
                                                     Ref. (JEV/OR #)
                                                 </th>
                                             )}
                                             {visibleColumns.particulars && (
-                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-[#5C7A9E]">
+                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground">
                                                     Particulars
                                                 </th>
                                             )}
                                             {visibleColumns.feeRate && (
-                                                <th className="py-2 pr-4 text-right font-medium whitespace-nowrap text-[#5C7A9E]">
+                                                <th className="py-2 pr-4 text-right font-medium whitespace-nowrap text-muted-foreground">
                                                     Tuition/Unit or Reg. & Misc.
                                                     Fee
                                                 </th>
                                             )}
                                             {visibleColumns.entryType && (
-                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-[#5C7A9E]">
+                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground">
                                                     AR/Payment
                                                 </th>
                                             )}
-                                            <th className="py-2 pr-4 text-right font-medium whitespace-nowrap text-[#5C7A9E]">
+                                            <th className="py-2 pr-4 text-right font-medium whitespace-nowrap text-muted-foreground">
                                                 Amount
                                             </th>
                                             {visibleColumns.remark && (
-                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-[#5C7A9E]">
+                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground">
                                                     Remark
                                                 </th>
                                             )}
                                             {visibleColumns.inputBy && (
-                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-[#5C7A9E]">
+                                                <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground">
                                                     Input By
                                                 </th>
                                             )}
-                                            <th className="py-2 pr-2 text-center font-medium whitespace-nowrap text-[#5C7A9E]">
+                                            <th className="py-2 pr-2 text-center font-medium whitespace-nowrap text-muted-foreground">
                                                 Actions
                                             </th>
                                         </tr>
@@ -1583,7 +1578,7 @@ export default function Index({
                                             <tr>
                                                 <td
                                                     colSpan={visibleColumnCount}
-                                                    className="py-8 text-center text-sm text-[#8AA8CC]"
+                                                    className="py-8 text-center text-sm text-muted-foreground"
                                                 >
                                                     No transactions found.
                                                     Upload a CSV/Excel file or
@@ -1619,40 +1614,40 @@ export default function Index({
                                                             });
                                                         }
                                                     }}
-                                                    className="cursor-pointer border-b border-[#EAF2FF] transition-colors hover:bg-[#F3F8FF] focus-visible:bg-[#F3F8FF] focus-visible:outline-2 focus-visible:outline-[#0F6FFF]"
+                                                    className="cursor-pointer border-b border-border/50 transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-2 focus-visible:outline-ring"
                                                 >
-                                                    <td className="py-2 pr-4 pl-2 font-medium whitespace-nowrap text-[#0B3D91]">
+                                                    <td className="py-2 pr-4 pl-2 font-medium whitespace-nowrap text-foreground">
                                                         {r.name}
                                                     </td>
                                                     {visibleColumns.course && (
-                                                        <td className="py-2 pr-4 text-[#334E68]">
+                                                        <td className="py-2 pr-4 text-muted-foreground">
                                                             {r.course}
                                                         </td>
                                                     )}
                                                     {visibleColumns.schoolYear && (
-                                                        <td className="py-2 pr-4 text-[#334E68]">
+                                                        <td className="py-2 pr-4 text-muted-foreground">
                                                             {r.schoolYear}
                                                         </td>
                                                     )}
                                                     {visibleColumns.semester && (
-                                                        <td className="py-2 pr-4 text-[#334E68]">
+                                                        <td className="py-2 pr-4 text-muted-foreground">
                                                             {r.semester}
                                                         </td>
                                                     )}
                                                     {visibleColumns.units && (
-                                                        <td className="py-2 pr-4 text-right text-[#334E68]">
+                                                        <td className="py-2 pr-4 text-right text-muted-foreground">
                                                             {r.units}
                                                         </td>
                                                     )}
                                                     {visibleColumns.transactionDate && (
-                                                        <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">
+                                                        <td className="py-2 pr-4 whitespace-nowrap text-muted-foreground">
                                                             {formatTransactionDate(
                                                                 r.transactionDate,
                                                             )}
                                                         </td>
                                                     )}
                                                     {visibleColumns.referenceNo && (
-                                                        <td className="py-2 pr-4 whitespace-nowrap text-[#334E68]">
+                                                        <td className="py-2 pr-4 whitespace-nowrap text-muted-foreground">
                                                             {r.orLink ? (
                                                                 <a
                                                                     href={
@@ -1660,7 +1655,7 @@ export default function Index({
                                                                     }
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
-                                                                    className="inline-flex items-center gap-1 font-medium text-[#0B62E0] hover:underline"
+                                                                    className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
                                                                 >
                                                                     {
                                                                         r.referenceNo
@@ -1673,12 +1668,12 @@ export default function Index({
                                                         </td>
                                                     )}
                                                     {visibleColumns.particulars && (
-                                                        <td className="py-2 pr-4 text-[#334E68]">
+                                                        <td className="py-2 pr-4 text-muted-foreground">
                                                             {r.particulars}
                                                         </td>
                                                     )}
                                                     {visibleColumns.feeRate && (
-                                                        <td className="py-2 pr-4 text-right text-[#334E68]">
+                                                        <td className="py-2 pr-4 text-right text-muted-foreground">
                                                             {currency(
                                                                 r.tuitionPerUnitOrFeePerSemester,
                                                             )}
@@ -1692,7 +1687,7 @@ export default function Index({
                                                                     r.arPayment?.toUpperCase() ===
                                                                         'AR' &&
                                                                     !r.membership
-                                                                        ? 'cursor-pointer hover:ring-2 hover:ring-[#0F6FFF]'
+                                                                        ? 'cursor-pointer hover:ring-2 hover:ring-primary'
                                                                         : ''
                                                                 }`}
                                                                 onClick={(
@@ -1726,7 +1721,7 @@ export default function Index({
                                                             </Badge>
                                                         </td>
                                                     )}
-                                                    <td className="py-2 pr-4 text-right font-medium text-[#0B3D91]">
+                                                    <td className="py-2 pr-4 text-right font-medium text-foreground">
                                                         {currency(r.amount)}
                                                     </td>
                                                     {visibleColumns.remark && (
@@ -1741,7 +1736,7 @@ export default function Index({
                                                         </td>
                                                     )}
                                                     {visibleColumns.inputBy && (
-                                                        <td className="py-2 pr-4 text-[#8AA8CC]">
+                                                        <td className="py-2 pr-4 text-muted-foreground">
                                                             {r.inputBy}
                                                         </td>
                                                     )}
@@ -1755,7 +1750,7 @@ export default function Index({
                                                                     `/graduate-ledger/${r.id}/edit`,
                                                                 );
                                                             }}
-                                                            className="mr-1 inline-flex items-center justify-center rounded p-1.5 text-[#0B62E0] transition-colors hover:bg-[#EAF2FF]"
+                                                            className="mr-1 inline-flex items-center justify-center rounded p-1.5 text-primary transition-colors hover:bg-primary/10"
                                                             title="Edit"
                                                         >
                                                             <Pencil className="h-3.5 w-3.5" />
@@ -1772,7 +1767,7 @@ export default function Index({
                                                                     },
                                                                 );
                                                             }}
-                                                            className="inline-flex items-center justify-center rounded p-1.5 text-red-500 transition-colors hover:bg-red-50"
+                                                            className="inline-flex items-center justify-center rounded p-1.5 text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
                                                             title="Delete"
                                                         >
                                                             <Trash2 className="h-3.5 w-3.5" />
@@ -1788,16 +1783,16 @@ export default function Index({
                     </div>
 
                     {paginationLinks.length > 3 && (
-                        <CardFooter className="flex flex-col items-center justify-between gap-4 border-t border-[#CFE3FF] pt-4 pb-4 sm:flex-row">
-                            <div className="flex items-center gap-4 text-xs text-[#5C7A9E]">
+                        <CardFooter className="flex flex-col items-center justify-between gap-4 border-t border-border pt-4 pb-4 sm:flex-row">
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
                                 <div>
                                     {totalRecordCount === 0
                                         ? 'Showing 0 of 0'
                                         : `Showing ${currentPage} of ${lastPage}`}
                                 </div>
-                                <span className="text-[#8AA8CC]">|</span>
+                                <span className="text-muted-foreground/60">|</span>
                                 <div>
-                                    <span className="font-semibold text-[#0B3D91]">
+                                    <span className="font-semibold text-foreground">
                                         {totalRecordCount}
                                     </span>{' '}
                                     total records
@@ -1829,7 +1824,7 @@ export default function Index({
                                             );
                                         }}
                                         aria-label="Previous page"
-                                        className="h-8 w-8 shrink-0 rounded-md border-[#CFE3FF] text-sm text-[#0B3D91] hover:bg-[#F3F8FF]"
+                                        className="h-8 w-8 shrink-0 rounded-md border-input text-sm text-foreground hover:bg-muted"
                                     >
                                         <ChevronLeft className="h-4 w-4" />
                                     </Button>
@@ -1839,14 +1834,14 @@ export default function Index({
                                             <span
                                                 role="button"
                                                 tabIndex={0}
-                                                className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-[#CFE3FF] bg-white px-3 text-sm font-medium text-[#0B3D91] transition-colors hover:bg-[#F3F8FF]"
+                                                className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                                             >
                                                 Page {currentPage} of {lastPage}
                                             </span>
                                         </PopoverTrigger>
                                         <PopoverContent
                                             align="center"
-                                            className="w-48 space-y-2 p-2"
+                                            className="w-48 space-y-2 border-border bg-popover p-2 text-popover-foreground"
                                         >
                                             <form
                                                 onSubmit={handleGoToPage}
@@ -1865,18 +1860,18 @@ export default function Index({
                                                     placeholder={String(
                                                         currentPage,
                                                     )}
-                                                    className="h-8 w-full min-w-0 rounded-md border border-[#CFE3FF] bg-white px-2 text-sm text-[#0B3D91] outline-none focus:ring-2 focus:ring-[#0B62E0]"
+                                                    className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
                                                     autoFocus
                                                 />
                                                 <button
                                                     type="submit"
-                                                    className="h-8 shrink-0 rounded-md bg-[#0F6FFF] px-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#0B5DDB]"
+                                                    className="h-8 shrink-0 rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                                                 >
                                                     Go
                                                 </button>
                                             </form>
 
-                                            <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-[#EAF2FF] pt-1.5">
+                                            <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-border pt-1.5">
                                                 {Array.from(
                                                     { length: lastPage },
                                                     (_, i) => i + 1,
@@ -1905,8 +1900,8 @@ export default function Index({
                                                         }}
                                                         className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
                                                             page === currentPage
-                                                                ? 'bg-[#EAF2FF] font-medium text-[#0B62E0]'
-                                                                : 'text-[#334E68] hover:bg-[#F3F8FF]'
+                                                                ? 'bg-primary/10 font-medium text-primary'
+                                                                : 'text-foreground hover:bg-muted'
                                                         }`}
                                                     >
                                                         Page {page}
@@ -1939,7 +1934,7 @@ export default function Index({
                                             );
                                         }}
                                         aria-label="Next page"
-                                        className="h-8 w-8 shrink-0 rounded-md border-[#CFE3FF] text-sm text-[#0B3D91] hover:bg-[#F3F8FF]"
+                                        className="h-8 w-8 shrink-0 rounded-md border-input text-sm text-foreground hover:bg-muted"
                                     >
                                         <ChevronRight className="h-4 w-4" />
                                     </Button>
@@ -2036,8 +2031,8 @@ export default function Index({
                                                         }}
                                                         className={`cursor-pointer font-medium ${
                                                             link.active
-                                                                ? '!bg-[#0F6FFF] font-bold !text-white shadow-sm hover:!bg-[#0B3D91] hover:!text-white'
-                                                                : 'text-[#334E68] hover:bg-[#EAF2FF] hover:text-[#0B62E0]'
+                                                                ? '!bg-primary font-bold !text-primary-foreground shadow-sm hover:!bg-primary/90'
+                                                                : 'text-foreground hover:bg-muted'
                                                         }`}
                                                     >
                                                         {link.label}
@@ -2056,21 +2051,21 @@ export default function Index({
             {/* Import preset dialog */}
             {isImportDialogOpen && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-xs p-4"
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="import-dialog-title"
                 >
-                    <div className="w-full max-w-lg rounded-xl border border-[#CFE3FF] bg-white p-6 shadow-2xl">
+                    <div className="w-full max-w-lg rounded-xl border border-border bg-card p-6 text-card-foreground shadow-2xl">
                         <div className="mb-5 flex items-start justify-between gap-4">
                             <div>
                                 <h2
                                     id="import-dialog-title"
-                                    className="text-lg font-bold text-[#0B3D91]"
+                                    className="text-lg font-bold text-foreground"
                                 >
                                     Import Graduate Ledger
                                 </h2>
-                                <p className="mt-1 text-sm text-[#5C7A9E]">
+                                <p className="mt-1 text-sm text-muted-foreground">
                                     The importer uses each row&apos;s course and
                                     academic term first. Optional presets are
                                     used only when a row is blank or cannot be
@@ -2079,7 +2074,7 @@ export default function Index({
                             </div>
                             <button
                                 type="button"
-                                className="rounded-md p-1 text-[#5C7A9E] hover:bg-[#F3F8FF] hover:text-[#0B3D91]"
+                                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                                 onClick={() => {
                                     if (!isImporting) {
                                         setIsImportDialogOpen(false);
@@ -2096,17 +2091,17 @@ export default function Index({
                             <div>
                                 <label
                                     htmlFor="ledger-import-file"
-                                    className="mb-1.5 block text-sm font-semibold text-[#0B3D91]"
+                                    className="mb-1.5 block text-sm font-semibold text-foreground"
                                 >
                                     Spreadsheet file{' '}
-                                    <span className="text-red-500">*</span>
+                                    <span className="text-destructive">*</span>
                                 </label>
                                 <Input
                                     id="ledger-import-file"
                                     type="file"
                                     accept=".csv,.xlsx,.xls"
                                     disabled={isImporting}
-                                    className="border-[#CFE3FF]"
+                                    className="border-input"
                                     onChange={(event) =>
                                         importForm.setData(
                                             'file',
@@ -2115,7 +2110,7 @@ export default function Index({
                                     }
                                 />
                                 {importForm.errors.file && (
-                                    <p className="mt-1 text-xs text-red-600">
+                                    <p className="mt-1 text-xs text-destructive">
                                         {importForm.errors.file}
                                     </p>
                                 )}
@@ -2124,10 +2119,10 @@ export default function Index({
                             <div>
                                 <label
                                     htmlFor="preset-course"
-                                    className="mb-1.5 block text-sm font-semibold text-[#0B3D91]"
+                                    className="mb-1.5 block text-sm font-semibold text-foreground"
                                 >
                                     Fallback course{' '}
-                                    <span className="font-normal text-[#7FA6D6]">
+                                    <span className="font-normal text-muted-foreground">
                                         (optional)
                                     </span>
                                 </label>
@@ -2141,7 +2136,7 @@ export default function Index({
                                             event.target.value,
                                         )
                                     }
-                                    className="h-10 w-full rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
                                 >
                                     <option value="">
                                         No fallback — skip unmatched courses
@@ -2153,7 +2148,7 @@ export default function Index({
                                     ))}
                                 </select>
                                 {importForm.errors.preset_course_id && (
-                                    <p className="mt-1 text-xs text-red-600">
+                                    <p className="mt-1 text-xs text-destructive">
                                         {importForm.errors.preset_course_id}
                                     </p>
                                 )}
@@ -2162,10 +2157,10 @@ export default function Index({
                             <div>
                                 <label
                                     htmlFor="preset-term"
-                                    className="mb-1.5 block text-sm font-semibold text-[#0B3D91]"
+                                    className="mb-1.5 block text-sm font-semibold text-foreground"
                                 >
                                     Fallback academic term{' '}
-                                    <span className="font-normal text-[#7FA6D6]">
+                                    <span className="font-normal text-muted-foreground">
                                         (optional)
                                     </span>
                                 </label>
@@ -2181,7 +2176,7 @@ export default function Index({
                                             event.target.value,
                                         )
                                     }
-                                    className="h-10 w-full rounded-md border border-[#CFE3FF] bg-white px-3 text-sm text-[#0B3D91]"
+                                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
                                 >
                                     <option value="">
                                         No fallback — skip unmatched terms
@@ -2193,7 +2188,7 @@ export default function Index({
                                     ))}
                                 </select>
                                 {importForm.errors.preset_academic_term_id && (
-                                    <p className="mt-1 text-xs text-red-600">
+                                    <p className="mt-1 text-xs text-destructive">
                                         {
                                             importForm.errors
                                                 .preset_academic_term_id
@@ -2202,11 +2197,11 @@ export default function Index({
                                 )}
                             </div>
 
-                            <div className="rounded-lg border border-[#B9D8FF] bg-[#F3F8FF] p-3 text-xs leading-relaxed text-[#334E68]">
+                            <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
                                 Course spellings such as{' '}
-                                <strong>MS-MATH</strong>,{' '}
-                                <strong>MS Math</strong>, and{' '}
-                                <strong>M.S. Math</strong> are normalized before
+                                <strong className="text-foreground">MS-MATH</strong>,{' '}
+                                <strong className="text-foreground">MS Math</strong>, and{' '}
+                                <strong className="text-foreground">M.S. Math</strong> are normalized before
                                 matching. Importing will not create new course
                                 or academic-term master records.
                             </div>
@@ -2217,7 +2212,7 @@ export default function Index({
                                 type="button"
                                 variant="outline"
                                 disabled={isImporting}
-                                className="border-[#CFE3FF] text-[#0B3D91]"
+                                className="border-input text-foreground"
                                 onClick={() => {
                                     setIsImportDialogOpen(false);
                                     importForm.reset();
@@ -2229,7 +2224,7 @@ export default function Index({
                             <Button
                                 type="button"
                                 disabled={!importForm.data.file || isImporting}
-className="bg-blue-600 text-white hover:bg-blue-400"
+                                className="bg-primary text-primary-foreground hover:bg-primary/90"
                                 onClick={handleImport}
                             >
                                 {isImporting && (
@@ -2244,18 +2239,18 @@ className="bg-blue-600 text-white hover:bg-blue-400"
 
             {/* Floating Bottom-Right Import Progress Bar & Toast */}
             {(isImporting || importSuccess) && (
-                <div className="fixed right-6 bottom-6 z-50 flex min-w-[320px] flex-col gap-2.5 rounded-xl border border-[#CFE3FF] bg-white p-4 shadow-xl transition-all duration-300">
+                <div className="fixed right-6 bottom-6 z-50 flex min-w-[320px] flex-col gap-2.5 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-xl transition-all duration-300">
                     {isImporting ? (
                         <>
                             <div className="flex items-center gap-3">
-                                <div className="rounded-lg bg-[#E8F0FE] p-2 text-[#0F6FFF]">
+                                <div className="rounded-lg bg-primary/10 p-2 text-primary">
                                     <Loader2 className="h-5 w-5 animate-spin" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-semibold text-[#0B3D91]">
+                                    <p className="text-sm font-semibold text-foreground">
                                         Importing Spreadsheet...
                                     </p>
-                                    <p className="text-xs text-[#5C7A9E]">
+                                    <p className="text-xs text-muted-foreground">
                                         Processing and saving dataset records (
                                         {importProgress}%)
                                     </p>
@@ -2264,9 +2259,9 @@ className="bg-blue-600 text-white hover:bg-blue-400"
 
                             {/* Animated Progress Bar */}
                             <div className="mt-1 w-full">
-                                <div className="h-2 w-full overflow-hidden rounded-full bg-[#E8F0FE]">
+                                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                                     <div
-                                        className="h-full rounded-full bg-[#0F6FFF] transition-all duration-300 ease-out"
+                                        className="h-full rounded-full bg-primary transition-all duration-300 ease-out"
                                         style={{ width: `${importProgress}%` }}
                                     />
                                 </div>
@@ -2274,14 +2269,14 @@ className="bg-blue-600 text-white hover:bg-blue-400"
                         </>
                     ) : (
                         <div className="flex items-center gap-3">
-                            <div className="rounded-lg bg-emerald-100 p-2 text-emerald-600">
+                            <div className="rounded-lg bg-emerald-100 p-2 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
                                 <CheckCircle2 className="h-5 w-5" />
                             </div>
                             <div>
-                                <p className="text-sm font-semibold text-emerald-900">
+                                <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-300">
                                     Import Complete!
                                 </p>
-                                <p className="text-xs text-emerald-700">
+                                <p className="text-xs text-emerald-700 dark:text-emerald-400">
                                     Spreadsheet records have been imported.
                                 </p>
                             </div>
@@ -2292,18 +2287,18 @@ className="bg-blue-600 text-white hover:bg-blue-400"
 
             {/* Floating Bottom-Right Export Progress Bar & Toast */}
             {(isExporting || exportSuccess) && (
-                <div className="fixed right-6 bottom-6 z-50 flex min-w-[320px] flex-col gap-2.5 rounded-xl border border-[#CFE3FF] bg-white p-4 shadow-xl transition-all duration-300">
+                <div className="fixed right-6 bottom-6 z-50 flex min-w-[320px] flex-col gap-2.5 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-xl transition-all duration-300">
                     {isExporting ? (
                         <>
                             <div className="flex items-center gap-3">
-                                <div className="rounded-lg bg-[#E8F0FE] p-2 text-[#0F6FFF]">
+                                <div className="rounded-lg bg-primary/10 p-2 text-primary">
                                     <Loader2 className="h-5 w-5 animate-spin" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-semibold text-[#0B3D91]">
+                                    <p className="text-sm font-semibold text-foreground">
                                         Generating Excel Export...
                                     </p>
-                                    <p className="text-xs text-[#5C7A9E]">
+                                    <p className="text-xs text-muted-foreground">
                                         Processing dataset rows (
                                         {exportProgress}%)
                                     </p>
@@ -2312,9 +2307,9 @@ className="bg-blue-600 text-white hover:bg-blue-400"
 
                             {/* Animated Progress Bar */}
                             <div className="mt-1 w-full">
-                                <div className="h-2 w-full overflow-hidden rounded-full bg-[#E8F0FE]">
+                                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                                     <div
-                                        className="h-full rounded-full bg-[#0F6FFF] transition-all duration-300 ease-out"
+                                        className="h-full rounded-full bg-primary transition-all duration-300 ease-out"
                                         style={{ width: `${exportProgress}%` }}
                                     />
                                 </div>
@@ -2322,14 +2317,14 @@ className="bg-blue-600 text-white hover:bg-blue-400"
                         </>
                     ) : (
                         <div className="flex items-center gap-3">
-                            <div className="rounded-lg bg-emerald-100 p-2 text-emerald-600">
+                            <div className="rounded-lg bg-emerald-100 p-2 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
                                 <CheckCircle2 className="h-5 w-5" />
                             </div>
                             <div>
-                                <p className="text-sm font-semibold text-emerald-900">
+                                <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-300">
                                     Export Complete!
                                 </p>
-                                <p className="text-xs text-emerald-700">
+                                <p className="text-xs text-emerald-700 dark:text-emerald-400">
                                     Your Excel file has been downloaded.
                                 </p>
                             </div>
@@ -2958,15 +2953,15 @@ className="bg-blue-600 text-white hover:bg-blue-400"
                     }
                 }}
             >
-                <AlertDialogContent className="max-w-md gap-0 overflow-hidden border border-[#CFE3FF] bg-white p-0 shadow-xl sm:max-w-md">
+                <AlertDialogContent className="max-w-md gap-0 overflow-hidden border border-border bg-card p-0 text-card-foreground shadow-xl sm:max-w-md">
                     <AlertDialogHeader className="gap-3 p-5 sm:place-items-start sm:text-left">
-                        <AlertDialogMedia className="mb-0 size-11 rounded-full bg-purple-50 text-purple-600">
+                        <AlertDialogMedia className="mb-0 size-11 rounded-full bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400">
                             <GraduationCap className="size-5" />
                         </AlertDialogMedia>
-                        <AlertDialogTitle className="text-lg font-semibold text-[#0B3D91]">
+                        <AlertDialogTitle className="text-lg font-semibold text-foreground">
                             Apply Membership Scholarship
                         </AlertDialogTitle>
-                        <AlertDialogDescription className="text-sm text-[#5C7A9E]">
+                        <AlertDialogDescription className="text-sm text-muted-foreground">
                             Select the faculty or personnel union membership to
                             apply a 100% scholarship adjustment to this AR.
                         </AlertDialogDescription>
@@ -2974,24 +2969,24 @@ className="bg-blue-600 text-white hover:bg-blue-400"
 
                     {membershipTarget && (
                         <div className="mx-5 mb-5 space-y-4">
-                            <div className="rounded-lg border border-[#EAF2FF] bg-[#F8FBFF] p-3">
-                                <p className="text-sm font-semibold text-[#0B3D91]">
+                            <div className="rounded-lg border border-border bg-muted/30 p-3">
+                                <p className="text-sm font-semibold text-foreground">
                                     {membershipTarget.name}
                                 </p>
-                                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-[#5C7A9E]">
+                                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
                                     <div>
-                                        <span className="block text-[11px] tracking-wide text-[#8AA8CC] uppercase">
+                                        <span className="block text-[11px] tracking-wide text-muted-foreground/80 uppercase">
                                             AR Amount
                                         </span>
-                                        <span className="font-medium text-[#334E68]">
+                                        <span className="font-medium text-foreground">
                                             {currency(membershipTarget.amount)}
                                         </span>
                                     </div>
                                     <div>
-                                        <span className="block text-[11px] tracking-wide text-[#8AA8CC] uppercase">
+                                        <span className="block text-[11px] tracking-wide text-muted-foreground/80 uppercase">
                                             Term
                                         </span>
-                                        <span className="font-medium text-[#334E68]">
+                                        <span className="font-medium text-foreground">
                                             {membershipTarget.schoolYear}{' '}
                                             {membershipTarget.semester}
                                         </span>
@@ -3000,7 +2995,7 @@ className="bg-blue-600 text-white hover:bg-blue-400"
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-[#0B3D91]">
+                                <label className="text-sm font-medium text-foreground">
                                     Select Membership
                                 </label>
                                 <div className="space-y-2">
@@ -3011,28 +3006,28 @@ className="bg-blue-600 text-white hover:bg-blue-400"
                                         }
                                         className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
                                             selectedMembership === 'NAPU'
-                                                ? 'border-purple-600 bg-purple-50/60'
-                                                : 'border-[#CFE3FF] bg-white hover:border-purple-200'
+                                                ? 'border-purple-600 bg-purple-50/60 dark:border-purple-500 dark:bg-purple-950/40'
+                                                : 'border-border bg-card hover:border-purple-300 dark:hover:border-purple-700'
                                         }`}
                                     >
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="font-semibold text-[#0B3D91]">
+                                                <p className="font-semibold text-foreground">
                                                     NAPU
                                                 </p>
-                                                <p className="text-xs text-[#5C7A9E]">
+                                                <p className="text-xs text-muted-foreground">
                                                     NORSU Administrative
                                                     Personnel Union (100%)
                                                 </p>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-sm font-bold text-purple-700">
+                                                <p className="text-sm font-bold text-purple-700 dark:text-purple-400">
                                                     −
                                                     {currency(
                                                         membershipTarget.amount,
                                                     )}
                                                 </p>
-                                                <p className="text-xs text-[#8AA8CC]">
+                                                <p className="text-xs text-muted-foreground">
                                                     Adjustment
                                                 </p>
                                             </div>
@@ -3046,28 +3041,28 @@ className="bg-blue-600 text-white hover:bg-blue-400"
                                         }
                                         className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
                                             selectedMembership === 'NORSUFFA'
-                                                ? 'border-purple-600 bg-purple-50/60'
-                                                : 'border-[#CFE3FF] bg-white hover:border-purple-200'
+                                                ? 'border-purple-600 bg-purple-50/60 dark:border-purple-500 dark:bg-purple-950/40'
+                                                : 'border-border bg-card hover:border-purple-300 dark:hover:border-purple-700'
                                         }`}
                                     >
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="font-semibold text-[#0B3D91]">
+                                                <p className="font-semibold text-foreground">
                                                     NORSUFFA
                                                 </p>
-                                                <p className="text-xs text-[#5C7A9E]">
+                                                <p className="text-xs text-muted-foreground">
                                                     NORSU Federated Faculty
                                                     Association (100%)
                                                 </p>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-sm font-bold text-purple-700">
+                                                <p className="text-sm font-bold text-purple-700 dark:text-purple-400">
                                                     −
                                                     {currency(
                                                         membershipTarget.amount,
                                                     )}
                                                 </p>
-                                                <p className="text-xs text-[#8AA8CC]">
+                                                <p className="text-xs text-muted-foreground">
                                                     Adjustment
                                                 </p>
                                             </div>
@@ -3078,14 +3073,14 @@ className="bg-blue-600 text-white hover:bg-blue-400"
                         </div>
                     )}
 
-                    <AlertDialogFooter className="border-t border-[#CFE3FF] bg-[#F8FBFF] px-5 py-3">
+                    <AlertDialogFooter className="border-t border-border bg-muted/30 px-5 py-3">
                         <AlertDialogCancel
                             disabled={isApplyingMembership}
                             onClick={() => {
                                 setMembershipTarget(null);
                                 setSelectedMembership('');
                             }}
-                            className="border-[#CFE3FF] text-[#0B3D91]"
+                            className="border-input text-foreground"
                         >
                             Cancel
                         </AlertDialogCancel>
@@ -3116,34 +3111,34 @@ className="bg-blue-600 text-white hover:bg-blue-400"
                     }
                 }}
             >
-                <AlertDialogContent className="max-w-md gap-0 overflow-hidden border border-[#CFE3FF] bg-white p-0 shadow-xl sm:max-w-md">
+                <AlertDialogContent className="max-w-md gap-0 overflow-hidden border border-border bg-card p-0 text-card-foreground shadow-xl sm:max-w-md">
                     <AlertDialogHeader className="gap-3 p-5 sm:place-items-start sm:text-left">
-                        <AlertDialogMedia className="mb-0 size-11 rounded-full bg-red-50 text-red-600">
+                        <AlertDialogMedia className="mb-0 size-11 rounded-full bg-destructive/10 text-destructive">
                             <Trash2 className="size-5" />
                         </AlertDialogMedia>
-                        <AlertDialogTitle className="text-lg font-semibold text-[#0B3D91]">
+                        <AlertDialogTitle className="text-lg font-semibold text-foreground">
                             Delete Transaction
                         </AlertDialogTitle>
-                        <AlertDialogDescription className="text-sm text-[#5C7A9E]">
+                        <AlertDialogDescription className="text-sm text-muted-foreground">
                             Are you sure you want to delete the transaction for{' '}
-                            <strong className="text-[#0B3D91]">
+                            <strong className="text-foreground">
                                 {deleteTarget?.name}
                             </strong>
                             ? This action cannot be undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter className="border-t border-[#CFE3FF] bg-[#F8FBFF] px-5 py-3">
+                    <AlertDialogFooter className="border-t border-border bg-muted/30 px-5 py-3">
                         <AlertDialogCancel
                             disabled={isDeleting}
                             onClick={() => setDeleteTarget(null)}
-                            className="border-[#CFE3FF] text-[#0B3D91]"
+                            className="border-input text-foreground"
                         >
                             Cancel
                         </AlertDialogCancel>
                         <AlertDialogAction
                             disabled={isDeleting}
                             onClick={handleConfirmDelete}
-                            className="bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
                         >
                             {isDeleting && (
                                 <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />

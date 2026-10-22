@@ -53,7 +53,7 @@ export function StatusBadge({
     const dotColor = resolveStatusColor(color);
 
     return (
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40">
             <span
                 className={cn('h-1.5 w-1.5 shrink-0 rounded-full', dotColor)}
             />
@@ -393,19 +393,19 @@ export default function RequestTable<T extends { id: number | string }>({
             )}
 
             {/* ---- Filter bar: search + status + date range ---- */}
-            <Card className="min-w-0 overflow-x-auto border-slate-200/70 shadow-sm">
+            <Card className="min-w-0 overflow-x-auto border-border shadow-sm">
                 <CardContent className="p-5 sm:p-5">
                     <form onSubmit={onFilterSubmit} className="space-y-4">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12">
                             <div className="flex flex-col gap-1.5 lg:col-span-4">
                                 <label
                                     htmlFor="rt-search"
-                                    className="text-xs font-medium text-slate-600"
+                                    className="text-xs font-medium text-muted-foreground"
                                 >
                                     Search
                                 </label>
                                 <div className="relative">
-                                    <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                     <Input
                                         id="rt-search"
                                         placeholder={searchPlaceholder}
@@ -419,7 +419,7 @@ export default function RequestTable<T extends { id: number | string }>({
                             </div>
 
                             <div className="flex flex-col gap-1.5 lg:col-span-2">
-                                <label className="text-xs font-medium text-slate-600">
+                                <label className="text-xs font-medium text-muted-foreground">
                                     Status
                                 </label>
                                 <Select
@@ -430,7 +430,7 @@ export default function RequestTable<T extends { id: number | string }>({
                                         )
                                     }
                                 >
-                                    <SelectTrigger className="h-10 w-full rounded-lg border-slate-200 bg-white shadow-sm transition-colors hover:bg-slate-50 focus:ring-2 focus:ring-blue-500/20">
+                                    <SelectTrigger className="h-10 w-full rounded-lg border-input bg-background shadow-sm transition-colors hover:bg-muted focus:ring-2 focus:ring-ring/20">
                                         <SelectValue
                                             placeholder={statusPlaceholder}
                                         >
@@ -447,7 +447,7 @@ export default function RequestTable<T extends { id: number | string }>({
                                                     {selectedStatus.label}
                                                 </span>
                                             ) : (
-                                                <span className="flex items-center gap-2 text-slate-500">
+                                                <span className="flex items-center gap-2 text-muted-foreground">
                                                     <ListFilter className="h-3.5 w-3.5" />
                                                     {statusPlaceholder}
                                                 </span>
@@ -456,19 +456,19 @@ export default function RequestTable<T extends { id: number | string }>({
                                     </SelectTrigger>
                                     <SelectContent
                                         sideOffset={6}
-                                        className="min-w-(--anchor-width) rounded-lg border-slate-200 shadow-lg"
+                                        className="min-w-(--anchor-width) rounded-lg border-border shadow-lg"
                                     >
                                         <SelectItem
                                             value="all"
                                             className="cursor-pointer rounded-md"
                                         >
-                                            <span className="flex items-center gap-2 text-slate-600">
+                                            <span className="flex items-center gap-2 text-foreground">
                                                 <ListFilter className="h-3.5 w-3.5" />
                                                 {statusPlaceholder}
                                             </span>
                                         </SelectItem>
-                                        <div className="my-1 h-px bg-slate-200" />
-                                        <div className="px-2 py-1.5 text-[10px] font-semibold tracking-wider text-slate-500 uppercase">
+                                        <div className="my-1 h-px bg-border" />
+                                        <div className="px-2 py-1.5 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
                                             Filter by status
                                         </div>
                                         {statusOptions.map((opt) => (
@@ -495,7 +495,7 @@ export default function RequestTable<T extends { id: number | string }>({
                             </div>
 
                             <div className="flex flex-col gap-1.5 lg:col-span-4">
-                                <label className="text-xs font-medium text-slate-600">
+                                <label className="text-xs font-medium text-muted-foreground">
                                     Date Range
                                 </label>
                                 <div className="flex h-10 items-center overflow-hidden rounded-lg border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring/50">
@@ -507,9 +507,9 @@ export default function RequestTable<T extends { id: number | string }>({
                                             onDateFromChange(e.target.value)
                                         }
                                         aria-label="Date from"
-                                        className="h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-slate-700 [color-scheme:light] outline-none"
+                                        className="h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-foreground [color-scheme:light] dark:[color-scheme:dark] outline-none"
                                     />
-                                    <span className="shrink-0 px-1 text-xs font-medium text-slate-400">
+                                    <span className="shrink-0 px-1 text-xs font-medium text-muted-foreground">
                                         to
                                     </span>
                                     <input
@@ -520,7 +520,7 @@ export default function RequestTable<T extends { id: number | string }>({
                                             onDateToChange(e.target.value)
                                         }
                                         aria-label="Date to"
-                                        className="h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-slate-700 [color-scheme:light] outline-none"
+                                        className="h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-foreground [color-scheme:light] dark:[color-scheme:dark] outline-none"
                                     />
                                 </div>
                             </div>
@@ -528,7 +528,7 @@ export default function RequestTable<T extends { id: number | string }>({
                             <div className="flex items-end gap-2 lg:col-span-2">
                                 <Button
                                     type="submit"
-                                    className="h-10 flex-1 gap-2 rounded-lg bg-blue-600 text-white hover:bg-blue-400 lg:flex-none"
+                                    className="h-10 flex-1 gap-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 lg:flex-none"
                                 >
                                     <Filter className="h-4 w-4" />
                                     <span>Filter</span>
@@ -548,12 +548,12 @@ export default function RequestTable<T extends { id: number | string }>({
             </Card>
 
             {/* ---- Table ---- */}
-            <Card className="min-w-0 gap-0 overflow-hidden border-slate-200/70 p-0 py-0 shadow-sm">
+            <Card className="min-w-0 gap-0 overflow-hidden border-border p-0 py-0 shadow-sm">
                 {/* Local, table-scoped loading bar — replaces Inertia's global
                     top-progress-bar for sort/page-jump navigations. */}
                 <div className="relative h-0.5 w-full overflow-hidden bg-transparent">
                     {isNavigating && (
-                        <div className="absolute inset-0 animate-[table-loading-bar_1s_ease-in-out_infinite] bg-blue-500" />
+                        <div className="absolute inset-0 animate-[table-loading-bar_1s_ease-in-out_infinite] bg-primary" />
                     )}
                 </div>
                 <style>{`
@@ -569,7 +569,7 @@ export default function RequestTable<T extends { id: number | string }>({
                         }`}
                     >
                         <TableHeader>
-                            <TableRow className="border-b border-slate-200 hover:bg-transparent">
+                            <TableRow className="border-b border-border hover:bg-transparent">
                                 {columns.map((col, i) => {
                                     const isActiveSort =
                                         col.sortable &&
@@ -582,12 +582,12 @@ export default function RequestTable<T extends { id: number | string }>({
                                                 (isActiveSort ? (
                                                     currentDirection ===
                                                     'asc' ? (
-                                                        <ArrowUp className="h-3 w-3 text-blue-600" />
+                                                        <ArrowUp className="h-3 w-3 text-primary" />
                                                     ) : (
-                                                        <ArrowDown className="h-3 w-3 text-blue-600" />
+                                                        <ArrowDown className="h-3 w-3 text-primary" />
                                                     )
                                                 ) : (
-                                                    <ArrowUpDown className="h-3 w-3 text-slate-400" />
+                                                    <ArrowUpDown className="h-3 w-3 text-muted-foreground/60" />
                                                 ))}
                                         </span>
                                     );
@@ -609,14 +609,14 @@ export default function RequestTable<T extends { id: number | string }>({
                                                     : undefined
                                             }
                                             className={cn(
-                                                'h-11 bg-slate-50/80 text-xs font-semibold tracking-wide whitespace-nowrap text-slate-600 uppercase',
+                                                'h-11 bg-muted/50 text-xs font-semibold tracking-wide whitespace-nowrap text-muted-foreground uppercase',
                                                 i === 0 && 'pl-4 sm:pl-6',
                                                 col.align &&
                                                     alignClass[col.align],
                                                 col.hideOnMobile &&
                                                     'hidden md:table-cell',
                                                 col.sortable &&
-                                                    'cursor-pointer select-none hover:text-slate-900',
+                                                    'cursor-pointer select-none hover:text-foreground',
                                                 col.className,
                                             )}
                                         >
@@ -626,7 +626,7 @@ export default function RequestTable<T extends { id: number | string }>({
                                 })}
                                 <TableHead
                                     style={{ width: actionsWidth }}
-                                    className="h-11 bg-white pr-4 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase sm:pr-6"
+                                    className="h-11 bg-muted/50 pr-4 text-right text-xs font-semibold tracking-wide text-muted-foreground uppercase sm:pr-6"
                                 >
                                     Actions
                                 </TableHead>
@@ -640,14 +640,14 @@ export default function RequestTable<T extends { id: number | string }>({
                                         colSpan={columns.length + 1}
                                         className="h-56"
                                     >
-                                        <div className="flex flex-col items-center justify-center gap-2 text-slate-400">
+                                        <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                                             {EmptyIcon && (
                                                 <EmptyIcon
                                                     className="h-8 w-8"
                                                     strokeWidth={1.5}
                                                 />
                                             )}
-                                            <p className="text-sm font-medium text-slate-500">
+                                            <p className="text-sm font-medium text-muted-foreground">
                                                 {emptyMessage}
                                             </p>
                                         </div>
@@ -663,11 +663,11 @@ export default function RequestTable<T extends { id: number | string }>({
                                         <TableRow
                                             key={row.id}
                                             className={cn(
-                                                'border-b border-slate-100 transition-colors duration-700 last:border-0 hover:bg-blue-50/40',
+                                                'border-b border-border transition-colors duration-700 last:border-0 hover:bg-muted/50',
                                                 isHighlighted
-                                                    ? 'animate-[row-flash_2s_ease-out] bg-blue-50'
+                                                    ? 'animate-[row-flash_2s_ease-out] bg-primary/10'
                                                     : i % 2 === 1 &&
-                                                          'bg-slate-50/30',
+                                                          'bg-muted/20',
                                             )}
                                         >
                                             {columns.map((col, j) => (
@@ -681,9 +681,9 @@ export default function RequestTable<T extends { id: number | string }>({
                                                             : undefined
                                                     }
                                                     className={cn(
-                                                        'py-3 text-sm text-slate-700',
+                                                        'py-3 text-sm text-foreground',
                                                         j === 0 &&
-                                                            'pl-4 font-medium text-slate-900 sm:pl-6',
+                                                            'pl-4 font-medium text-foreground sm:pl-6',
                                                         col.align &&
                                                             alignClass[
                                                                 col.align
@@ -711,8 +711,8 @@ export default function RequestTable<T extends { id: number | string }>({
                 </CardContent>
 
                 {showPagination && (
-                    <div className="flex items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 sm:px-5">
-                        <p className="shrink-0 text-xs text-slate-500 sm:text-sm">
+                    <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3 sm:px-5">
+                        <p className="shrink-0 text-xs text-muted-foreground sm:text-sm">
                             Showing {resource.from ?? 0}-{resource.to ?? 0} of{' '}
                             {resource.total} results
                         </p>
@@ -770,7 +770,7 @@ export default function RequestTable<T extends { id: number | string }>({
                                                 <span
                                                     role="button"
                                                     tabIndex={0}
-                                                    className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+                                                    className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                                                 >
                                                     Page {resource.current_page}{' '}
                                                     of {resource.last_page}
@@ -778,7 +778,7 @@ export default function RequestTable<T extends { id: number | string }>({
                                             </PopoverTrigger>
                                             <PopoverContent
                                                 align="center"
-                                                className="w-48 space-y-2 p-2"
+                                                className="w-48 space-y-2 p-2 border-border bg-popover"
                                             >
                                                 <form
                                                     onSubmit={(e) => {
@@ -817,18 +817,18 @@ export default function RequestTable<T extends { id: number | string }>({
                                                             )
                                                         }
                                                         placeholder={`1–${resource.last_page}`}
-                                                        className="h-8 w-full min-w-0 rounded-md border border-slate-200 px-2 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-200"
+                                                        className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring/20"
                                                         autoFocus
                                                     />
                                                     <button
                                                         type="submit"
-                                                        className="h-8 shrink-0 rounded-md bg-blue-900 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-blue-950"
+                                                        className="h-8 shrink-0 rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                                                     >
                                                         Go
                                                     </button>
                                                 </form>
 
-                                                <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-slate-100 pt-1.5">
+                                                <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-border pt-1.5">
                                                     {Array.from(
                                                         {
                                                             length: resource.last_page,
@@ -840,17 +840,17 @@ export default function RequestTable<T extends { id: number | string }>({
                                                             type="button"
                                                             onClick={() => {
                                                                 navigateToPage(
-                                                                    page,
+                                                                  page,
                                                                 );
                                                                 setPageJumpOpen(
-                                                                    false,
+                                                                  false,
                                                                 );
                                                             }}
                                                             className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
                                                                 page ===
                                                                 resource.current_page
-                                                                    ? 'bg-blue-50 font-medium text-blue-900'
-                                                                    : 'text-slate-600 hover:bg-slate-50'
+                                                                    ? 'bg-primary/15 font-medium text-primary'
+                                                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                                                             }`}
                                                         >
                                                             Page {page}
@@ -914,7 +914,7 @@ export default function RequestTable<T extends { id: number | string }>({
                                             className={cn(
                                                 'h-8 w-8 shrink-0 rounded-md text-sm',
                                                 link.active &&
-                                                    'bg-blue-900 text-white hover:bg-blue-950',
+                                                    'bg-primary text-primary-foreground hover:bg-primary/90',
                                             )}
                                         >
                                             {isPrev ? (

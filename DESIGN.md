@@ -75,8 +75,8 @@ Used for badges and data visualization.
 
 | Role | Family |
 | :--- | :--- |
-| Body / Interface | **Instrument Sans** (self-hosted via `@fontsource`) |
-| UI / Headings | **Geist Variable** (`@fontsource-variable/geist`) |
+| Body / Interface | **Karla** (self-hosted via `@fontsource/karla` + Bunny/Google Fonts) |
+| UI / Headings | **Poppins** (self-hosted via `@fontsource/poppins` + Google Fonts) |
 | Technical / Mono labels | System `font-mono` (JetBrains Mono loaded for public/PDF views) |
 
 ### Sizes & Weights

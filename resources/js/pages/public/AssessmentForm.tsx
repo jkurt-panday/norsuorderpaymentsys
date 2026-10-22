@@ -1,5 +1,6 @@
 import { useForm, Head } from '@inertiajs/react';
 import { Mail, User, University } from 'lucide-react';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -134,6 +135,7 @@ export default function AssessmentForm({ courses }: Props) {
     return (
         <>
             <Head title="Assessment Form" />
+            <ThemeToggle className="fixed top-4 right-4 z-50 rounded-full shadow-md bg-white/80 dark:bg-slate-900/80 backdrop-blur" />
             <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-200 to-white px-6 py-12">
                 <div className="mx-auto max-w-4xl">
                     <div className="mb-6 rounded-2xl border border-blue-100 bg-white px-8 py-8 text-center shadow-md">
