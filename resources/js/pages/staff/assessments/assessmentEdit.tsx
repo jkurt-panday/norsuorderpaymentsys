@@ -366,7 +366,7 @@ export default function AssessmentEdit({
             <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-page-background p-3 sm:p-6">
                 <Card className="rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
                     <CardHeader className="flex flex-col gap-4 p-3 sm:flex-row sm:items-center sm:justify-between">
-                        <CardTitle className="text-xl font-bold text-slate-900">
+                        <CardTitle className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-2xl! font-black tracking-tight text-transparent sm:text-4xl">
                             Assessment: {assessment.reference_number}
                         </CardTitle>
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -841,7 +841,7 @@ export default function AssessmentEdit({
                                                                             '—'}
                                                                     </Badge>
                                                                 </td>
-                                                                <td className="px-4 py-3 text-right font-medium text-[#0B3D91]">
+                                                                <td className="px-4 py-3 text-right font-mono font-bold text-[#0B3D91] tabular-nums">
                                                                     {currencyFormatter.format(
                                                                         record.amount,
                                                                     )}
