@@ -33,6 +33,14 @@ const enlarge =
     'h-12 rounded-xl border-slate-300 bg-white px-4 text-base shadow-sm transition-all duration-200';
 const comboboxInputClass = `border-slate-300 focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`;
 
+const toSentenceCase = (value: string): string => {
+    const normalized = value.toLowerCase();
+
+    return normalized.replace(/(^\s*[a-z])|([.!?]\s+[a-z])/g, (match) =>
+        match.toUpperCase(),
+    );
+};
+
 type FormTab = 'general' | 'student';
 
 // Generates array of academic years: ["2026-2027", "2025-2026", "2024-2025", ...]
@@ -483,10 +491,10 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                         data.firstname_or_office
                                                     }
                                                     onChange={(e) =>
-                                                        setData(
-                                                            'firstname_or_office',
-                                                            e.target.value,
-                                                        )
+setData(
+                                                             'firstname_or_office',
+                                                             toSentenceCase(e.target.value),
+                                                         )
                                                     }
                                                 />
                                                 {errors.firstname_or_office && (
@@ -516,10 +524,10 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                         data.middlename_or_project
                                                     }
                                                     onChange={(e) =>
-                                                        setData(
-                                                            'middlename_or_project',
-                                                            e.target.value,
-                                                        )
+setData(
+                                                             'middlename_or_project',
+                                                             toSentenceCase(e.target.value),
+                                                         )
                                                     }
                                                 />
                                                 {errors.middlename_or_project && (
@@ -549,10 +557,10 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                         data.lastname_or_agency
                                                     }
                                                     onChange={(e) =>
-                                                        setData(
-                                                            'lastname_or_agency',
-                                                            e.target.value,
-                                                        )
+setData(
+                                                             'lastname_or_agency',
+                                                             toSentenceCase(e.target.value),
+                                                         )
                                                     }
                                                 />
                                                 {errors.lastname_or_agency && (
@@ -648,10 +656,10 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                         data.position_or_designation
                                                     }
                                                     onChange={(e) =>
-                                                        setData(
-                                                            'position_or_designation',
-                                                            e.target.value,
-                                                        )
+setData(
+                                                             'position_or_designation',
+                                                             toSentenceCase(e.target.value),
+                                                         )
                                                     }
                                                     disabled={activeTab === 'student'}
                                                 />
@@ -682,10 +690,10 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                             placeholder="Kagawasan Ave. Dumaguete City"
                                             value={data.address}
                                             onChange={(e) =>
-                                                setData(
-                                                    'address',
-                                                    e.target.value,
-                                                )
+setData(
+                                                 'address',
+                                                 toSentenceCase(e.target.value),
+                                             )
                                             }
                                         />
                                         {errors.address && (
