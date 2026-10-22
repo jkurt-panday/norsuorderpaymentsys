@@ -446,6 +446,7 @@ export default function AssessmentEdit({
                                 href={assessmentsIndex.url()}
                                 className={cn(
                                     buttonVariants({ variant: 'outline' }),
+                                    'min-h-11',
                                 )}
                             >
                                 <ArrowLeft className="h-4 w-4" />
@@ -455,77 +456,81 @@ export default function AssessmentEdit({
                     </CardHeader>
                 </Card>
 
-                <Card className="rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
-                    <CardContent className="space-y-6 p-4 sm:p-6">
-                        <section>
-                            <h2 className="mb-3 text-sm font-bold tracking-wider text-blue-500 uppercase">
-                                Student Information
-                            </h2>
-                            <div className="grid grid-cols-1 gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4 sm:grid-cols-2 md:grid-cols-3">
-                                <Detail
-                                    label="Full Name"
-                                    value={fullName}
-                                    className=""
-                                />
-                                <Detail
-                                    label="Email"
-                                    value={assessment.email}
-                                />
-                                <Detail
-                                    label="Contact Number"
-                                    value={assessment.contact_num
-                                        ?.replace(/\D/g, '')
-                                        .replace(
-                                            /(\d{4})(\d{3})(\d{4})/,
-                                            '$1 $2 $3',
-                                        )}
-                                />
-                                <Detail
-                                    label="Address"
-                                    value={assessment.address}
-                                    className="sm:col-span-2"
-                                />
-                                <Detail
-                                    label="Student ID"
-                                    value={assessment.student_id}
-                                />
-                            </div>
-                        </section>
+                <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
+                    <Card className="h-full rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
+                        <CardContent className="p-4 sm:p-6">
+                            <section>
+                                <h2 className="mb-4 text-sm font-bold tracking-wider text-blue-500 uppercase">
+                                    Student Information
+                                </h2>
+                                <div className="rounded-xl border border-slate-100 bg-transparent px-4">
+                                    <Detail
+                                        label="Full Name"
+                                        value={fullName}
+                                    />
+                                    <Detail
+                                        label="Student ID"
+                                        value={assessment.student_id}
+                                    />
+                                    <Detail
+                                        label="Email"
+                                        value={assessment.email}
+                                    />
+                                    <Detail
+                                        label="Contact Number"
+                                        value={assessment.contact_num
+                                            ?.replace(/\D/g, '')
+                                            .replace(
+                                                /(\d{4})(\d{3})(\d{4})/,
+                                                '$1 $2 $3',
+                                            )}
+                                    />
+                                    <Detail
+                                        label="Address"
+                                        value={assessment.address}
+                                    />
+                                </div>
+                            </section>
+                        </CardContent>
+                    </Card>
 
-                        <section>
-                            <h2 className="mb-3 text-sm font-bold tracking-wider text-blue-500 uppercase">
-                                Course & Academic Information Requested
-                            </h2>
-                            <div className="grid grid-cols-1 gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4 sm:grid-cols-2 md:grid-cols-3">
-                                <Detail
-                                    label="Course Code"
-                                    value={
-                                        assessment.course?.course_code ||
-                                        `ID: ${assessment.course_id}`
-                                    }
-                                />
-                                <Detail
-                                    label="Course Description"
-                                    value={assessment.course?.course_desc}
-                                />
-                                <Detail
-                                    label="Enrolled Under"
-                                    value={assessment.enrolled_under}
-                                />
-                                <Detail
-                                    label="Semester"
-                                    value={assessment.semester}
-                                />
-                                <Detail
-                                    label="SY Last Attended | SY Requested"
-                                    value={assessment.sy_last_attended}
-                                />
-                            </div>
-                        </section>
-                    </CardContent>
-                </Card>
+                    <Card className="h-full rounded-2xl border border-slate-200/70 bg-white px-2! py-2! shadow-sm">
+                        <CardContent className="p-4 sm:p-6">
+                            <section>
+                                <h2 className="mb-4 text-sm font-bold tracking-wider text-blue-500 uppercase">
+                                    Course & Academic Information Requested
+                                </h2>
+                                <div className="rounded-xl border border-slate-100 bg-transparent px-4">
+                                    <Detail
+                                        label="Course Code"
+                                        value={
+                                            assessment.course?.course_code ||
+                                            `ID: ${assessment.course_id}`
+                                        }
+                                    />
+                                    <Detail
+                                        label="Course Description"
+                                        value={assessment.course?.course_desc}
+                                    />
+                                    <Detail
+                                        label="Enrolled Under"
+                                        value={assessment.enrolled_under}
+                                    />
+                                    <Detail
+                                        label="Semester"
+                                        value={assessment.semester}
+                                    />
+                                    <Detail
+                                        label="SY Last Attended | SY Requested"
+                                        value={assessment.sy_last_attended}
+                                    />
+                                </div>
+                            </section>
+                        </CardContent>
+                    </Card>
+                </div>
 
-                <Card className="overflow-hidden rounded-2xl border border-blue-100 bg-[#FAFAF5] shadow-sm">
+                <Card className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm">
                     <CardHeader className="gap-3 border-b border-blue-100 bg-white sm:flex-row sm:items-start sm:justify-between">
                         <div className="space-y-1">
                             <div className="flex flex-wrap items-center gap-2">
@@ -552,7 +557,7 @@ export default function AssessmentEdit({
                                     ledgerStatement.candidates.length === 0
                                 }
                                 variant="outline"
-                                className="bg-blue-600 text-white hover:bg-blue-400"
+                                className="min-h-11 bg-blue-600 px-4 text-white hover:bg-blue-700 hover:text-white"
                             >
                                 <Search className="h-4 w-4" />
                                 Change Student
@@ -561,7 +566,7 @@ export default function AssessmentEdit({
                                 onClick={openEmailPreview}
                                 disabled={!ledgerStatement.selectedStudent}
                                 variant="outline"
-                                className="border-blue-200 bg-white text-[#0B3D91] hover:bg-blue-50"
+                                className="min-h-11 border-blue-200 bg-white px-4 text-[#0B3D91] hover:bg-blue-50"
                             >
                                 <Mail className="h-4 w-4" />
                                 Email Statement
@@ -569,7 +574,7 @@ export default function AssessmentEdit({
                             <Button
                                 onClick={printStatement}
                                 disabled={!ledgerStatement.selectedStudent}
-                                className="bg-[#0F6FFF] text-white hover:bg-[#0B5DDB]"
+                                className="min-h-11 bg-blue-600 px-4 text-white hover:bg-blue-700 hover:text-white"
                             >
                                 <Printer className="h-4 w-4" />
                                 Print Statement
@@ -680,7 +685,7 @@ export default function AssessmentEdit({
                                                 type="button"
                                                 onClick={() => setSearch('')}
                                                 aria-label="Clear student search"
-                                                className="absolute top-2.5 right-3 text-slate-400 hover:text-slate-700"
+                                                className="absolute top-1/2 right-1 flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 hover:text-slate-700"
                                             >
                                                 <X className="h-4 w-4" />
                                             </button>
@@ -938,15 +943,18 @@ export default function AssessmentEdit({
                     <DialogFooter className="gap-2">
                         <Button
                             variant="outline"
+                            size="lg"
+                            className="min-h-11"
                             onClick={() => setIsEmailPreviewOpen(false)}
                             disabled={isSendingEmail}
                         >
                             Cancel
                         </Button>
                         <Button
+                            size="lg"
                             onClick={handleConfirmSendEmail}
                             disabled={isSendingEmail}
-                            className="bg-[#0B3D91] hover:bg-[#092D6F]"
+                            className="min-w-32 bg-[#0B3D91] hover:bg-[#092D6F]"
                         >
                             {isSendingEmail ? 'Sending...' : 'Send Email'}
                         </Button>
@@ -960,16 +968,16 @@ export default function AssessmentEdit({
 function Detail({
     label,
     value,
-    className = '',
 }: {
     label: string;
     value?: string | null;
-    className?: string;
 }) {
     return (
-        <div className={className}>
-            <span className="text-x font-semibold text-slate-400">{label}</span>
-            <p className="text-lg font-medium text-slate-900">{value || '—'}</p>
+        <div className="flex min-h-16 items-center justify-between gap-4 border-b border-slate-200/70 py-3 last:border-b-0">
+            <span className="text-sm font-semibold text-slate-700">{label}</span>
+            <p className="text-right text-base font-medium text-slate-900">
+                {value || '—'}
+            </p>
         </div>
     );
 }

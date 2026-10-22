@@ -15,6 +15,18 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@layer base {
+    button:not(:disabled),
+    [role='button']:not([aria-disabled='true']) {
+        cursor: pointer;
+    }
+
+    button:disabled,
+    [role='button'][aria-disabled='true'] {
+        cursor: not-allowed;
+    }
+}
+
 @theme {
     --font-sans:
         'Karla', ui-sans-serif, system-ui, sans-serif,

@@ -16,8 +16,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SupportingDocumentController extends Controller
 {
-    // Define storage configuration in one place for easy maintenance
-    protected string $disk = 'public';
+    // Supporting documents are stored in S3 under this folder.
+    protected string $disk = 's3';
 
     protected string $folder = 'supporting-documents';
 
@@ -41,7 +41,7 @@ class SupportingDocumentController extends Controller
         // 1. Validate incoming file and related foreign key
         $request->validate([
             'form_input_id' => 'required|exists:form_inputs,id',
-            'document' => 'required|file|mimes:pdf,jpg,png,docx,zip|max:10240', // Max 10MB
+            'document' => 'required|file|mimes:pdf,jpg,png,zip|max:10240', // Max 10MB
         ]);
 
         if ($request->hasFile('document')) {
