@@ -136,8 +136,6 @@ const ACTION_OPTIONS = [
     { value: 'created', label: 'Created' },
     { value: 'updated', label: 'Updated' },
     { value: 'deleted', label: 'Deleted' },
-    { value: 'deactivated', label: 'Deactivated' },
-    { value: 'reactivated', label: 'Reactivated' },
     { value: 'processed', label: 'Processed' },
 ];
 
