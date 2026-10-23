@@ -243,8 +243,8 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
     const [isNavigating, setIsNavigating] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
 
-    // Silently refetch only the activity_log data every minute. This is
-    // a background Inertia visit (no full page reload) and
+    // Keep the feed live: silently refetch only the activity_log data every
+    // 5 seconds. This is a background Inertia visit (no full page reload) and
     // preserves the current search/sort/page URL, so filters stay intact.
     const { start, stop } = usePoll(
         60000,
@@ -806,8 +806,8 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                                             );
                                                         }}
                                                         className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${page === currentPage
-                                                                ? 'bg-primary/15 font-medium text-primary'
-                                                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                                            ? 'bg-primary/15 font-medium text-primary'
+                                                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                                                             }`}
                                                     >
                                                         Page {page}
@@ -867,8 +867,8 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                                     : `Page ${link.label}`
                                         }
                                         className={`h-8 w-8 shrink-0 rounded-md text-sm ${link.active
-                                                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                                                : ''
+                                            ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                            : ''
                                             }`}
                                     >
                                         {isPrev ? (
