@@ -221,6 +221,46 @@ const ManageRequests: React.FC = () => {
     const [isLoadingRecipients, setIsLoadingRecipients] = useState(false);
     const [isQueueStalled, setIsQueueStalled] = useState(false);
 
+    const escapeHtml = (value: string) =>
+        value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+
+    const previewRecipient = allRecipients.find((r) => selectedIds.has(r.id)) ?? allRecipients[0];
+
+    const buildEmailPreviewHtml = (note: string) => {
+        const noteHtml = note.trim()
+            ? `<p>${escapeHtml(note).replace(/\n/g, '<br>')}</p>`
+            : '';
+        const recipientName = previewRecipient
+            ? `${previewRecipient.firstname_or_office} ${previewRecipient.lastname_or_agency}`.trim()
+            : 'Recipient';
+        const reference = previewRecipient?.reference_number ?? '—';
+        const amount = previewRecipient ? Number(previewRecipient.amount ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
+
+        return `<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; color: #1e293b;">
+    <p>Dear ${escapeHtml(recipientName)},</p>
+    <p>
+        Please find attached your Order of Payment
+        (Reference No. <strong>${escapeHtml(reference)}</strong>)
+        for the amount of <strong>₱${escapeHtml(amount)}</strong>.
+    </p>
+    ${noteHtml}
+    <p>Two copies are attached:</p>
+    <ul>
+        <li>A5 portrait — for individual filing</li>
+        <li>Legal landscape — 3-up copies (Payor's / Cash Unit's / Accounting Unit's)</li>
+    </ul>
+    <p>Please present this at the Cash / Treasury Unit to complete payment.</p>
+    <p>Regards,<br>NORSU Accounting Office</p>
+</body>
+</html>`;
+    };
+
     // ---- Email Progress Tracking state ----
     interface EmailProgress {
         form_input_id: number;
@@ -802,7 +842,7 @@ const ManageRequests: React.FC = () => {
 
             {/* ---- Bulk Email Modal ---- */}
             <Dialog open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen}>
-                <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Mail className="h-5 w-5 text-emerald-600" />
@@ -813,8 +853,9 @@ const ManageRequests: React.FC = () => {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-4 pb-2">
-                        {isQueueStalled && (
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-4 overflow-y-auto">
+                            {isQueueStalled && (
                             <div className="rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800">
                                 <div className="font-semibold">Queue worker not running</div>
                                 <div className="mt-1 text-xs">
@@ -1248,6 +1289,21 @@ const ManageRequests: React.FC = () => {
                                 className="rounded-lg"
                             />
                         </div>
+                    </div>
+
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-foreground">
+                            Live Preview
+                        </label>
+                        <div className="overflow-hidden rounded-xl border border-border">
+                            <iframe
+                                title="Email preview"
+                                srcDoc={buildEmailPreviewHtml(emailNote)}
+                                className="h-[24rem] w-full bg-card"
+                            />
+                        </div>
+                    </div>
+
                     </div>
 
                     <DialogFooter>
