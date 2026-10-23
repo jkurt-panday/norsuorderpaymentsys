@@ -311,7 +311,11 @@ class StaffInputController extends Controller
                     ->orWhereRaw('LOWER(firstname_or_office) LIKE ?', ["%{$search}%"])
                     ->orWhereRaw('LOWER(middlename_or_project) LIKE ?', ["%{$search}%"])
                     ->orWhereRaw('LOWER(lastname_or_agency) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"]);
+                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw(
+                        "LOWER(CONCAT_WS(' ', firstname_or_office, middlename_or_project, lastname_or_agency)) LIKE ?",
+                        ["%{$search}%"],
+                    );
             });
         }
 
