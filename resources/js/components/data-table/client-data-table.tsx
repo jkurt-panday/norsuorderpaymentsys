@@ -143,7 +143,7 @@ return data;
                                 return (
                                     <TableHead
                                         key={header.id}
-                                        className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                                        className="px-4 py-4 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
                                     >
                                         {header.isPlaceholder ? null : canSort ? (
                                             <button
