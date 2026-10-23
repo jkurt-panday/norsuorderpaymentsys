@@ -30,7 +30,7 @@ class LogSentNotifications
             : Auth::guard('web')->user();
 
         if (! $actor) {
-            $cached = \Illuminate\Support\Facades\Cache::get('email_actor:'.md5((string)$recipient.'|'.$notificationClass));
+            $cached = Cache::get('email_actor:'.md5((string) $recipient.'|'.$notificationClass));
             if ($cached) {
                 $actor = (object) [
                     'id' => $cached['id'],

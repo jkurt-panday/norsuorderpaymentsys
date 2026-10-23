@@ -336,7 +336,7 @@ class ActivityLogObserver
             return;
         }
 
-        $actor = \Illuminate\Support\Facades\Auth::guard('web')->user();
+        $actor = Auth::guard('web')->user();
 
         if (! $actor) {
             return;

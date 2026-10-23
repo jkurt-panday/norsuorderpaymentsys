@@ -22,7 +22,9 @@ import {
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
+    SelectLabel,
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
@@ -53,7 +55,7 @@ export function StatusBadge({
     const dotColor = resolveStatusColor(color);
 
     return (
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:border dark:border-slate-700/40 dark:bg-slate-800/60 dark:text-slate-300">
             <span
                 className={cn('h-1.5 w-1.5 shrink-0 rounded-full', dotColor)}
             />
@@ -382,7 +384,7 @@ export default function RequestTable<T extends { id: number | string }>({
             {(title || resource.total !== undefined || customToolbar) && (
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     {title && (
-                        <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
+                        <CardTitle className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                             {title}
                         </CardTitle>
                     )}
@@ -423,6 +425,16 @@ export default function RequestTable<T extends { id: number | string }>({
                                     Status
                                 </label>
                                 <Select
+                                    items={[
+                                        {
+                                            label: statusPlaceholder,
+                                            value: 'all',
+                                        },
+                                        ...statusOptions.map((opt) => ({
+                                            label: opt.label,
+                                            value: opt.value,
+                                        })),
+                                    ]}
                                     value={status || 'all'}
                                     onValueChange={(v) =>
                                         onStatusChange(
@@ -430,7 +442,7 @@ export default function RequestTable<T extends { id: number | string }>({
                                         )
                                     }
                                 >
-                                    <SelectTrigger className="h-10 w-full rounded-lg border-input bg-background shadow-sm transition-colors hover:bg-muted focus:ring-2 focus:ring-ring/20">
+                                    <SelectTrigger className="h-10! w-full rounded-lg border-input bg-background shadow-sm transition-colors hover:bg-muted focus:ring-2 focus:ring-ring/20">
                                         <SelectValue
                                             placeholder={statusPlaceholder}
                                         >
@@ -458,38 +470,39 @@ export default function RequestTable<T extends { id: number | string }>({
                                         sideOffset={6}
                                         className="min-w-(--anchor-width) rounded-lg border-border shadow-lg"
                                     >
-                                        <SelectItem
-                                            value="all"
-                                            className="cursor-pointer rounded-md"
-                                        >
-                                            <span className="flex items-center gap-2 text-foreground">
-                                                <ListFilter className="h-3.5 w-3.5" />
-                                                {statusPlaceholder}
-                                            </span>
-                                        </SelectItem>
-                                        <div className="my-1 h-px bg-border" />
-                                        <div className="px-2 py-1.5 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-                                            Filter by status
-                                        </div>
-                                        {statusOptions.map((opt) => (
+                                        <SelectGroup>
+                                            <SelectLabel>
+                                                Filter by status
+                                            </SelectLabel>
                                             <SelectItem
-                                                key={opt.value}
-                                                value={opt.value}
+                                                value="all"
                                                 className="cursor-pointer rounded-md"
                                             >
-                                                <span className="flex items-center gap-2">
-                                                    <span
-                                                        className={cn(
-                                                            'h-2 w-2 shrink-0 rounded-full',
-                                                            resolveStatusColor(
-                                                                opt.color,
-                                                            ),
-                                                        )}
-                                                    />
-                                                    {opt.label}
+                                                <span className="flex items-center gap-2 text-foreground">
+                                                    <ListFilter className="h-3.5 w-3.5" />
+                                                    {statusPlaceholder}
                                                 </span>
                                             </SelectItem>
-                                        ))}
+                                            {statusOptions.map((opt) => (
+                                                <SelectItem
+                                                    key={opt.value}
+                                                    value={opt.value}
+                                                    className="cursor-pointer rounded-md"
+                                                >
+                                                    <span className="flex items-center gap-2">
+                                                        <span
+                                                            className={cn(
+                                                                'h-2 w-2 shrink-0 rounded-full',
+                                                                resolveStatusColor(
+                                                                    opt.color,
+                                                                ),
+                                                            )}
+                                                        />
+                                                        {opt.label}
+                                                    </span>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectGroup>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -507,7 +520,7 @@ export default function RequestTable<T extends { id: number | string }>({
                                             onDateFromChange(e.target.value)
                                         }
                                         aria-label="Date from"
-                                        className="h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-foreground [color-scheme:light] dark:[color-scheme:dark] outline-none"
+                                        className="h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-foreground [color-scheme:light] outline-none dark:[color-scheme:dark]"
                                     />
                                     <span className="shrink-0 px-1 text-xs font-medium text-muted-foreground">
                                         to
@@ -520,7 +533,7 @@ export default function RequestTable<T extends { id: number | string }>({
                                             onDateToChange(e.target.value)
                                         }
                                         aria-label="Date to"
-                                        className="h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-foreground [color-scheme:light] dark:[color-scheme:dark] outline-none"
+                                        className="h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-foreground [color-scheme:light] outline-none dark:[color-scheme:dark]"
                                     />
                                 </div>
                             </div>
@@ -778,7 +791,7 @@ export default function RequestTable<T extends { id: number | string }>({
                                             </PopoverTrigger>
                                             <PopoverContent
                                                 align="center"
-                                                className="w-48 space-y-2 p-2 border-border bg-popover"
+                                                className="w-48 space-y-2 border-border bg-popover p-2"
                                             >
                                                 <form
                                                     onSubmit={(e) => {
@@ -840,10 +853,10 @@ export default function RequestTable<T extends { id: number | string }>({
                                                             type="button"
                                                             onClick={() => {
                                                                 navigateToPage(
-                                                                  page,
+                                                                    page,
                                                                 );
                                                                 setPageJumpOpen(
-                                                                  false,
+                                                                    false,
                                                                 );
                                                             }}
                                                             className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${

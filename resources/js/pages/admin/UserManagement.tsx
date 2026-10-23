@@ -32,7 +32,9 @@ import {
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
+    SelectLabel,
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
@@ -91,7 +93,8 @@ interface UserFilters {
 const ROLE_BADGE_CLASSES: Record<string, string> = {
     admin: 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 dark:border dark:border-blue-800/40',
     staff: 'bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 dark:border dark:border-purple-800/40',
-    cashier: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:border dark:border-amber-800/40',
+    cashier:
+        'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:border dark:border-amber-800/40',
     client: 'bg-slate-100 text-slate-800 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40',
 };
 
@@ -400,14 +403,17 @@ export default function AdminUserManagement() {
             <div className="mx-auto max-w-7xl">
                 <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-border bg-card p-6 shadow-sm md:flex-row md:items-center md:justify-between">
                     <div>
-                        <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
+                        <CardTitle className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                             User Management
                         </CardTitle>
                         <p className="text-sm text-muted-foreground">
                             Manage system users, roles, and access permissions.
                         </p>
                     </div>
-                    <Button onClick={openCreateDialog} className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                    <Button
+                        onClick={openCreateDialog}
+                        className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
                         <Plus className="h-4 w-4" />
                         Add User
                     </Button>
@@ -442,25 +448,33 @@ export default function AdminUserManagement() {
                                 />
                             </div>
 
+                            {/* Role/status filter */}
                             <Select
+                                items={[
+                                    { label: 'All roles', value: 'All' },
+                                    ...ROLE_OPTIONS,
+                                ]}
                                 value={roleFilter || 'All'}
                                 onValueChange={handleRoleChange}
                             >
-                                <SelectTrigger className="h-9 w-full text-xs sm:w-36">
+                                <SelectTrigger className="h-9 w-full text-xs sm:w-40">
                                     <SelectValue placeholder="All roles" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="All">
-                                        All roles
-                                    </SelectItem>
-                                    {ROLE_OPTIONS.map((opt) => (
-                                        <SelectItem
-                                            key={opt.value}
-                                            value={opt.value}
-                                        >
-                                            {opt.label}
+                                    <SelectGroup>
+                                        <SelectLabel>User role</SelectLabel>
+                                        <SelectItem value="All">
+                                            All roles
                                         </SelectItem>
-                                    ))}
+                                        {ROLE_OPTIONS.map((opt) => (
+                                            <SelectItem
+                                                key={opt.value}
+                                                value={opt.value}
+                                            >
+                                                {opt.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
                                 </SelectContent>
                             </Select>
 
@@ -550,7 +564,10 @@ export default function AdminUserManagement() {
                                     </TableRow>
                                 ) : (
                                     rows.map((user) => (
-                                        <TableRow key={user.id} className="border-b border-border hover:bg-muted/50">
+                                        <TableRow
+                                            key={user.id}
+                                            className="border-b border-border hover:bg-muted/50"
+                                        >
                                             <TableCell className="font-medium text-foreground">
                                                 {user.name}
                                             </TableCell>
@@ -564,7 +581,7 @@ export default function AdminUserManagement() {
                                                         ROLE_BADGE_CLASSES[
                                                             user.role
                                                         ] ||
-                                                        'bg-slate-100 text-slate-800 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40'
+                                                        'bg-slate-100 text-slate-800 dark:border dark:border-slate-700/40 dark:bg-slate-800/60 dark:text-slate-300'
                                                     }
                                                 >
                                                     {user.role
@@ -577,14 +594,14 @@ export default function AdminUserManagement() {
                                                 {user.deleted_at ? (
                                                     <Badge
                                                         variant="secondary"
-                                                        className="bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 dark:border dark:border-rose-800/40"
+                                                        className="bg-rose-100 text-rose-800 dark:border dark:border-rose-800/40 dark:bg-rose-950/60 dark:text-rose-300"
                                                     >
                                                         Deactivated
                                                     </Badge>
                                                 ) : (
                                                     <Badge
                                                         variant="secondary"
-                                                        className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border dark:border-emerald-800/40"
+                                                        className="bg-emerald-100 text-emerald-800 dark:border dark:border-emerald-800/40 dark:bg-emerald-950/60 dark:text-emerald-300"
                                                     >
                                                         Active
                                                     </Badge>
@@ -705,7 +722,7 @@ export default function AdminUserManagement() {
                                                     />
                                                     <PopoverContent
                                                         align="center"
-                                                        className="w-48 space-y-2 p-2 border-border bg-popover"
+                                                        className="w-48 space-y-2 border-border bg-popover p-2"
                                                     >
                                                         <form
                                                             onSubmit={(e) => {
@@ -997,7 +1014,11 @@ export default function AdminUserManagement() {
                                 >
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={processing} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                                <Button
+                                    type="submit"
+                                    disabled={processing}
+                                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                                >
                                     {processing
                                         ? 'Saving...'
                                         : editingUser

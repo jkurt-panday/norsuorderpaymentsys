@@ -127,13 +127,13 @@ class StaffInputController extends Controller
             'pendingLastDate' => $latestByStatus->get('pending'),
             'approvedLastDate' => $latestByStatus->get('approved'),
             'cancelledLastDate' => $latestByStatus->get('cancelled'),
-            // Order here (Unprocessed, Pending, Approved, Cancelled) must match
-            // the pieColors array on the frontend: ['#94a3b8', '#f59e0b', '#22c55e', '#ef4444']
+            // Order here (Unprocessed, Pending, Paid, Cancelled, Processed) must match
+            // the pieColors array on the frontend.
             'statusBreakdown' => collect([
                 ['name' => 'Unprocessed', 'count' => $unprocessedCount],
             ])
                 ->concat(
-                    collect(['pending', 'approved', 'cancelled'])
+                    collect(['pending', 'paid', 'cancelled', 'processed'])
                         ->map(fn (string $status) => [
                             'name' => ucfirst($status),
                             'count' => $statusCounts->get($status, 0),
@@ -812,7 +812,7 @@ class StaffInputController extends Controller
 
         $actor = $request->user();
         try {
-            \App\Models\ActivityLog::create([
+            ActivityLog::create([
                 'actor_id' => $actor?->getAuthIdentifier(),
                 'actor_name' => $actor?->name,
                 'actor_role' => $actor?->role,
@@ -820,7 +820,7 @@ class StaffInputController extends Controller
                 'target_id' => null,
                 'subject_type' => null,
                 'subject_id' => null,
-                'description' => "Email sent to {$formInput->email} with subject \"".($validated['subject'] ?? "Order of Payment - {$formInput->reference_number}")."\".",
+                'description' => "Email sent to {$formInput->email} with subject \"".($validated['subject'] ?? "Order of Payment - {$formInput->reference_number}").'".',
                 'meta' => [
                     'to' => $formInput->email,
                     'subject' => $validated['subject'] ?? "Order of Payment - {$formInput->reference_number}",
