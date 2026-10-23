@@ -368,7 +368,7 @@ export default function Index({
     const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
     const [emailTarget, setEmailTarget] = useState<
         'all_matching' | 'specific' | 'all_outstanding'
-    >('all_matching');
+    >('specific');
     const [emailSearch, setEmailSearch] = useState('');
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const [allRecipients, setAllRecipients] = useState<
@@ -434,7 +434,7 @@ export default function Index({
 
                 const data = (await res.json()) as typeof allRecipients;
                 setAllRecipients(data);
-                setSelectedIds(new Set(data.map((r) => r.id)));
+                // Do not auto-select recipients; user must choose explicitly.
             } catch (e) {
                 flashToast('error', 'Failed to load recipients.');
             } finally {
@@ -451,7 +451,7 @@ export default function Index({
         setExamPeriod('');
         setExamDeadline('');
         setEmailSearch('');
-        setEmailTarget('all_matching');
+        setEmailTarget('specific');
         setSelectedIds(new Set());
         setIsEmailModalOpen(true);
     };
