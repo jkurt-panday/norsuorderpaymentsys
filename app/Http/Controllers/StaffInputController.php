@@ -808,7 +808,7 @@ class StaffInputController extends Controller
 
         $actor = $request->user();
         try {
-            \App\Models\ActivityLog::create([
+            ActivityLog::create([
                 'actor_id' => $actor?->getAuthIdentifier(),
                 'actor_name' => $actor?->name,
                 'actor_role' => $actor?->role,
@@ -816,7 +816,7 @@ class StaffInputController extends Controller
                 'target_id' => null,
                 'subject_type' => null,
                 'subject_id' => null,
-                'description' => "Email sent to {$formInput->email} with subject \"".($validated['subject'] ?? "Order of Payment - {$formInput->reference_number}")."\".",
+                'description' => "Email sent to {$formInput->email} with subject \"".($validated['subject'] ?? "Order of Payment - {$formInput->reference_number}").'".',
                 'meta' => [
                     'to' => $formInput->email,
                     'subject' => $validated['subject'] ?? "Order of Payment - {$formInput->reference_number}",
