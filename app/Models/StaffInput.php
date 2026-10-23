@@ -72,7 +72,7 @@ class StaffInput extends Model
     {
         $badges = [
             'pending' => 'badge-warning',
-            'approved' => 'badge-success',
+            'processed' => 'badge-success',
             'cancelled' => 'badge-danger',
         ];
 

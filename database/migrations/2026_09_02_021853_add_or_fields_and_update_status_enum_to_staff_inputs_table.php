@@ -19,7 +19,7 @@ return new class extends Migration
 
         if (DB::connection()->getDriverName() !== 'pgsql') {
             Schema::table('staff_inputs', function (Blueprint $table) {
-                $table->string('status')->default('pending')->change();
+                $table->enum('status', ['pending', 'approved', 'paid', 'cancelled'])->default('pending')->change();
             });
 
             return;
@@ -29,7 +29,7 @@ return new class extends Migration
         DB::statement('ALTER TABLE staff_inputs ALTER COLUMN status DROP DEFAULT');
         DB::statement('ALTER TABLE staff_inputs ALTER COLUMN status TYPE VARCHAR(255)');
         DB::statement("ALTER TABLE staff_inputs ALTER COLUMN status SET DEFAULT 'pending'");
-        DB::statement("ALTER TABLE staff_inputs ADD CONSTRAINT staff_inputs_status_check CHECK (status IN ('pending', 'processed', 'paid', 'cancelled'))");
+            DB::statement("ALTER TABLE staff_inputs ADD CONSTRAINT staff_inputs_status_check CHECK (status IN ('pending', 'approved', 'paid', 'cancelled'))");
     }
 
     /**

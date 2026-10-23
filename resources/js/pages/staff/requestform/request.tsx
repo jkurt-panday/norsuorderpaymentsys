@@ -1,6 +1,25 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { Inbox, Mail, Send, Search as SearchIcon, X, CheckCircle2, Loader2, CheckSquare, Square, ChevronDown, UserRound, XCircle } from 'lucide-react';
-import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import {
+    Inbox,
+    Mail,
+    Send,
+    Search as SearchIcon,
+    X,
+    CheckCircle2,
+    Loader2,
+    CheckSquare,
+    Square,
+    ChevronDown,
+    UserRound,
+    XCircle,
+} from 'lucide-react';
+import React, {
+    useState,
+    useCallback,
+    useEffect,
+    useRef,
+    useMemo,
+} from 'react';
 import RequestTable, { StatusBadge } from '@/components/RequestTable';
 import type { ColumnDef, PaginatedData } from '@/components/RequestTable';
 import { Badge } from '@/components/ui/badge';
@@ -43,7 +62,7 @@ import {
 
 interface StaffInput {
     id: number;
-    status: 'pending' | 'approved' | 'cancelled' | 'unprocessed' | 'processed' | 'paid';
+    status: 'pending' | 'approved' | 'cancelled' | 'unprocessed' | 'paid';
     emailed_at: string | null;
     email_status?: 'pending' | 'sent' | 'failed' | null;
 }
@@ -86,7 +105,6 @@ interface PageProps {
 
 const STATUS_TO_COLOR: Record<string, string> = {
     approved: 'green',
-    processed: 'light-green',
     paid: 'dark-green',
     cancelled: 'red',
     pending: 'orange',
@@ -95,7 +113,7 @@ const STATUS_TO_COLOR: Record<string, string> = {
 
 const statusBadgeClass = (status: string) => {
     switch (status) {
-        case 'processed':
+        case 'approved':
             return 'bg-green-50 text-green-700';
         case 'paid':
             return 'bg-green-100 text-green-800';
@@ -209,7 +227,13 @@ const ManageRequests: React.FC = () => {
 
     // ---- Bulk Email Modal state ----
     const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-    const [emailTarget, setEmailTarget] = useState<'specific' | 'all_paid' | 'all_processed' | 'all_pending' | 'all_cancelled'>('specific');
+    const [emailTarget, setEmailTarget] = useState<
+        | 'specific'
+        | 'all_paid'
+        | 'all_approved'
+        | 'all_pending'
+        | 'all_cancelled'
+    >('specific');
     const [emailSearch, setEmailSearch] = useState('');
     const [emailSubject, setEmailSubject] = useState('');
     const [emailNote, setEmailNote] = useState('');
@@ -234,7 +258,9 @@ const ManageRequests: React.FC = () => {
     const [isPollingProgress, setIsPollingProgress] = useState(false);
     const isPollingRef = useRef(false); // Ref for immediate polling state
     const [showProgressModal, setShowProgressModal] = useState(false);
-    const [pollingStartTime, setPollingStartTime] = useState<number | null>(null);
+    const [pollingStartTime, setPollingStartTime] = useState<number | null>(
+        null,
+    );
     // Polling bookkeeping lives in refs. The async poll chain used to
     // capture `pollTimeoutId` from the render it was created in, so the
     // scheduled timeout was never actually cancelled and a second bulk
@@ -256,13 +282,17 @@ const ManageRequests: React.FC = () => {
     // Close popover when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+            if (
+                popoverRef.current &&
+                !popoverRef.current.contains(event.target as Node)
+            ) {
                 setShowSelectedPopover(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
 
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        return () =>
+            document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     // Stop the background poll when the page goes away, and keep a ref
@@ -332,21 +362,26 @@ const ManageRequests: React.FC = () => {
     const allFormInputs: FormInput[] = formInputs.data ?? [];
 
     // Filtered list for the "specific person" search — uses ALL recipients, not just current page
-    const filteredSpecific = useMemo(() =>
-        emailSearch.trim() === ''
-            ? allRecipients
-            : allRecipients.filter((row) => {
-                const q = emailSearch.toLowerCase();
-                const fullName = formatFullName(row).toLowerCase();
+    const filteredSpecific = useMemo(
+        () =>
+            emailSearch.trim() === ''
+                ? allRecipients
+                : allRecipients.filter((row) => {
+                      const q = emailSearch.toLowerCase();
+                      const fullName = formatFullName(row).toLowerCase();
 
-                return fullName.includes(q) || row.reference_number.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
-            }),
-        [allRecipients, emailSearch]
+                      return (
+                          fullName.includes(q) ||
+                          row.reference_number.toLowerCase().includes(q) ||
+                          row.email.toLowerCase().includes(q)
+                      );
+                  }),
+        [allRecipients, emailSearch],
     );
 
     // Eligible recipients (must have staff_input + email)
     const eligibleRecipients = allRecipients.filter(
-        (row) => row.staff_input && row.email
+        (row) => row.staff_input && row.email,
     );
 
     // Toggle a single ID in the checkbox set
@@ -364,50 +399,62 @@ const ManageRequests: React.FC = () => {
         });
     };
 
-    const bulkRecipients = useMemo(() =>
-        emailTarget === 'specific'
-            ? []
-            : eligibleRecipients.filter((row) => {
-                const recipientStatus = row.staff_input?.status;
+    const bulkRecipients = useMemo(
+        () =>
+            emailTarget === 'specific'
+                ? []
+                : eligibleRecipients.filter((row) => {
+                      const recipientStatus = row.staff_input?.status;
 
-                return (
-                    (emailTarget === 'all_paid' && recipientStatus === 'paid') ||
-                    (emailTarget === 'all_processed' && recipientStatus === 'processed') ||
-                    (emailTarget === 'all_pending' && recipientStatus === 'pending') ||
-                    (emailTarget === 'all_cancelled' && recipientStatus === 'cancelled')
-                );
-            }),
-        [emailTarget, eligibleRecipients]
+                      return (
+                          (emailTarget === 'all_paid' &&
+                              recipientStatus === 'paid') ||
+                          (emailTarget === 'all_approved' &&
+                              recipientStatus === 'approved') ||
+                          (emailTarget === 'all_pending' &&
+                              recipientStatus === 'pending') ||
+                          (emailTarget === 'all_cancelled' &&
+                              recipientStatus === 'cancelled')
+                      );
+                  }),
+        [emailTarget, eligibleRecipients],
     );
 
     // Filter bulk recipients by search query
-    const filteredBulkRecipients = useMemo(() =>
-        emailSearch.trim() === ''
-            ? bulkRecipients
-            : bulkRecipients.filter((row) => {
-                const q = emailSearch.toLowerCase();
-                const fullName = formatFullName(row).toLowerCase();
+    const filteredBulkRecipients = useMemo(
+        () =>
+            emailSearch.trim() === ''
+                ? bulkRecipients
+                : bulkRecipients.filter((row) => {
+                      const q = emailSearch.toLowerCase();
+                      const fullName = formatFullName(row).toLowerCase();
 
-                return fullName.includes(q) || row.reference_number.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
-            }),
-        [bulkRecipients, emailSearch]
+                      return (
+                          fullName.includes(q) ||
+                          row.reference_number.toLowerCase().includes(q) ||
+                          row.email.toLowerCase().includes(q)
+                      );
+                  }),
+        [bulkRecipients, emailSearch],
     );
 
     // Auto-select all bulk recipients when bulk mode changes
     const prevBulkTargetRef = useRef<string | null>(null);
     useEffect(() => {
         const isBulkMode = emailTarget !== 'specific';
-        const wasBulkMode = prevBulkTargetRef.current !== null && prevBulkTargetRef.current !== 'specific';
+        const wasBulkMode =
+            prevBulkTargetRef.current !== null &&
+            prevBulkTargetRef.current !== 'specific';
 
         // Only run when emailTarget actually changes, not when bulkRecipients recalculates
         if (prevBulkTargetRef.current !== emailTarget) {
             if (isBulkMode) {
                 if (wasBulkMode && prevBulkTargetRef.current !== emailTarget) {
                     // Switching between bulk modes - clear selections first
-                    setSelectedIds(new Set(bulkRecipients.map(r => r.id)));
+                    setSelectedIds(new Set(bulkRecipients.map((r) => r.id)));
                 } else if (!wasBulkMode) {
                     // Coming from specific mode - select all
-                    setSelectedIds(new Set(bulkRecipients.map(r => r.id)));
+                    setSelectedIds(new Set(bulkRecipients.map((r) => r.id)));
                 }
             } else {
                 // Switching from bulk mode to specific - clear all selections
@@ -449,8 +496,11 @@ const ManageRequests: React.FC = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN':
+                        document
+                            .querySelector('meta[name="csrf-token"]')
+                            ?.getAttribute('content') ?? '',
                 },
                 body: JSON.stringify({
                     form_input_ids: ids,
@@ -469,18 +519,24 @@ const ManageRequests: React.FC = () => {
             if (data.success && data.form_input_ids?.length > 0) {
                 hasShownStalledToast.current = false;
                 setEmailFormInputIds(data.form_input_ids);
-                setEmailProgress(data.form_input_ids.map((id: number) => ({
-                    form_input_id: id,
-                    status: 'sent' as const,
-                    emailed_at: new Date().toISOString(),
-                    stalled: false,
-                    error: null,
-                })));
+                setEmailProgress(
+                    data.form_input_ids.map((id: number) => ({
+                        form_input_id: id,
+                        status: 'sent' as const,
+                        emailed_at: new Date().toISOString(),
+                        stalled: false,
+                        error: null,
+                    })),
+                );
                 setIsEmailModalOpen(false);
                 setSelectedIds(new Set());
                 setShowProgressModal(true);
                 stopProgressPolling();
-                flashToast('success', data.message ?? `Emails sent to ${data.form_input_ids.length} recipient(s).`);
+                flashToast(
+                    'success',
+                    data.message ??
+                        `Emails sent to ${data.form_input_ids.length} recipient(s).`,
+                );
             } else {
                 flashToast('error', data.message ?? 'Failed to send emails.');
             }
@@ -519,8 +575,13 @@ const ManageRequests: React.FC = () => {
         // Check for timeout (10 minutes)
         if (startedAt && Date.now() - startedAt > MAX_POLLING_DURATION) {
             stopProgressPolling();
-            const pendingCount = emailProgressRef.current.filter(p => p.status === 'pending').length;
-            flashToast('warning', `Polling timed out. ${pendingCount} email(s) still pending. Make sure a queue worker is running (php artisan queue:work), then retry them.`);
+            const pendingCount = emailProgressRef.current.filter(
+                (p) => p.status === 'pending',
+            ).length;
+            flashToast(
+                'warning',
+                `Polling timed out. ${pendingCount} email(s) still pending. Make sure a queue worker is running (php artisan queue:work), then retry them.`,
+            );
 
             return;
         }
@@ -541,8 +602,11 @@ const ManageRequests: React.FC = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN':
+                        document
+                            .querySelector('meta[name="csrf-token"]')
+                            ?.getAttribute('content') ?? '',
                 },
                 body: JSON.stringify({ form_input_ids: ids }),
             });
@@ -561,7 +625,7 @@ const ManageRequests: React.FC = () => {
 
             if (data.jobs) {
                 // Force new array reference to trigger React re-render
-                setEmailProgress(prev => {
+                setEmailProgress((prev) => {
                     const newProgress = data.jobs.map((job: EmailProgress) => ({
                         form_input_id: job.form_input_id,
                         status: job.status,
@@ -584,23 +648,41 @@ const ManageRequests: React.FC = () => {
                 setIsPollingProgress(false);
 
                 if (data.summary.failed > 0) {
-                    flashToast('warning', `Emails processed: ${data.summary.sent} sent, ${data.summary.failed} failed.`);
+                    flashToast(
+                        'warning',
+                        `Emails approved: ${data.summary.sent} sent, ${data.summary.failed} failed.`,
+                    );
                 } else {
-                    flashToast('success', `All emails processed: ${data.summary.sent} sent, ${data.summary.failed} failed.`);
+                    flashToast(
+                        'success',
+                        `All emails approved: ${data.summary.sent} sent, ${data.summary.failed} failed.`,
+                    );
                 }
             } else {
-                if ((data.summary?.stalled ?? 0) > 0 && !hasShownStalledToast.current) {
+                if (
+                    (data.summary?.stalled ?? 0) > 0 &&
+                    !hasShownStalledToast.current
+                ) {
                     hasShownStalledToast.current = true;
-                    flashToast('error', `No queue worker is running — ${data.summary.stalled} email job(s) were queued but never picked up. Start one with "php artisan queue:work" (or "composer queue:work"), then send again.`);
+                    flashToast(
+                        'error',
+                        `No queue worker is running — ${data.summary.stalled} email job(s) were queued but never picked up. Start one with "php artisan queue:work" (or "composer queue:work"), then send again.`,
+                    );
                 }
 
                 // Poll only while the progress dialog is open. Fifteen seconds keeps
                 // email delivery status responsive without permanent background traffic.
-                pollTimeoutRef.current = setTimeout(() => pollProgressWithIds(ids), EMAIL_PROGRESS_POLLING_INTERVAL);
+                pollTimeoutRef.current = setTimeout(
+                    () => pollProgressWithIds(ids),
+                    EMAIL_PROGRESS_POLLING_INTERVAL,
+                );
             }
         } catch (err) {
             // Retry at the normal interval after a transient request failure.
-            pollTimeoutRef.current = setTimeout(() => pollProgressWithIds(ids), EMAIL_PROGRESS_POLLING_INTERVAL);
+            pollTimeoutRef.current = setTimeout(
+                () => pollProgressWithIds(ids),
+                EMAIL_PROGRESS_POLLING_INTERVAL,
+            );
         }
     };
 
@@ -773,12 +855,16 @@ const ManageRequests: React.FC = () => {
                 onStatusChange={setStatus}
                 statusOptions={[
                     { value: 'pending', label: 'Pending', color: 'orange' },
-                    { value: 'processed', label: 'Processed', color: 'light-green' },
+                    {
+                        value: 'approved',
+                        label: 'Approved',
+                        color: 'light-green',
+                    },
                     { value: 'paid', label: 'Paid', color: 'dark-green' },
                     { value: 'cancelled', label: 'Cancelled', color: 'red' },
                     {
                         value: 'unprocessed',
-                        label: 'Unprocessed',
+                        label: 'Unapproved',
                         color: 'grey',
                     },
                 ]}
@@ -802,26 +888,36 @@ const ManageRequests: React.FC = () => {
 
             {/* ---- Bulk Email Modal ---- */}
             <Dialog open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen}>
-                <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Mail className="h-5 w-5 text-emerald-600" />
                             Send Order of Payment Emails
                         </DialogTitle>
                         <DialogDescription>
-                            Choose which recipients should receive their Order of Payment receipts.
+                            Choose which recipients should receive their Order
+                            of Payment receipts.
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-4 pb-2">
                         {isQueueStalled && (
                             <div className="rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800">
-                                <div className="font-semibold">Queue worker not running</div>
+                                <div className="font-semibold">
+                                    Queue worker not running
+                                </div>
                                 <div className="mt-1 text-xs">
-                                    Emails are sent in the background by a queue worker. Start one with{' '}
-                                    <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">php artisan queue:work</code>{' '}
-                                    (or <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">composer queue:work</code>) before sending —
-                                    otherwise the requests stay queued and no email goes out.
+                                    Emails are sent in the background by a queue
+                                    worker. Start one with{' '}
+                                    <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">
+                                        php artisan queue:work
+                                    </code>{' '}
+                                    (or{' '}
+                                    <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">
+                                        composer queue:work
+                                    </code>
+                                    ) before sending — otherwise the requests
+                                    stay queued and no email goes out.
                                 </div>
                             </div>
                         )}
@@ -834,7 +930,13 @@ const ManageRequests: React.FC = () => {
                             <Select
                                 value={emailTarget}
                                 onValueChange={(v) => {
-                                    if (v === 'specific' || v === 'all_paid' || v === 'all_processed' || v === 'all_pending' || v === 'all_cancelled') {
+                                    if (
+                                        v === 'specific' ||
+                                        v === 'all_paid' ||
+                                        v === 'all_approved' ||
+                                        v === 'all_pending' ||
+                                        v === 'all_cancelled'
+                                    ) {
                                         setEmailTarget(v);
                                     }
                                 }}
@@ -843,11 +945,21 @@ const ManageRequests: React.FC = () => {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="specific">Specific person</SelectItem>
-                                    <SelectItem value="all_paid">All paid</SelectItem>
-                                    <SelectItem value="all_processed">All processed</SelectItem>
-                                    <SelectItem value="all_pending">All pending</SelectItem>
-                                    <SelectItem value="all_cancelled">All cancelled</SelectItem>
+                                    <SelectItem value="specific">
+                                        Specific person
+                                    </SelectItem>
+                                    <SelectItem value="all_paid">
+                                        All paid
+                                    </SelectItem>
+                                    <SelectItem value="all_approved">
+                                        All approved
+                                    </SelectItem>
+                                    <SelectItem value="all_pending">
+                                        All pending
+                                    </SelectItem>
+                                    <SelectItem value="all_cancelled">
+                                        All cancelled
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -855,20 +967,23 @@ const ManageRequests: React.FC = () => {
                         {/* Specific person search + checkbox list — only shown when 'specific' is chosen */}
                         {emailTarget === 'specific' && (
                             <div className="rounded-lg bg-muted/40 p-3 text-sm text-slate-600">
-                                <div className="flex items-center gap-3 mb-2 flex-wrap">
+                                <div className="mb-2 flex flex-wrap items-center gap-3">
                                     <div className="flex items-center gap-2">
                                         <span className="font-semibold text-foreground">
                                             {filteredSpecific.length}
-                                        </span>{''}
+                                        </span>
+                                        {''}
                                         <span>recipient(s)</span>
                                     </div>
-                                    <div className="relative flex-1 max-w-md">
+                                    <div className="relative max-w-md flex-1">
                                         <SearchIcon className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                         <Input
                                             placeholder="Search by name, reference, or email"
                                             value={emailSearch}
-                                            onChange={(e) => setEmailSearch(e.target.value)}
-                                            className="h-9 pl-9 text-sm rounded-lg"
+                                            onChange={(e) =>
+                                                setEmailSearch(e.target.value)
+                                            }
+                                            className="h-9 rounded-lg pl-9 text-sm"
                                         />
                                     </div>
                                     {selectedIds.size > 0 && (
@@ -877,67 +992,134 @@ const ManageRequests: React.FC = () => {
                                                 type="button"
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={() => setShowSelectedPopover(!showSelectedPopover)}
-                                                className="h-9 px-3 gap-1.5 shrink-0"
+                                                onClick={() =>
+                                                    setShowSelectedPopover(
+                                                        !showSelectedPopover,
+                                                    )
+                                                }
+                                                className="h-9 shrink-0 gap-1.5 px-3"
                                             >
                                                 <UserRound className="h-4 w-4" />
-                                                <span className="hidden sm:inline">{selectedIds.size} selected</span>
+                                                <span className="hidden sm:inline">
+                                                    {selectedIds.size} selected
+                                                </span>
                                                 <ChevronDown className="h-3.5 w-3.5" />
                                             </Button>
                                             {showSelectedPopover && (
                                                 <div
                                                     ref={popoverRef}
-                                                    className="absolute right-0 top-full mt-1.5 w-80 rounded-lg border border-border bg-card py-1 text-card-foreground shadow-lg z-10"
-                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="absolute top-full right-0 z-10 mt-1.5 w-80 rounded-lg border border-border bg-card py-1 text-card-foreground shadow-lg"
+                                                    onClick={(e) =>
+                                                        e.stopPropagation()
+                                                    }
                                                 >
-                                                    <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-                                                        <span className="text-sm font-medium text-foreground">Selected Recipients</span>
+                                                    <div className="flex items-center justify-between border-b border-border px-3 py-2">
+                                                        <span className="text-sm font-medium text-foreground">
+                                                            Selected Recipients
+                                                        </span>
                                                         <Button
                                                             type="button"
                                                             variant="ghost"
                                                             size="sm"
-                                                            onClick={() => setSelectedIds(new Set())}
+                                                            onClick={() =>
+                                                                setSelectedIds(
+                                                                    new Set(),
+                                                                )
+                                                            }
                                                             className="text-xs text-rose-600 hover:text-rose-700"
                                                         >
                                                             Clear All
                                                         </Button>
                                                     </div>
-                                                    <div className="px-3 py-2 border-b border-border">
+                                                    <div className="border-b border-border px-3 py-2">
                                                         <Input
                                                             placeholder="Search selected..."
-                                                            value={selectedPopoverSearch}
-                                                            onChange={(e) => setSelectedPopoverSearch(e.target.value)}
+                                                            value={
+                                                                selectedPopoverSearch
+                                                            }
+                                                            onChange={(e) =>
+                                                                setSelectedPopoverSearch(
+                                                                    e.target
+                                                                        .value,
+                                                                )
+                                                            }
                                                             className="h-9 text-sm"
                                                             autoFocus
                                                         />
                                                     </div>
                                                     <div className="max-h-48 overflow-y-auto">
                                                         {Array.from(selectedIds)
-                                                            .map((id) => allRecipients.find(r => r.id === id))
-                                                            .filter((row): row is typeof row & { id: number } => row !== undefined)
+                                                            .map((id) =>
+                                                                allRecipients.find(
+                                                                    (r) =>
+                                                                        r.id ===
+                                                                        id,
+                                                                ),
+                                                            )
+                                                            .filter(
+                                                                (
+                                                                    row,
+                                                                ): row is typeof row & {
+                                                                    id: number;
+                                                                } =>
+                                                                    row !==
+                                                                    undefined,
+                                                            )
                                                             .filter((row) => {
-                                                                if (!selectedPopoverSearch.trim()) {
+                                                                if (
+                                                                    !selectedPopoverSearch.trim()
+                                                                ) {
                                                                     return true;
                                                                 }
 
-                                                                const q = selectedPopoverSearch.toLowerCase();
-                                                                const fullName = formatFullName(row).toLowerCase();
+                                                                const q =
+                                                                    selectedPopoverSearch.toLowerCase();
+                                                                const fullName =
+                                                                    formatFullName(
+                                                                        row,
+                                                                    ).toLowerCase();
 
-                                                                return fullName.includes(q) || row.reference_number.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
+                                                                return (
+                                                                    fullName.includes(
+                                                                        q,
+                                                                    ) ||
+                                                                    row.reference_number
+                                                                        .toLowerCase()
+                                                                        .includes(
+                                                                            q,
+                                                                        ) ||
+                                                                    row.email
+                                                                        .toLowerCase()
+                                                                        .includes(
+                                                                            q,
+                                                                        )
+                                                                );
                                                             })
                                                             .map((row) => (
                                                                 <div
                                                                     key={row.id}
-                                                                    className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted/40 cursor-pointer"
-                                                                    onClick={() => toggleSelectId(row.id)}
+                                                                    className="flex cursor-pointer items-center gap-2 px-3 py-1.5 hover:bg-muted/40"
+                                                                    onClick={() =>
+                                                                        toggleSelectId(
+                                                                            row.id,
+                                                                        )
+                                                                    }
                                                                 >
-                                                                    <UserRound className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                                                    <UserRound className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                                                                     <div className="min-w-0 flex-1">
-                                                                        <div className="text-sm font-medium text-foreground truncate">
-                                                                            {formatFullName(row)}
+                                                                        <div className="truncate text-sm font-medium text-foreground">
+                                                                            {formatFullName(
+                                                                                row,
+                                                                            )}
                                                                         </div>
-                                                                        <div className="text-xs text-muted-foreground truncate">
-                                                                            {row.reference_number} · {row.email}
+                                                                        <div className="truncate text-xs text-muted-foreground">
+                                                                            {
+                                                                                row.reference_number
+                                                                            }{' '}
+                                                                            ·{' '}
+                                                                            {
+                                                                                row.email
+                                                                            }
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -959,20 +1141,28 @@ const ManageRequests: React.FC = () => {
                                         </div>
                                     ) : (
                                         filteredSpecific.map((row) => {
-                                            const eligible = row.staff_input && row.email;
-                                            const isSelected = selectedIds.has(row.id);
-                                            const timeAgo = formatTimeAgo(row.staff_input?.emailed_at);
+                                            const eligible =
+                                                row.staff_input && row.email;
+                                            const isSelected = selectedIds.has(
+                                                row.id,
+                                            );
+                                            const timeAgo = formatTimeAgo(
+                                                row.staff_input?.emailed_at,
+                                            );
 
                                             return (
                                                 <div
                                                     key={row.id}
-                                                    className={`flex items-start gap-2 border-b border-border px-3 py-2 text-sm last:border-0 ${eligible
-                                                            ? 'cursor-pointer bg-card hover:bg-muted/50 text-foreground'
+                                                    className={`flex items-start gap-2 border-b border-border px-3 py-2 text-sm last:border-0 ${
+                                                        eligible
+                                                            ? 'cursor-pointer bg-card text-foreground hover:bg-muted/50'
                                                             : 'bg-muted/40 opacity-60'
-                                                        }`}
+                                                    }`}
                                                     onClick={() => {
                                                         if (eligible) {
-                                                            toggleSelectId(row.id);
+                                                            toggleSelectId(
+                                                                row.id,
+                                                            );
                                                         }
                                                     }}
                                                 >
@@ -990,39 +1180,57 @@ const ManageRequests: React.FC = () => {
                                                     <div className="min-w-0 flex-1">
                                                         <div className="flex min-w-0 items-center gap-2">
                                                             <div className="truncate font-medium text-foreground">
-                                                                {formatFullName(row)}
+                                                                {formatFullName(
+                                                                    row,
+                                                                )}
                                                             </div>
                                                             <span
-                                                                className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${row.staff_input
-                                                                        ? statusBadgeClass(row.staff_input.status)
+                                                                className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${
+                                                                    row.staff_input
+                                                                        ? statusBadgeClass(
+                                                                              row
+                                                                                  .staff_input
+                                                                                  .status,
+                                                                          )
                                                                         : 'bg-slate-100 text-slate-600'
-                                                                    }`}
+                                                                }`}
                                                             >
-                                                                {row.staff_input?.status ?? 'Unprocessed'}
+                                                                {row.staff_input
+                                                                    ?.status ??
+                                                                    'Unapproved'}
                                                             </span>
-                                                            {row.staff_input?.email_status === 'pending' && (
-                                                                <span className="inline shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                                                            {row.staff_input
+                                                                ?.email_status ===
+                                                                'pending' && (
+                                                                <span className="inline shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-700 uppercase">
                                                                     Email queued
                                                                 </span>
                                                             )}
-                                                            {row.staff_input?.email_status === 'failed' && (
-                                                                <span className="inline shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700">
+                                                            {row.staff_input
+                                                                ?.email_status ===
+                                                                'failed' && (
+                                                                <span className="inline shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-rose-700 uppercase">
                                                                     Email failed
                                                                 </span>
                                                             )}
                                                         </div>
                                                         <div className="truncate text-xs text-muted-foreground">
-                                                            {row.reference_number} · {row.email}
+                                                            {
+                                                                row.reference_number
+                                                            }{' '}
+                                                            · {row.email}
                                                         </div>
                                                         {timeAgo ? (
                                                             <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-emerald-600">
                                                                 <Mail className="h-3 w-3" />
-                                                                Sent email {timeAgo}
+                                                                Sent email{' '}
+                                                                {timeAgo}
                                                             </div>
                                                         ) : eligible ? (
                                                             <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-slate-400">
                                                                 <Mail className="h-3 w-3" />
-                                                                Not sent an email
+                                                                Not sent an
+                                                                email
                                                             </div>
                                                         ) : null}
                                                     </div>
@@ -1036,7 +1244,7 @@ const ManageRequests: React.FC = () => {
 
                         {emailTarget !== 'specific' && (
                             <div className="rounded-lg bg-muted/40 p-3 text-sm text-slate-600">
-                                <div className="flex items-center justify-between gap-2 mb-2">
+                                <div className="mb-2 flex items-center justify-between gap-2">
                                     <div className="flex items-center gap-2">
                                         <span className="font-semibold text-foreground">
                                             {bulkRecipients.length}
@@ -1045,8 +1253,10 @@ const ManageRequests: React.FC = () => {
                                         <Input
                                             placeholder="Search recipients..."
                                             value={emailSearch}
-                                            onChange={(e) => setEmailSearch(e.target.value)}
-                                            className="h-9 w-64 text-sm rounded-lg"
+                                            onChange={(e) =>
+                                                setEmailSearch(e.target.value)
+                                            }
+                                            className="h-9 w-64 rounded-lg text-sm"
                                         />
                                     </div>
 
@@ -1057,67 +1267,142 @@ const ManageRequests: React.FC = () => {
                                                     type="button"
                                                     variant="ghost"
                                                     size="sm"
-                                                    onClick={() => setShowSelectedPopover(!showSelectedPopover)}
-                                                    className="h-9 px-3 gap-1.5"
+                                                    onClick={() =>
+                                                        setShowSelectedPopover(
+                                                            !showSelectedPopover,
+                                                        )
+                                                    }
+                                                    className="h-9 gap-1.5 px-3"
                                                 >
                                                     <UserRound className="h-4 w-4" />
-                                                    <span>{selectedIds.size} selected</span>
+                                                    <span>
+                                                        {selectedIds.size}{' '}
+                                                        selected
+                                                    </span>
                                                     <ChevronDown className="h-3.5 w-3.5" />
                                                 </Button>
                                                 {showSelectedPopover && (
                                                     <div
                                                         ref={popoverRef}
-                                                        className="absolute right-0 top-full mt-1.5 w-80 rounded-lg border border-border bg-card py-1 text-card-foreground shadow-lg z-10"
-                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="absolute top-full right-0 z-10 mt-1.5 w-80 rounded-lg border border-border bg-card py-1 text-card-foreground shadow-lg"
+                                                        onClick={(e) =>
+                                                            e.stopPropagation()
+                                                        }
                                                     >
-                                                        <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-                                                            <span className="text-sm font-medium text-foreground">Selected Recipients</span>
+                                                        <div className="flex items-center justify-between border-b border-border px-3 py-2">
+                                                            <span className="text-sm font-medium text-foreground">
+                                                                Selected
+                                                                Recipients
+                                                            </span>
                                                             <Button
                                                                 type="button"
                                                                 variant="ghost"
                                                                 size="sm"
-                                                                onClick={() => setSelectedIds(new Set())}
+                                                                onClick={() =>
+                                                                    setSelectedIds(
+                                                                        new Set(),
+                                                                    )
+                                                                }
                                                                 className="text-xs text-rose-600 hover:text-rose-700"
                                                             >
                                                                 Clear All
                                                             </Button>
                                                         </div>
-                                                        <div className="px-3 py-2 border-b border-border">
+                                                        <div className="border-b border-border px-3 py-2">
                                                             <Input
                                                                 placeholder="Search selected..."
-                                                                value={selectedPopoverSearch}
-                                                                onChange={(e) => setSelectedPopoverSearch(e.target.value)}
+                                                                value={
+                                                                    selectedPopoverSearch
+                                                                }
+                                                                onChange={(e) =>
+                                                                    setSelectedPopoverSearch(
+                                                                        e.target
+                                                                            .value,
+                                                                    )
+                                                                }
                                                                 className="h-9 text-sm"
                                                                 autoFocus
                                                             />
                                                         </div>
                                                         <div className="max-h-48 overflow-y-auto">
-                                                            {Array.from(selectedIds)
-                                                                .map((id) => allRecipients.find(r => r.id === id))
-                                                                .filter((row): row is typeof row & { id: number } => row !== undefined)
-                                                                .filter((row) => {
-                                                                    if (!selectedPopoverSearch.trim()) {
-                                                                        return true;
-                                                                    }
+                                                            {Array.from(
+                                                                selectedIds,
+                                                            )
+                                                                .map((id) =>
+                                                                    allRecipients.find(
+                                                                        (r) =>
+                                                                            r.id ===
+                                                                            id,
+                                                                    ),
+                                                                )
+                                                                .filter(
+                                                                    (
+                                                                        row,
+                                                                    ): row is typeof row & {
+                                                                        id: number;
+                                                                    } =>
+                                                                        row !==
+                                                                        undefined,
+                                                                )
+                                                                .filter(
+                                                                    (row) => {
+                                                                        if (
+                                                                            !selectedPopoverSearch.trim()
+                                                                        ) {
+                                                                            return true;
+                                                                        }
 
-                                                                    const q = selectedPopoverSearch.toLowerCase();
-                                                                    const fullName = formatFullName(row).toLowerCase();
+                                                                        const q =
+                                                                            selectedPopoverSearch.toLowerCase();
+                                                                        const fullName =
+                                                                            formatFullName(
+                                                                                row,
+                                                                            ).toLowerCase();
 
-                                                                    return fullName.includes(q) || row.reference_number.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
-                                                                })
+                                                                        return (
+                                                                            fullName.includes(
+                                                                                q,
+                                                                            ) ||
+                                                                            row.reference_number
+                                                                                .toLowerCase()
+                                                                                .includes(
+                                                                                    q,
+                                                                                ) ||
+                                                                            row.email
+                                                                                .toLowerCase()
+                                                                                .includes(
+                                                                                    q,
+                                                                                )
+                                                                        );
+                                                                    },
+                                                                )
                                                                 .map((row) => (
                                                                     <div
-                                                                        key={row.id}
-                                                                        className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted/40 cursor-pointer"
-                                                                        onClick={() => toggleSelectId(row.id)}
+                                                                        key={
+                                                                            row.id
+                                                                        }
+                                                                        className="flex cursor-pointer items-center gap-2 px-3 py-1.5 hover:bg-muted/40"
+                                                                        onClick={() =>
+                                                                            toggleSelectId(
+                                                                                row.id,
+                                                                            )
+                                                                        }
                                                                     >
-                                                                        <UserRound className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                                                        <UserRound className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                                                                         <div className="min-w-0 flex-1">
-                                                                            <div className="text-sm font-medium text-foreground truncate">
-                                                                                {formatFullName(row)}
+                                                                            <div className="truncate text-sm font-medium text-foreground">
+                                                                                {formatFullName(
+                                                                                    row,
+                                                                                )}
                                                                             </div>
-                                                                            <div className="text-xs text-muted-foreground truncate">
-                                                                                {row.reference_number} · {row.email}
+                                                                            <div className="truncate text-xs text-muted-foreground">
+                                                                                {
+                                                                                    row.reference_number
+                                                                                }{' '}
+                                                                                ·{' '}
+                                                                                {
+                                                                                    row.email
+                                                                                }
                                                                             </div>
                                                                         </div>
                                                                     </div>
@@ -1127,12 +1412,15 @@ const ManageRequests: React.FC = () => {
                                                 )}
                                             </div>
                                         )}
-                                        {selectedIds.size === filteredBulkRecipients.length ? (
+                                        {selectedIds.size ===
+                                        filteredBulkRecipients.length ? (
                                             <Button
                                                 type="button"
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={() => setSelectedIds(new Set())}
+                                                onClick={() =>
+                                                    setSelectedIds(new Set())
+                                                }
                                                 className="h-9 px-3"
                                             >
                                                 Unselect All
@@ -1142,7 +1430,15 @@ const ManageRequests: React.FC = () => {
                                                 type="button"
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={() => setSelectedIds(new Set(filteredBulkRecipients.map(r => r.id)))}
+                                                onClick={() =>
+                                                    setSelectedIds(
+                                                        new Set(
+                                                            filteredBulkRecipients.map(
+                                                                (r) => r.id,
+                                                            ),
+                                                        ),
+                                                    )
+                                                }
                                                 className="h-9 px-3"
                                             >
                                                 Select All
@@ -1157,14 +1453,20 @@ const ManageRequests: React.FC = () => {
                                         </div>
                                     ) : (
                                         filteredBulkRecipients.map((row) => {
-                                            const timeAgo = formatTimeAgo(row.staff_input?.emailed_at);
-                                            const isSelected = selectedIds.has(row.id);
+                                            const timeAgo = formatTimeAgo(
+                                                row.staff_input?.emailed_at,
+                                            );
+                                            const isSelected = selectedIds.has(
+                                                row.id,
+                                            );
 
                                             return (
                                                 <div
                                                     key={row.id}
-                                                    className="flex items-start gap-2 border-b border-border px-3 py-2 text-sm last:border-0 cursor-pointer hover:bg-muted/40"
-                                                    onClick={() => toggleSelectId(row.id)}
+                                                    className="flex cursor-pointer items-start gap-2 border-b border-border px-3 py-2 text-sm last:border-0 hover:bg-muted/40"
+                                                    onClick={() =>
+                                                        toggleSelectId(row.id)
+                                                    }
                                                 >
                                                     <div className="mt-0.5 shrink-0">
                                                         {isSelected ? (
@@ -1176,39 +1478,57 @@ const ManageRequests: React.FC = () => {
                                                     <div className="min-w-0 flex-1">
                                                         <div className="flex min-w-0 items-center gap-2">
                                                             <div className="truncate font-medium text-foreground">
-                                                                {formatFullName(row)}
+                                                                {formatFullName(
+                                                                    row,
+                                                                )}
                                                             </div>
                                                             <span
-                                                                className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${row.staff_input
-                                                                        ? statusBadgeClass(row.staff_input.status)
+                                                                className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${
+                                                                    row.staff_input
+                                                                        ? statusBadgeClass(
+                                                                              row
+                                                                                  .staff_input
+                                                                                  .status,
+                                                                          )
                                                                         : 'bg-slate-100 text-slate-600'
-                                                                    }`}
+                                                                }`}
                                                             >
-                                                                {row.staff_input?.status ?? 'Unprocessed'}
+                                                                {row.staff_input
+                                                                    ?.status ??
+                                                                    'Unapproved'}
                                                             </span>
-                                                            {row.staff_input?.email_status === 'pending' && (
-                                                                <span className="inline shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                                                            {row.staff_input
+                                                                ?.email_status ===
+                                                                'pending' && (
+                                                                <span className="inline shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-700 uppercase">
                                                                     Email queued
                                                                 </span>
                                                             )}
-                                                            {row.staff_input?.email_status === 'failed' && (
-                                                                <span className="inline shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700">
+                                                            {row.staff_input
+                                                                ?.email_status ===
+                                                                'failed' && (
+                                                                <span className="inline shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-rose-700 uppercase">
                                                                     Email failed
                                                                 </span>
                                                             )}
                                                         </div>
                                                         <div className="truncate text-xs text-muted-foreground">
-                                                            {row.reference_number} · {row.email}
+                                                            {
+                                                                row.reference_number
+                                                            }{' '}
+                                                            · {row.email}
                                                         </div>
                                                         {timeAgo ? (
                                                             <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-emerald-600">
                                                                 <Mail className="h-3 w-3" />
-                                                                Sent email {timeAgo}
+                                                                Sent email{' '}
+                                                                {timeAgo}
                                                             </div>
                                                         ) : (
                                                             <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-slate-400">
                                                                 <Mail className="h-3 w-3" />
-                                                                Not sent an email
+                                                                Not sent an
+                                                                email
                                                             </div>
                                                         )}
                                                     </div>
@@ -1218,7 +1538,9 @@ const ManageRequests: React.FC = () => {
                                     )}
                                 </div>
                                 <div className="mt-2 text-xs text-muted-foreground">
-                                    <span className="font-semibold text-slate-700">{selectedIds.size}</span>{' '}
+                                    <span className="font-semibold text-slate-700">
+                                        {selectedIds.size}
+                                    </span>{' '}
                                     selected
                                 </div>
                             </div>
@@ -1232,7 +1554,9 @@ const ManageRequests: React.FC = () => {
                             <Input
                                 placeholder="Leave blank for default subject"
                                 value={emailSubject}
-                                onChange={(e) => setEmailSubject(e.target.value)}
+                                onChange={(e) =>
+                                    setEmailSubject(e.target.value)
+                                }
                                 className="h-10 rounded-lg"
                             />
                         </div>
@@ -1262,7 +1586,10 @@ const ManageRequests: React.FC = () => {
                         <Button
                             type="button"
                             onClick={handleSendBulkEmail}
-                            disabled={isSendingEmail || computeTargetIds().length === 0}
+                            disabled={
+                                isSendingEmail ||
+                                computeTargetIds().length === 0
+                            }
                             className="gap-2 bg-emerald-600 hover:bg-emerald-700"
                         >
                             {isSendingEmail ? (
@@ -1271,7 +1598,9 @@ const ManageRequests: React.FC = () => {
                                 <Send className="h-4 w-4" />
                             )}
                             <span>
-                                {isSendingEmail ? 'Sending...' : `Send (${computeTargetIds().length})`}
+                                {isSendingEmail
+                                    ? 'Sending...'
+                                    : `Send (${computeTargetIds().length})`}
                             </span>
                         </Button>
                     </DialogFooter>
@@ -1295,7 +1624,7 @@ const ManageRequests: React.FC = () => {
                 disablePointerDismissal
             >
                 <DialogContent
-                    className="sm:max-w-2xl max-h-[80vh] overflow-hidden"
+                    className="max-h-[80vh] overflow-hidden sm:max-w-2xl"
                     overlayClassName="hidden"
                 >
                     <DialogHeader>
@@ -1304,75 +1633,128 @@ const ManageRequests: React.FC = () => {
                             Email Sending Progress
                         </DialogTitle>
                         <DialogDescription>
-                            Emails are being sent in the background. You can close this window and continue working.
+                            Emails are being sent in the background. You can
+                            close this window and continue working.
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-4 pb-2">
                         {/* Progress Summary */}
-                        <div className="flex items-center gap-4 p-4 bg-muted/40 rounded-lg">
+                        <div className="flex items-center gap-4 rounded-lg bg-muted/40 p-4">
                             <div className="flex-1 text-center">
                                 <div className="text-2xl font-bold text-emerald-600">
-                                    {emailProgress.filter(p => p.status === 'sent').length}
+                                    {
+                                        emailProgress.filter(
+                                            (p) => p.status === 'sent',
+                                        ).length
+                                    }
                                 </div>
-                                <div className="text-xs text-muted-foreground">Sent</div>
+                                <div className="text-xs text-muted-foreground">
+                                    Sent
+                                </div>
                             </div>
-                            <div className="w-px h-10 bg-slate-200" />
+                            <div className="h-10 w-px bg-slate-200" />
                             <div className="flex-1 text-center">
                                 <div className="text-2xl font-bold text-rose-600">
-                                    {emailProgress.filter(p => p.status === 'failed').length}
+                                    {
+                                        emailProgress.filter(
+                                            (p) => p.status === 'failed',
+                                        ).length
+                                    }
                                 </div>
-                                <div className="text-xs text-muted-foreground">Failed</div>
+                                <div className="text-xs text-muted-foreground">
+                                    Failed
+                                </div>
                             </div>
-                            <div className="w-px h-10 bg-slate-200" />
+                            <div className="h-10 w-px bg-slate-200" />
                             <div className="flex-1 text-center">
                                 <div className="text-2xl font-bold text-slate-600">
-                                    {emailProgress.filter(p => p.status === 'pending').length}
+                                    {
+                                        emailProgress.filter(
+                                            (p) => p.status === 'pending',
+                                        ).length
+                                    }
                                 </div>
-                                <div className="text-xs text-muted-foreground">Pending</div>
+                                <div className="text-xs text-muted-foreground">
+                                    Pending
+                                </div>
                             </div>
-                            <div className="w-px h-10 bg-slate-200" />
+                            <div className="h-10 w-px bg-slate-200" />
                             <div className="flex-1 text-center">
                                 <div className="text-2xl font-bold text-blue-600">
                                     {emailProgress.length}
                                 </div>
-                                <div className="text-xs text-muted-foreground">Total</div>
+                                <div className="text-xs text-muted-foreground">
+                                    Total
+                                </div>
                             </div>
                         </div>
 
                         {/* Stalled Queue Warning */}
-                        {emailProgress.some(p => p.stalled) && (
+                        {emailProgress.some((p) => p.stalled) && (
                             <div className="rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800">
-                                <div className="font-semibold">No queue worker is running</div>
+                                <div className="font-semibold">
+                                    No queue worker is running
+                                </div>
                                 <div className="mt-1 text-xs">
-                                    These emails were queued but no worker picked them up, so they will not be sent.
-                                    Start a worker with <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">php artisan queue:work</code>{' '}
-                                    (or <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">composer queue:work</code>) and they will be delivered automatically.
+                                    These emails were queued but no worker
+                                    picked them up, so they will not be sent.
+                                    Start a worker with{' '}
+                                    <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">
+                                        php artisan queue:work
+                                    </code>{' '}
+                                    (or{' '}
+                                    <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">
+                                        composer queue:work
+                                    </code>
+                                    ) and they will be delivered automatically.
                                 </div>
                             </div>
                         )}
 
                         {/* Progress Bar */}
-                        <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                        <div className="h-3 overflow-hidden rounded-full bg-slate-200">
                             <div
                                 className="h-full bg-emerald-600 transition-all duration-300"
                                 style={{
-                                    width: `${emailProgress.length > 0
-                                        ? (emailProgress.filter(p => p.status === 'sent').length / emailProgress.length) * 100
-                                        : 0}%`,
+                                    width: `${
+                                        emailProgress.length > 0
+                                            ? (emailProgress.filter(
+                                                  (p) => p.status === 'sent',
+                                              ).length /
+                                                  emailProgress.length) *
+                                              100
+                                            : 0
+                                    }%`,
                                 }}
                             />
                         </div>
-                        <p className="text-sm text-muted-foreground text-center flex items-center justify-center gap-2">
-                            {isPollingProgress
-                                ? (emailProgress.some(p => p.stalled)
-                                    ? <span className="text-rose-600">Waiting for a queue worker...</span>
-                                    : (pollingStartTime && Date.now() - pollingStartTime > MAX_POLLING_DURATION * 0.8
-                                        ? 'Almost timed out...'
-                                        : <span>Processing... <Loader2 className="h-4 w-4 animate-spin text-emerald-600" /> <span className="text-xs text-slate-400">(updates every 15 seconds)</span></span>))
-                                : emailProgress.some(p => p.status === 'failed')
-                                    ? `Completed — ${emailProgress.filter(p => p.status === 'failed').length} email(s) failed`
-                                    : 'Completed'}
+                        <p className="flex items-center justify-center gap-2 text-center text-sm text-muted-foreground">
+                            {isPollingProgress ? (
+                                emailProgress.some((p) => p.stalled) ? (
+                                    <span className="text-rose-600">
+                                        Waiting for a queue worker...
+                                    </span>
+                                ) : pollingStartTime &&
+                                  Date.now() - pollingStartTime >
+                                      MAX_POLLING_DURATION * 0.8 ? (
+                                    'Almost timed out...'
+                                ) : (
+                                    <span>
+                                        Processing...{' '}
+                                        <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />{' '}
+                                        <span className="text-xs text-slate-400">
+                                            (updates every 15 seconds)
+                                        </span>
+                                    </span>
+                                )
+                            ) : emailProgress.some(
+                                  (p) => p.status === 'failed',
+                              ) ? (
+                                `Completed — ${emailProgress.filter((p) => p.status === 'failed').length} email(s) failed`
+                            ) : (
+                                'Completed'
+                            )}
                         </p>
 
                         {/* Job List - Scrollable */}
@@ -1384,16 +1766,26 @@ const ManageRequests: React.FC = () => {
                             ) : (
                                 <div className="divide-y divide-slate-100">
                                     {emailProgress.map((progress, index) => {
-                                        const recipient = allRecipients.find(r => r.id === progress.form_input_id);
+                                        const recipient = allRecipients.find(
+                                            (r) =>
+                                                r.id === progress.form_input_id,
+                                        );
                                         const statusColors = {
                                             sent: 'bg-emerald-100 text-emerald-700',
-                                            pending: 'bg-amber-100 text-amber-700',
+                                            pending:
+                                                'bg-amber-100 text-amber-700',
                                             failed: 'bg-rose-100 text-rose-700',
                                         };
                                         const statusIcons = {
-                                            sent: <CheckCircle2 className="h-3.5 w-3.5" />,
-                                            pending: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
-                                            failed: <XCircle className="h-3.5 w-3.5" />,
+                                            sent: (
+                                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                            ),
+                                            pending: (
+                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                            ),
+                                            failed: (
+                                                <XCircle className="h-3.5 w-3.5" />
+                                            ),
                                         };
 
                                         return (
@@ -1401,34 +1793,63 @@ const ManageRequests: React.FC = () => {
                                                 key={`${progress.form_input_id}-${index}`}
                                                 className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40"
                                             >
-                                                <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${statusColors[progress.status]}`}>
-                                                    {statusIcons[progress.status]}
+                                                <div
+                                                    className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full ${statusColors[progress.status]}`}
+                                                >
+                                                    {
+                                                        statusIcons[
+                                                            progress.status
+                                                        ]
+                                                    }
                                                 </div>
-                                                <div className="flex-1 min-w-0">
+                                                <div className="min-w-0 flex-1">
                                                     <div className="flex items-center gap-2 truncate">
-                                                        <span className="font-medium text-foreground truncate">
-                                                            {recipient ? formatFullName(recipient) : `ID: ${progress.form_input_id}`}
+                                                        <span className="truncate font-medium text-foreground">
+                                                            {recipient
+                                                                ? formatFullName(
+                                                                      recipient,
+                                                                  )
+                                                                : `ID: ${progress.form_input_id}`}
                                                         </span>
-                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[progress.status]}`}>
-                                                            {progress.status.charAt(0).toUpperCase() + progress.status.slice(1)}
+                                                        <span
+                                                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[progress.status]}`}
+                                                        >
+                                                            {progress.status
+                                                                .charAt(0)
+                                                                .toUpperCase() +
+                                                                progress.status.slice(
+                                                                    1,
+                                                                )}
                                                         </span>
                                                     </div>
-                                                    <div className="text-xs text-muted-foreground truncate">
-                                                        {recipient ? `${recipient.reference_number} · ${recipient.email}` : `ID: ${progress.form_input_id}`}
+                                                    <div className="truncate text-xs text-muted-foreground">
+                                                        {recipient
+                                                            ? `${recipient.reference_number} · ${recipient.email}`
+                                                            : `ID: ${progress.form_input_id}`}
                                                     </div>
-                                                    {progress.status === 'sent' && progress.emailed_at && (
-                                                        <div className="text-xs text-emerald-600">
-                                                            Sent: {formatDate(progress.emailed_at)}
-                                                        </div>
-                                                    )}
-                                                    {progress.status === 'failed' && (
+                                                    {progress.status ===
+                                                        'sent' &&
+                                                        progress.emailed_at && (
+                                                            <div className="text-xs text-emerald-600">
+                                                                Sent:{' '}
+                                                                {formatDate(
+                                                                    progress.emailed_at,
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    {progress.status ===
+                                                        'failed' && (
                                                         <div className="text-xs text-rose-600">
-                                                            Failed: {progress.error ?? 'Unknown error'}
+                                                            Failed:{' '}
+                                                            {progress.error ??
+                                                                'Unknown error'}
                                                         </div>
                                                     )}
                                                     {progress.stalled && (
                                                         <div className="text-xs text-rose-600">
-                                                            Stalled: {progress.error ?? 'Queued but never picked up — no queue worker is running.'}
+                                                            Stalled:{' '}
+                                                            {progress.error ??
+                                                                'Queued but never picked up — no queue worker is running.'}
                                                         </div>
                                                     )}
                                                 </div>
@@ -1446,7 +1867,7 @@ const ManageRequests: React.FC = () => {
                             variant="outline"
                             onClick={closeProgressModal}
                         >
-                            <X className="h-4 w-4 mr-1.5" />
+                            <X className="mr-1.5 h-4 w-4" />
                             Close (continue in background)
                         </Button>
                         {!isPollingProgress && (

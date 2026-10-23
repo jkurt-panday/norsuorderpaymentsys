@@ -1787,7 +1787,7 @@ export default function ShowRequest() {
                                                         }
                                                     >
                                                         <SelectTrigger
-                                                            className={`h-9 w-full rounded-xl text-sm ${staffInputErrors.status ? 'border-rose-400' : 'border-border'}`}
+                                                            className={`h-9! w-full rounded-xl text-sm ${staffInputErrors.status ? 'border-rose-400' : 'border-border'}`}
                                                         >
                                                             <SelectValue placeholder="Select Status" />
                                                         </SelectTrigger>
