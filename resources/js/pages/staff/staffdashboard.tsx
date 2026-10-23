@@ -205,7 +205,7 @@ export default function Dashboard() {
                         data={statusBreakdown}
                         xKey="name"
                         yKey="count"
-                        pieColors={['#94a3b8', '#f59e0b', '#22c55e', '#ef4444']}
+                        pieColors={['#94a3b8', '#f59e0b', '#3b82f6', '#ef4444', '#22c55e']}
                     />
                     <div className="lg:col-span-2">
                         <ChartCard

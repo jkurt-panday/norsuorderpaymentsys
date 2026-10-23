@@ -44,7 +44,11 @@ class CashierRequestController extends Controller
                             $query->whereRaw('LOWER(reference_number) LIKE ?', [$like])
                                 ->orWhereRaw('LOWER(email) LIKE ?', [$like])
                                 ->orWhereRaw('LOWER(firstname_or_office) LIKE ?', [$like])
-                                ->orWhereRaw('LOWER(lastname_or_agency) LIKE ?', [$like]);
+                                ->orWhereRaw('LOWER(lastname_or_agency) LIKE ?', [$like])
+                                ->orWhereRaw(
+                                    "LOWER(CONCAT_WS(' ', firstname_or_office, middlename_or_project, lastname_or_agency)) LIKE ?",
+                                    [$like],
+                                );
                         });
                 });
             });

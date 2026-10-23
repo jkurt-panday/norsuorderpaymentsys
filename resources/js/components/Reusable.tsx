@@ -153,7 +153,7 @@ export function ChartCard({
             <CardContent>
                 <div style={{ width: '100%', height, position: 'relative' }}>
                     <div className="relative z-10 h-full w-full">
-                        <ResponsiveContainer>
+                        <ResponsiveContainer minWidth={0} minHeight={undefined} aspect={undefined}>
                             {type === 'bar' ? (
                                 <BarChart
                                     data={data}
@@ -258,7 +258,11 @@ export function ChartCard({
                                         wrapperStyle={{ fontSize: 12 }}
                                     />
                                     <Pie
-                                        data={data}
+                                        data={
+                                            pieTotal === 0
+                                                ? [{ [xKey]: 'No data', [yKey]: 1 }]
+                                                : data
+                                        }
                                         dataKey={yKey}
                                         nameKey={xKey}
                                         innerRadius={height / 5}

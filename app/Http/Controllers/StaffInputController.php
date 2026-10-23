@@ -129,8 +129,8 @@ class StaffInputController extends Controller
             'processedLastDate' => $latestByStatus->get('processed'),
             'paidLastDate' => $latestByStatus->get('paid'),
             'cancelledLastDate' => $latestByStatus->get('cancelled'),
-            // Order here (Unprocessed, Pending, Approved, Cancelled) must match
-            // the pieColors array on the frontend: ['#94a3b8', '#f59e0b', '#22c55e', '#ef4444']
+            // Order here (Unprocessed, Pending, Paid, Cancelled, Processed) must match
+            // the pieColors array on the frontend.
             'statusBreakdown' => collect([
                 ['name' => 'Unprocessed', 'count' => $unprocessedCount],
             ])
@@ -313,7 +313,11 @@ class StaffInputController extends Controller
                     ->orWhereRaw('LOWER(firstname_or_office) LIKE ?', ["%{$search}%"])
                     ->orWhereRaw('LOWER(middlename_or_project) LIKE ?', ["%{$search}%"])
                     ->orWhereRaw('LOWER(lastname_or_agency) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"]);
+                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw(
+                        "LOWER(CONCAT_WS(' ', firstname_or_office, middlename_or_project, lastname_or_agency)) LIKE ?",
+                        ["%{$search}%"],
+                    );
             });
         }
 
