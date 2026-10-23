@@ -51,7 +51,7 @@ export function UserMenuContent({ user }: Props) {
             <DropdownMenuItem
                 render={
                     <Link
-                        className="block w-full cursor-pointer"
+                        className="block w-full cursor-pointer bg-white text-red-300 hover:bg-red-50 hover:text-red-400"
                         href={logout()}
                         as="button"
                         onClick={handleLogout}

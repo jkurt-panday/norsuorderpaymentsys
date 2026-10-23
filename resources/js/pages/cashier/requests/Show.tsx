@@ -159,7 +159,7 @@ export default function CashierRequestShow({
                             <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                                 Reference number
                             </p>
-                            <h1 className="mt-1 text-2xl font-semibold text-foreground">
+                            <h1 className="mt-1 bg-[#3399FF] bg-clip-text font-['Poppins'] text-2xl! font-black tracking-tight text-transparent sm:text-4xl">
                                 {request.form_input.reference_number}
                             </h1>
                         </div>

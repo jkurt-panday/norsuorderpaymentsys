@@ -1,10 +1,8 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
-@import '@fontsource/karla/400.css';
-@import '@fontsource/karla/500.css';
-@import '@fontsource/karla/600.css';
-@import '@fontsource/karla/700.css';
+@import '@fontsource-variable/geist';
+@import '@fontsource/ibm-plex-mono/700.css';
 @import '@fontsource/poppins/400.css';
 @import '@fontsource/poppins/500.css';
 @import '@fontsource/poppins/600.css';
@@ -16,6 +14,12 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
+    body {
+        font-family: var(--font-sans);
+        font-size: 18px;
+        font-weight: 400;
+    }
+
     button:not(:disabled),
     [role='button']:not([aria-disabled='true']) {
         cursor: pointer;
@@ -29,9 +33,11 @@
 
 @theme {
     --font-sans:
-        'Karla', ui-sans-serif, system-ui, sans-serif,
+        'Geist Variable', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
+    --font-mono:
+        'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     --font-heading:
         'Poppins', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',

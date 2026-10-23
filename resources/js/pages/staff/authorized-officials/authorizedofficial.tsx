@@ -64,7 +64,7 @@ export default function AuthorizedOfficialIndex({
         {
             header: 'Name',
             sortable: 'name',
-            width: '240px',
+            width: '320px',
             render: (row) => (
                 <span className="block font-medium text-foreground">
                     {row.name}
