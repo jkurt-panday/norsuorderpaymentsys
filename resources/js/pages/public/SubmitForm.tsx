@@ -31,8 +31,8 @@ import PublicLayout from '@/pages/layouts/PublicLayout';
 
 const reqType = ['New Request', 'Re-issue Request'] as const;
 const enlarge =
-    'h-12 rounded-xl border-slate-300 bg-white px-4 text-base shadow-sm transition-all duration-200';
-const comboboxInputClass = `border-slate-300 focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`;
+    'h-12 rounded-xl border-border bg-card px-4 text-base shadow-sm transition-all duration-200';
+const comboboxInputClass = `border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`;
 
 const toSentenceCase = (value: string): string => {
     const normalized = value.toLowerCase();
@@ -285,10 +285,10 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
     return (
         <>
             <Head title="Order of Payment Form" />
-            <ThemeToggle className="fixed top-4 right-4 z-50 rounded-full shadow-md bg-white/80 dark:bg-slate-900/80 backdrop-blur" />
+            <ThemeToggle className="fixed top-4 right-4 z-50 rounded-full shadow-md bg-card/80 dark:bg-slate-900/80 backdrop-blur" />
             <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-300 to-white px-6 py-12">
                 <div className="mx-auto max-w-4xl">
-                    <div className="mb-6 rounded-2xl border border-blue-100 bg-white px-8 py-8 text-center shadow-md">
+                    <div className="mb-6 rounded-2xl border border-blue-100 bg-card px-8 py-8 text-center shadow-md">
                         <div className="flex justify-center">
                             <img
                                 src="/finance_logo1.png"
@@ -332,8 +332,8 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                     </Tabs>
 
                     <form noValidate onSubmit={handleSubmit}>
-                        <Card className="overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-xl">
-                            <CardHeader className="border-b border-slate-100 bg-white pb-6">
+                        <Card className="overflow-hidden rounded-3xl border border-blue-100 bg-card shadow-xl">
+                            <CardHeader className="border-b border-slate-100 bg-card pb-6">
                                 <CardTitle className="flex items-center gap-3 text-xl font-semibold text-blue-900">
                                     <Mail className="h-5 w-5 text-blue-600" />
                                     Contact Information
@@ -934,7 +934,7 @@ setData(
                                         >
                                             <ComboboxInput
                                                 placeholder="Select a request type"
-                                                className={`border-slate-300 focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
+                                                className={`border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
 
                                                 showClear={!!data.request_type}
                                             />
@@ -996,7 +996,7 @@ setData(
                                         >
                                             <ComboboxInput
                                                 placeholder="Select membership"
-                                                className={`border-slate-300 focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
+                                                className={`border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
 
                                                 showClear={!!data.membership_id}
                                             />
@@ -1065,7 +1065,7 @@ setData(
                                                 showClear={
                                                     !!data.payment_detail_option_id
                                                 }
-                                                className={`border-slate-300 focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
+                                                className={`border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
                                             />
                                             <ComboboxContent>
                                                 <ComboboxEmpty>
@@ -1234,7 +1234,7 @@ setData(
                                 <Button
                                     variant="outline"
                                     type="button"
-                                    className="rounded-xl border-slate-300 hover:bg-slate-100"
+                                    className="rounded-xl border-border hover:bg-slate-100"
                                     onClick={() => {
                                         reset();
                                         // setSupportingDocuments([]);
@@ -1265,7 +1265,7 @@ return null;
                                         <Button
                                             variant="outline"
                                             type="button"
-                                            className="cursor-pointer rounded-xl border-slate-300 font-semibold text-slate-700 hover:bg-slate-100"
+                                            className="cursor-pointer rounded-xl border-border font-semibold text-slate-700 hover:bg-slate-100"
                                         >
                                             <Link
                                                 href={homeHref}

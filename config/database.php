@@ -101,9 +101,25 @@ return [
             // which does not support server-side prepared statements.
             // Emulating them client-side via PDO fixes the
             // "prepared statement does not exist" error.
-            'options' => [
-                PDO::ATTR_EMULATE_PREPARES => true,
-            ],
+            //
+            // Reuse the connection between requests when DB_PERSISTENT is
+            // on. The database lives behind Supabase's pooler in another
+            // region, so opening a connection costs ~650ms (TCP + TLS +
+            // pooler auth) that every single request would otherwise pay
+            // again. Off by default because it changes connection lifetime
+            // semantics, so each environment opts in explicitly.
+            //
+            // Note: this must not be built with the spread operator —
+            // spreading an array renumbers its integer keys, which would
+            // silently turn PDO::ATTR_PERSISTENT into a bogus option.
+            'options' => env('DB_PERSISTENT', false)
+                ? [
+                    PDO::ATTR_EMULATE_PREPARES => true,
+                    PDO::ATTR_PERSISTENT => true,
+                ]
+                : [
+                    PDO::ATTR_EMULATE_PREPARES => true,
+                ],
         ],
 
         'sqlsrv' => [

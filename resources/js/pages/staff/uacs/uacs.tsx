@@ -81,7 +81,7 @@ flashToast('error', flash.error);
             columns={columns}
             resource={uacs}
             resourceKey="uacs"
-            pollInterval={15000}
+            pollInterval={300000}
             editHref={(row) => edit(row.id)}
             deleteUrl={(id) => destroy(id).url}
             emptyIcon={Code}

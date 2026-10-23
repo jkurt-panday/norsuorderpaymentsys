@@ -1138,6 +1138,22 @@ class GraduateLedgerController extends Controller
                 )
             );
 
+            try {
+                $actor = auth()->user();
+                \App\Models\ActivityLog::create([
+                    'actor_id' => $actor?->getAuthIdentifier(),
+                    'actor_name' => $actor?->name,
+                    'actor_role' => $actor?->role,
+                    'action' => 'email.sent',
+                    'target_id' => null,
+                    'subject_type' => null,
+                    'subject_id' => null,
+                    'description' => "Email sent to {$student->email} with subject \"".($validated['subject'] ?? 'Statement of Account')."\".",
+                    'meta' => ['to' => $student->email, 'subject' => $validated['subject'] ?? 'Statement of Account'],
+                ]);
+            } catch (\Throwable $e) {
+            }
+
             $sent++;
         }
 

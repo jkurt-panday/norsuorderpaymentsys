@@ -173,48 +173,48 @@ function SearchableStudentSelect({
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex w-full items-center justify-between rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                className="flex w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
             >
                 <span
                     className={
                         selectedStudent
-                            ? 'font-medium text-[#0B3D91]'
-                            : 'text-[#7FA6D6]'
+                            ? 'font-medium text-foreground'
+                            : 'text-muted-foreground'
                     }
                 >
                     {selectedStudent
                         ? formatStudentLabel(selectedStudent)
                         : '-- Select / Search Student --'}
                 </span>
-                <ChevronsUpDown className="h-4 w-4 text-[#7FA6D6]" />
+                <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
             </button>
 
             {isOpen && (
-                <div className="absolute z-50 mt-1 w-full space-y-2 rounded-md border border-[#CFE3FF] bg-white p-2 shadow-lg">
+                <div className="absolute z-50 mt-1 w-full space-y-2 rounded-md border border-border bg-popover p-2 text-popover-foreground shadow-lg">
                     <div className="relative">
-                        <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-[#8AA8CC]" />
+                        <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             type="text"
                             placeholder="Type Student ID or name to filter..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="h-9 border-[#CFE3FF] pl-8 text-xs"
+                            className="h-9 border-input bg-background pl-8 text-xs text-foreground"
                             autoFocus
                         />
                         {search && (
                             <button
                                 type="button"
                                 onClick={() => setSearch('')}
-                                className="absolute top-2.5 right-2.5 text-xs text-[#8AA8CC] hover:text-[#0B3D91]"
+                                className="absolute top-2.5 right-2.5 text-xs text-muted-foreground hover:text-foreground"
                             >
                                 <X className="h-4 w-4" />
                             </button>
                         )}
                     </div>
 
-                    <div className="max-h-60 divide-y divide-[#EAF2FF] overflow-y-auto rounded-md border border-[#EAF2FF]">
+                    <div className="max-h-60 divide-y divide-border overflow-y-auto rounded-md border border-border">
                         {filteredStudents.length === 0 ? (
-                            <p className="p-3 text-center text-xs text-[#8AA8CC]">
+                            <p className="p-3 text-center text-xs text-muted-foreground">
                                 No students found.
                             </p>
                         ) : (
@@ -231,21 +231,21 @@ function SearchableStudentSelect({
                                                 onChange(s.id);
                                                 setIsOpen(false);
                                             }}
-                                            className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-[#F3F8FF] ${
+                                            className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-muted ${
                                                 isSelected
-                                                    ? 'bg-[#EAF2FF] font-semibold text-[#0B3D91]'
-                                                    : 'text-[#334E68]'
+                                                    ? 'bg-primary/10 font-semibold text-primary'
+                                                    : 'text-foreground'
                                             }`}
                                         >
                                             <span>{formatStudentLabel(s)}</span>
                                             {isSelected && (
-                                                <Check className="h-3.5 w-3.5 text-[#0F6FFF]" />
+                                                <Check className="h-3.5 w-3.5 text-primary" />
                                             )}
                                         </button>
                                     );
                                 })}
                                 {hasMoreStudents && (
-                                    <div className="bg-[#F8FBFF] px-3 py-2 text-center text-[11px] text-[#5C7A9E]">
+                                    <div className="bg-muted/40 px-3 py-2 text-center text-[11px] text-muted-foreground">
                                         Showing first {MATCH_LIMIT} of{' '}
                                         {filteredStudents.length} students. Type
                                         to narrow search.
@@ -385,13 +385,13 @@ export default function EditTransaction({
     };
 
     const selectClass =
-        'w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none';
+        'w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none';
 
     return (
         <div className="min-h-full bg-page-background p-4 md:p-8">
             <Head title="Edit Transaction" />
             <div className="mx-auto max-w-5xl space-y-6">
-                <div className="flex items-center justify-between border-b border-[#CFE3FF] pb-4">
+                <div className="flex items-center justify-between border-b border-border pb-4">
                     <div className="flex items-center gap-2">
                         <Button
                             variant="outline"
@@ -399,7 +399,7 @@ export default function EditTransaction({
                             onClick={() =>
                                 router.get(graduateLedgerIndex.url())
                             }
-                            className="border-[#CFE3FF] text-[#0B3D91]"
+                            className="border-border text-foreground"
                         >
                             <ArrowLeft className="mr-1 h-4 w-4" /> Back
                         </Button>
@@ -407,7 +407,7 @@ export default function EditTransaction({
                             <h1 className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-2xl! font-black tracking-tight text-transparent sm:text-4xl">
                                 Edit Transaction
                             </h1>
-                            <p className="mt-1 text-sm text-[#5C7A9E]">
+                            <p className="mt-1 text-sm text-muted-foreground">
                                 Update the ledger transaction details below.
                             </p>
                         </div>
@@ -422,12 +422,12 @@ export default function EditTransaction({
                     </Button>
                 </div>
 
-                <Card className="border-[#CFE3FF] bg-white">
+                <Card className="border-border bg-card">
                     <CardHeader>
-                        <CardTitle className="text-base text-[#0B3D91]">
+                        <CardTitle className="text-base text-foreground">
                             Transaction Details
                         </CardTitle>
-                        <CardDescription className="text-[#7FA6D6]">
+                        <CardDescription className="text-muted-foreground">
                             Update the student information and financial details
                             below.
                         </CardDescription>
@@ -439,7 +439,7 @@ export default function EditTransaction({
                         >
                             {/* Student Picker */}
                             <div className="md:col-span-2">
-                                <label className="mb-1 block text-sm text-[#334E68]">
+                                <label className="mb-1 block text-sm text-muted-foreground">
                                     Student
                                 </label>
                                 {isNormalized ? (
@@ -472,7 +472,7 @@ export default function EditTransaction({
 
                             {/* Course */}
                             <div>
-                                <label className="text-sm text-[#334E68]">
+                                <label className="text-sm text-muted-foreground">
                                     Course
                                 </label>
                                 {isNormalized ? (
@@ -520,7 +520,7 @@ export default function EditTransaction({
 
                             {/* School Year */}
                             <div>
-                                <label className="text-sm text-[#334E68]">
+                                <label className="text-sm text-muted-foreground">
                                     School Year
                                 </label>
                                 <Input
@@ -542,7 +542,7 @@ export default function EditTransaction({
 
                             {/* Semester */}
                             <div>
-                                <label className="text-sm text-[#334E68]">
+                                <label className="text-sm text-muted-foreground">
                                     Semester
                                 </label>
                                 <select
@@ -568,7 +568,7 @@ export default function EditTransaction({
 
                             {/* Units */}
                             <div>
-                                <label className="text-sm text-[#334E68]">
+                                <label className="text-sm text-muted-foreground">
                                     Units
                                 </label>
                                 <Input
@@ -587,7 +587,7 @@ export default function EditTransaction({
 
                             {/* Transaction Date */}
                             <div>
-                                <label className="text-sm text-[#334E68]">
+                                <label className="text-sm text-muted-foreground">
                                     Transaction Date
                                 </label>
                                 <Input
@@ -610,7 +610,7 @@ export default function EditTransaction({
 
                             {/* Reference / JEV / OR # */}
                             <div>
-                                <label className="text-sm text-[#334E68]">
+                                <label className="text-sm text-muted-foreground">
                                     Reference / JEV / OR #
                                 </label>
                                 <Input
@@ -626,7 +626,7 @@ export default function EditTransaction({
 
                             {/* Particulars */}
                             <div className="md:col-span-2">
-                                <label className="text-sm text-[#334E68]">
+                                <label className="text-sm text-muted-foreground">
                                     Particulars
                                 </label>
                                 <select
@@ -646,7 +646,7 @@ export default function EditTransaction({
 
                             {/* Tuition / Unit */}
                             <div>
-                                <label className="text-sm text-[#334E68]">
+                                <label className="text-sm text-muted-foreground">
                                     Tuition / Unit
                                 </label>
                                 <Input
@@ -673,7 +673,7 @@ export default function EditTransaction({
 
                             {/* Type */}
                             <div>
-                                <label className="text-sm text-[#334E68]">
+                                <label className="text-sm text-muted-foreground">
                                     Type
                                 </label>
                                 {isNormalized ? (
@@ -718,7 +718,7 @@ export default function EditTransaction({
 
                             {/* Amount */}
                             <div>
-                                <label className="text-sm text-[#334E68]">
+                                <label className="text-sm text-muted-foreground">
                                     Amount
                                 </label>
                                 <Input
@@ -738,7 +738,7 @@ export default function EditTransaction({
 
                             {/* Input By */}
                             <div>
-                                <label className="text-sm text-[#334E68]">
+                                <label className="text-sm text-muted-foreground">
                                     Input By
                                 </label>
                                 <Input
@@ -752,7 +752,7 @@ export default function EditTransaction({
 
                             {/* Remarks */}
                             <div className="md:col-span-2">
-                                <label className="text-sm text-[#334E68]">
+                                <label className="text-sm text-muted-foreground">
                                     Remarks
                                 </label>
                                 <Input
@@ -768,7 +768,7 @@ export default function EditTransaction({
                                 <Button
                                     type="submit"
                                     disabled={processing}
-                                    className="bg-blue-600 text-white hover:bg-blue-400 disabled:opacity-60"
+                                    className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
                                 >
                                     {processing ? (
                                         <span className="flex items-center gap-2">
@@ -794,27 +794,27 @@ export default function EditTransaction({
                     }
                 }}
             >
-                <AlertDialogContent className="max-w-md gap-0 overflow-hidden border border-[#CFE3FF] bg-white p-0 shadow-xl sm:max-w-md">
+                <AlertDialogContent className="max-w-md gap-0 overflow-hidden border border-border bg-card p-0 shadow-xl sm:max-w-md">
                     <AlertDialogHeader className="gap-3 p-5 sm:place-items-start sm:text-left">
                         <AlertDialogMedia className="mb-0 size-11 rounded-full bg-red-50 text-red-600">
                             <Trash2 className="size-5" />
                         </AlertDialogMedia>
-                        <AlertDialogTitle className="text-lg font-semibold text-[#0B3D91]">
+                        <AlertDialogTitle className="text-lg font-semibold text-foreground">
                             Delete Transaction
                         </AlertDialogTitle>
-                        <AlertDialogDescription className="text-sm text-[#5C7A9E]">
+                        <AlertDialogDescription className="text-sm text-muted-foreground">
                             Are you sure you want to delete the transaction for{' '}
-                            <strong className="text-[#0B3D91]">
+                            <strong className="text-foreground">
                                 "{studentLabel}"
                             </strong>
                             ? This action cannot be undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter className="border-t border-[#CFE3FF] bg-[#F8FBFF] px-5 py-3">
+                    <AlertDialogFooter className="border-t border-border bg-muted/30 px-5 py-3">
                         <AlertDialogCancel
                             disabled={isDeleting}
                             onClick={() => setShowDeleteDialog(false)}
-                            className="border-[#CFE3FF] text-[#0B3D91]"
+                            className="border-border text-foreground"
                         >
                             Cancel
                         </AlertDialogCancel>

@@ -267,13 +267,13 @@ export default function EditTransaction({
         <div className="min-h-full bg-page-background p-4 md:p-8">
             <Head title="Edit Transaction - Law School Ledger" />
             <div className="mx-auto max-w-5xl space-y-6">
-                <div className="flex items-center justify-between border-b border-[#CFE3FF] pb-4">
+                <div className="flex items-center justify-between border-b border-border pb-4">
                     <div className="flex items-center gap-2">
                         <Button
                             variant="outline"
                             size="sm"
                             onClick={handleNavigateBack}
-                            className="border-[#CFE3FF] text-[#0B3D91]"
+                            className="border-border text-foreground"
                         >
                             <ArrowLeft className="mr-1 h-4 w-4" /> Back
                         </Button>
@@ -281,7 +281,7 @@ export default function EditTransaction({
                             <h1 className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-2xl! font-black tracking-tight text-transparent sm:text-4xl">
                                 Edit Transaction
                             </h1>
-                            <p className="mt-1 text-sm text-[#5C7A9E]">
+                            <p className="mt-1 text-sm text-[text-muted-foreground]">
                                 Update the ledger transaction details below.
                             </p>
                         </div>
@@ -289,7 +289,7 @@ export default function EditTransaction({
                     <div className="flex items-center gap-3">
                         <Badge
                             variant="outline"
-                            className="border-[#B9D8FF] bg-[#EAF2FF] text-[#0B62E0]"
+                            className="border-primary/20 bg-primary/10 text-primary"
                         >
                             {selectedEntryLabel}
                         </Badge>
@@ -306,14 +306,14 @@ export default function EditTransaction({
                 </div>
 
                 {fullName && (
-                    <Card className="border-[#CFE3FF] bg-white">
+                    <Card className="border-border bg-card">
                         <CardContent className="pt-6">
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
-                                    <p className="text-xs font-medium tracking-wide text-[#7FA6D6] uppercase">
+                                    <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                                         Student
                                     </p>
-                                    <p className="mt-1 text-lg font-semibold text-[#0B3D91]">
+                                    <p className="mt-1 text-lg font-semibold text-foreground">
                                         {fullName}
                                     </p>
                                 </div>
@@ -321,7 +321,7 @@ export default function EditTransaction({
                                     {selectedCourse && (
                                         <Badge
                                             variant="outline"
-                                            className="w-fit border-[#B9D8FF] bg-[#EAF2FF] text-[#0B62E0]"
+                                            className="w-fit border-primary/20 bg-primary/10 text-primary"
                                         >
                                             {selectedCourse.code}
                                         </Badge>
@@ -338,12 +338,12 @@ export default function EditTransaction({
                     </Card>
                 )}
 
-                <Card className="border-[#CFE3FF] bg-white">
+                <Card className="border-border bg-card">
                     <CardHeader>
-                        <CardTitle className="text-base text-[#0B3D91]">
+                        <CardTitle className="text-base text-foreground">
                             Transaction Details
                         </CardTitle>
-                        <CardDescription className="text-[#7FA6D6]">
+                        <CardDescription className="text-muted-foreground">
                             Basic student details, academic information, and
                             financial details
                         </CardDescription>
@@ -356,7 +356,7 @@ export default function EditTransaction({
                             <div className="md:col-span-2">
                                 <label
                                     htmlFor="student_id"
-                                    className="text-sm text-[#334E68]"
+                                    className="text-sm text-muted-foreground"
                                 >
                                     Student
                                 </label>
@@ -395,7 +395,7 @@ export default function EditTransaction({
                             <div>
                                 <label
                                     htmlFor="student_number"
-                                    className="text-sm text-[#334E68]"
+                                    className="text-sm text-muted-foreground"
                                 >
                                     Student ID
                                 </label>
@@ -407,7 +407,7 @@ export default function EditTransaction({
                                     readOnly
                                     className={
                                         selectedStudent?.student_number
-                                            ? 'bg-[#F3F8FF]'
+                                            ? 'bg-muted/40'
                                             : 'bg-gray-50'
                                     }
                                 />
@@ -416,7 +416,7 @@ export default function EditTransaction({
                             <div>
                                 <label
                                     htmlFor="course_id"
-                                    className="text-sm text-[#334E68]"
+                                    className="text-sm text-muted-foreground"
                                 >
                                     Course
                                 </label>
@@ -426,7 +426,7 @@ export default function EditTransaction({
                                     onChange={(event) =>
                                         setData('course_id', event.target.value)
                                     }
-                                    className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
                                 >
                                     <option value="">
                                         -- Select Course --
@@ -446,7 +446,7 @@ export default function EditTransaction({
                             <div>
                                 <label
                                     htmlFor="school_year"
-                                    className="text-sm text-[#334E68]"
+                                    className="text-sm text-muted-foreground"
                                 >
                                     School Year
                                 </label>
@@ -459,7 +459,7 @@ export default function EditTransaction({
                                             data.semester,
                                         )
                                     }
-                                    className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
                                 >
                                     <option value="">
                                         -- Select School Year --
@@ -476,7 +476,7 @@ export default function EditTransaction({
                             <div>
                                 <label
                                     htmlFor="semester"
-                                    className="text-sm text-[#334E68]"
+                                    className="text-sm text-muted-foreground"
                                 >
                                     Semester/Summer
                                 </label>
@@ -489,7 +489,7 @@ export default function EditTransaction({
                                             event.target.value,
                                         )
                                     }
-                                    className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
                                 >
                                     <option value="">
                                         -- Select Semester --
@@ -509,7 +509,7 @@ export default function EditTransaction({
                             <div>
                                 <label
                                     htmlFor="entry_type"
-                                    className="text-sm text-[#334E68]"
+                                    className="text-sm text-muted-foreground"
                                 >
                                     Type
                                 </label>
@@ -523,7 +523,7 @@ export default function EditTransaction({
                                                 .value as LawLedgerEntryType,
                                         )
                                     }
-                                    className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
                                 >
                                     {entryTypeOptions.map((option) => (
                                         <option
@@ -540,7 +540,7 @@ export default function EditTransaction({
                             <div>
                                 <label
                                     htmlFor="status"
-                                    className="text-sm text-[#334E68]"
+                                    className="text-sm text-muted-foreground"
                                 >
                                     Status
                                 </label>
@@ -550,7 +550,7 @@ export default function EditTransaction({
                                     onChange={(event) =>
                                         setData('status', event.target.value)
                                     }
-                                    className="w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
                                 >
                                     {statusOptions.map((status) => (
                                         <option key={status} value={status}>
@@ -564,7 +564,7 @@ export default function EditTransaction({
                             <div>
                                 <label
                                     htmlFor="units"
-                                    className="text-sm text-[#334E68]"
+                                    className="text-sm text-muted-foreground"
                                 >
                                     Units
                                 </label>
@@ -588,7 +588,7 @@ export default function EditTransaction({
                                 <div className="flex items-center justify-between">
                                     <label
                                         htmlFor="transaction_date"
-                                        className="text-sm text-[#334E68]"
+                                        className="text-sm text-muted-foreground"
                                     >
                                         Transaction Date
                                     </label>
@@ -602,7 +602,7 @@ export default function EditTransaction({
                                                     .slice(0, 10),
                                             )
                                         }
-                                        className="text-xs font-medium text-[#0F6FFF] hover:underline"
+                                        className="text-xs font-medium text-primary hover:underline"
                                     >
                                         Today
                                     </button>
@@ -629,7 +629,7 @@ export default function EditTransaction({
                             <div>
                                 <label
                                     htmlFor="reference_jev_or_number"
-                                    className="text-sm text-[#334E68]"
+                                    className="text-sm text-muted-foreground"
                                 >
                                     Reference JEV/O.R. Number
                                 </label>
@@ -652,7 +652,7 @@ export default function EditTransaction({
                             <div>
                                 <label
                                     htmlFor="tuition_per_unit_or_fee_per_semester"
-                                    className="text-sm text-[#334E68]"
+                                    className="text-sm text-muted-foreground"
                                 >
                                     Tuition per Unit / Reg. & Misc. Fee per
                                     Semester
@@ -688,7 +688,7 @@ export default function EditTransaction({
                                 <div className="flex items-center justify-between">
                                     <label
                                         htmlFor="amount"
-                                        className="text-sm text-[#334E68]"
+                                        className="text-sm text-muted-foreground"
                                     >
                                         Amount
                                     </label>
@@ -701,7 +701,7 @@ export default function EditTransaction({
                                                     computedAmount.toFixed(2),
                                                 )
                                             }
-                                            className="inline-flex items-center gap-1 text-xs font-medium text-[#0F6FFF] hover:underline"
+                                            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                                         >
                                             <Calculator className="h-3 w-3" />
                                             Recalculate
@@ -738,7 +738,7 @@ export default function EditTransaction({
                             <div className="md:col-span-2">
                                 <label
                                     htmlFor="particulars"
-                                    className="text-sm text-[#334E68]"
+                                    className="text-sm text-muted-foreground"
                                 >
                                     Particulars
                                 </label>
@@ -773,7 +773,7 @@ export default function EditTransaction({
                             <div>
                                 <label
                                     htmlFor="input_by"
-                                    className="text-sm text-[#334E68]"
+                                    className="text-sm text-muted-foreground"
                                 >
                                     Input By
                                 </label>
@@ -805,7 +805,7 @@ export default function EditTransaction({
                             <div className="md:col-span-2">
                                 <label
                                     htmlFor="remarks"
-                                    className="text-sm text-[#334E68]"
+                                    className="text-sm text-muted-foreground"
                                 >
                                     Remarks
                                 </label>
@@ -816,7 +816,7 @@ export default function EditTransaction({
                                         setData('remarks', event.target.value)
                                     }
                                     placeholder="Additional notes or comments"
-                                    className="min-h-[80px] w-full rounded-md border border-[#CFE3FF] bg-white px-3 py-2 text-sm text-[#334E68] focus:ring-2 focus:ring-[#0F6FFF] focus:outline-none"
+                                    className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
                                 />
                                 <FieldError message={errors.remarks} />
                             </div>
@@ -826,14 +826,14 @@ export default function EditTransaction({
                                     type="button"
                                     variant="outline"
                                     onClick={handleNavigateBack}
-                                    className="border-[#CFE3FF] text-[#0B3D91] hover:bg-[#F3F8FF]"
+                                    className="border-border text-foreground hover:bg-muted/40"
                                 >
                                     Cancel
                                 </Button>
                                 <Button
                                     type="submit"
                                     disabled={processing}
-                                    className="bg-blue-600 text-white hover:bg-blue-400 disabled:opacity-60"
+                                    className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
                                 >
                                     {processing ? (
                                         <span className="flex items-center gap-2">

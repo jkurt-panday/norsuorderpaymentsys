@@ -187,14 +187,14 @@ const PlaceholderField = ({
     value?: string;
 }) => (
     <div>
-        <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
+        <label className="mb-1 block text-xs font-medium tracking-wide text-muted-foreground uppercase">
             {label}
         </label>
         <input
             type="text"
             value={value}
             disabled
-            className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-400 italic outline-none disabled:opacity-100"
+            className="flex-1 border-0 bg-transparent p-0 text-sm text-muted-foreground italic outline-none disabled:opacity-100"
         />
     </div>
 );
@@ -202,7 +202,7 @@ const PlaceholderField = ({
 const ReadOnlyRow = ({
     label,
     value,
-    valueClass = 'text-slate-900',
+    valueClass = 'text-foreground',
     stacked = false,
     scrollable = false,
     truncate = false,
@@ -224,7 +224,7 @@ const ReadOnlyRow = ({
 
     const valueContent = scrollable ? (
         <div
-            className={`max-h-30 min-w-0 flex-1 overflow-y-auto rounded-md border border-slate-100 bg-slate-50/60 px-3 py-2 text-sm ${valueClass} wrap-break-word whitespace-pre-wrap`}
+            className={`max-h-30 min-w-0 flex-1 overflow-y-auto rounded-md border border-border bg-muted/40 px-3 py-2 text-sm ${valueClass} wrap-break-word whitespace-pre-wrap`}
         >
             {value}
         </div>
@@ -240,15 +240,15 @@ const ReadOnlyRow = ({
     );
 
     return stacked ? (
-        <div className="border-b border-slate-100 py-0 last:border-0">
-            <label className="mb-1 block text-sm font-medium text-slate-600">
+        <div className="border-b border-border py-0 last:border-0">
+            <label className="mb-1 block text-sm font-medium text-muted-foreground">
                 {label}
             </label>
             {valueContent}
         </div>
     ) : (
-        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-0 last:border-0">
-            <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
+        <div className="flex min-w-0 items-start gap-6 border-b border-border py-0 last:border-0">
+            <label className="w-40 shrink-0 text-sm font-medium text-muted-foreground">
                 {label}
             </label>
             {valueContent}
@@ -268,7 +268,7 @@ const FormField = ({
     children: React.ReactNode;
 }) => (
     <div className="mb-4">
-        <label className="mb-1 block text-sm font-medium text-slate-700">
+        <label className="mb-1 block text-sm font-medium text-foreground">
             {label} {required && <span className="text-rose-500">*</span>}
         </label>
         {children}
@@ -809,7 +809,7 @@ export default function ShowRequest() {
                         <h2 className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-2xl! font-black tracking-tight text-transparent sm:text-4xl">
                             Request Details: {formInput.reference_number}
                         </h2>
-                        <p className="text-sm text-slate-500">
+                        <p className="text-sm text-muted-foreground">
                             Reference:{' '}
                             <span className="font-semibold text-blue-600">
                                 {formInput.reference_number}
@@ -819,7 +819,7 @@ export default function ShowRequest() {
                     <div className="flex gap-2">
                         <Link
                             href={staff.requests.index.url()}
-                            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-100"
+                            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted"
                         >
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -841,9 +841,9 @@ export default function ShowRequest() {
                 <div className="grid gap-6 lg:grid-cols-2">
                     <div className="space-y-6">
                         {/* Personal Information */}
-                        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-                                <h3 className="text-base font-semibold text-slate-900">
+                        <section className="rounded-2xl border border-border bg-card shadow-sm">
+                            <div className="flex items-center justify-between border-b border-border px-6 py-4">
+                                <h3 className="text-base font-semibold text-foreground">
                                     Personal / Office Information
                                 </h3>
                                 {!isEditingDetails && (
@@ -873,7 +873,7 @@ export default function ShowRequest() {
                                             });
                                             setIsEditingDetails(true);
                                         }}
-                                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100"
+                                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted"
                                     >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -895,7 +895,7 @@ export default function ShowRequest() {
                                 {isEditingDetails ? (
                                     <div className="space-y-4">
                                         <div>
-                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                            <label className="mb-1 block text-sm font-medium text-foreground">
                                                 First Name / Office{' '}
                                                 <span className="text-rose-500">
                                                     *
@@ -903,10 +903,10 @@ export default function ShowRequest() {
                                             </label>
                                             <input
                                                 type="text"
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
                                                     detailsErrors.firstname_or_office
                                                         ? 'border-rose-400'
-                                                        : 'border-slate-200'
+                                                        : 'border-border'
                                                 }`}
                                                 value={
                                                     detailsData.firstname_or_office
@@ -929,15 +929,15 @@ export default function ShowRequest() {
                                         </div>
 
                                         <div>
-                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                            <label className="mb-1 block text-sm font-medium text-foreground">
                                                 Middle Name / Project
                                             </label>
                                             <input
                                                 type="text"
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
                                                     detailsErrors.middlename_or_project
                                                         ? 'border-rose-400'
-                                                        : 'border-slate-200'
+                                                        : 'border-border'
                                                 }`}
                                                 value={
                                                     detailsData.middlename_or_project
@@ -959,7 +959,7 @@ export default function ShowRequest() {
                                         </div>
 
                                         <div>
-                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                            <label className="mb-1 block text-sm font-medium text-foreground">
                                                 Last Name / Agency{' '}
                                                 <span className="text-rose-500">
                                                     *
@@ -967,10 +967,10 @@ export default function ShowRequest() {
                                             </label>
                                             <input
                                                 type="text"
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
                                                     detailsErrors.lastname_or_agency
                                                         ? 'border-rose-400'
-                                                        : 'border-slate-200'
+                                                        : 'border-border'
                                                 }`}
                                                 value={
                                                     detailsData.lastname_or_agency
@@ -994,7 +994,7 @@ export default function ShowRequest() {
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
-                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="First Name  / Office"
                                                 value={
@@ -1003,7 +1003,7 @@ export default function ShowRequest() {
                                                 valueClass="text-black-400"
                                             />
                                         </div>
-                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="Middlename / Project"
                                                 value={
@@ -1012,7 +1012,7 @@ export default function ShowRequest() {
                                                 valueClass="text-black-400"
                                             />
                                         </div>
-                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="Last Name / Agency"
                                                 value={
@@ -1021,7 +1021,7 @@ export default function ShowRequest() {
                                                 valueClass="text-black-400"
                                             />
                                         </div>
-                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="Office / College"
                                                 value={
@@ -1030,7 +1030,7 @@ export default function ShowRequest() {
                                                 valueClass="text-black-400"
                                             />
                                         </div>
-                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="Position / Desgination"
                                                 value={
@@ -1039,21 +1039,21 @@ export default function ShowRequest() {
                                                 valueClass="text-black-400"
                                             />
                                         </div>
-                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="Email"
                                                 value={formInput.email}
                                                 valueClass="text-blue-400"
                                             />
                                         </div>
-                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="Contact Number"
                                                 value={formInput.contact_num}
                                                 valueClass="text-blue-400"
                                             />
                                         </div>
-                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="Address"
                                                 value={formInput.address}
@@ -1066,9 +1066,9 @@ export default function ShowRequest() {
                         </section>
 
                         {/* Payment Information */}
-                        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                            <div className="flex items-center gap-2 border-b border-slate-200 px-6 py-4">
-                                <h3 className="text-base font-semibold text-slate-900">
+                        <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+                            <div className="flex items-center gap-2 border-b border-border px-6 py-4">
+                                <h3 className="text-base font-semibold text-foreground">
                                     Payment Information
                                 </h3>
                             </div>
@@ -1076,7 +1076,7 @@ export default function ShowRequest() {
                                 {isEditingDetails ? (
                                     <form onSubmit={handleDetailsSubmit}>
                                         <div className="mb-4">
-                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                            <label className="mb-1 block text-sm font-medium text-foreground">
                                                 Amount{' '}
                                                 <span className="text-rose-500">
                                                     *
@@ -1086,10 +1086,10 @@ export default function ShowRequest() {
                                                 type="number"
                                                 step="0.01"
                                                 min="0"
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
                                                     detailsErrors.amount
                                                         ? 'border-rose-400'
-                                                        : 'border-slate-200'
+                                                        : 'border-border'
                                                 }`}
                                                 value={detailsData.amount}
                                                 onChange={(e) =>
@@ -1108,7 +1108,7 @@ export default function ShowRequest() {
                                         </div>
 
                                         <div className="mb-6">
-                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                            <label className="mb-1 block text-sm font-medium text-foreground">
                                                 Payment Option{' '}
                                                 <span className="text-rose-500">
                                                     *
@@ -1117,10 +1117,10 @@ export default function ShowRequest() {
                                             {!isAddingPaymentOption ? (
                                                 <div className="flex gap-2">
                                                     <select
-                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
                                                             detailsErrors.payment_detail_option_id
                                                                 ? 'border-rose-400'
-                                                                : 'border-slate-200'
+                                                                : 'border-border'
                                                         }`}
                                                         value={
                                                             detailsData.payment_detail_option_id
@@ -1161,7 +1161,7 @@ export default function ShowRequest() {
                                                                 true,
                                                             )
                                                         }
-                                                        className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-700"
+                                                        className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
                                                     >
                                                         Add
                                                     </button>
@@ -1180,7 +1180,7 @@ export default function ShowRequest() {
                                                             )
                                                         }
                                                         placeholder="Enter a new payment option"
-                                                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none"
+                                                        className="w-full rounded-xl border border-border px-4 py-2 text-sm text-foreground outline-none"
                                                         autoFocus
                                                     />
                                                     <button
@@ -1194,7 +1194,7 @@ export default function ShowRequest() {
                                                                 false,
                                                             );
                                                         }}
-                                                        className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-700"
+                                                        className="inline-flex items-center justify-center rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
                                                     >
                                                         Close
                                                     </button>
@@ -1219,7 +1219,7 @@ export default function ShowRequest() {
                                             <button
                                                 type="button"
                                                 onClick={cancelDetailsEdit}
-                                                className="cursor-pointer rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                                                className="cursor-pointer rounded-full border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                                             >
                                                 Cancel
                                             </button>
@@ -1248,19 +1248,19 @@ export default function ShowRequest() {
                                     </form>
                                 ) : (
                                     <div className="space-y-3">
-                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
-                                            <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
+                                            <label className="w-40 shrink-0 text-sm font-medium text-muted-foreground">
                                                 Request Type
                                             </label>
                                             <input
                                                 type="text"
                                                 value={formInput.request_type}
                                                 disabled
-                                                className="flex-1 border-0 bg-transparent p-0 text-sm text-slate-900 outline-none disabled:opacity-100"
+                                                className="flex-1 border-0 bg-transparent p-0 text-sm text-foreground outline-none disabled:opacity-100"
                                             />
                                         </div>
-                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
-                                            <label className="w-40 shrink-0 text-sm font-medium text-slate-600">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
+                                            <label className="w-40 shrink-0 text-sm font-medium text-muted-foreground">
                                                 Amount
                                             </label>
                                             <input
@@ -1272,7 +1272,7 @@ export default function ShowRequest() {
                                                 className="flex-1 border-0 bg-transparent p-0 text-sm text-blue-400 outline-none disabled:opacity-100"
                                             />
                                         </div>
-                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="Membership"
                                                 value={
@@ -1283,7 +1283,7 @@ export default function ShowRequest() {
                                                 valueClass="text-black-400"
                                             />
                                         </div>
-                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="Payment Option"
                                                 value={
@@ -1294,7 +1294,7 @@ export default function ShowRequest() {
                                                 valueClass="text-black-400"
                                             />
                                         </div>
-                                        <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                        <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
                                             <ReadOnlyRow
                                                 label="Submission Date"
                                                 value={formatDateTime(
@@ -1311,9 +1311,9 @@ export default function ShowRequest() {
 
                     <div className="space-y-6">
                         {/* Staff Processing Information */}
-                        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-                                <h3 className="text-base font-semibold text-slate-900">
+                        <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+                            <div className="flex items-center justify-between border-b border-border px-6 py-4">
+                                <h3 className="text-base font-semibold text-foreground">
                                     Staff Processing
                                 </h3>
                                 <div className="flex items-center gap-2">
@@ -1394,7 +1394,7 @@ export default function ShowRequest() {
                                                         true,
                                                     );
                                                 }}
-                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100"
+                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted"
                                             >
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
@@ -1427,7 +1427,7 @@ export default function ShowRequest() {
                                                         ? 'Assign an academic term before processing.'
                                                         : undefined
                                                 }
-                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-primary/20 text-muted-foreground"
                                             >
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
@@ -1459,10 +1459,10 @@ export default function ShowRequest() {
                                                     }
                                                 >
                                                     <select
-                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
                                                             staffInputErrors.fundcluster_id
                                                                 ? 'border-rose-400'
-                                                                : 'border-slate-200'
+                                                                : 'border-border'
                                                         }`}
                                                         value={
                                                             staffInputData.fundcluster_id
@@ -1517,10 +1517,10 @@ export default function ShowRequest() {
                                                     }
                                                 >
                                                     <select
-                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
                                                             staffInputErrors.ref_document_id
                                                                 ? 'border-rose-400'
-                                                                : 'border-slate-200'
+                                                                : 'border-border'
                                                         }`}
                                                         value={
                                                             staffInputData.ref_document_id
@@ -1589,10 +1589,10 @@ export default function ShowRequest() {
                                                     }
                                                 >
                                                     <select
-                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
                                                             staffInputErrors.uacs_id
                                                                 ? 'border-rose-400'
-                                                                : 'border-slate-200'
+                                                                : 'border-border'
                                                         }`}
                                                         value={
                                                             staffInputData.uacs_id
@@ -1638,10 +1638,10 @@ export default function ShowRequest() {
                                                     }
                                                 >
                                                     <select
-                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
                                                             staffInputErrors.status
                                                                 ? 'border-rose-400'
-                                                                : 'border-slate-200'
+                                                                : 'border-border'
                                                         }`}
                                                         value={
                                                             staffInputData.status
@@ -1673,10 +1673,10 @@ export default function ShowRequest() {
                                                     }
                                                 >
                                                     <textarea
-                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
                                                             staffInputErrors.purpose
                                                                 ? 'border-rose-400'
-                                                                : 'border-slate-200'
+                                                                : 'border-border'
                                                         }`}
                                                         value={
                                                             staffInputData.purpose
@@ -1696,7 +1696,7 @@ export default function ShowRequest() {
                                                         onClick={
                                                             cancelStaffInputEdit
                                                         }
-                                                        className="cursor-pointer rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                                                        className="cursor-pointer rounded-full border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                                                     >
                                                         Cancel
                                                     </button>
@@ -1728,7 +1728,7 @@ export default function ShowRequest() {
                                         </form>
                                     ) : (
                                         <div className="space-y-3">
-                                            <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
                                                 <ReadOnlyRow
                                                     label="Bank Account"
                                                     value={
@@ -1740,7 +1740,7 @@ export default function ShowRequest() {
                                                     valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
                                                 <ReadOnlyRow
                                                     label="Bank"
                                                     value={
@@ -1751,7 +1751,7 @@ export default function ShowRequest() {
                                                     valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
                                                 <ReadOnlyRow
                                                     label="Fund Cluster"
                                                     value={
@@ -1763,7 +1763,7 @@ export default function ShowRequest() {
                                                     valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
                                                 <ReadOnlyRow
                                                     label="Account Number"
                                                     value={
@@ -1775,7 +1775,7 @@ export default function ShowRequest() {
                                                     valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
                                                 <ReadOnlyRow
                                                     label="Reference Date"
                                                     value={
@@ -1791,7 +1791,7 @@ export default function ShowRequest() {
                                                     valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
                                                 <ReadOnlyRow
                                                     label="UACS"
                                                     value={
@@ -1803,7 +1803,7 @@ export default function ShowRequest() {
                                                     valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
                                                 <ReadOnlyRow
                                                     label="Reference Document"
                                                     value={
@@ -1816,7 +1816,7 @@ export default function ShowRequest() {
                                                     truncate
                                                 />
                                             </div>
-                                            <div className="w-full border-b border-slate-100 py-3 last:border-0">
+                                            <div className="w-full border-b border-border py-3 last:border-0">
                                                 <ReadOnlyRow
                                                     label="Purpose"
                                                     value={
@@ -1827,14 +1827,14 @@ export default function ShowRequest() {
                                                     scrollable
                                                 />
                                             </div>
-                                            <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
                                                 <ReadOnlyRow
                                                     label="Processed By"
                                                     value="Staff User"
                                                     valueClass="text-black-400"
                                                 />
                                             </div>
-                                            <div className="flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0">
+                                            <div className="flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0">
                                                 <ReadOnlyRow
                                                     label="Processed Date"
                                                     value={formatDateTime(
@@ -1856,17 +1856,17 @@ export default function ShowRequest() {
                                         />
 
                                         <div className="mb-4">
-                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                            <label className="mb-1 block text-sm font-medium text-foreground">
                                                 Bank Account{' '}
                                                 <span className="text-rose-500">
                                                     *
                                                 </span>
                                             </label>
                                             <select
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
                                                     processErrors.fundcluster_id
                                                         ? 'border-rose-400'
-                                                        : 'border-slate-200'
+                                                        : 'border-border'
                                                 }`}
                                                 value={
                                                     processData.fundcluster_id
@@ -1904,14 +1904,14 @@ export default function ShowRequest() {
                                         </div>
 
                                         <div className="mb-4">
-                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                            <label className="mb-1 block text-sm font-medium text-foreground">
                                                 Reference Document
                                             </label>
                                             <select
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
                                                     processErrors.ref_document_id
                                                         ? 'border-rose-400'
-                                                        : 'border-slate-200'
+                                                        : 'border-border'
                                                 }`}
                                                 value={
                                                     processData.ref_document_id
@@ -1950,7 +1950,7 @@ export default function ShowRequest() {
                                         </div>
 
                                         <div className="mb-4">
-                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                            <label className="mb-1 block text-sm font-medium text-foreground">
                                                 Reference Date{' '}
                                                 <span className="text-rose-500">
                                                     *
@@ -1973,17 +1973,17 @@ export default function ShowRequest() {
                                         </div>
 
                                         <div className="mb-4">
-                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                            <label className="mb-1 block text-sm font-medium text-foreground">
                                                 UACS{' '}
                                                 <span className="text-rose-500">
                                                     *
                                                 </span>
                                             </label>
                                             <select
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
                                                     processErrors.uacs_id
                                                         ? 'border-rose-400'
-                                                        : 'border-slate-200'
+                                                        : 'border-border'
                                                 }`}
                                                 value={processData.uacs_id}
                                                 onChange={(e) =>
@@ -2015,17 +2015,17 @@ export default function ShowRequest() {
                                         </div>
 
                                         <div className="mb-6">
-                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                            <label className="mb-1 block text-sm font-medium text-foreground">
                                                 Status{' '}
                                                 <span className="text-rose-500">
                                                     *
                                                 </span>
                                             </label>
                                             <select
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
                                                     processErrors.status
                                                         ? 'border-rose-400'
-                                                        : 'border-slate-200'
+                                                        : 'border-border'
                                                 }`}
                                                 value={processData.status}
                                                 onChange={(e) =>
@@ -2057,14 +2057,14 @@ export default function ShowRequest() {
                                         </div>
 
                                         <div className="mb-6">
-                                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                                            <label className="mb-1 block text-sm font-medium text-foreground">
                                                 Purpose
                                             </label>
                                             <textarea
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
                                                     processErrors.purpose
                                                         ? 'border-rose-400'
-                                                        : 'border-slate-200'
+                                                        : 'border-border'
                                                 }`}
                                                 value={processData.purpose}
                                                 onChange={(e) =>
@@ -2086,7 +2086,7 @@ export default function ShowRequest() {
                                                 onClick={() =>
                                                     setIsProcessing(false)
                                                 }
-                                                className="rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                                                className="rounded-full border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                                             >
                                                 Cancel
                                             </button>
@@ -2128,7 +2128,7 @@ export default function ShowRequest() {
                                             />
                                         ))}
                                         <div>
-                                            <label className="mb-1 block text-xs font-medium tracking-wide text-slate-500 uppercase">
+                                            <label className="mb-1 block text-xs font-medium tracking-wide text-muted-foreground uppercase">
                                                 Status
                                             </label>
                                             <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
@@ -2146,9 +2146,9 @@ export default function ShowRequest() {
 
                         {/* Official Receipt Information */}
                         {formInput.staff_input && (
-                            <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                                <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-                                    <h3 className="text-base font-semibold text-slate-900">
+                            <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+                                <div className="flex items-center justify-between border-b border-border px-6 py-4">
+                                    <h3 className="text-base font-semibold text-foreground">
                                         Official Receipt
                                     </h3>
                                     <div className="flex items-center gap-2">
@@ -2171,7 +2171,7 @@ export default function ShowRequest() {
                                                     });
                                                     setIsEditingOr(true);
                                                 }}
-                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100"
+                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted"
                                             >
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
@@ -2205,10 +2205,10 @@ export default function ShowRequest() {
                                                         type="text"
                                                         inputMode="text"
                                                         placeholder="e.g. 56-980 or 2024/001"
-                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-slate-700 outline-none ${
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
                                                             orErrors.or_no
                                                                 ? 'border-rose-400'
-                                                                : 'border-slate-200'
+                                                                : 'border-border'
                                                         }`}
                                                         value={orData.or_no}
                                                         onChange={(e) => {
@@ -2253,7 +2253,7 @@ export default function ShowRequest() {
                                                     <button
                                                         type="button"
                                                         onClick={cancelOrEdit}
-                                                        className="cursor-pointer rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                                                        className="cursor-pointer rounded-full border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                                                     >
                                                         Cancel
                                                     </button>
@@ -2286,7 +2286,7 @@ export default function ShowRequest() {
                                     ) : (
                                         <div className="space-y-3">
                                             <div
-                                                className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${canEditOr ? '' : 'opacity-60'}`}
+                                                className={`flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0 ${canEditOr ? '' : 'opacity-60'}`}
                                             >
                                                 <ReadOnlyRow
                                                     label="OR Number"
@@ -2298,7 +2298,7 @@ export default function ShowRequest() {
                                                 />
                                             </div>
                                             <div
-                                                className={`flex min-w-0 items-start gap-6 border-b border-slate-100 py-3 last:border-0 ${canEditOr ? '' : 'opacity-60'}`}
+                                                className={`flex min-w-0 items-start gap-6 border-b border-border py-3 last:border-0 ${canEditOr ? '' : 'opacity-60'}`}
                                             >
                                                 <ReadOnlyRow
                                                     label="OR Date"
@@ -2322,18 +2322,18 @@ export default function ShowRequest() {
                         )}
 
                         {/* Supporting Documents */}
-                        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-                                <h3 className="text-base font-semibold text-slate-900">
+                        <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+                            <div className="flex items-center justify-between border-b border-border px-6 py-4">
+                                <h3 className="text-base font-semibold text-foreground">
                                     Supporting Documents
                                 </h3>
-                                <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                                <span className="inline-flex rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
                                     {supportingDocuments.length} file(s)
                                 </span>
                             </div>
                             <div className="p-4">
                                 {supportingDocuments.length > 0 ? (
-                                    <div className="divide-y divide-slate-100">
+                                    <div className="divide-y divide-border">
                                         {supportingDocuments.map((document) => (
                                             <div
                                                 key={document.id}
@@ -2387,13 +2387,13 @@ export default function ShowRequest() {
                                                             </TooltipContent>
                                                         </Tooltip>
                                                     </TooltipProvider>
-                                                    <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                                                    <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                                                         {document.file_extension?.toUpperCase() ??
                                                             'FILE'}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-3">
-                                                    <span className="text-xs text-slate-400">
+                                                    <span className="text-xs text-muted-foreground">
                                                         {document.formatted_file_size ??
                                                             formatFileSize(
                                                                 document.file_size,
@@ -2417,7 +2417,7 @@ export default function ShowRequest() {
                                                         )}
                                                         title="Download"
                                                         aria-label={`Download ${document.original_filename}`}
-                                                        className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:bg-slate-100"
+                                                        className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-muted"
                                                     >
                                                         <svg
                                                             xmlns="http://www.w3.org/2000/svg"
@@ -2464,7 +2464,7 @@ export default function ShowRequest() {
                                         ))}
                                     </div>
                                 ) : (
-                                    <p className="py-4 text-center text-sm text-slate-500">
+                                    <p className="py-4 text-center text-sm text-muted-foreground">
                                         No supporting documents uploaded.
                                     </p>
                                 )}
@@ -2539,7 +2539,7 @@ export default function ShowRequest() {
                                                 e.target.value,
                                             )
                                         }
-                                        className="min-w-0 flex-1 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-200"
+                                        className="min-w-0 flex-1 rounded-xl border border-rose-200 bg-card px-4 py-2.5 text-sm text-foreground outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-200"
                                         required
                                     >
                                         <option value="">
@@ -2604,7 +2604,7 @@ export default function ShowRequest() {
                             render={
                                 <button
                                     type="button"
-                                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                                 />
                             }
                         >
@@ -2699,14 +2699,14 @@ export default function ShowRequest() {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="flex rounded-xl bg-slate-100 p-1">
+                    <div className="flex rounded-xl bg-muted p-1">
                         <button
                             type="button"
                             onClick={() => setStudentMatchMode('existing')}
                             className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
                                 studentMatchMode === 'existing'
-                                    ? 'bg-white text-blue-700 shadow-sm'
-                                    : 'text-slate-600 hover:text-slate-900'
+                                    ? 'bg-card text-blue-700 shadow-sm'
+                                    : 'text-muted-foreground hover:text-foreground'
                             }`}
                         >
                             Search Existing
@@ -2716,8 +2716,8 @@ export default function ShowRequest() {
                             onClick={() => setStudentMatchMode('create')}
                             className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
                                 studentMatchMode === 'create'
-                                    ? 'bg-white text-blue-700 shadow-sm'
-                                    : 'text-slate-600 hover:text-slate-900'
+                                    ? 'bg-card text-blue-700 shadow-sm'
+                                    : 'text-muted-foreground hover:text-foreground'
                             }`}
                         >
                             Create Student
@@ -2727,7 +2727,7 @@ export default function ShowRequest() {
                     {studentMatchMode === 'existing' ? (
                         <div className="space-y-4">
                             <div className="relative">
-                                <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                 <Input
                                     value={studentSearch}
                                     onChange={(event) =>
@@ -2739,9 +2739,9 @@ export default function ShowRequest() {
                                 />
                             </div>
 
-                            <div className="max-h-72 space-y-2 overflow-y-auto rounded-xl border border-slate-200 p-2">
+                            <div className="max-h-72 space-y-2 overflow-y-auto rounded-xl border border-border p-2">
                                 {isSearchingStudents ? (
-                                    <p className="py-8 text-center text-sm text-slate-500">
+                                    <p className="py-8 text-center text-sm text-muted-foreground">
                                         Searching students...
                                     </p>
                                 ) : studentCandidates.length > 0 ? (
@@ -2763,14 +2763,14 @@ export default function ShowRequest() {
                                                 className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
                                                     selected
                                                         ? 'border-blue-500 bg-blue-50'
-                                                        : 'border-transparent hover:bg-slate-50'
+                                                        : 'border-transparent hover:bg-muted/50'
                                                 }`}
                                             >
                                                 <span>
-                                                    <span className="block text-sm font-semibold text-slate-900">
+                                                    <span className="block text-sm font-semibold text-foreground">
                                                         {student.full_name}
                                                     </span>
-                                                    <span className="block text-xs text-slate-500">
+                                                    <span className="block text-xs text-muted-foreground">
                                                         {student.student_number ??
                                                             'No student number'}
                                                     </span>
@@ -2783,7 +2783,7 @@ export default function ShowRequest() {
                                     })
                                 ) : (
                                     <div className="py-8 text-center">
-                                        <p className="text-sm font-medium text-slate-700">
+                                        <p className="text-sm font-medium text-foreground">
                                             No matching students found.
                                         </p>
                                         <button
@@ -2809,7 +2809,7 @@ export default function ShowRequest() {
                     ) : (
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div>
-                                <label className="mb-1 block text-sm font-medium text-slate-700">
+                                <label className="mb-1 block text-sm font-medium text-foreground">
                                     Student Number
                                 </label>
                                 <Input
@@ -2833,7 +2833,7 @@ export default function ShowRequest() {
                                 )}
                             </div>
                             <div>
-                                <label className="mb-1 block text-sm font-medium text-slate-700">
+                                <label className="mb-1 block text-sm font-medium text-foreground">
                                     First Name
                                 </label>
                                 <Input
@@ -2852,7 +2852,7 @@ export default function ShowRequest() {
                                 )}
                             </div>
                             <div>
-                                <label className="mb-1 block text-sm font-medium text-slate-700">
+                                <label className="mb-1 block text-sm font-medium text-foreground">
                                     Middle Name
                                 </label>
                                 <Input
@@ -2866,7 +2866,7 @@ export default function ShowRequest() {
                                 />
                             </div>
                             <div>
-                                <label className="mb-1 block text-sm font-medium text-slate-700">
+                                <label className="mb-1 block text-sm font-medium text-foreground">
                                     Last Name
                                 </label>
                                 <Input
@@ -2885,7 +2885,7 @@ export default function ShowRequest() {
                                 )}
                             </div>
                             <div>
-                                <label className="mb-1 block text-sm font-medium text-slate-700">
+                                <label className="mb-1 block text-sm font-medium text-foreground">
                                     Email
                                 </label>
                                 <Input
@@ -2905,7 +2905,7 @@ export default function ShowRequest() {
                                 )}
                             </div>
                             <div>
-                                <label className="mb-1 block text-sm font-medium text-slate-700">
+                                <label className="mb-1 block text-sm font-medium text-foreground">
                                     Contact Number
                                 </label>
                                 <Input
@@ -2930,7 +2930,7 @@ export default function ShowRequest() {
                         <button
                             type="button"
                             onClick={() => setIsStudentMatchOpen(false)}
-                            className="rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                            className="rounded-full border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                         >
                             Cancel
                         </button>
@@ -2971,7 +2971,7 @@ export default function ShowRequest() {
                         <DialogTitle>Preview Email</DialogTitle>
                         <DialogDescription>
                             Review before sending to{' '}
-                            <span className="font-medium text-slate-700">
+                            <span className="font-medium text-foreground">
                                 {formInput.email}
                             </span>
                             . Two PDF copies (portrait + landscape) will be
@@ -2982,7 +2982,7 @@ export default function ShowRequest() {
                     <div className="grid gap-6 md:grid-cols-2">
                         <div className="space-y-4">
                             <div>
-                                <label className="mb-1 block text-sm font-medium text-slate-700">
+                                <label className="mb-1 block text-sm font-medium text-foreground">
                                     Subject
                                 </label>
                                 <Input
@@ -2994,7 +2994,7 @@ export default function ShowRequest() {
                             </div>
 
                             <div>
-                                <label className="mb-1 block text-sm font-medium text-slate-700">
+                                <label className="mb-1 block text-sm font-medium text-foreground">
                                     Recipient Name
                                 </label>
                                 <Input
@@ -3003,14 +3003,14 @@ export default function ShowRequest() {
                                         setEmailRecipientName(e.target.value)
                                     }
                                 />
-                                <p className="mt-1 text-xs text-slate-400">
+                                <p className="mt-1 text-xs text-muted-foreground">
                                     How they're greeted — edit if the name needs
                                     correcting.
                                 </p>
                             </div>
 
                             <div>
-                                <label className="mb-1 block text-sm font-medium text-slate-700">
+                                <label className="mb-1 block text-sm font-medium text-foreground">
                                     Add a Note (optional)
                                 </label>
                                 <Textarea
@@ -3021,7 +3021,7 @@ export default function ShowRequest() {
                                         setEmailNote(e.target.value)
                                     }
                                 />
-                                <p className="mt-1 text-xs text-slate-400">
+                                <p className="mt-1 text-xs text-muted-foreground">
                                     Plain text only — no formatting needed, it's
                                     inserted as its own paragraph.
                                 </p>
@@ -3029,17 +3029,17 @@ export default function ShowRequest() {
                         </div>
 
                         <div>
-                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                            <label className="mb-1 block text-sm font-medium text-foreground">
                                 Live Preview
                             </label>
-                            <div className="overflow-hidden rounded-xl border border-slate-200">
+                            <div className="overflow-hidden rounded-xl border border-border">
                                 <iframe
                                     title="Email preview"
                                     srcDoc={buildEmailPreviewHtml(
                                         emailRecipientName,
                                         emailNote,
                                     )}
-                                    className="h-112 w-full bg-white"
+                                    className="h-112 w-full bg-card"
                                 />
                             </div>
                         </div>
@@ -3049,7 +3049,7 @@ export default function ShowRequest() {
                         <button
                             type="button"
                             onClick={() => setIsEmailPreviewOpen(false)}
-                            className="cursor-pointer rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                            className="cursor-pointer rounded-full border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                         >
                             Cancel
                         </button>
@@ -3067,12 +3067,12 @@ export default function ShowRequest() {
 
             {/* Delete Document Confirmation Modal */}
             {deleteTargetId !== null && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
-                    <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-xl">
-                        <h3 className="text-lg font-semibold text-slate-900">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary text-primary-foreground/40 px-4">
+                    <div className="w-full max-w-sm rounded-3xl bg-card p-6 shadow-xl">
+                        <h3 className="text-lg font-semibold text-foreground">
                             Delete Document
                         </h3>
-                        <p className="mt-2 text-sm text-slate-600">
+                        <p className="mt-2 text-sm text-muted-foreground">
                             Are you sure you want to delete this document?
                         </p>
                         <p className="mt-1 text-xs font-medium text-rose-500">
@@ -3082,7 +3082,7 @@ export default function ShowRequest() {
                             <button
                                 type="button"
                                 onClick={() => setDeleteTargetId(null)}
-                                className="rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                                className="rounded-full border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                             >
                                 Cancel
                             </button>

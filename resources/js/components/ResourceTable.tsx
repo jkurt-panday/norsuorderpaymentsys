@@ -245,7 +245,7 @@ export default function ResourceTable<T extends { id: number }>({
     }, [resource.data]);
 
     const { start, stop } = usePoll(
-        pollInterval ?? 15000,
+        pollInterval ?? 300000,
         {
             only: resourceKey ? [resourceKey] : undefined,
         },
@@ -696,7 +696,7 @@ export default function ResourceTable<T extends { id: number }>({
                                         </TableHead>
                                     );
                                 })}
-                                <TableHead className="h-11 bg-white pr-14 text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                                <TableHead className="h-11 bg-muted/50 pr-14 text-right text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                                     Actions
                                 </TableHead>
                             </TableRow>
@@ -740,16 +740,16 @@ export default function ResourceTable<T extends { id: number }>({
                                                         <Pencil className="h-4 w-4" />
                                                     </Link>
                                                     <button
-                                                         type="button"
-                                                         onClick={() =>
-                                                             handleDeleteClick(
-                                                                 row.id,
-                                                             )
-                                                         }
-                                                         className="flex h-8 w-8 cursor-pointer items-center justify-center border-l border-white/20 bg-red-600 text-white transition-colors hover:bg-red-700"
-                                                         aria-label="Delete"
-                                                         title="Delete"
-                                                     >
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleDeleteClick(
+                                                                row.id,
+                                                            )
+                                                        }
+                                                        className="flex h-8 w-8 items-center justify-center border-l border-white/20 bg-red-600 text-white transition-colors hover:bg-red-700 cursor-pointer"
+                                                        aria-label="Delete"
+                                                        title="Delete"
+                                                    >
                                                         <Trash2 className="h-4 w-4" />
                                                     </button>
                                                 </div>

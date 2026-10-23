@@ -100,7 +100,7 @@ export default function MembershipsIndex({
             columns={columns}
             resource={memberships}
             resourceKey="memberships"
-            pollInterval={15000}
+            pollInterval={300000}
             editHref={(row) => edit(row.id)}
             deleteUrl={(id) => destroy(id).url}
             emptyIcon={Users}
