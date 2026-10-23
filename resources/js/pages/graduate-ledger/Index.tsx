@@ -1,26 +1,27 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import {
-    Search,
-    DollarSign,
-    GraduationCap,
-    Wallet,
-    AlertTriangle,
-    PlusCircle,
-    Pencil,
-    Trash2,
-    XCircle,
-    Download,
-    Loader2,
-    CheckCircle2,
-    ChevronLeft,
-    ChevronRight,
-    Columns3,
-    ChevronDown,
-    Filter,
-    Mail,
-    CheckSquare,
-    Square,
-    Calendar as CalendarIcon,
+  Search,
+  DollarSign,
+  GraduationCap,
+  Wallet,
+  AlertTriangle,
+  PlusCircle,
+  Pencil,
+  Trash2,
+  XCircle,
+  Filter,
+  Loader2,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Columns3,
+  Mail,
+  CheckSquare,
+  Square,
+  Calendar as CalendarIcon,
+  Upload,
+  Download,
 } from 'lucide-react';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import StudentBalanceDrawer from './StudentBalanceDrawer';
@@ -2362,7 +2363,7 @@ export default function Index({
                         <div className="space-y-4 overflow-y-auto">
                             {/* Recipient selection dropdown */}
                             <div className="space-y-1.5">
-                                <label className="text-sm font-medium text-slate-700">
+                                <label className="text-sm font-medium text-foreground">
                                     Whom do you want to send email to?
                                 </label>
                                 <Select
@@ -2377,7 +2378,7 @@ export default function Index({
                                         }
                                     }}
                                 >
-                                    <SelectTrigger className="h-10 w-full rounded-lg border-slate-200 bg-white shadow-sm">
+                                    <SelectTrigger className="h-10 w-full rounded-lg border-border bg-card shadow-sm">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -2399,7 +2400,7 @@ export default function Index({
                                 <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
                                     <div className="mb-2 flex flex-wrap items-center gap-3">
                                         <div className="flex items-center gap-2">
-                                            <span className="font-semibold text-slate-800">
+                                            <span className="font-semibold text-foreground">
                                                 {visibleRecipients.length}
                                             </span>
                                             <span>recipient(s)</span>
@@ -2435,7 +2436,7 @@ export default function Index({
                                         )}
                                     </div>
 
-                                    <div className="max-h-60 overflow-y-auto rounded-lg border border-slate-200 bg-white">
+                                    <div className="max-h-60 overflow-y-auto rounded-lg border border-border bg-card">
                                         {isLoadingRecipients ? (
                                             <div className="p-4 text-center text-slate-500">
                                                 Loading recipients...
@@ -2496,7 +2497,7 @@ export default function Index({
                                                             <Square className="h-4 w-4 text-slate-400" />
                                                         )}
                                                     </div>
-                                                    <span className="font-medium text-slate-700">
+                                                    <span className="font-medium text-foreground">
                                                         Select All (
                                                         {
                                                             visibleRecipients.length
@@ -2525,7 +2526,7 @@ export default function Index({
                                                                 )}
                                                             </div>
                                                             <div className="min-w-0 flex-1">
-                                                                <div className="truncate font-medium text-slate-800">
+                                                                <div className="truncate font-medium text-foreground">
                                                                     {
                                                                         row.full_name
                                                                     }
@@ -2573,7 +2574,7 @@ export default function Index({
                                 <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
                                     <div className="mb-2 flex items-center justify-between gap-2">
                                         <div className="flex items-center gap-2">
-                                            <span className="font-semibold text-slate-800">
+                                            <span className="font-semibold text-foreground">
                                                 {bulkRecipients.length}
                                             </span>
                                             <span>recipient(s)</span>
@@ -2627,7 +2628,7 @@ export default function Index({
                                         </div>
                                     </div>
 
-                                    <div className="max-h-60 overflow-y-auto rounded-lg border border-slate-200 bg-white">
+                                    <div className="max-h-60 overflow-y-auto rounded-lg border border-border bg-card">
                                         {isLoadingRecipients ? (
                                             <div className="p-4 text-center text-slate-500">
                                                 Loading recipients...
@@ -2660,7 +2661,7 @@ export default function Index({
                                                                 )}
                                                             </div>
                                                             <div className="min-w-0 flex-1">
-                                                                <div className="truncate font-medium text-slate-800">
+                                                                <div className="truncate font-medium text-foreground">
                                                                     {
                                                                         row.full_name
                                                                     }
@@ -2705,7 +2706,7 @@ export default function Index({
 
                             <div className="space-y-3">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700">
+                                    <label className="block text-sm font-medium text-foreground">
                                         Subject (optional)
                                     </label>
                                     <Input
@@ -2717,7 +2718,7 @@ export default function Index({
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700">
+                                    <label className="block text-sm font-medium text-foreground">
                                         Exam Period (optional)
                                     </label>
                                     <Select
@@ -2736,7 +2737,7 @@ export default function Index({
                                             }
                                         }}
                                     >
-                                        <SelectTrigger className="h-10 w-full rounded-lg border-slate-200 bg-white shadow-sm">
+                                        <SelectTrigger className="h-10 w-full rounded-lg border-border bg-card shadow-sm">
                                             <SelectValue placeholder="Select exam period" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -2756,7 +2757,7 @@ export default function Index({
 
                                 {examPeriod && (
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700">
+                                        <label className="block text-sm font-medium text-foreground">
                                             Payment Deadline (optional)
                                         </label>
                                         <Popover>
@@ -2814,7 +2815,7 @@ export default function Index({
                                     </div>
                                 )}
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700">
+                                    <label className="block text-sm font-medium text-foreground">
                                         Additional Note (optional)
                                     </label>
                                     <Textarea
@@ -2834,10 +2835,10 @@ export default function Index({
                         </div>
 
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-slate-700">
+                            <label className="mb-2 block text-sm font-medium text-foreground">
                                 Live Preview
                             </label>
-                            <div className="overflow-hidden rounded-xl border border-slate-200">
+                            <div className="overflow-hidden rounded-xl border border-border">
                                 <iframe
                                     title="Email preview"
                                     srcDoc={buildEmailPreviewHtml(
@@ -2845,7 +2846,7 @@ export default function Index({
                                         examPeriod,
                                         examDeadline,
                                     )}
-                                    className="h-[28rem] w-[500px] bg-white"
+                                    className="h-[28rem] w-[500px] bg-card"
                                 />
                             </div>
                         </div>

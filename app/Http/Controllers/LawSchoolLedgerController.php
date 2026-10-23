@@ -1382,20 +1382,36 @@ class LawSchoolLedgerController extends Controller
                 continue;
             }
 
-            SendLawLedgerStatementEmail::dispatch(
+            SendLawLedgerStatementEmail::dispatchSync(
                 (int) $student->id,
                 $validated['school_year'] ?? null,
-                $semester,
+                $validated['semester'] ?? ($validated['sem'] ?? null),
                 $validated['subject'] ?? null,
                 $validated['note'] ?? null,
                 $validated['exam_period'] ?? null,
                 $validated['exam_deadline'] ?? null,
             );
 
+            try {
+                $actor = auth()->user();
+                \App\Models\ActivityLog::create([
+                    'actor_id' => $actor?->getAuthIdentifier(),
+                    'actor_name' => $actor?->name,
+                    'actor_role' => $actor?->role,
+                    'action' => 'email.sent',
+                    'target_id' => null,
+                    'subject_type' => null,
+                    'subject_id' => null,
+                    'description' => "Email sent to {$student->email} with subject \"".($validated['subject'] ?? 'Statement of Account')."\".",
+                    'meta' => ['to' => $student->email, 'subject' => $validated['subject'] ?? 'Statement of Account'],
+                ]);
+            } catch (\Throwable $e) {
+            }
+
             $sent++;
         }
 
-        return back()->with('success', "Queued SOA email for {$sent} student(s).".($skipped > 0 ? " {$skipped} student(s) skipped (no email)." : ''));
+        return back()->with('success', "Emailed SOA to {$sent} student(s).".($skipped > 0 ? " {$skipped} student(s) skipped (no email)." : ''));
     }
 
     private function normalizeStatementSemester(?string $semester): ?string

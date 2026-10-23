@@ -161,7 +161,7 @@ return [
     */
 
     'features' => [
-        Features::resetPasswords(),
+        // Features::resetPasswords(),
         //
         // Features::emailVerification(),
         //

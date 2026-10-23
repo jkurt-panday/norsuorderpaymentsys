@@ -256,7 +256,7 @@ export default function RequestTable<T extends { id: number | string }>({
     }, [rows]);
 
     const { start, stop } = usePoll(
-        pollInterval ?? 5000,
+        pollInterval ?? 300000,
         {
             only: resourceKey ? [resourceKey] : undefined,
         },

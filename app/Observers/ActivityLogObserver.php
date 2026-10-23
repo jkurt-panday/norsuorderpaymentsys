@@ -332,7 +332,11 @@ class ActivityLogObserver
 
     private function record(Model $model, string $event): void
     {
-        $actor = Auth::guard('web')->user();
+        if ($model instanceof ActivityLog) {
+            return;
+        }
+
+        $actor = \Illuminate\Support\Facades\Auth::guard('web')->user();
 
         if (! $actor) {
             return;

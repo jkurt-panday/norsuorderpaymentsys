@@ -1,15 +1,19 @@
 # HANDOFF
+**Date:** Thu Oct 22 2026
+
 ## Current State
-- Auth login page redesigned with split layout and brand panel.
-- NORSU campus photo added behind brand panel gradient overlay in `resources/js/pages/auth/login.tsx`.
+Dark mode fully functional across all pages. Theme toggle now uses a sliding switch with Sun/Moon icons.
 
 ## Done
-- [x] Wire campus image (`/images/norsu-campus.jpg`) inside `<aside>` in `resources/js/pages/auth/login.tsx`.
-- [x] Maintain `-z-20` layer order with existing `-z-10` gradient overlay.
-- [x] Verified with `npx tsc --noEmit`.
+- [x] Dark mode full tokenization complete across all ledger indices, modals, drawers, and forms
+- [x] Removed password reset features (`config/fortify.php`, views cleaned)
+- [x] Cleaned up all remaining hardcoded white/slate background classes app-wide
+- [x] Fixed status badges for dark mode
+- [x] Updated theme toggle to sliding switch with Sun/Moon icons
 
 ## Next Steps
-- Verify visual appearance in browser when dev server is running.
+- Test dark mode visually in browser (`npm run dev`)
 
 ## Decisions & Files Touched
-- `resources/js/pages/auth/login.tsx`: Added campus image background div with `-z-20`, `saturate(1.1)`, and `58% 30%` positioning.
+- Semantic token maps (`bg-card`, `border-border`, `text-foreground`, `text-muted-foreground`) applied across all remaining secondary forms and ledgers.
+- Theme toggle updated to sliding switch in `resources/js/components/theme-toggle.tsx`.

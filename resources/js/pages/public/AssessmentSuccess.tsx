@@ -92,7 +92,7 @@ return '';
                 return 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-100 px-4';
 
             default:
-                return 'bg-slate-100 text-slate-700 border border-slate-200 px-4';
+                return 'bg-slate-100 text-slate-700 border border-border px-4';
         }
     };
 
@@ -108,7 +108,7 @@ return '';
                 return 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-100 px-4';
 
             default:
-                return 'bg-slate-100 text-slate-700 border border-slate-200 px-4';
+                return 'bg-slate-100 text-slate-700 border border-border px-4';
         }
     };
 
@@ -158,7 +158,7 @@ return '';
                         id="print-receipt"
                         ref={receiptRef}
                     >
-                        <Card className="print-card overflow-hidden rounded-2xl bg-white shadow-xl sm:rounded-3xl sm:shadow-2xl print:shadow-none">
+                        <Card className="print-card overflow-hidden rounded-2xl bg-card shadow-xl sm:rounded-3xl sm:shadow-2xl print:shadow-none">
                             <CardHeader className="print-header -mx-6 -mt-6 rounded-t-2xl rounded-b-2xl bg-linear-to-b from-blue-600 to-blue-400 px-4 py-8 text-center text-white sm:rounded-t-3xl sm:rounded-b-3xl sm:px-8 sm:py-10">
                                 <div className="mx-auto flex items-center justify-center">
                                     <img
@@ -169,7 +169,7 @@ return '';
                                         className="h-auto max-w-70 pb-4 sm:max-w-md sm:pb-6"
                                     />
                                 </div>
-                                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm sm:h-24 sm:w-24">
+                                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-card/15 backdrop-blur-sm sm:h-24 sm:w-24">
                                     <CheckCircle className="h-10 w-10 text-white sm:h-14 sm:w-14" />
                                 </div>
                                 <CardTitle className="mt-2 text-2xl font-bold text-green-300 sm:text-3xl">
@@ -424,7 +424,7 @@ return null;
                                         return (
                                             <Button
                                                 variant="outline"
-                                                className="h-11 w-full rounded-xl border-slate-200 px-6 text-sm font-semibold text-slate-700 transition-all duration-200 hover:bg-slate-50 sm:h-12 sm:px-8 sm:text-base"
+                                                className="h-11 w-full rounded-xl border-border px-6 text-sm font-semibold text-slate-700 transition-all duration-200 hover:bg-slate-50 sm:h-12 sm:px-8 sm:text-base"
                                             >
                                                 <Link
                                                     href={homeHref}

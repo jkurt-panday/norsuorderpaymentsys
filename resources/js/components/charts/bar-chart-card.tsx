@@ -45,16 +45,16 @@ export function BarChartCard({
   const config = buildChartConfig(series)
 
   return (
-    <Card className={`rounded-2xl border border-slate-200/70 bg-white shadow-sm ${className ?? ""}`}>
+    <Card className={`rounded-2xl border border-border bg-card shadow-sm ${className ?? ""}`}>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold text-slate-900">{title}</CardTitle>
+        <CardTitle className="text-base font-semibold text-card-foreground">{title}</CardTitle>
         {description && (
-          <CardDescription className="text-sm text-slate-500">{description}</CardDescription>
+          <CardDescription className="text-sm text-muted-foreground">{description}</CardDescription>
         )}
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
-          <div className={`flex ${height} items-center justify-center text-sm text-slate-400`}>
+          <div className={`flex ${height} items-center justify-center text-sm text-muted-foreground`}>
             {emptyMessage}
           </div>
         ) : (

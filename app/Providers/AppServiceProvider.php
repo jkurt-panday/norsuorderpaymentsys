@@ -31,6 +31,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoTransportFactory;
 use Symfony\Component\Mailer\Transport\Dsn;
+use Throwable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -83,6 +84,36 @@ class AppServiceProvider extends ServiceProvider
 
         Event::listen(MessageSent::class, LogSentEmails::class);
         Event::listen(NotificationSent::class, LogSentNotifications::class);
+
+        $this->guardPersistentConnectionTransactions();
+    }
+
+    /**
+     * A persistent PDO connection is reused across requests, so a fatal
+     * error (timeout, out of memory) inside a transaction would leave the
+     * connection sitting inside that transaction — Laravel only rolls back
+     * on catchable exceptions. Close out any dangling transaction when the
+     * process ends so the next request starts from a clean connection.
+     */
+    protected function guardPersistentConnectionTransactions(): void
+    {
+        $options = config('database.connections.pgsql.options', []);
+
+        if (! array_key_exists(\PDO::ATTR_PERSISTENT, $options)) {
+            return;
+        }
+
+        register_shutdown_function(function (): void {
+            try {
+                $connection = DB::connection();
+
+                while ($connection->transactionLevel() > 0) {
+                    $connection->rollBack();
+                }
+            } catch (Throwable) {
+                // The connection is already gone; nothing left to clean up.
+            }
+        });
     }
 
     /**
