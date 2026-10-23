@@ -1,12 +1,7 @@
 import { router } from '@inertiajs/react';
-import {
-    useTable
-    
-    
-} from '@tanstack/react-table';
-import type {
-    ColumnVisibilityState} from '@tanstack/react-table';
-import type {ColumnDef, RowData} from '@tanstack/react-table';
+import { useTable } from '@tanstack/react-table';
+import type { ColumnVisibilityState } from '@tanstack/react-table';
+import type { ColumnDef, RowData } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import {
     ArrowUpDown,
@@ -18,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { features  } from './data-table-features';
+import { features } from './data-table-features';
 import type { DataTableFeatures } from './data-table-features';
 import { DataTablePagination } from './data-table-pagination';
 import { DateRangeFilter } from './date-range-picker';
@@ -39,7 +34,6 @@ import {
     TableRow,
 } from '@/components/ui/table';
 
-
 interface ServerFilters {
     search: string;
     sort: string;
@@ -49,7 +43,7 @@ interface ServerFilters {
     // Any additional domain-specific filters (course_id, semester, etc.)
     // that a specific page's filter dropdown adds — the shared table doesn't
     // need to know their names in advance.
-    [key: string]: string | undefined
+    [key: string]: string | undefined;
 }
 
 interface ServerPagination {
@@ -72,18 +66,18 @@ interface ServerDataTableProps<TData extends RowData> {
     sortableColumns?: string[];
     emptyMessage?: string;
     /**
-       * Render-prop slot for page-specific filter UI (e.g. a "Filters" dropdown
-       * for course/semester/etc). Receives `values` (currently applied filters,
-       * merged with anything staged but not yet submitted) and `setValue` to
-       * stage a change. Staged changes are NOT sent to Laravel until the same
-       * Search button/Enter the search box uses is triggered — this lets staff
-       * combine several filter picks into one request instead of firing one
-       * request per selection.
-       */
-      extraFilters?: (ctx: {
-        values: Record<string, string | undefined>
-        setValue: (key: string, value: string | undefined) => void
-      }) => React.ReactNode
+     * Render-prop slot for page-specific filter UI (e.g. a "Filters" dropdown
+     * for course/semester/etc). Receives `values` (currently applied filters,
+     * merged with anything staged but not yet submitted) and `setValue` to
+     * stage a change. Staged changes are NOT sent to Laravel until the same
+     * Search button/Enter the search box uses is triggered — this lets staff
+     * combine several filter picks into one request instead of firing one
+     * request per selection.
+     */
+    extraFilters?: (ctx: {
+        values: Record<string, string | undefined>;
+        setValue: (key: string, value: string | undefined) => void;
+    }) => React.ReactNode;
 }
 
 /**
@@ -99,7 +93,7 @@ export function ServerDataTable<TData extends RowData>({
     pagination,
     sortableColumns = [],
     emptyMessage = 'No results.',
-    extraFilters
+    extraFilters,
 }: ServerDataTableProps<TData>) {
     const [search, setSearch] = useState(filters.search);
     // inside ServerDataTable:
@@ -112,39 +106,42 @@ export function ServerDataTable<TData extends RowData>({
 
     const columnVisibilityStorageKey = `server-data-table:${route}:column-visibility`;
 
-    const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>(() => {
-        if (typeof window === 'undefined') {
-            return {};
-        }
-
-        try {
-            const savedColumnVisibility = window.localStorage.getItem(
-                columnVisibilityStorageKey,
-            );
-
-            if (!savedColumnVisibility) {
+    const [columnVisibility, setColumnVisibility] =
+        useState<ColumnVisibilityState>(() => {
+            if (typeof window === 'undefined') {
                 return {};
             }
 
-            const parsedColumnVisibility = JSON.parse(savedColumnVisibility);
+            try {
+                const savedColumnVisibility = window.localStorage.getItem(
+                    columnVisibilityStorageKey,
+                );
 
-            if (
-                !parsedColumnVisibility ||
-                typeof parsedColumnVisibility !== 'object' ||
-                Array.isArray(parsedColumnVisibility)
-            ) {
+                if (!savedColumnVisibility) {
+                    return {};
+                }
+
+                const parsedColumnVisibility = JSON.parse(
+                    savedColumnVisibility,
+                );
+
+                if (
+                    !parsedColumnVisibility ||
+                    typeof parsedColumnVisibility !== 'object' ||
+                    Array.isArray(parsedColumnVisibility)
+                ) {
+                    return {};
+                }
+
+                return Object.fromEntries(
+                    Object.entries(parsedColumnVisibility).filter(
+                        ([, value]) => typeof value === 'boolean',
+                    ),
+                ) as ColumnVisibilityState;
+            } catch {
                 return {};
             }
-
-            return Object.fromEntries(
-                Object.entries(parsedColumnVisibility).filter(
-                    ([, value]) => typeof value === 'boolean',
-                ),
-            ) as ColumnVisibilityState;
-        } catch {
-            return {};
-        }
-    });
+        });
 
     useEffect(() => {
         window.localStorage.setItem(
@@ -154,19 +151,20 @@ export function ServerDataTable<TData extends RowData>({
     }, [columnVisibility, columnVisibilityStorageKey]);
 
     // Staged/uncommitted values for anything extraFilters adds (course_id,
-      // semester, etc). These update instantly in the UI so the dropdown shows
-      // what's selected, but are only sent to Laravel once runSearch() fires —
-      // that's what lets multiple filters be combined into a single request.
-    const [pendingExtra, setPendingExtra] = useState<Record<string, string | undefined>>({})
+    // semester, etc). These update instantly in the UI so the dropdown shows
+    // what's selected, but are only sent to Laravel once runSearch() fires —
+    // that's what lets multiple filters be combined into a single request.
+    const [pendingExtra, setPendingExtra] = useState<
+        Record<string, string | undefined>
+    >({});
 
     const setExtraValue = (key: string, value: string | undefined) =>
-        setPendingExtra((prev) => ({ ...prev, [key]: value }))
+        setPendingExtra((prev) => ({ ...prev, [key]: value }));
 
     // What the filter UI should currently show as selected: whatever was
     // last actually applied (`filters`), overridden by anything staged but
     // not yet submitted (`pendingExtra`).
-    const extraValues = { ...filters, ...pendingExtra }
-
+    const extraValues = { ...filters, ...pendingExtra };
 
     const visit = (params: Record<string, string | number | undefined>) => {
         router.get(
@@ -183,13 +181,14 @@ export function ServerDataTable<TData extends RowData>({
         );
     };
 
-    const runSearch = () => visit({
-        search,
-        date_from: dateFrom ? format(dateFrom, "yyyy-MM-dd") : undefined,
-        date_to: dateTo ? format(dateTo, "yyyy-MM-dd") : undefined,
-        ...pendingExtra,
-        page: 1
-    }); // reset to page 1 on a new search
+    const runSearch = () =>
+        visit({
+            search,
+            date_from: dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined,
+            date_to: dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined,
+            ...pendingExtra,
+            page: 1,
+        }); // reset to page 1 on a new search
 
     const toggleSort = (columnId: string) => {
         const isSameColumn = filters.sort === columnId;
@@ -220,18 +219,18 @@ export function ServerDataTable<TData extends RowData>({
     );
 
     const columnLabels: Record<string, string> = {
-      reference_number: "Reference No.",
-        full_name: "Name",
+        reference_number: 'Reference No.',
+        full_name: 'Name',
         email: 'Email',
-      course: 'Course',
-      contact_num: "Contact No.",
-      enrolled_under: "Enrolled Under",
-        sy_last_attended: "SY Last Attended",
-      semester: 'Semester',
-        created_at: "Submitted",
+        course: 'Course',
+        contact_num: 'Contact No.',
+        enrolled_under: 'Enrolled Under',
+        sy_last_attended: 'SY Last Attended',
+        semester: 'Semester',
+        created_at: 'Submitted',
         status: 'Status',
-        actions: 'Actions'
-    }
+        actions: 'Actions',
+    };
 
     const table = useTable({
         features,
@@ -247,7 +246,6 @@ export function ServerDataTable<TData extends RowData>({
         <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
             <div className="flex items-center justify-between gap-3 px-4 py-4">
                 <div className="flex w-full flex-col gap-3">
-                
                     {/* ROW 1 — Search */}
                     <div className="flex w-full items-center gap-2">
                         <Input
@@ -255,9 +253,9 @@ export function ServerDataTable<TData extends RowData>({
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && runSearch()}
-                            className="h-10 min-w-0 flex-1 rounded-xl border border-input bg-background px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-ring/20 focus-visible:ring-2 focus-visible:ring-ring/20 sm:flex-none sm:w-150"
+                            className="h-10 min-w-0 flex-1 rounded-xl border border-input bg-background px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-ring/20 focus-visible:ring-2 focus-visible:ring-ring/20 sm:w-150 sm:flex-none"
                         />
-                
+
                         <Button
                             onClick={runSearch}
                             variant="outline"
@@ -266,7 +264,7 @@ export function ServerDataTable<TData extends RowData>({
                         >
                             <Search className="h-4 w-4" />
                         </Button>
-                
+
                         <Button
                             type="button"
                             variant="outline"
@@ -277,46 +275,63 @@ export function ServerDataTable<TData extends RowData>({
                             <RotateCw className="h-4 w-4" />
                         </Button>
                     </div>
-                
+
                     {/* ROW 2 — Filters */}
-                    <div className="flex w-full min-w-0 items-end gap-3 overflow-x-auto pb-1">
-                
-                        {/* Date Range */}
-                        <div className="shrink-0">
-                            <DateRangeFilter
-                                from={dateFrom}
-                                to={dateTo}
-                                onFromChange={setDateFrom}
-                                onToChange={setDateTo}
-                            />
+                    <div className="flex w-full flex-col gap-3 rounded-xl border border-border/70 bg-muted/20 p-3 sm:flex-row sm:items-end sm:justify-between">
+                        <div className="flex min-w-0 flex-1 flex-wrap items-end gap-3">
+                            {/* Date Range */}
+                            <div className="flex min-w-0 flex-col gap-1.5">
+                                <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                    Date range
+                                </span>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <DateRangeFilter
+                                        from={dateFrom}
+                                        to={dateTo}
+                                        onFromChange={setDateFrom}
+                                        onToChange={setDateTo}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Column Filters */}
+                            {extraFilters && (
+                                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                                    <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                        Filters
+                                    </span>
+                                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                        {extraFilters({
+                                            values: extraValues,
+                                            setValue: setExtraValue,
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                
+
                         {/* Visibility */}
-                        <div className="grid shrink-0 grid-cols-1">
-                            <span className="text-sm font-medium text-muted-foreground pb-1">
-                                Visibility:
+                        <div className="flex shrink-0 flex-col gap-1.5 sm:items-end">
+                            <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                View
                             </span>
-                
                             <DropdownMenu>
                                 <DropdownMenuTrigger
                                     render={
                                         <Button
                                             variant="outline"
                                             title="Toggle columns"
-                                            className="h-10"
+                                            className="h-10 w-full rounded-lg bg-background sm:w-auto"
                                         >
                                             <SlidersHorizontal className="mr-2 h-4 w-4" />
-                
-                                            <span className="inline">
-                                                Columns
-                                            </span>
+                                            Columns
                                         </Button>
                                     }
                                 />
-                
+
                                 <DropdownMenuContent
-                                    align="start"
-                                    className="w-40"
+                                    align="end"
+                                    className="w-48"
                                 >
                                     {table
                                         .getAllColumns()
@@ -326,40 +341,24 @@ export function ServerDataTable<TData extends RowData>({
                                                 key={column.id}
                                                 checked={column.getIsVisible()}
                                                 onCheckedChange={(value) =>
-                                                    column.toggleVisibility(!!value)
+                                                    column.toggleVisibility(
+                                                        !!value,
+                                                    )
                                                 }
                                             >
-                                                {columnLabels[column.id] ?? column.id}
+                                                {columnLabels[column.id] ??
+                                                    column.id}
                                             </DropdownMenuCheckboxItem>
                                         ))}
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </div>
-                
-                        {/* Column Filters */}
-                        {extraFilters && (
-                            <div className="flex shrink-0 items-end gap-2">
-                                <div className="grid shrink-0 grid-cols-1">
-                                    <span className="text-sm font-medium text-muted-foreground pb-1">
-                                        Column Filters:
-                                    </span>
-                
-                                    <div className="flex items-center gap-2">
-                                        {extraFilters({
-                                            values: extraValues,
-                                            setValue: setExtraValue,
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                
                     </div>
                 </div>
             </div>
 
-            <div className="rotate-180 overflow-x-auto custom-scrollbar">
-                <div className="rotate-180 min-w-max">
+            <div className="custom-scrollbar rotate-180 overflow-x-auto">
+                <div className="min-w-max rotate-180">
                     <Table>
                         <TableHeader>
                             {table.getHeaderGroups().map((headerGroup) => (
@@ -368,12 +367,13 @@ export function ServerDataTable<TData extends RowData>({
                                     className="border-y border-border bg-muted/50 hover:bg-muted/50"
                                 >
                                     {headerGroup.headers.map((header) => {
-                                        const canSort = sortableColumns.includes(
-                                            header.column.id,
-                                        );
+                                        const canSort =
+                                            sortableColumns.includes(
+                                                header.column.id,
+                                            );
                                         const isActive =
                                             filters.sort === header.column.id;
-    
+
                                         return (
                                             <TableHead
                                                 key={header.id}
@@ -386,7 +386,8 @@ export function ServerDataTable<TData extends RowData>({
                                                         className="inline-flex items-center gap-1.5 hover:text-foreground"
                                                         onClick={() =>
                                                             toggleSort(
-                                                                header.column.id,
+                                                                header.column
+                                                                    .id,
                                                             )
                                                         }
                                                     >
@@ -398,8 +399,8 @@ export function ServerDataTable<TData extends RowData>({
                                                             'asc' ? (
                                                             <ArrowUp className="ml-2 h-4 w-4" />
                                                         ) : isActive &&
-                                                        filters.direction ===
-                                                            'desc' ? (
+                                                          filters.direction ===
+                                                              'desc' ? (
                                                             <ArrowDown className="ml-2 h-4 w-4" />
                                                         ) : (
                                                             <ArrowUpDown className="ml-2 h-4 w-4 opacity-40" />

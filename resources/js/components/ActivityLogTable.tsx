@@ -28,7 +28,9 @@ import {
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
+    SelectLabel,
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
@@ -51,12 +53,12 @@ export interface ActivityLogItem {
     id: number;
     action: string;
     event:
-    | 'created'
-    | 'updated'
-    | 'deleted'
-    | 'deactivated'
-    | 'reactivated'
-    | 'processed';
+        | 'created'
+        | 'updated'
+        | 'deleted'
+        | 'deactivated'
+        | 'reactivated'
+        | 'processed';
     description: string;
     actor_name: string | null;
     actor_role: string | null;
@@ -103,32 +105,38 @@ const EVENT_UI: Record<
     created: {
         label: 'Created',
         icon: Plus,
-        badgeClass: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border dark:border-emerald-800/40',
+        badgeClass:
+            'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border dark:border-emerald-800/40',
     },
     updated: {
         label: 'Updated',
         icon: Pencil,
-        badgeClass: 'bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-400 dark:border dark:border-amber-800/40',
+        badgeClass:
+            'bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-400 dark:border dark:border-amber-800/40',
     },
     deleted: {
         label: 'Deleted',
         icon: Trash2,
-        badgeClass: 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 dark:border dark:border-rose-800/40',
+        badgeClass:
+            'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 dark:border dark:border-rose-800/40',
     },
     deactivated: {
         label: 'Deactivated',
         icon: Trash2,
-        badgeClass: 'bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-400 dark:border dark:border-orange-800/40',
+        badgeClass:
+            'bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-400 dark:border dark:border-orange-800/40',
     },
     reactivated: {
         label: 'Reactivated',
         icon: RotateCcw,
-        badgeClass: 'bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-400 dark:border dark:border-teal-800/40',
+        badgeClass:
+            'bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-400 dark:border dark:border-teal-800/40',
     },
     processed: {
         label: 'Processed',
         icon: CheckCircle2,
-        badgeClass: 'bg-blue-100 text-blue-800 dark:bg-sky-950/60 dark:text-sky-400 dark:border dark:border-sky-800/40',
+        badgeClass:
+            'bg-blue-100 text-blue-800 dark:bg-sky-950/60 dark:text-sky-400 dark:border dark:border-sky-800/40',
     },
 };
 
@@ -144,7 +152,8 @@ function getEventUi(event: string) {
         EVENT_UI[event] ?? {
             label: event,
             icon: Activity,
-            badgeClass: 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40',
+            badgeClass:
+                'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40',
         }
     );
 }
@@ -312,15 +321,17 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
     };
 
     const handleActionChange = (value: string | null) => {
-        const selected = value ?? 'All Actions';
+        const selected = value ?? 'All';
         setAction(selected);
+        setSortKey('');
+        setSortDir('');
         navigateWithParams({
             activity_search: search.trim() || undefined,
             activity_action: selected === 'All' ? undefined : selected,
             date_from: dateFrom || undefined,
             date_to: dateTo || undefined,
-            sort: sortKey || undefined,
-            direction: sortDir || undefined,
+            sort: undefined,
+            direction: undefined,
         });
     };
 
@@ -483,12 +494,29 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
 
                     {/* Action/Sort Filter Select */}
                     <Select
-                        value={action || sortKey ? (sortKey === 'created_at' ? (sortDir === 'asc' ? 'Oldest' : 'Newest') : action || 'All') : (action || 'All')}
+                        items={[
+                            { label: 'All actions', value: 'All' },
+                            ...ACTION_OPTIONS,
+                            { label: 'Oldest first', value: 'Oldest' },
+                            { label: 'Newest first', value: 'Newest' },
+                        ]}
+                        value={
+                            action || sortKey
+                                ? sortKey === 'created_at'
+                                    ? sortDir === 'asc'
+                                        ? 'Oldest'
+                                        : 'Newest'
+                                    : action || 'All'
+                                : action || 'All'
+                        }
                         onValueChange={(v) => {
                             if (v === 'Oldest' || v === 'Newest') {
                                 navigateWithParams({
                                     activity_search: search.trim() || undefined,
-                                    activity_action: action === 'All' ? undefined : action || undefined,
+                                    activity_action:
+                                        action === 'All'
+                                            ? undefined
+                                            : action || undefined,
                                     date_from: dateFrom || undefined,
                                     date_to: dateTo || undefined,
                                     sort: 'created_at',
@@ -501,18 +529,31 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                             handleActionChange(v);
                         }}
                     >
-                        <SelectTrigger className="h-9 w-full text-xs sm:w-36">
-                            <SelectValue placeholder="All acted" />
+                        <SelectTrigger className="h-9! w-full text-xs sm:w-40">
+                            <SelectValue placeholder="All actions" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="All">All acted</SelectItem>
-                            {ACTION_OPTIONS.map((opt) => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                    {opt.label}
+                            <SelectGroup>
+                                <SelectLabel>Activity filter</SelectLabel>
+                                <SelectItem value="All">All actions</SelectItem>
+                                {ACTION_OPTIONS.map((opt) => (
+                                    <SelectItem
+                                        key={opt.value}
+                                        value={opt.value}
+                                    >
+                                        {opt.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectGroup>
+                            <SelectGroup>
+                                <SelectLabel>Sort by date</SelectLabel>
+                                <SelectItem value="Oldest">
+                                    Oldest first
                                 </SelectItem>
-                            ))}
-                            <SelectItem value="Oldest">Oldest</SelectItem>
-                            <SelectItem value="Newest">Newest</SelectItem>
+                                <SelectItem value="Newest">
+                                    Newest first
+                                </SelectItem>
+                            </SelectGroup>
                         </SelectContent>
                     </Select>
 
@@ -553,8 +594,9 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
 
             <CardContent className="p-0">
                 <Table
-                    className={`transition-opacity duration-150 ${isBusy ? 'opacity-60' : 'opacity-100'
-                        }`}
+                    className={`transition-opacity duration-150 ${
+                        isBusy ? 'opacity-60' : 'opacity-100'
+                    }`}
                 >
                     <TableHeader>
                         <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50">
@@ -567,21 +609,25 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                 return (
                                     <TableHead
                                         key={col.label}
-                                        className={`${col.width} ${col.label === 'Event' ? 'pl-6' : ''
-                                            } ${col.label === 'Date' ? 'pr-6' : ''
-                                            } ${sortKeyName
+                                        className={`${col.width} ${
+                                            col.label === 'Event' ? 'pl-6' : ''
+                                        } ${
+                                            col.label === 'Date' ? 'pr-6' : ''
+                                        } ${
+                                            sortKeyName
                                                 ? 'cursor-pointer transition-colors select-none'
                                                 : ''
-                                            } ${isActive
+                                        } ${
+                                            isActive
                                                 ? 'bg-primary/10 font-bold text-primary'
                                                 : 'hover:text-foreground'
-                                            }`}
+                                        }`}
                                         onClick={
                                             sortKeyName
                                                 ? () =>
-                                                    handleSortClick(
-                                                        sortKeyName,
-                                                    )
+                                                      handleSortClick(
+                                                          sortKeyName,
+                                                      )
                                                 : undefined
                                         }
                                     >
@@ -590,7 +636,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                             {sortKeyName &&
                                                 (isActive ? (
                                                     effectiveSortDir ===
-                                                        'asc' ? (
+                                                    'asc' ? (
                                                         <ArrowUp className="h-4 w-4 stroke-[2.5] text-primary" />
                                                     ) : (
                                                         <ArrowDown className="h-4 w-4 stroke-[2.5] text-primary" />
@@ -622,7 +668,10 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                 const actorRole = log.actor_role ?? '—';
 
                                 return (
-                                    <TableRow key={log.id} className="border-b border-border hover:bg-muted/50">
+                                    <TableRow
+                                        key={log.id}
+                                        className="border-b border-border hover:bg-muted/50"
+                                    >
                                         <TableCell className="pl-6">
                                             <Badge
                                                 variant="secondary"
@@ -762,7 +811,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                         />
                                         <PopoverContent
                                             align="center"
-                                            className="w-48 space-y-2 p-2 border-border bg-popover"
+                                            className="w-48 space-y-2 border-border bg-popover p-2"
                                         >
                                             <form
                                                 onSubmit={(e) => {
@@ -819,10 +868,11 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                                                 false,
                                                             );
                                                         }}
-                                                        className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${page === currentPage
-                                                            ? 'bg-primary/15 font-medium text-primary'
-                                                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                                                            }`}
+                                                        className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                                                            page === currentPage
+                                                                ? 'bg-primary/15 font-medium text-primary'
+                                                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                                        }`}
                                                     >
                                                         Page {page}
                                                     </button>
@@ -877,13 +927,14 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                             isPrev
                                                 ? 'Previous page'
                                                 : isNext
-                                                    ? 'Next page'
-                                                    : `Page ${link.label}`
+                                                  ? 'Next page'
+                                                  : `Page ${link.label}`
                                         }
-                                        className={`h-8 w-8 shrink-0 rounded-md text-sm ${link.active
-                                            ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                                            : ''
-                                            }`}
+                                        className={`h-8 w-8 shrink-0 rounded-md text-sm ${
+                                            link.active
+                                                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                                : ''
+                                        }`}
                                     >
                                         {isPrev ? (
                                             <ChevronLeft className="h-4 w-4" />

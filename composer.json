@@ -9,7 +9,7 @@
     ],
     "license": "MIT",
     "require": {
-        "php": "^8.3",
+        "php": "8.4.27",
         "barryvdh/laravel-dompdf": "*",
         "blade-ui-kit/blade-icons": "^1.10",
         "inertiajs/inertia-laravel": "^3.0",
