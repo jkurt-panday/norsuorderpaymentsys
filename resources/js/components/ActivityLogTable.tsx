@@ -136,8 +136,6 @@ const ACTION_OPTIONS = [
     { value: 'created', label: 'Created' },
     { value: 'updated', label: 'Updated' },
     { value: 'deleted', label: 'Deleted' },
-    { value: 'deactivated', label: 'Deactivated' },
-    { value: 'reactivated', label: 'Reactivated' },
     { value: 'processed', label: 'Processed' },
 ];
 
@@ -254,7 +252,6 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
 
     useEffect(() => {
         start();
-
         return () => stop();
     }, [start, stop]);
 
@@ -484,21 +481,38 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                         />
                     </div>
 
-                    {/* Action Filter Select */}
+                    {/* Action/Sort Filter Select */}
                     <Select
-                        value={action || 'All'}
-                        onValueChange={handleActionChange}
+                        value={action || sortKey ? (sortKey === 'created_at' ? (sortDir === 'asc' ? 'Oldest' : 'Newest') : action || 'All') : (action || 'All')}
+                        onValueChange={(v) => {
+                            if (v === 'Oldest' || v === 'Newest') {
+                                navigateWithParams({
+                                    activity_search: search.trim() || undefined,
+                                    activity_action: action === 'All' ? undefined : action || undefined,
+                                    date_from: dateFrom || undefined,
+                                    date_to: dateTo || undefined,
+                                    sort: 'created_at',
+                                    direction: v === 'Oldest' ? 'asc' : 'desc',
+                                });
+                                setSortKey('created_at');
+                                setSortDir(v === 'Oldest' ? 'asc' : 'desc');
+                                return;
+                            }
+                            handleActionChange(v);
+                        }}
                     >
                         <SelectTrigger className="h-9 w-full text-xs sm:w-36">
-                            <SelectValue placeholder="All actions" />
+                            <SelectValue placeholder="All acted" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="All">All actions</SelectItem>
+                            <SelectItem value="All">All acted</SelectItem>
                             {ACTION_OPTIONS.map((opt) => (
                                 <SelectItem key={opt.value} value={opt.value}>
                                     {opt.label}
                                 </SelectItem>
                             ))}
+                            <SelectItem value="Oldest">Oldest</SelectItem>
+                            <SelectItem value="Newest">Newest</SelectItem>
                         </SelectContent>
                     </Select>
 

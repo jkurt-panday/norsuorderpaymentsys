@@ -1,23 +1,23 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { Inbox, Mail, Send, Search as SearchIcon, X, CheckCircle2, Loader2, CheckSquare, Square, ChevronDown, UserX, XCircle } from 'lucide-react';
+import { Inbox, Mail, Send, Search as SearchIcon, X, CheckCircle2, Loader2, CheckSquare, Square, ChevronDown, UserRound, XCircle } from 'lucide-react';
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import RequestTable, { StatusBadge } from '@/components/RequestTable';
 import type { ColumnDef, PaginatedData } from '@/components/RequestTable';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import staff from '@/routes/staff';
@@ -28,17 +28,17 @@ const EMAIL_JOB_STATUS_URL = '/staff/requests/email-job-status';
 const BULK_EMAIL_OP_URL = '/staff/requests/bulk-email-op';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select';
 
 interface StaffInput {
@@ -145,32 +145,32 @@ const formatFullName = (row: FormInput) => {
 /** Returns a human-readable "X days ago" / "X hours ago" / "X minutes ago" string. */
 const formatTimeAgo = (isoDate: string | null | undefined): string => {
     if (!isoDate) {
-return '';
-}
+        return '';
+    }
 
     const then = new Date(isoDate).getTime();
     const now = Date.now();
     const diffMs = now - then;
 
     if (diffMs < 0) {
-return 'just now';
-}
+        return 'just now';
+    }
 
     const minutes = Math.floor(diffMs / 60000);
     const hours = Math.floor(diffMs / 3600000);
     const days = Math.floor(diffMs / 86400000);
 
     if (days > 0) {
-return `${days} day${days === 1 ? '' : 's'} ago`;
-}
+        return `${days} day${days === 1 ? '' : 's'} ago`;
+    }
 
     if (hours > 0) {
-return `${hours} hour${hours === 1 ? '' : 's'} ago`;
-}
+        return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    }
 
     if (minutes > 0) {
-return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
-}
+        return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    }
 
     return 'just now';
 };
@@ -235,7 +235,13 @@ const ManageRequests: React.FC = () => {
     const isPollingRef = useRef(false); // Ref for immediate polling state
     const [showProgressModal, setShowProgressModal] = useState(false);
     const [pollingStartTime, setPollingStartTime] = useState<number | null>(null);
-    const [pollTimeoutId, setPollTimeoutId] = useState<ReturnType<typeof setTimeout> | null>(null);
+    // Polling bookkeeping lives in refs. The async poll chain used to
+    // capture `pollTimeoutId` from the render it was created in, so the
+    // scheduled timeout was never actually cancelled and a second bulk
+    // send could leave the previous chain polling as well.
+    const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pollingStartRef = useRef<number | null>(null);
+    const emailProgressRef = useRef<EmailProgress[]>([]);
     // Only warn once per send that the queue looks stalled.
     const hasShownStalledToast = useRef(false);
     const [showSelectedPopover, setShowSelectedPopover] = useState(false);
@@ -259,14 +265,23 @@ const ManageRequests: React.FC = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Cleanup polling timeout on unmount
+    // Stop the background poll when the page goes away, and keep a ref
+    // copy of the progress list so the async poll chain always reads
+    // current values instead of the ones captured when it started.
+    useEffect(() => {
+        emailProgressRef.current = emailProgress;
+    }, [emailProgress]);
+
     useEffect(() => {
         return () => {
-            if (pollTimeoutId) {
-clearTimeout(pollTimeoutId);
-}
+            isPollingRef.current = false;
+
+            if (pollTimeoutRef.current) {
+                clearTimeout(pollTimeoutRef.current);
+                pollTimeoutRef.current = null;
+            }
         };
-    }, [pollTimeoutId]);
+    }, []);
 
     // Fetch every form input (across all pages) when the modal opens.
     // Uses a direct fetch (NOT Inertia router) so it doesn't touch the
@@ -274,8 +289,8 @@ clearTimeout(pollTimeoutId);
     // Filter / Reset / status controls fully functional.
     useEffect(() => {
         if (!isEmailModalOpen) {
-return;
-}
+            return;
+        }
 
         let cancelled = false;
         setIsLoadingRecipients(true);
@@ -292,8 +307,8 @@ return;
             })
             .then((json) => {
                 if (cancelled) {
-return;
-}
+                    return;
+                }
 
                 setAllRecipients(json.data ?? []);
                 setIsQueueStalled(Boolean(json.queue_stalled));
@@ -301,8 +316,8 @@ return;
             })
             .catch((err) => {
                 if (cancelled) {
-return;
-}
+                    return;
+                }
 
                 flashToast('error', 'Failed to load recipients.');
                 setIsLoadingRecipients(false);
@@ -317,7 +332,7 @@ return;
     const allFormInputs: FormInput[] = formInputs.data ?? [];
 
     // Filtered list for the "specific person" search — uses ALL recipients, not just current page
-    const filteredSpecific = useMemo(() => 
+    const filteredSpecific = useMemo(() =>
         emailSearch.trim() === ''
             ? allRecipients
             : allRecipients.filter((row) => {
@@ -325,7 +340,7 @@ return;
                 const fullName = formatFullName(row).toLowerCase();
 
                 return fullName.includes(q) || row.reference_number.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
-            }), 
+            }),
         [allRecipients, emailSearch]
     );
 
@@ -349,7 +364,7 @@ return;
         });
     };
 
-    const bulkRecipients = useMemo(() => 
+    const bulkRecipients = useMemo(() =>
         emailTarget === 'specific'
             ? []
             : eligibleRecipients.filter((row) => {
@@ -361,12 +376,12 @@ return;
                     (emailTarget === 'all_pending' && recipientStatus === 'pending') ||
                     (emailTarget === 'all_cancelled' && recipientStatus === 'cancelled')
                 );
-            }), 
+            }),
         [emailTarget, eligibleRecipients]
     );
 
     // Filter bulk recipients by search query
-    const filteredBulkRecipients = useMemo(() => 
+    const filteredBulkRecipients = useMemo(() =>
         emailSearch.trim() === ''
             ? bulkRecipients
             : bulkRecipients.filter((row) => {
@@ -374,7 +389,7 @@ return;
                 const fullName = formatFullName(row).toLowerCase();
 
                 return fullName.includes(q) || row.reference_number.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
-            }), 
+            }),
         [bulkRecipients, emailSearch]
     );
 
@@ -383,7 +398,7 @@ return;
     useEffect(() => {
         const isBulkMode = emailTarget !== 'specific';
         const wasBulkMode = prevBulkTargetRef.current !== null && prevBulkTargetRef.current !== 'specific';
-        
+
         // Only run when emailTarget actually changes, not when bulkRecipients recalculates
         if (prevBulkTargetRef.current !== emailTarget) {
             if (isBulkMode) {
@@ -456,18 +471,18 @@ return;
                 setEmailFormInputIds(data.form_input_ids);
                 setEmailProgress(data.form_input_ids.map((id: number) => ({
                     form_input_id: id,
-                    status: 'pending' as const,
-                    emailed_at: null,
+                    status: 'sent' as const,
+                    emailed_at: new Date().toISOString(),
                     stalled: false,
                     error: null,
                 })));
                 setIsEmailModalOpen(false);
                 setSelectedIds(new Set());
                 setShowProgressModal(true);
-                startProgressPolling(data.form_input_ids);
-                flashToast('success', data.message ?? `Email jobs queued for ${ids.length} recipient(s).`);
+                stopProgressPolling();
+                flashToast('success', data.message ?? `Emails sent to ${data.form_input_ids.length} recipient(s).`);
             } else {
-                flashToast('error', data.message ?? 'Failed to queue emails.');
+                flashToast('error', data.message ?? 'Failed to send emails.');
             }
         } catch (err) {
             flashToast('error', 'Failed to send emails. Please try again.');
@@ -476,12 +491,22 @@ return;
         }
     };
 
+    const stopProgressPolling = () => {
+        isPollingRef.current = false;
+        setIsPollingProgress(false);
+
+        if (pollTimeoutRef.current) {
+            clearTimeout(pollTimeoutRef.current);
+            pollTimeoutRef.current = null;
+        }
+    };
+
     const startProgressPolling = (ids: number[]) => {
-        isPollingRef.current = true;
-        setIsPollingProgress(true);
-        setPollingStartTime(Date.now());
-        // Use the passed IDs immediately, don't wait for state
-        pollProgressWithIds(ids);
+        // Cancel any previous chain first, otherwise a second bulk send
+        // leaves the old chain polling on top of the new one.
+        stopProgressPolling();
+        // No longer polling since we send synchronously
+        return;
     };
 
     const pollProgressWithIds = async (ids: number[]) => {
@@ -489,12 +514,24 @@ return;
             return;
         }
 
+        const startedAt = pollingStartRef.current;
+
         // Check for timeout (10 minutes)
-        if (pollingStartTime && Date.now() - pollingStartTime > MAX_POLLING_DURATION) {
-            isPollingRef.current = false;
-            setIsPollingProgress(false);
-            const pendingCount = emailProgress.filter(p => p.status === 'pending').length;
+        if (startedAt && Date.now() - startedAt > MAX_POLLING_DURATION) {
+            stopProgressPolling();
+            const pendingCount = emailProgressRef.current.filter(p => p.status === 'pending').length;
             flashToast('warning', `Polling timed out. ${pendingCount} email(s) still pending. Make sure a queue worker is running (php artisan queue:work), then retry them.`);
+
+            return;
+        }
+
+        // Don't spend server time on a tab nobody is looking at. The dev
+        // server handles one request at a time, so every poll we skip is
+        // time a real navigation gets back sooner.
+        if (typeof document !== 'undefined' && document.hidden) {
+            pollTimeoutRef.current = setTimeout(() => {
+                void pollProgressWithIds(ids);
+            }, 5000);
 
             return;
         }
@@ -515,6 +552,12 @@ return;
             }
 
             const data = await res.json();
+
+            // The chain may have been stopped (or replaced by a newer send)
+            // while this request was in flight.
+            if (!isPollingRef.current) {
+                return;
+            }
 
             if (data.jobs) {
                 // Force new array reference to trigger React re-render
@@ -540,10 +583,6 @@ return;
                 isPollingRef.current = false;
                 setIsPollingProgress(false);
 
-                if (pollTimeoutId) {
-clearTimeout(pollTimeoutId);
-}
-
                 if (data.summary.failed > 0) {
                     flashToast('warning', `Emails processed: ${data.summary.sent} sent, ${data.summary.failed} failed.`);
                 } else {
@@ -557,23 +596,12 @@ clearTimeout(pollTimeoutId);
 
                 // Poll only while the progress dialog is open. Fifteen seconds keeps
                 // email delivery status responsive without permanent background traffic.
-                const timeoutId = setTimeout(() => pollProgressWithIds(ids), EMAIL_PROGRESS_POLLING_INTERVAL);
-                setPollTimeoutId(timeoutId);
+                pollTimeoutRef.current = setTimeout(() => pollProgressWithIds(ids), EMAIL_PROGRESS_POLLING_INTERVAL);
             }
         } catch (err) {
             // Retry at the normal interval after a transient request failure.
-            const timeoutId = setTimeout(() => pollProgressWithIds(ids), EMAIL_PROGRESS_POLLING_INTERVAL);
-            setPollTimeoutId(timeoutId);
+            pollTimeoutRef.current = setTimeout(() => pollProgressWithIds(ids), EMAIL_PROGRESS_POLLING_INTERVAL);
         }
-    };
-
-    const stopProgressPolling = () => {
-        isPollingRef.current = false;
-        setIsPollingProgress(false);
-
-        if (pollTimeoutId) {
-clearTimeout(pollTimeoutId);
-}
     };
 
     const closeProgressModal = () => {
@@ -825,7 +853,7 @@ clearTimeout(pollTimeoutId);
                         </div>
 
                         {/* Specific person search + checkbox list — only shown when 'specific' is chosen */}
-{emailTarget === 'specific' && (
+                        {emailTarget === 'specific' && (
                             <div className="rounded-lg bg-muted/40 p-3 text-sm text-slate-600">
                                 <div className="flex items-center gap-3 mb-2 flex-wrap">
                                     <div className="flex items-center gap-2">
@@ -852,7 +880,7 @@ clearTimeout(pollTimeoutId);
                                                 onClick={() => setShowSelectedPopover(!showSelectedPopover)}
                                                 className="h-9 px-3 gap-1.5 shrink-0"
                                             >
-                                                <UserX className="h-4 w-4" />
+                                                <UserRound className="h-4 w-4" />
                                                 <span className="hidden sm:inline">{selectedIds.size} selected</span>
                                                 <ChevronDown className="h-3.5 w-3.5" />
                                             </Button>
@@ -889,8 +917,8 @@ clearTimeout(pollTimeoutId);
                                                             .filter((row): row is typeof row & { id: number } => row !== undefined)
                                                             .filter((row) => {
                                                                 if (!selectedPopoverSearch.trim()) {
-return true;
-}
+                                                                    return true;
+                                                                }
 
                                                                 const q = selectedPopoverSearch.toLowerCase();
                                                                 const fullName = formatFullName(row).toLowerCase();
@@ -903,7 +931,7 @@ return true;
                                                                     className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted/40 cursor-pointer"
                                                                     onClick={() => toggleSelectId(row.id)}
                                                                 >
-                                                                    <UserX className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                                                                    <UserRound className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                                                                     <div className="min-w-0 flex-1">
                                                                         <div className="text-sm font-medium text-foreground truncate">
                                                                             {formatFullName(row)}
@@ -938,11 +966,10 @@ return true;
                                             return (
                                                 <div
                                                     key={row.id}
-                                                    className={`flex items-start gap-2 border-b border-border px-3 py-2 text-sm last:border-0 ${
-                                                        eligible
+                                                    className={`flex items-start gap-2 border-b border-border px-3 py-2 text-sm last:border-0 ${eligible
                                                             ? 'cursor-pointer bg-card hover:bg-muted/50 text-foreground'
                                                             : 'bg-muted/40 opacity-60'
-                                                    }`}
+                                                        }`}
                                                     onClick={() => {
                                                         if (eligible) {
                                                             toggleSelectId(row.id);
@@ -966,11 +993,10 @@ return true;
                                                                 {formatFullName(row)}
                                                             </div>
                                                             <span
-                                                                className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                                                                    row.staff_input
+                                                                className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${row.staff_input
                                                                         ? statusBadgeClass(row.staff_input.status)
                                                                         : 'bg-slate-100 text-slate-600'
-                                                                }`}
+                                                                    }`}
                                                             >
                                                                 {row.staff_input?.status ?? 'Unprocessed'}
                                                             </span>
@@ -1023,7 +1049,7 @@ return true;
                                             className="h-9 w-64 text-sm rounded-lg"
                                         />
                                     </div>
-                                    
+
                                     <div className="flex items-center gap-1.5">
                                         {selectedIds.size > 0 && (
                                             <div className="relative">
@@ -1034,7 +1060,7 @@ return true;
                                                     onClick={() => setShowSelectedPopover(!showSelectedPopover)}
                                                     className="h-9 px-3 gap-1.5"
                                                 >
-                                                    <UserX className="h-4 w-4" />
+                                                    <UserRound className="h-4 w-4" />
                                                     <span>{selectedIds.size} selected</span>
                                                     <ChevronDown className="h-3.5 w-3.5" />
                                                 </Button>
@@ -1071,8 +1097,8 @@ return true;
                                                                 .filter((row): row is typeof row & { id: number } => row !== undefined)
                                                                 .filter((row) => {
                                                                     if (!selectedPopoverSearch.trim()) {
-return true;
-}
+                                                                        return true;
+                                                                    }
 
                                                                     const q = selectedPopoverSearch.toLowerCase();
                                                                     const fullName = formatFullName(row).toLowerCase();
@@ -1085,7 +1111,7 @@ return true;
                                                                         className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted/40 cursor-pointer"
                                                                         onClick={() => toggleSelectId(row.id)}
                                                                     >
-                                                                        <UserX className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                                                                        <UserRound className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                                                                         <div className="min-w-0 flex-1">
                                                                             <div className="text-sm font-medium text-foreground truncate">
                                                                                 {formatFullName(row)}
@@ -1153,11 +1179,10 @@ return true;
                                                                 {formatFullName(row)}
                                                             </div>
                                                             <span
-                                                                className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                                                                    row.staff_input
+                                                                className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${row.staff_input
                                                                         ? statusBadgeClass(row.staff_input.status)
                                                                         : 'bg-slate-100 text-slate-600'
-                                                                }`}
+                                                                    }`}
                                                             >
                                                                 {row.staff_input?.status ?? 'Unprocessed'}
                                                             </span>
@@ -1254,8 +1279,25 @@ return true;
             </Dialog>
 
             {/* ---- Email Progress Modal ---- */}
-            <Dialog open={showProgressModal} onOpenChange={setShowProgressModal}>
-                <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-hidden">
+            {/*
+              Kept non-modal on purpose. A modal dialog disables pointer
+              interactions on the rest of the document (Base UI), so while
+              this panel was open the sidebar links stopped responding and
+              the page felt frozen. This is a background status window, so
+              the app has to stay usable while it is open. The backdrop is
+              hidden as well — it otherwise covers the whole viewport and
+              its blur is expensive to paint.
+            */}
+            <Dialog
+                open={showProgressModal}
+                onOpenChange={setShowProgressModal}
+                modal={false}
+                disablePointerDismissal
+            >
+                <DialogContent
+                    className="sm:max-w-2xl max-h-[80vh] overflow-hidden"
+                    overlayClassName="hidden"
+                >
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Send className="h-5 w-5 text-emerald-600" />

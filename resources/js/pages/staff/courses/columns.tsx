@@ -37,7 +37,7 @@ function CourseActionsCell({ course }: { course: CourseType }) {
     };
 
     return (
-        <div className="grid w-max grid-cols-2 justify-self-end-safe mr-10">
+        <div className="grid w-max grid-cols-2 justify-self-end-safe mr-6">
             <Link
                 href={`/staff/courses/${course.id}/edit`}
                 className="flex h-8 w-8 items-center justify-center rounded-l-2xl bg-amber-400 text-white transition-colors hover:bg-amber-500"
