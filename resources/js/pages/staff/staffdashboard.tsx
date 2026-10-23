@@ -27,12 +27,14 @@ interface DashboardPageProps {
     [key: string]: unknown;
     totalRequests?: number;
     pendingRequests?: number;
-    approvedRequests?: number;
+    processedRequests?: number;
+    paidRequests?: number;
     cancelledRequests?: number;
     unprocessedRequests?: number;
     totalRequestsLastDate?: string | null;
     pendingLastDate?: string | null;
-    approvedLastDate?: string | null;
+    processedLastDate?: string | null;
+    paidLastDate?: string | null;
     cancelledLastDate?: string | null;
     unprocessedLastDate?: string | null;
     statusBreakdown?: ChartDatum[];
@@ -82,12 +84,14 @@ export default function Dashboard() {
         only: [
             'totalRequests',
             'pendingRequests',
-            'approvedRequests',
+            'processedRequests',
+            'paidRequests',
             'cancelledRequests',
             'unprocessedRequests',
             'totalRequestsLastDate',
             'pendingLastDate',
-            'approvedLastDate',
+            'processedLastDate',
+            'paidLastDate',
             'cancelledLastDate',
             'statusBreakdown',
             'requestsOverTime',
@@ -100,12 +104,14 @@ export default function Dashboard() {
     const {
         totalRequests = 0,
         pendingRequests = 0,
-        approvedRequests = 0,
+        processedRequests = 0,
+        paidRequests = 0,
         cancelledRequests = 0,
         unprocessedRequests = 0,
         totalRequestsLastDate = null,
         pendingLastDate = null,
-        approvedLastDate = null,
+        processedLastDate = null,
+        paidLastDate = null,
         cancelledLastDate = null,
         unprocessedLastDate = null,
         statusBreakdown = [],
@@ -127,7 +133,7 @@ export default function Dashboard() {
             <div className="mx-auto max-w-7xl">
                 <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-border bg-card p-6 shadow-sm md:flex-row md:items-center md:justify-between">
                     <div>
-                        <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
+                        <CardTitle className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                             Dashboard
                         </CardTitle>
                         <p className="text-sm text-muted-foreground">
@@ -145,7 +151,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Stat cards */}
-                <div className="grid gap-5 md:grid-cols-5">
+                <div className="grid gap-5 md:grid-cols-6">
                     <StatCard
                         label="Total Requests"
                         value={totalRequests}
@@ -161,11 +167,18 @@ export default function Dashboard() {
                         subtitle={getDayLabel(pendingLastDate)}
                     />
                     <StatCard
-                        label="Approved"
-                        value={approvedRequests}
+                        label="Processed"
+                        value={processedRequests}
                         bgClass="bg-emerald-500/10 border border-emerald-500/20"
                         textClass="text-emerald-600 dark:text-emerald-400"
-                        subtitle={getDayLabel(approvedLastDate)}
+                        subtitle={getDayLabel(processedLastDate)}
+                    />
+                    <StatCard
+                        label="Paid"
+                        value={paidRequests}
+                        bgClass="bg-blue-500/10 border border-blue-500/20"
+                        textClass="text-blue-600 dark:text-blue-400"
+                        subtitle={getDayLabel(paidLastDate)}
                     />
                     <StatCard
                         label="Cancelled"
@@ -230,7 +243,7 @@ export default function Dashboard() {
                             {recentRequests.length > 0 ? (
                                 <div className="max-h-96 overflow-y-auto">
                                     <table className="w-full table-fixed text-left text-sm text-foreground">
-                                        <thead className="sticky top-0 z-10 bg-card border-b border-border">
+                                        <thead className="sticky top-0 z-10 border-b border-border bg-card">
                                             <tr>
                                                 <th className="w-[25%] pb-3 font-medium text-muted-foreground">
                                                     Reference
@@ -250,7 +263,7 @@ export default function Dashboard() {
                                             {recentRequests.map((request) => (
                                                 <tr key={request.id}>
                                                     <td className="py-3">
-                                                        <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium whitespace-nowrap text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40">
+                                                        <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium whitespace-nowrap text-slate-700 dark:border dark:border-slate-700/40 dark:bg-slate-800/60 dark:text-slate-300">
                                                             {
                                                                 request.reference_number
                                                             }

@@ -120,12 +120,14 @@ class StaffInputController extends Controller
             'totalRequests' => FormInput::count(),
             'unprocessedRequests' => $unprocessedCount,
             'pendingRequests' => $statusCounts->get('pending', 0),
-            'approvedRequests' => $statusCounts->get('approved', 0),
+            'processedRequests' => $statusCounts->get('processed', 0),
+            'paidRequests' => $statusCounts->get('paid', 0),
             'cancelledRequests' => $statusCounts->get('cancelled', 0),
             'totalRequestsLastDate' => $totalRequestsLastDate,
             'unprocessedLastDate' => $unprocessedLastDate,
             'pendingLastDate' => $latestByStatus->get('pending'),
-            'approvedLastDate' => $latestByStatus->get('approved'),
+            'processedLastDate' => $latestByStatus->get('processed'),
+            'paidLastDate' => $latestByStatus->get('paid'),
             'cancelledLastDate' => $latestByStatus->get('cancelled'),
             // Order here (Unprocessed, Pending, Paid, Cancelled, Processed) must match
             // the pieColors array on the frontend.
@@ -133,7 +135,7 @@ class StaffInputController extends Controller
                 ['name' => 'Unprocessed', 'count' => $unprocessedCount],
             ])
                 ->concat(
-                    collect(['pending', 'paid', 'cancelled', 'processed'])
+                    collect(['pending', 'processed', 'paid', 'cancelled'])
                         ->map(fn (string $status) => [
                             'name' => ucfirst($status),
                             'count' => $statusCounts->get($status, 0),
@@ -383,7 +385,7 @@ class StaffInputController extends Controller
                 $request->validated(),
                 [
                     'form_input_id' => $formInput->id,
-                    'status' => $request->status ?: 'processed',
+                    'status' => $request->status ?: 'approved',
                 ]
             ));
 

@@ -18,6 +18,15 @@ import {
 } from '@/components/ui/combobox';
 import { DatePicker } from '@/components/ui/date-picker';
 import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -1535,7 +1544,7 @@ export default function ShowRequest() {
                                                     >
                                                         <ComboboxInput
                                                             placeholder="Select Bank Account"
-                                                            className={`h-9! not-only-of-type:w-full rounded-xl border bg-background px-4 py-2 text-sm text-foreground outline-none ${staffInputErrors.fundcluster_id ? 'border-rose-400' : 'border-border'}`}
+                                                            className={`h-9! rounded-xl border bg-background px-4 py-2 text-sm text-foreground outline-none not-only-of-type:w-full ${staffInputErrors.fundcluster_id ? 'border-rose-400' : 'border-border'}`}
                                                             showClear={
                                                                 !!staffInputData.fundcluster_id
                                                             }
@@ -1749,7 +1758,7 @@ export default function ShowRequest() {
                                                         staffInputErrors.status
                                                     }
                                                 >
-                                                    <Combobox
+                                                    <Select
                                                         items={[
                                                             {
                                                                 label: 'Pending',
@@ -1777,29 +1786,48 @@ export default function ShowRequest() {
                                                             )
                                                         }
                                                     >
-                                                        <ComboboxInput
-                                                            placeholder="Select Status"
-                                                            className={`h-9! -full rounded-xl border bg-background px-4 py-2 text-sm text-foreground outline-none ${staffInputErrors.status ? 'border-rose-400' : 'border-border'}`}
-                                                        />
-                                                        <ComboboxContent>
-                                                            <ComboboxList>
-                                                                {(status) => (
-                                                                    <ComboboxItem
-                                                                        key={
-                                                                            status.value
-                                                                        }
-                                                                        value={
-                                                                            status.value
-                                                                        }
-                                                                    >
-                                                                        {
-                                                                            status.label
-                                                                        }
-                                                                    </ComboboxItem>
+                                                        <SelectTrigger
+                                                            className={`h-9! w-full rounded-xl text-sm ${staffInputErrors.status ? 'border-rose-400' : 'border-border'}`}
+                                                        >
+                                                            <SelectValue placeholder="Select Status" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectGroup>
+                                                                <SelectLabel>
+                                                                    Status
+                                                                </SelectLabel>
+                                                                {[
+                                                                    {
+                                                                        label: 'Pending',
+                                                                        value: 'pending',
+                                                                    },
+                                                                    {
+                                                                        label: 'Processed',
+                                                                        value: 'processed',
+                                                                    },
+                                                                    {
+                                                                        label: 'Cancelled',
+                                                                        value: 'cancelled',
+                                                                    },
+                                                                ].map(
+                                                                    (item) => (
+                                                                        <SelectItem
+                                                                            key={
+                                                                                item.value
+                                                                            }
+                                                                            value={
+                                                                                item.value
+                                                                            }
+                                                                        >
+                                                                            {
+                                                                                item.label
+                                                                            }
+                                                                        </SelectItem>
+                                                                    ),
                                                                 )}
-                                                            </ComboboxList>
-                                                        </ComboboxContent>
-                                                    </Combobox>
+                                                            </SelectGroup>
+                                                        </SelectContent>
+                                                    </Select>
                                                 </FormField>
                                                 <FormField
                                                     label="Purpose"
@@ -2242,7 +2270,7 @@ export default function ShowRequest() {
                                                     *
                                                 </span>
                                             </label>
-                                            <Combobox
+                                            <Select
                                                 items={[
                                                     {
                                                         label: 'Pending',
@@ -2265,27 +2293,42 @@ export default function ShowRequest() {
                                                     )
                                                 }
                                             >
-                                                <ComboboxInput
-                                                    placeholder="Select Status"
-                                                    className={`h-9! w-full rounded-xl border bg-background px-4 py-2 text-sm text-foreground outline-none ${processErrors.status ? 'border-rose-400' : 'border-border'}`}
-                                                />
-                                                <ComboboxContent>
-                                                    <ComboboxList>
-                                                        {(status) => (
-                                                            <ComboboxItem
-                                                                key={
-                                                                    status.value
-                                                                }
+                                                <SelectTrigger
+                                                    className={`h-9 w-full rounded-xl text-sm ${processErrors.status ? 'border-rose-400' : 'border-border'}`}
+                                                >
+                                                    <SelectValue placeholder="Select Status" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        <SelectLabel>
+                                                            Status
+                                                        </SelectLabel>
+                                                        {[
+                                                            {
+                                                                label: 'Pending',
+                                                                value: 'pending',
+                                                            },
+                                                            {
+                                                                label: 'Processed',
+                                                                value: 'processed',
+                                                            },
+                                                            {
+                                                                label: 'Cancelled',
+                                                                value: 'cancelled',
+                                                            },
+                                                        ].map((item) => (
+                                                            <SelectItem
+                                                                key={item.value}
                                                                 value={
-                                                                    status.value
+                                                                    item.value
                                                                 }
                                                             >
-                                                                {status.label}
-                                                            </ComboboxItem>
-                                                        )}
-                                                    </ComboboxList>
-                                                </ComboboxContent>
-                                            </Combobox>
+                                                                {item.label}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
                                             {processErrors.status && (
                                                 <p className="mt-1 text-xs text-rose-500">
                                                     {processErrors.status}
