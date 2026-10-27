@@ -21,6 +21,15 @@ import { features  } from './data-table-features';
 import type {DataTableFeatures} from './data-table-features';
 import { DataTablePagination } from './data-table-pagination';
 import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
     Table,
     TableBody,
     TableCell,
@@ -34,6 +43,13 @@ interface ClientDataTableProps<TData extends RowData> {
     data: TData[];
     /** Which fields to check when the user searches. */
     searchableColumns?: (keyof TData)[];
+    /** Optional client-side select filter. */
+    filter?: {
+        column: keyof TData;
+        label: string;
+        options: { label: string; value: string }[];
+    };
+    searchPlaceholder?: string;
     emptyMessage?: string;
 }
 
@@ -42,9 +58,12 @@ export function ClientDataTable<TData extends RowData>({
     columns,
     data,
     searchableColumns = [],
+    filter,
+    searchPlaceholder = 'Search...',
     emptyMessage = 'No results.',
 }: ClientDataTableProps<TData>) {
     const [searchInput, setSearchInput] = useState('');
+    const [filterValue, setFilterValue] = useState('all');
     const [appliedSearch, setAppliedSearch] = useState('');
     const [sorting, setSorting] = useState<SortingState>([]);
     const [pagination, setPagination] = useState({
@@ -57,24 +76,30 @@ export function ClientDataTable<TData extends RowData>({
     const resetAll = () => {
         setSearchInput('');
         setAppliedSearch('');
+        setFilterValue('all');
         setSorting([]);
     };
 
     const filteredData = useMemo(() => {
-        if (!appliedSearch || searchableColumns.length === 0) {
-return data;
-}
-
         const needle = appliedSearch.toLowerCase();
 
-        return data.filter((row) =>
-            searchableColumns.some((col) =>
-                String(row[col] ?? '')
-                    .toLowerCase()
-                    .includes(needle),
-            ),
-        );
-    }, [data, appliedSearch, searchableColumns]);
+        return data.filter((row) => {
+            const matchesSearch =
+                !needle ||
+                searchableColumns.some((col) =>
+                    String(row[col] ?? '')
+                        .toLowerCase()
+                        .includes(needle),
+                );
+            const matchesFilter =
+                !filter ||
+                filterValue === 'all' ||
+                String(row[filter.column] ?? '').toLowerCase() ===
+                    filterValue.toLowerCase();
+
+            return matchesSearch && matchesFilter;
+        });
+    }, [data, appliedSearch, searchableColumns, filter, filterValue]);
 
     const table = useTable({
         features,
@@ -94,12 +119,12 @@ return data;
         <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
             {/* Toolbar */}
             <div className="flex items-center justify-between gap-3 px-4 py-4">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     {searchableColumns.length > 0 && (
                         <>
                             <input
                                 type="text"
-                                placeholder="Search..."
+                                placeholder={searchPlaceholder}
                                 value={searchInput}
                                 onChange={(e) => setSearchInput(e.target.value)}
                                 onKeyDown={(e) =>
@@ -125,12 +150,40 @@ return data;
                             </button>
                         </>
                     )}
+                    {filter && (
+                        <Select
+                            value={filterValue}
+                            onValueChange={setFilterValue}
+                        >
+                            <SelectTrigger className="h-11 w-40 rounded-xl border-input bg-background px-4 text-base">
+                                <SelectValue placeholder={filter.label} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>
+                                    <SelectLabel>{filter.label}</SelectLabel>
+                                    <SelectItem value="all">
+                                        All {filter.label}
+                                    </SelectItem>
+                                    {filter.options.map((option) => (
+                                        <SelectItem
+                                            key={option.value}
+                                            value={option.value.toLowerCase()}
+                                        >
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
+                    )}
                 </div>
             </div>
 
             {/* Table */}
-            <Table>
-                <TableHeader>
+            <div className="custom-scrollbar rotate-180 overflow-x-auto">
+                <div className="min-w-max rotate-180">
+                    <Table>
+                        <TableHeader>
                     {table.getHeaderGroups().map((headerGroup) => (
                         <TableRow
                             key={headerGroup.id}
@@ -208,7 +261,9 @@ return data;
                         </TableRow>
                     )}
                 </TableBody>
-            </Table>
+                    </Table>
+                </div>
+            </div>
 
             {/* Footer */}
             <div className="flex items-center justify-between px-4 py-4">
