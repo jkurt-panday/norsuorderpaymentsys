@@ -7,6 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 // ============ TYPE DEFINITIONS ============
@@ -21,6 +30,8 @@ export interface FieldDef {
     helpText?: string;
     /** Input type, defaults to 'text' */
     type?: string;
+    /** Optional select options. When provided, renders a select instead of an input. */
+    options?: { label: string; value: string }[];
     /** Grid span — 'half' (default, side-by-side on md+) or 'full' (spans both columns) */
     colSpan?: 'half' | 'full';
     /** Placeholder text shown inside the input */
@@ -129,22 +140,62 @@ export default function ResourceForm({
                                             </span>
                                         )}
                                     </Label>
-                                    <Input
-                                        id={field.name}
-                                        type={field.type ?? 'text'}
-                                        name={field.name}
-                                        value={data[field.name] ?? ''}
-                                        onChange={(e) =>
-                                            setData(field.name, e.target.value)
-                                        }
-                                        required={field.required}
-                                        placeholder={field.placeholder}
-                                        className={cn(
-                                            'rounded-md',
-                                            errors[field.name] &&
-                                                'border-red-500 focus-visible:ring-red-500/40',
-                                        )}
-                                    />
+                                    {field.options ? (
+                                        <Select
+                                            value={data[field.name] ?? ''}
+                                            onValueChange={(value) =>
+                                                setData(field.name, value)
+                                            }
+                                        >
+                                            <SelectTrigger
+                                                id={field.name}
+                                                className={cn(
+                                                    'h-10 w-full rounded-xl',
+                                                    errors[field.name] &&
+                                                        'border-red-500 focus-visible:ring-red-500/40',
+                                                )}
+                                            >
+                                                <SelectValue
+                                                    placeholder={
+                                                        field.placeholder ??
+                                                        `Select ${field.label}`
+                                                    }
+                                                />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>
+                                                    <SelectLabel>
+                                                        {field.label}
+                                                    </SelectLabel>
+                                                    {field.options.map((option) => (
+                                                        <SelectItem
+                                                            key={option.value}
+                                                            value={option.value}
+                                                        >
+                                                            {option.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    ) : (
+                                        <Input
+                                            id={field.name}
+                                            type={field.type ?? 'text'}
+                                            name={field.name}
+                                            value={data[field.name] ?? ''}
+                                            onChange={(e) =>
+                                                setData(field.name, e.target.value)
+                                            }
+                                            required={field.required}
+                                            placeholder={field.placeholder}
+                                            className={cn(
+                                                'rounded-xl px-4 py-3 text-base',
+                                                errors[field.name] &&
+                                                    'border-red-500 focus-visible:ring-red-500/40',
+                                            )}
+                                        />
+                                    )}
                                     {errors[field.name] && (
                                         <p className="mt-1 text-xs text-red-600">
                                             {errors[field.name]}

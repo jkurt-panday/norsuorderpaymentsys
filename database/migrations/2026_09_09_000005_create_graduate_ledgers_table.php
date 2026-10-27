@@ -13,15 +13,15 @@ return new class extends Migration
             // The legacy table was renamed before this migration runs. The
             // old foreign keys retain their names after a table rename, so use
             // unique names for the new table's constraints.
-            $table->foreignId('student_id');
-            $table->foreignId('academic_term_id');
-            $table->foreignId('course_id');
+            $table->foreignId('student_id')->nullable();
+            $table->foreignId('academic_term_id')->nullable();
+            $table->foreignId('course_id')->nullable();
             $table->foreign('student_id', 'new_graduate_ledgers_student_id_foreign')
-                ->references('id')->on('students')->restrictOnDelete();
+                ->references('id')->on('students')->nullOnDelete();
             $table->foreign('academic_term_id', 'new_graduate_ledgers_academic_term_id_foreign')
-                ->references('id')->on('academic_terms')->restrictOnDelete();
+                ->references('id')->on('academic_terms')->nullOnDelete();
             $table->foreign('course_id', 'new_graduate_ledgers_course_id_foreign')
-                ->references('id')->on('courses')->restrictOnDelete();
+                ->references('id')->on('courses')->nullOnDelete();
             $table->decimal('units', 8, 2)->nullable();
             $table->decimal('rate', 12, 2)->nullable();
             $table->string('entry_type', 30)->index('new_grad_ledger_entry_type_idx');

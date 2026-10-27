@@ -15,8 +15,13 @@ class UACS extends Model
     use HasFactory;
 
     protected $fillable = [
-        'account_title',
+        'classification',
+        'sub_class',
+        'group',
         'object_code',
+        'sub_object_code',
+        'uacs',
+        'status',
     ];
 
     /** @return HasMany<StaffInput, $this> */
@@ -28,6 +33,6 @@ class UACS extends Model
     // Accessor for display
     public function getDisplayNameAttribute(): string
     {
-        return $this->object_code.' - '.$this->account_title;
+        return ($this->uacs ?? $this->object_code ?? '').' - '.($this->sub_object_code ?? $this->object_code ?? '');
     }
 }

@@ -198,6 +198,8 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
         ->except(['show'])
         ->parameters(['bank-accounts' => 'bankAccount']);
 
+    Route::get('/uacs/export', [UACSController::class, 'export'])->name('uacs.export');
+    Route::post('/uacs/import', [UACSController::class, 'import'])->name('uacs.import');
     Route::resource('uacs', UACSController::class)
         ->except(['show'])
         ->parameters(['uacs' => 'uacs']);
