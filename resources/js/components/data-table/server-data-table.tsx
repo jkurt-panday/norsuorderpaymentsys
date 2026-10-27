@@ -297,10 +297,10 @@ export function ServerDataTable<TData extends RowData>({
                             {/* Column Filters */}
                             {extraFilters && (
                                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                                    <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                    <span className="text-medium! font-bold! tracking-wide text-muted-foreground uppercase">
                                         Filters
                                     </span>
-                                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                    <div className="text-medium! flex min-w-0 flex-wrap items-center gap-2 font-light!">
                                         {extraFilters({
                                             values: extraValues,
                                             setValue: setExtraValue,
