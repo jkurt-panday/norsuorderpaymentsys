@@ -10,7 +10,7 @@ import {
     RotateCw,
     SlidersHorizontal,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { features } from './data-table-features';
 import type { DataTableFeatures } from './data-table-features';
@@ -65,6 +65,8 @@ interface ClientDataTableProps<TData extends RowData> {
     filters?: ClientDataTableFilter<TData>[];
     /** Backward-compatible single-filter API. */
     filter?: ClientDataTableFilter<TData>;
+    /** Stable key used to persist column visibility per table. */
+    storageKey?: string;
     searchPlaceholder?: string;
     emptyMessage?: string;
 }
@@ -76,6 +78,7 @@ export function ClientDataTable<TData extends RowData>({
     searchableColumns = [],
     filter,
     filters,
+    storageKey = 'default',
     searchPlaceholder = 'Search...',
     emptyMessage = 'No results.',
 }: ClientDataTableProps<TData>) {
@@ -89,9 +92,51 @@ export function ClientDataTable<TData extends RowData>({
     );
     const [appliedSearch, setAppliedSearch] = useState('');
     const [sorting, setSorting] = useState<SortingState>([]);
+    const columnVisibilityStorageKey = `client-data-table:${storageKey}:column-visibility`;
+
     const [columnVisibility, setColumnVisibility] = useState<
         Record<string, boolean>
-    >({});
+    >(() => {
+        if (typeof window === 'undefined') {
+            return {};
+        }
+
+        try {
+            const savedColumnVisibility = window.localStorage.getItem(
+                columnVisibilityStorageKey,
+            );
+
+            if (!savedColumnVisibility) {
+                return {};
+            }
+
+            const parsedColumnVisibility = JSON.parse(savedColumnVisibility);
+
+            if (
+                !parsedColumnVisibility ||
+                typeof parsedColumnVisibility !== 'object' ||
+                Array.isArray(parsedColumnVisibility)
+            ) {
+                return {};
+            }
+
+            return Object.fromEntries(
+                Object.entries(parsedColumnVisibility).filter(
+                    ([, value]) => typeof value === 'boolean',
+                ),
+            ) as Record<string, boolean>;
+        } catch {
+            return {};
+        }
+    });
+
+    useEffect(() => {
+        window.localStorage.setItem(
+            columnVisibilityStorageKey,
+            JSON.stringify(columnVisibility),
+        );
+    }, [columnVisibility, columnVisibilityStorageKey]);
+
     const [pagination, setPagination] = useState({
         pageIndex: 0,
         pageSize: 10,

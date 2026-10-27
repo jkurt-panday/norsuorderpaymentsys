@@ -86,6 +86,7 @@ export default function UacsIndex({ uacs }: UacsProps) {
                     <ClientDataTable
                         columns={columns}
                         data={uacs}
+                        storageKey="uacs"
                         searchableColumns={[
                             'classification',
                             'sub_class',
