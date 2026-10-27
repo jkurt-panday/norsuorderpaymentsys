@@ -20,13 +20,21 @@ class UACSController extends BaseResourceController
     protected string $model = UACS::class;
 
     /** @var list<string> */
-    protected array $searchableColumns = ['object_code', 'account_title'];
+    protected array $searchableColumns = [
+        'classification',
+        'sub_class',
+        'group',
+        'object_code',
+        'sub_object_code',
+        'uacs',
+        'status',
+    ];
 
     protected string $indexView = 'staff/uacs/uacs';
 
     protected string $resourceKey = 'uacs';
 
-    protected int $perPage = 10;
+    protected int $perPage = 10000;
 
     protected string $orderBy = 'id';
 
@@ -34,7 +42,26 @@ class UACSController extends BaseResourceController
     protected string $orderDirection = 'asc';
 
     /** @var list<string> */
-    protected array $sortableColumns = ['id', 'object_code', 'account_title', 'created_at'];
+    protected array $sortableColumns = [
+        'id',
+        'classification',
+        'sub_class',
+        'group',
+        'object_code',
+        'sub_object_code',
+        'uacs',
+        'status',
+        'created_at',
+    ];
+
+    public function index(Request $request): Response
+    {
+        $uacs = UACS::query()->orderBy('uacs', 'asc')->get();
+
+        return Inertia::render($this->indexView, [
+            'uacs' => $uacs,
+        ]);
+    }
 
     /**
      * @param  Builder<Model>  $query
