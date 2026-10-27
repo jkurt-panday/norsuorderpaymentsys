@@ -57,14 +57,12 @@ export function ColumnFilterDropdown({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
+      <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" className="h-10 rounded-xl font-normal">
             {label}
             {selected ? ` (1)` : ""}
           </Button>
-        }
-      />
+      </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-48">
         <DropdownMenuGroup>
           <DropdownMenuLabel>{label}</DropdownMenuLabel>
