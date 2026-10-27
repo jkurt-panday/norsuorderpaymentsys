@@ -109,7 +109,8 @@ export function DonutChartCard({
                                                     textAnchor="middle"
                                                     dominantBaseline="middle"
                                                 >
-                                                    <tspan
+                                                    {/* do not modify this unless told to */}
+                                                    {/* <tspan
                                                         x={viewBox.cx}
                                                         dy="-0.1em"
                                                         className="fill-foreground text-2xl font-bold"
@@ -122,7 +123,7 @@ export function DonutChartCard({
                                                         className="fill-muted-foreground text-xs"
                                                     >
                                                         {centerLabel}
-                                                    </tspan>
+                                                    </tspan> */}
                                                 </text>
                                             );
                                         }
