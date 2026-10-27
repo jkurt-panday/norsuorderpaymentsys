@@ -4,8 +4,8 @@ import { useRef } from 'react';
 
 import { columns } from './columns';
 import type { UacsType } from './columns';
-import { ClientDataTable } from '@/components/data-table/client-data-table';
 import { Button } from '@/components/base/buttons/button';
+import { ClientDataTable } from '@/components/data-table/client-data-table';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 
 type UacsProps = {
@@ -39,9 +39,7 @@ export default function UacsIndex({ uacs }: UacsProps) {
                         </CardTitle>
                         <div className="flex flex-wrap items-center gap-2">
                             <a href="/staff/uacs/export" download>
-                                <Button
-                                    className="inline-flex flex-row items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
-                                >
+                                <Button className="inline-flex flex-row items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700">
                                     <div className="flex flex-row items-center gap-1.5">
                                         <Download className="h-4 w-4" />
                                         <span>Export</span>
@@ -99,6 +97,59 @@ export default function UacsIndex({ uacs }: UacsProps) {
                         ]}
                         searchPlaceholder="Search for any values or status"
                         emptyMessage="No UACS records found"
+                        filters={[
+                            {
+                                column: 'classification',
+                                label: 'Classification',
+                                options: Array.from(
+                                    new Set(
+                                        uacs
+                                            .map((row) => row.classification)
+                                            .filter((value): value is string =>
+                                                Boolean(value),
+                                            ),
+                                    ),
+                                ).map((value) => ({
+                                    label: value,
+                                    value,
+                                })),
+                                widthClassName: 'w-44',
+                            },
+                            {
+                                column: 'sub_class',
+                                label: 'Sub-Class',
+                                options: Array.from(
+                                    new Set(
+                                        uacs
+                                            .map((row) => row.sub_class)
+                                            .filter((value): value is string =>
+                                                Boolean(value),
+                                            ),
+                                    ),
+                                ).map((value) => ({
+                                    label: value,
+                                    value,
+                                })),
+                                widthClassName: 'w-50',
+                            },
+                            {
+                                column: 'status',
+                                label: 'Status',
+                                options: Array.from(
+                                    new Set(
+                                        uacs
+                                            .map((row) => row.status)
+                                            .filter((value): value is string =>
+                                                Boolean(value),
+                                            ),
+                                    ),
+                                ).map((value) => ({
+                                    label: value,
+                                    value,
+                                })),
+                                widthClassName: 'w-36',
+                            },
+                        ]}
                     />
                 </div>
             </div>

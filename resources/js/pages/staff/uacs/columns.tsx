@@ -41,7 +41,7 @@ function UacsActionsCell({ uacs }: { uacs: UacsType }) {
     };
 
     return (
-        <div className="grid w-max grid-cols-2 justify-self-end-safe mr-6">
+        <div className="mr-6 grid w-max grid-cols-2 justify-self-end-safe">
             <Link
                 href={`/staff/uacs/${uacs.id}/edit`}
                 className="flex h-8 w-8 items-center justify-center rounded-l-2xl bg-amber-400 text-white transition-colors hover:bg-amber-500"
@@ -96,10 +96,11 @@ export const columns = columnHelper.columns([
         header: 'STATUS',
         cell: ({ row }) => (
             <Badge
-                variant={
-                    row.original.status === 'Active' ? 'default' : 'secondary'
-                }
-                className="px-4 py-3 font-sans text-medium font-semibold tracking-wide"
+                className={`h-4! rounded-full px-4 py-3 font-sans text-xs font-semibold tracking-wide text-white ${
+                    row.original.status === 'Active'
+                        ? 'bg-blue-500 hover:bg-blue-500'
+                        : 'bg-gray-400 hover:bg-gray-500'
+                }`}
             >
                 {row.original.status ?? '—'}
             </Badge>
