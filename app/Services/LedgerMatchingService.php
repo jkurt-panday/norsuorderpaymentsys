@@ -375,11 +375,11 @@ class LedgerMatchingService
     private function lawStudentName(LawSchoolLedger $record): string
     {
         $student = $record->student;
-        
-            if (! $student) {
-                return '';
-            }
-        
+
+        if (! $student) {
+            return '';
+        }
+
         $givenNames = collect([$record->first_name, $record->middle_initial])
             ->filter(fn ($value) => filled($value))
             ->join(' ');

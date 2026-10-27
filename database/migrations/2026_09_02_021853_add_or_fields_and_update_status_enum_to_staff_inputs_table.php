@@ -29,7 +29,7 @@ return new class extends Migration
         DB::statement('ALTER TABLE staff_inputs ALTER COLUMN status DROP DEFAULT');
         DB::statement('ALTER TABLE staff_inputs ALTER COLUMN status TYPE VARCHAR(255)');
         DB::statement("ALTER TABLE staff_inputs ALTER COLUMN status SET DEFAULT 'pending'");
-            DB::statement("ALTER TABLE staff_inputs ADD CONSTRAINT staff_inputs_status_check CHECK (status IN ('pending', 'approved', 'paid', 'cancelled'))");
+        DB::statement("ALTER TABLE staff_inputs ADD CONSTRAINT staff_inputs_status_check CHECK (status IN ('pending', 'approved', 'paid', 'cancelled'))");
     }
 
     /**
