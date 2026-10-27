@@ -62,7 +62,7 @@ import {
 
 interface StaffInput {
     id: number;
-    status: 'pending' | 'approved' | 'cancelled' | 'unprocessed' | 'paid';
+    status: 'pending' | 'processed' | 'cancelled' | 'unprocessed' | 'paid';
     emailed_at: string | null;
     email_status?: 'pending' | 'sent' | 'failed' | null;
 }
@@ -104,7 +104,7 @@ interface PageProps {
 }
 
 const STATUS_TO_COLOR: Record<string, string> = {
-    approved: 'green',
+    processed: 'light-green',
     paid: 'dark-green',
     cancelled: 'red',
     pending: 'orange',
@@ -113,7 +113,7 @@ const STATUS_TO_COLOR: Record<string, string> = {
 
 const statusBadgeClass = (status: string) => {
     switch (status) {
-        case 'approved':
+        case 'processed':
             return 'bg-green-50 text-green-700';
         case 'paid':
             return 'bg-green-100 text-green-800';
@@ -230,7 +230,7 @@ const ManageRequests: React.FC = () => {
     const [emailTarget, setEmailTarget] = useState<
         | 'specific'
         | 'all_paid'
-        | 'all_approved'
+        | 'all_processed'
         | 'all_pending'
         | 'all_cancelled'
     >('specific');
@@ -407,15 +407,15 @@ const ManageRequests: React.FC = () => {
             emailSearch.trim() === ''
                 ? allRecipients
                 : allRecipients.filter((row) => {
-                      const q = emailSearch.toLowerCase();
-                      const fullName = formatFullName(row).toLowerCase();
+                    const q = emailSearch.toLowerCase();
+                    const fullName = formatFullName(row).toLowerCase();
 
-                      return (
-                          fullName.includes(q) ||
-                          row.reference_number.toLowerCase().includes(q) ||
-                          row.email.toLowerCase().includes(q)
-                      );
-                  }),
+                    return (
+                        fullName.includes(q) ||
+                        row.reference_number.toLowerCase().includes(q) ||
+                        row.email.toLowerCase().includes(q)
+                    );
+                }),
         [allRecipients, emailSearch],
     );
 
@@ -444,19 +444,19 @@ const ManageRequests: React.FC = () => {
             emailTarget === 'specific'
                 ? []
                 : eligibleRecipients.filter((row) => {
-                      const recipientStatus = row.staff_input?.status;
+                    const recipientStatus = row.staff_input?.status;
 
-                      return (
-                          (emailTarget === 'all_paid' &&
-                              recipientStatus === 'paid') ||
-                          (emailTarget === 'all_approved' &&
-                              recipientStatus === 'approved') ||
-                          (emailTarget === 'all_pending' &&
-                              recipientStatus === 'pending') ||
-                          (emailTarget === 'all_cancelled' &&
-                              recipientStatus === 'cancelled')
-                      );
-                  }),
+                    return (
+                        (emailTarget === 'all_paid' &&
+                            recipientStatus === 'paid') ||
+                        (emailTarget === 'all_processed' &&
+                            recipientStatus === 'processed') ||
+                        (emailTarget === 'all_pending' &&
+                            recipientStatus === 'pending') ||
+                        (emailTarget === 'all_cancelled' &&
+                            recipientStatus === 'cancelled')
+                    );
+                }),
         [emailTarget, eligibleRecipients],
     );
 
@@ -466,15 +466,15 @@ const ManageRequests: React.FC = () => {
             emailSearch.trim() === ''
                 ? bulkRecipients
                 : bulkRecipients.filter((row) => {
-                      const q = emailSearch.toLowerCase();
-                      const fullName = formatFullName(row).toLowerCase();
+                    const q = emailSearch.toLowerCase();
+                    const fullName = formatFullName(row).toLowerCase();
 
-                      return (
-                          fullName.includes(q) ||
-                          row.reference_number.toLowerCase().includes(q) ||
-                          row.email.toLowerCase().includes(q)
-                      );
-                  }),
+                    return (
+                        fullName.includes(q) ||
+                        row.reference_number.toLowerCase().includes(q) ||
+                        row.email.toLowerCase().includes(q)
+                    );
+                }),
         [bulkRecipients, emailSearch],
     );
 
@@ -575,7 +575,7 @@ const ManageRequests: React.FC = () => {
                 flashToast(
                     'success',
                     data.message ??
-                        `Emails sent to ${data.form_input_ids.length} recipient(s).`,
+                    `Emails sent to ${data.form_input_ids.length} recipient(s).`,
                 );
             } else {
                 flashToast('error', data.message ?? 'Failed to send emails.');
@@ -896,8 +896,8 @@ const ManageRequests: React.FC = () => {
                 statusOptions={[
                     { value: 'pending', label: 'Pending', color: 'orange' },
                     {
-                        value: 'approved',
-                        label: 'Approved',
+                        value: 'processed',
+                        label: 'Processed',
                         color: 'light-green',
                     },
                     { value: 'paid', label: 'Paid', color: 'dark-green' },
@@ -943,365 +943,90 @@ const ManageRequests: React.FC = () => {
                     <div className="grid gap-6 md:grid-cols-2">
                         <div className="space-y-4 overflow-y-auto">
                             {isQueueStalled && (
-                            <div className="rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800">
-                                <div className="font-semibold">
-                                    Queue worker not running
+                                <div className="rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800">
+                                    <div className="font-semibold">
+                                        Queue worker not running
+                                    </div>
+                                    <div className="mt-1 text-xs">
+                                        Emails are sent in the background by a queue
+                                        worker. Start one with{' '}
+                                        <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">
+                                            php artisan queue:work
+                                        </code>{' '}
+                                        (or{' '}
+                                        <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">
+                                            composer queue:work
+                                        </code>
+                                        ) before sending — otherwise the requests
+                                        stay queued and no email goes out.
+                                    </div>
                                 </div>
-                                <div className="mt-1 text-xs">
-                                    Emails are sent in the background by a queue
-                                    worker. Start one with{' '}
-                                    <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">
-                                        php artisan queue:work
-                                    </code>{' '}
-                                    (or{' '}
-                                    <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">
-                                        composer queue:work
-                                    </code>
-                                    ) before sending — otherwise the requests
-                                    stay queued and no email goes out.
-                                </div>
-                            </div>
-                        )}
+                            )}
 
-                        {/* Recipient selection dropdown */}
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-slate-700">
-                                Whom do you want to send email to?
-                            </label>
-                            <Select
-                                value={emailTarget}
-                                onValueChange={(v) => {
+                            {/* Recipient selection dropdown */}
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-medium text-slate-700">
+                                    Whom do you want to send email to?
+                                </label>
+                                <Select
+                                    value={emailTarget}
+                                    onValueChange={(v) => {
                                     if (
                                         v === 'specific' ||
                                         v === 'all_paid' ||
-                                        v === 'all_approved' ||
+                                        v === 'all_processed' ||
                                         v === 'all_pending' ||
                                         v === 'all_cancelled'
                                     ) {
-                                        setEmailTarget(v);
-                                    }
-                                }}
-                            >
-                                <SelectTrigger className="h-10 w-full rounded-lg border-slate-200 bg-white shadow-sm">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="specific">
-                                        Specific person
+                                            setEmailTarget(v);
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger className="h-10 w-full rounded-lg border-slate-200 bg-white shadow-sm">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="specific">
+                                            Specific person
+                                        </SelectItem>
+                                        <SelectItem value="all_paid">
+                                            All paid
+                                        </SelectItem>
+                                    <SelectItem value="all_processed">
+                                        All processed
                                     </SelectItem>
-                                    <SelectItem value="all_paid">
-                                        All paid
-                                    </SelectItem>
-                                    <SelectItem value="all_approved">
-                                        All approved
-                                    </SelectItem>
-                                    <SelectItem value="all_pending">
-                                        All pending
-                                    </SelectItem>
-                                    <SelectItem value="all_cancelled">
-                                        All cancelled
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {/* Specific person search + checkbox list — only shown when 'specific' is chosen */}
-                        {emailTarget === 'specific' && (
-                            <div className="rounded-lg bg-muted/40 p-3 text-sm text-slate-600">
-                                <div className="mb-2 flex flex-wrap items-center gap-3">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-semibold text-foreground">
-                                            {filteredSpecific.length}
-                                        </span>
-                                        {''}
-                                        <span>recipient(s)</span>
-                                    </div>
-                                    <div className="relative max-w-md flex-1">
-                                        <SearchIcon className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                        <Input
-                                            placeholder="Search by name, reference, or email"
-                                            value={emailSearch}
-                                            onChange={(e) =>
-                                                setEmailSearch(e.target.value)
-                                            }
-                                            className="h-9 rounded-lg pl-9 text-sm"
-                                        />
-                                    </div>
-                                    {selectedIds.size > 0 && (
-                                        <div className="relative">
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() =>
-                                                    setShowSelectedPopover(
-                                                        !showSelectedPopover,
-                                                    )
-                                                }
-                                                className="h-9 shrink-0 gap-1.5 px-3"
-                                            >
-                                                <UserRound className="h-4 w-4" />
-                                                <span className="hidden sm:inline">
-                                                    {selectedIds.size} selected
-                                                </span>
-                                                <ChevronDown className="h-3.5 w-3.5" />
-                                            </Button>
-                                            {showSelectedPopover && (
-                                                <div
-                                                    ref={popoverRef}
-                                                    className="absolute top-full right-0 z-10 mt-1.5 w-80 rounded-lg border border-border bg-card py-1 text-card-foreground shadow-lg"
-                                                    onClick={(e) =>
-                                                        e.stopPropagation()
-                                                    }
-                                                >
-                                                    <div className="flex items-center justify-between border-b border-border px-3 py-2">
-                                                        <span className="text-sm font-medium text-foreground">
-                                                            Selected Recipients
-                                                        </span>
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() =>
-                                                                setSelectedIds(
-                                                                    new Set(),
-                                                                )
-                                                            }
-                                                            className="text-xs text-rose-600 hover:text-rose-700"
-                                                        >
-                                                            Clear All
-                                                        </Button>
-                                                    </div>
-                                                    <div className="border-b border-border px-3 py-2">
-                                                        <Input
-                                                            placeholder="Search selected..."
-                                                            value={
-                                                                selectedPopoverSearch
-                                                            }
-                                                            onChange={(e) =>
-                                                                setSelectedPopoverSearch(
-                                                                    e.target
-                                                                        .value,
-                                                                )
-                                                            }
-                                                            className="h-9 text-sm"
-                                                            autoFocus
-                                                        />
-                                                    </div>
-                                                    <div className="max-h-48 overflow-y-auto">
-                                                        {Array.from(selectedIds)
-                                                            .map((id) =>
-                                                                allRecipients.find(
-                                                                    (r) =>
-                                                                        r.id ===
-                                                                        id,
-                                                                ),
-                                                            )
-                                                            .filter(
-                                                                (
-                                                                    row,
-                                                                ): row is typeof row & {
-                                                                    id: number;
-                                                                } =>
-                                                                    row !==
-                                                                    undefined,
-                                                            )
-                                                            .filter((row) => {
-                                                                if (
-                                                                    !selectedPopoverSearch.trim()
-                                                                ) {
-                                                                    return true;
-                                                                }
-
-                                                                const q =
-                                                                    selectedPopoverSearch.toLowerCase();
-                                                                const fullName =
-                                                                    formatFullName(
-                                                                        row,
-                                                                    ).toLowerCase();
-
-                                                                return (
-                                                                    fullName.includes(
-                                                                        q,
-                                                                    ) ||
-                                                                    row.reference_number
-                                                                        .toLowerCase()
-                                                                        .includes(
-                                                                            q,
-                                                                        ) ||
-                                                                    row.email
-                                                                        .toLowerCase()
-                                                                        .includes(
-                                                                            q,
-                                                                        )
-                                                                );
-                                                            })
-                                                            .map((row) => (
-                                                                <div
-                                                                    key={row.id}
-                                                                    className="flex cursor-pointer items-center gap-2 px-3 py-1.5 hover:bg-muted/40"
-                                                                    onClick={() =>
-                                                                        toggleSelectId(
-                                                                            row.id,
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <UserRound className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                                                                    <div className="min-w-0 flex-1">
-                                                                        <div className="truncate text-sm font-medium text-foreground">
-                                                                            {formatFullName(
-                                                                                row,
-                                                                            )}
-                                                                        </div>
-                                                                        <div className="truncate text-xs text-muted-foreground">
-                                                                            {
-                                                                                row.reference_number
-                                                                            }{' '}
-                                                                            ·{' '}
-                                                                            {
-                                                                                row.email
-                                                                            }
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="max-h-72 overflow-y-auto rounded-md border border-border bg-card text-card-foreground">
-                                    {isLoadingRecipients ? (
-                                        <div className="flex items-center justify-center p-6">
-                                            <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
-                                        </div>
-                                    ) : filteredSpecific.length === 0 ? (
-                                        <div className="p-4 text-center text-sm text-slate-400">
-                                            No matching recipients
-                                        </div>
-                                    ) : (
-                                        filteredSpecific.map((row) => {
-                                            const eligible =
-                                                row.staff_input && row.email;
-                                            const isSelected = selectedIds.has(
-                                                row.id,
-                                            );
-                                            const timeAgo = formatTimeAgo(
-                                                row.staff_input?.emailed_at,
-                                            );
-
-                                            return (
-                                                <div
-                                                    key={row.id}
-                                                    className={`flex items-start gap-2 border-b border-border px-3 py-2 text-sm last:border-0 ${
-                                                        eligible
-                                                            ? 'cursor-pointer bg-card text-foreground hover:bg-muted/50'
-                                                            : 'bg-muted/40 opacity-60'
-                                                    }`}
-                                                    onClick={() => {
-                                                        if (eligible) {
-                                                            toggleSelectId(
-                                                                row.id,
-                                                            );
-                                                        }
-                                                    }}
-                                                >
-                                                    <div className="mt-0.5 shrink-0">
-                                                        {eligible ? (
-                                                            isSelected ? (
-                                                                <CheckSquare className="h-4 w-4 text-emerald-600" />
-                                                            ) : (
-                                                                <Square className="h-4 w-4 text-slate-300" />
-                                                            )
-                                                        ) : (
-                                                            <Square className="h-4 w-4 text-slate-200" />
-                                                        )}
-                                                    </div>
-                                                    <div className="min-w-0 flex-1">
-                                                        <div className="flex min-w-0 items-center gap-2">
-                                                            <div className="truncate font-medium text-foreground">
-                                                                {formatFullName(
-                                                                    row,
-                                                                )}
-                                                            </div>
-                                                            <span
-                                                                className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${
-                                                                    row.staff_input
-                                                                        ? statusBadgeClass(
-                                                                              row
-                                                                                  .staff_input
-                                                                                  .status,
-                                                                          )
-                                                                        : 'bg-slate-100 text-slate-600'
-                                                                }`}
-                                                            >
-                                                                {row.staff_input
-                                                                    ?.status ??
-                                                                    'Unapproved'}
-                                                            </span>
-                                                            {row.staff_input
-                                                                ?.email_status ===
-                                                                'pending' && (
-                                                                <span className="inline shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-700 uppercase">
-                                                                    Email queued
-                                                                </span>
-                                                            )}
-                                                            {row.staff_input
-                                                                ?.email_status ===
-                                                                'failed' && (
-                                                                <span className="inline shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-rose-700 uppercase">
-                                                                    Email failed
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <div className="truncate text-xs text-muted-foreground">
-                                                            {
-                                                                row.reference_number
-                                                            }{' '}
-                                                            · {row.email}
-                                                        </div>
-                                                        {timeAgo ? (
-                                                            <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-emerald-600">
-                                                                <Mail className="h-3 w-3" />
-                                                                Sent email{' '}
-                                                                {timeAgo}
-                                                            </div>
-                                                        ) : eligible ? (
-                                                            <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-slate-400">
-                                                                <Mail className="h-3 w-3" />
-                                                                Not sent an
-                                                                email
-                                                            </div>
-                                                        ) : null}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })
-                                    )}
-                                </div>
+                                        <SelectItem value="all_pending">
+                                            All pending
+                                        </SelectItem>
+                                        <SelectItem value="all_cancelled">
+                                            All cancelled
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
-                        )}
 
-                        {emailTarget !== 'specific' && (
-                            <div className="rounded-lg bg-muted/40 p-3 text-sm text-slate-600">
-                                <div className="mb-2 flex items-center justify-between gap-2">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-semibold text-foreground">
-                                            {bulkRecipients.length}
-                                        </span>{' '}
-                                        <span>recipient(s)</span>
-                                        <Input
-                                            placeholder="Search recipients..."
-                                            value={emailSearch}
-                                            onChange={(e) =>
-                                                setEmailSearch(e.target.value)
-                                            }
-                                            className="h-9 w-64 rounded-lg text-sm"
-                                        />
-                                    </div>
-
-                                    <div className="flex items-center gap-1.5">
+                            {/* Specific person search + checkbox list — only shown when 'specific' is chosen */}
+                            {emailTarget === 'specific' && (
+                                <div className="rounded-lg bg-muted/40 p-3 text-sm text-slate-600">
+                                    <div className="mb-2 flex flex-wrap items-center gap-3">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-semibold text-foreground">
+                                                {filteredSpecific.length}
+                                            </span>
+                                            {''}
+                                            <span>recipient(s)</span>
+                                        </div>
+                                        <div className="relative max-w-md flex-1">
+                                            <SearchIcon className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                            <Input
+                                                placeholder="Search by name, reference, or email"
+                                                value={emailSearch}
+                                                onChange={(e) =>
+                                                    setEmailSearch(e.target.value)
+                                                }
+                                                className="h-9 rounded-lg pl-9 text-sm"
+                                            />
+                                        </div>
                                         {selectedIds.size > 0 && (
                                             <div className="relative">
                                                 <Button
@@ -1313,12 +1038,11 @@ const ManageRequests: React.FC = () => {
                                                             !showSelectedPopover,
                                                         )
                                                     }
-                                                    className="h-9 gap-1.5 px-3"
+                                                    className="h-9 shrink-0 gap-1.5 px-3"
                                                 >
                                                     <UserRound className="h-4 w-4" />
-                                                    <span>
-                                                        {selectedIds.size}{' '}
-                                                        selected
+                                                    <span className="hidden sm:inline">
+                                                        {selectedIds.size} selected
                                                     </span>
                                                     <ChevronDown className="h-3.5 w-3.5" />
                                                 </Button>
@@ -1332,8 +1056,7 @@ const ManageRequests: React.FC = () => {
                                                     >
                                                         <div className="flex items-center justify-between border-b border-border px-3 py-2">
                                                             <span className="text-sm font-medium text-foreground">
-                                                                Selected
-                                                                Recipients
+                                                                Selected Recipients
                                                             </span>
                                                             <Button
                                                                 type="button"
@@ -1366,9 +1089,7 @@ const ManageRequests: React.FC = () => {
                                                             />
                                                         </div>
                                                         <div className="max-h-48 overflow-y-auto">
-                                                            {Array.from(
-                                                                selectedIds,
-                                                            )
+                                                            {Array.from(selectedIds)
                                                                 .map((id) =>
                                                                     allRecipients.find(
                                                                         (r) =>
@@ -1385,43 +1106,39 @@ const ManageRequests: React.FC = () => {
                                                                         row !==
                                                                         undefined,
                                                                 )
-                                                                .filter(
-                                                                    (row) => {
-                                                                        if (
-                                                                            !selectedPopoverSearch.trim()
-                                                                        ) {
-                                                                            return true;
-                                                                        }
+                                                                .filter((row) => {
+                                                                    if (
+                                                                        !selectedPopoverSearch.trim()
+                                                                    ) {
+                                                                        return true;
+                                                                    }
 
-                                                                        const q =
-                                                                            selectedPopoverSearch.toLowerCase();
-                                                                        const fullName =
-                                                                            formatFullName(
-                                                                                row,
-                                                                            ).toLowerCase();
+                                                                    const q =
+                                                                        selectedPopoverSearch.toLowerCase();
+                                                                    const fullName =
+                                                                        formatFullName(
+                                                                            row,
+                                                                        ).toLowerCase();
 
-                                                                        return (
-                                                                            fullName.includes(
+                                                                    return (
+                                                                        fullName.includes(
+                                                                            q,
+                                                                        ) ||
+                                                                        row.reference_number
+                                                                            .toLowerCase()
+                                                                            .includes(
                                                                                 q,
                                                                             ) ||
-                                                                            row.reference_number
-                                                                                .toLowerCase()
-                                                                                .includes(
-                                                                                    q,
-                                                                                ) ||
-                                                                            row.email
-                                                                                .toLowerCase()
-                                                                                .includes(
-                                                                                    q,
-                                                                                )
-                                                                        );
-                                                                    },
-                                                                )
+                                                                        row.email
+                                                                            .toLowerCase()
+                                                                            .includes(
+                                                                                q,
+                                                                            )
+                                                                    );
+                                                                })
                                                                 .map((row) => (
                                                                     <div
-                                                                        key={
-                                                                            row.id
-                                                                        }
+                                                                        key={row.id}
                                                                         className="flex cursor-pointer items-center gap-2 px-3 py-1.5 hover:bg-muted/40"
                                                                         onClick={() =>
                                                                             toggleSelectId(
@@ -1453,180 +1170,460 @@ const ManageRequests: React.FC = () => {
                                                 )}
                                             </div>
                                         )}
-                                        {selectedIds.size ===
-                                        filteredBulkRecipients.length ? (
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() =>
-                                                    setSelectedIds(new Set())
-                                                }
-                                                className="h-9 px-3"
-                                            >
-                                                Unselect All
-                                            </Button>
+                                    </div>
+                                    <div className="max-h-72 overflow-y-auto rounded-md border border-border bg-card text-card-foreground">
+                                        {isLoadingRecipients ? (
+                                            <div className="flex items-center justify-center p-6">
+                                                <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                                            </div>
+                                        ) : filteredSpecific.length === 0 ? (
+                                            <div className="p-4 text-center text-sm text-slate-400">
+                                                No matching recipients
+                                            </div>
                                         ) : (
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() =>
-                                                    setSelectedIds(
-                                                        new Set(
-                                                            filteredBulkRecipients.map(
-                                                                (r) => r.id,
-                                                            ),
-                                                        ),
-                                                    )
-                                                }
-                                                className="h-9 px-3"
-                                            >
-                                                Select All
-                                            </Button>
+                                            filteredSpecific.map((row) => {
+                                                const eligible =
+                                                    row.staff_input && row.email;
+                                                const isSelected = selectedIds.has(
+                                                    row.id,
+                                                );
+                                                const timeAgo = formatTimeAgo(
+                                                    row.staff_input?.emailed_at,
+                                                );
+
+                                                return (
+                                                    <div
+                                                        key={row.id}
+                                                        className={`flex items-start gap-2 border-b border-border px-3 py-2 text-sm last:border-0 ${eligible
+                                                                ? 'cursor-pointer bg-card text-foreground hover:bg-muted/50'
+                                                                : 'bg-muted/40 opacity-60'
+                                                            }`}
+                                                        onClick={() => {
+                                                            if (eligible) {
+                                                                toggleSelectId(
+                                                                    row.id,
+                                                                );
+                                                            }
+                                                        }}
+                                                    >
+                                                        <div className="mt-0.5 shrink-0">
+                                                            {eligible ? (
+                                                                isSelected ? (
+                                                                    <CheckSquare className="h-4 w-4 text-emerald-600" />
+                                                                ) : (
+                                                                    <Square className="h-4 w-4 text-slate-300" />
+                                                                )
+                                                            ) : (
+                                                                <Square className="h-4 w-4 text-slate-200" />
+                                                            )}
+                                                        </div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex min-w-0 items-center gap-2">
+                                                                <div className="truncate font-medium text-foreground">
+                                                                    {formatFullName(
+                                                                        row,
+                                                                    )}
+                                                                </div>
+                                                                <span
+                                                                    className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${row.staff_input
+                                                                            ? statusBadgeClass(
+                                                                                row
+                                                                                    .staff_input
+                                                                                    .status,
+                                                                            )
+                                                                            : 'bg-slate-100 text-slate-600'
+                                                                        }`}
+                                                                >
+                                                                    {row.staff_input
+                                                                        ?.status ??
+                                                                        'Unapproved'}
+                                                                </span>
+                                                                {row.staff_input
+                                                                    ?.email_status ===
+                                                                    'pending' && (
+                                                                        <span className="inline shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-700 uppercase">
+                                                                            Email queued
+                                                                        </span>
+                                                                    )}
+                                                                {row.staff_input
+                                                                    ?.email_status ===
+                                                                    'failed' && (
+                                                                        <span className="inline shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-rose-700 uppercase">
+                                                                            Email failed
+                                                                        </span>
+                                                                    )}
+                                                            </div>
+                                                            <div className="truncate text-xs text-muted-foreground">
+                                                                {
+                                                                    row.reference_number
+                                                                }{' '}
+                                                                · {row.email}
+                                                            </div>
+                                                            {timeAgo ? (
+                                                                <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-emerald-600">
+                                                                    <Mail className="h-3 w-3" />
+                                                                    Sent email{' '}
+                                                                    {timeAgo}
+                                                                </div>
+                                                            ) : eligible ? (
+                                                                <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-slate-400">
+                                                                    <Mail className="h-3 w-3" />
+                                                                    Not sent an
+                                                                    email
+                                                                </div>
+                                                            ) : null}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
                                         )}
                                     </div>
                                 </div>
-                                <div className="mt-2 max-h-72 overflow-y-auto rounded-md border border-border bg-card text-card-foreground">
-                                    {filteredBulkRecipients.length === 0 ? (
-                                        <div className="p-4 text-center text-slate-400">
-                                            No matching recipients found
+                            )}
+
+                            {emailTarget !== 'specific' && (
+                                <div className="rounded-lg bg-muted/40 p-3 text-sm text-slate-600">
+                                    <div className="mb-2 flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-semibold text-foreground">
+                                                {bulkRecipients.length}
+                                            </span>{' '}
+                                            <span>recipient(s)</span>
+                                            <Input
+                                                placeholder="Search recipients..."
+                                                value={emailSearch}
+                                                onChange={(e) =>
+                                                    setEmailSearch(e.target.value)
+                                                }
+                                                className="h-9 w-64 rounded-lg text-sm"
+                                            />
                                         </div>
-                                    ) : (
-                                        filteredBulkRecipients.map((row) => {
-                                            const timeAgo = formatTimeAgo(
-                                                row.staff_input?.emailed_at,
-                                            );
-                                            const isSelected = selectedIds.has(
-                                                row.id,
-                                            );
 
-                                            return (
-                                                <div
-                                                    key={row.id}
-                                                    className="flex cursor-pointer items-start gap-2 border-b border-border px-3 py-2 text-sm last:border-0 hover:bg-muted/40"
-                                                    onClick={() =>
-                                                        toggleSelectId(row.id)
-                                                    }
-                                                >
-                                                    <div className="mt-0.5 shrink-0">
-                                                        {isSelected ? (
-                                                            <CheckSquare className="h-4 w-4 text-emerald-600" />
-                                                        ) : (
-                                                            <Square className="h-4 w-4 text-slate-300" />
-                                                        )}
-                                                    </div>
-                                                    <div className="min-w-0 flex-1">
-                                                        <div className="flex min-w-0 items-center gap-2">
-                                                            <div className="truncate font-medium text-foreground">
-                                                                {formatFullName(
-                                                                    row,
-                                                                )}
-                                                            </div>
-                                                            <span
-                                                                className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${
-                                                                    row.staff_input
-                                                                        ? statusBadgeClass(
-                                                                              row
-                                                                                  .staff_input
-                                                                                  .status,
-                                                                          )
-                                                                        : 'bg-slate-100 text-slate-600'
-                                                                }`}
-                                                            >
-                                                                {row.staff_input
-                                                                    ?.status ??
-                                                                    'Unapproved'}
-                                                            </span>
-                                                            {row.staff_input
-                                                                ?.email_status ===
-                                                                'pending' && (
-                                                                <span className="inline shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-700 uppercase">
-                                                                    Email queued
+                                        <div className="flex items-center gap-1.5">
+                                            {selectedIds.size > 0 && (
+                                                <div className="relative">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            setShowSelectedPopover(
+                                                                !showSelectedPopover,
+                                                            )
+                                                        }
+                                                        className="h-9 gap-1.5 px-3"
+                                                    >
+                                                        <UserRound className="h-4 w-4" />
+                                                        <span>
+                                                            {selectedIds.size}{' '}
+                                                            selected
+                                                        </span>
+                                                        <ChevronDown className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                    {showSelectedPopover && (
+                                                        <div
+                                                            ref={popoverRef}
+                                                            className="absolute top-full right-0 z-10 mt-1.5 w-80 rounded-lg border border-border bg-card py-1 text-card-foreground shadow-lg"
+                                                            onClick={(e) =>
+                                                                e.stopPropagation()
+                                                            }
+                                                        >
+                                                            <div className="flex items-center justify-between border-b border-border px-3 py-2">
+                                                                <span className="text-sm font-medium text-foreground">
+                                                                    Selected
+                                                                    Recipients
                                                                 </span>
-                                                            )}
-                                                            {row.staff_input
-                                                                ?.email_status ===
-                                                                'failed' && (
-                                                                <span className="inline shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-rose-700 uppercase">
-                                                                    Email failed
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <div className="truncate text-xs text-muted-foreground">
-                                                            {
-                                                                row.reference_number
-                                                            }{' '}
-                                                            · {row.email}
-                                                        </div>
-                                                        {timeAgo ? (
-                                                            <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-emerald-600">
-                                                                <Mail className="h-3 w-3" />
-                                                                Sent email{' '}
-                                                                {timeAgo}
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() =>
+                                                                        setSelectedIds(
+                                                                            new Set(),
+                                                                        )
+                                                                    }
+                                                                    className="text-xs text-rose-600 hover:text-rose-700"
+                                                                >
+                                                                    Clear All
+                                                                </Button>
                                                             </div>
-                                                        ) : (
-                                                            <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-slate-400">
-                                                                <Mail className="h-3 w-3" />
-                                                                Not sent an
-                                                                email
+                                                            <div className="border-b border-border px-3 py-2">
+                                                                <Input
+                                                                    placeholder="Search selected..."
+                                                                    value={
+                                                                        selectedPopoverSearch
+                                                                    }
+                                                                    onChange={(e) =>
+                                                                        setSelectedPopoverSearch(
+                                                                            e.target
+                                                                                .value,
+                                                                        )
+                                                                    }
+                                                                    className="h-9 text-sm"
+                                                                    autoFocus
+                                                                />
                                                             </div>
-                                                        )}
-                                                    </div>
+                                                            <div className="max-h-48 overflow-y-auto">
+                                                                {Array.from(
+                                                                    selectedIds,
+                                                                )
+                                                                    .map((id) =>
+                                                                        allRecipients.find(
+                                                                            (r) =>
+                                                                                r.id ===
+                                                                                id,
+                                                                        ),
+                                                                    )
+                                                                    .filter(
+                                                                        (
+                                                                            row,
+                                                                        ): row is typeof row & {
+                                                                            id: number;
+                                                                        } =>
+                                                                            row !==
+                                                                            undefined,
+                                                                    )
+                                                                    .filter(
+                                                                        (row) => {
+                                                                            if (
+                                                                                !selectedPopoverSearch.trim()
+                                                                            ) {
+                                                                                return true;
+                                                                            }
+
+                                                                            const q =
+                                                                                selectedPopoverSearch.toLowerCase();
+                                                                            const fullName =
+                                                                                formatFullName(
+                                                                                    row,
+                                                                                ).toLowerCase();
+
+                                                                            return (
+                                                                                fullName.includes(
+                                                                                    q,
+                                                                                ) ||
+                                                                                row.reference_number
+                                                                                    .toLowerCase()
+                                                                                    .includes(
+                                                                                        q,
+                                                                                    ) ||
+                                                                                row.email
+                                                                                    .toLowerCase()
+                                                                                    .includes(
+                                                                                        q,
+                                                                                    )
+                                                                            );
+                                                                        },
+                                                                    )
+                                                                    .map((row) => (
+                                                                        <div
+                                                                            key={
+                                                                                row.id
+                                                                            }
+                                                                            className="flex cursor-pointer items-center gap-2 px-3 py-1.5 hover:bg-muted/40"
+                                                                            onClick={() =>
+                                                                                toggleSelectId(
+                                                                                    row.id,
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <UserRound className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                                                                            <div className="min-w-0 flex-1">
+                                                                                <div className="truncate text-sm font-medium text-foreground">
+                                                                                    {formatFullName(
+                                                                                        row,
+                                                                                    )}
+                                                                                </div>
+                                                                                <div className="truncate text-xs text-muted-foreground">
+                                                                                    {
+                                                                                        row.reference_number
+                                                                                    }{' '}
+                                                                                    ·{' '}
+                                                                                    {
+                                                                                        row.email
+                                                                                    }
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            );
-                                        })
-                                    )}
+                                            )}
+                                            {selectedIds.size ===
+                                                filteredBulkRecipients.length ? (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        setSelectedIds(new Set())
+                                                    }
+                                                    className="h-9 px-3"
+                                                >
+                                                    Unselect All
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        setSelectedIds(
+                                                            new Set(
+                                                                filteredBulkRecipients.map(
+                                                                    (r) => r.id,
+                                                                ),
+                                                            ),
+                                                        )
+                                                    }
+                                                    className="h-9 px-3"
+                                                >
+                                                    Select All
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="mt-2 max-h-72 overflow-y-auto rounded-md border border-border bg-card text-card-foreground">
+                                        {filteredBulkRecipients.length === 0 ? (
+                                            <div className="p-4 text-center text-slate-400">
+                                                No matching recipients found
+                                            </div>
+                                        ) : (
+                                            filteredBulkRecipients.map((row) => {
+                                                const timeAgo = formatTimeAgo(
+                                                    row.staff_input?.emailed_at,
+                                                );
+                                                const isSelected = selectedIds.has(
+                                                    row.id,
+                                                );
+
+                                                return (
+                                                    <div
+                                                        key={row.id}
+                                                        className="flex cursor-pointer items-start gap-2 border-b border-border px-3 py-2 text-sm last:border-0 hover:bg-muted/40"
+                                                        onClick={() =>
+                                                            toggleSelectId(row.id)
+                                                        }
+                                                    >
+                                                        <div className="mt-0.5 shrink-0">
+                                                            {isSelected ? (
+                                                                <CheckSquare className="h-4 w-4 text-emerald-600" />
+                                                            ) : (
+                                                                <Square className="h-4 w-4 text-slate-300" />
+                                                            )}
+                                                        </div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex min-w-0 items-center gap-2">
+                                                                <div className="truncate font-medium text-foreground">
+                                                                    {formatFullName(
+                                                                        row,
+                                                                    )}
+                                                                </div>
+                                                                <span
+                                                                    className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${row.staff_input
+                                                                            ? statusBadgeClass(
+                                                                                row
+                                                                                    .staff_input
+                                                                                    .status,
+                                                                            )
+                                                                            : 'bg-slate-100 text-slate-600'
+                                                                        }`}
+                                                                >
+                                                                    {row.staff_input
+                                                                        ?.status ??
+                                                                        'Unapproved'}
+                                                                </span>
+                                                                {row.staff_input
+                                                                    ?.email_status ===
+                                                                    'pending' && (
+                                                                        <span className="inline shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-700 uppercase">
+                                                                            Email queued
+                                                                        </span>
+                                                                    )}
+                                                                {row.staff_input
+                                                                    ?.email_status ===
+                                                                    'failed' && (
+                                                                        <span className="inline shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-rose-700 uppercase">
+                                                                            Email failed
+                                                                        </span>
+                                                                    )}
+                                                            </div>
+                                                            <div className="truncate text-xs text-muted-foreground">
+                                                                {
+                                                                    row.reference_number
+                                                                }{' '}
+                                                                · {row.email}
+                                                            </div>
+                                                            {timeAgo ? (
+                                                                <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-emerald-600">
+                                                                    <Mail className="h-3 w-3" />
+                                                                    Sent email{' '}
+                                                                    {timeAgo}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-slate-400">
+                                                                    <Mail className="h-3 w-3" />
+                                                                    Not sent an
+                                                                    email
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        )}
+                                    </div>
+                                    <div className="mt-2 text-xs text-muted-foreground">
+                                        <span className="font-semibold text-slate-700">
+                                            {selectedIds.size}
+                                        </span>{' '}
+                                        selected
+                                    </div>
                                 </div>
-                                <div className="mt-2 text-xs text-muted-foreground">
-                                    <span className="font-semibold text-slate-700">
-                                        {selectedIds.size}
-                                    </span>{' '}
-                                    selected
-                                </div>
+                            )}
+
+                            {/* Subject + Note */}
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-medium text-slate-700">
+                                    Subject (optional)
+                                </label>
+                                <Input
+                                    placeholder="Leave blank for default subject"
+                                    value={emailSubject}
+                                    onChange={(e) =>
+                                        setEmailSubject(e.target.value)
+                                    }
+                                    className="h-10 rounded-lg"
+                                />
                             </div>
-                        )}
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-medium text-slate-700">
+                                    Note (optional)
+                                </label>
+                                <Textarea
+                                    placeholder="Optional message to include"
+                                    value={emailNote}
+                                    onChange={(e) => setEmailNote(e.target.value)}
+                                    rows={3}
+                                    className="rounded-lg"
+                                />
+                            </div>
+                        </div>
 
-                        {/* Subject + Note */}
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-slate-700">
-                                Subject (optional)
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-foreground">
+                                Live Preview
                             </label>
-                            <Input
-                                placeholder="Leave blank for default subject"
-                                value={emailSubject}
-                                onChange={(e) =>
-                                    setEmailSubject(e.target.value)
-                                }
-                                className="h-10 rounded-lg"
-                            />
+                            <div className="overflow-hidden rounded-xl border border-border">
+                                <iframe
+                                    title="Email preview"
+                                    srcDoc={buildEmailPreviewHtml(emailNote)}
+                                    className="h-[24rem] w-full bg-card"
+                                />
+                            </div>
                         </div>
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-slate-700">
-                                Note (optional)
-                            </label>
-                            <Textarea
-                                placeholder="Optional message to include"
-                                value={emailNote}
-                                onChange={(e) => setEmailNote(e.target.value)}
-                                rows={3}
-                                className="rounded-lg"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-medium text-foreground">
-                            Live Preview
-                        </label>
-                        <div className="overflow-hidden rounded-xl border border-border">
-                            <iframe
-                                title="Email preview"
-                                srcDoc={buildEmailPreviewHtml(emailNote)}
-                                className="h-[24rem] w-full bg-card"
-                            />
-                        </div>
-                    </div>
 
                     </div>
 
@@ -1773,15 +1770,14 @@ const ManageRequests: React.FC = () => {
                             <div
                                 className="h-full bg-emerald-600 transition-all duration-300"
                                 style={{
-                                    width: `${
-                                        emailProgress.length > 0
+                                    width: `${emailProgress.length > 0
                                             ? (emailProgress.filter(
-                                                  (p) => p.status === 'sent',
-                                              ).length /
-                                                  emailProgress.length) *
-                                              100
+                                                (p) => p.status === 'sent',
+                                            ).length /
+                                                emailProgress.length) *
+                                            100
                                             : 0
-                                    }%`,
+                                        }%`,
                                 }}
                             />
                         </div>
@@ -1792,8 +1788,8 @@ const ManageRequests: React.FC = () => {
                                         Waiting for a queue worker...
                                     </span>
                                 ) : pollingStartTime &&
-                                  Date.now() - pollingStartTime >
-                                      MAX_POLLING_DURATION * 0.8 ? (
+                                    Date.now() - pollingStartTime >
+                                    MAX_POLLING_DURATION * 0.8 ? (
                                     'Almost timed out...'
                                 ) : (
                                     <span>
@@ -1805,8 +1801,8 @@ const ManageRequests: React.FC = () => {
                                     </span>
                                 )
                             ) : emailProgress.some(
-                                  (p) => p.status === 'failed',
-                              ) ? (
+                                (p) => p.status === 'failed',
+                            ) ? (
                                 `Completed — ${emailProgress.filter((p) => p.status === 'failed').length} email(s) failed`
                             ) : (
                                 'Completed'
@@ -1854,7 +1850,7 @@ const ManageRequests: React.FC = () => {
                                                 >
                                                     {
                                                         statusIcons[
-                                                            progress.status
+                                                        progress.status
                                                         ]
                                                     }
                                                 </div>
@@ -1863,8 +1859,8 @@ const ManageRequests: React.FC = () => {
                                                         <span className="truncate font-medium text-foreground">
                                                             {recipient
                                                                 ? formatFullName(
-                                                                      recipient,
-                                                                  )
+                                                                    recipient,
+                                                                )
                                                                 : `ID: ${progress.form_input_id}`}
                                                         </span>
                                                         <span
@@ -1895,12 +1891,12 @@ const ManageRequests: React.FC = () => {
                                                         )}
                                                     {progress.status ===
                                                         'failed' && (
-                                                        <div className="text-xs text-rose-600">
-                                                            Failed:{' '}
-                                                            {progress.error ??
-                                                                'Unknown error'}
-                                                        </div>
-                                                    )}
+                                                            <div className="text-xs text-rose-600">
+                                                                Failed:{' '}
+                                                                {progress.error ??
+                                                                    'Unknown error'}
+                                                            </div>
+                                                        )}
                                                     {progress.stalled && (
                                                         <div className="text-xs text-rose-600">
                                                             Stalled:{' '}
