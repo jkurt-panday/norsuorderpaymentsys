@@ -99,7 +99,7 @@ export const columns = columnHelper.columns([
                 variant={
                     row.original.status === 'Active' ? 'default' : 'secondary'
                 }
-                className="px-4 py-3 font-sans text-base font-semibold tracking-wide"
+                className="px-4 py-3 font-sans text-medium font-semibold tracking-wide"
             >
                 {row.original.status ?? '—'}
             </Badge>
