@@ -11,10 +11,10 @@ return new class extends Migration
         Schema::create('staff_inputs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('form_input_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('fundcluster_id')->constrained('bankaccount_infos')->restrictOnDelete();
+            $table->foreignId('fundcluster_id')->nullable()->constrained('bankaccount_infos')->nullOnDelete();
             $table->foreignId('ref_document_id')->nullable()->constrained('supporting_documents')->nullOnDelete();
             $table->date('ref_date');
-            $table->foreignId('uacs_id')->constrained()->restrictOnDelete();
+            $table->foreignId('uacs_id')->nullable()->constrained()->nullOnDelete();
             $table->enum('status', ['pending', 'approved', 'cancelled'])->default('pending');
             $table->timestamps();
 
