@@ -13,15 +13,15 @@ return new class extends Migration
             // The legacy table was renamed rather than dropped before this
             // migration runs. PostgreSQL keeps its old constraint names after
             // a table rename, so use unique names for the new table's FKs.
-            $table->foreignId('student_id');
-            $table->foreignId('academic_term_id');
-            $table->foreignId('course_id');
+            $table->foreignId('student_id')->nullable();
+            $table->foreignId('academic_term_id')->nullable();
+            $table->foreignId('course_id')->nullable();
             $table->foreign('student_id', 'new_law_school_ledgers_student_id_foreign')
-                ->references('id')->on('students')->restrictOnDelete();
+                ->references('id')->on('students')->nullOnDelete();
             $table->foreign('academic_term_id', 'new_law_school_ledgers_academic_term_id_foreign')
-                ->references('id')->on('academic_terms')->restrictOnDelete();
+                ->references('id')->on('academic_terms')->nullOnDelete();
             $table->foreign('course_id', 'new_law_school_ledgers_course_id_foreign')
-                ->references('id')->on('courses')->restrictOnDelete();
+                ->references('id')->on('courses')->nullOnDelete();
             $table->decimal('units', 8, 2)->nullable();
             $table->decimal('rate', 12, 2)->nullable();
             $table->string('entry_type', 30)->index('new_law_ledger_entry_type_idx');

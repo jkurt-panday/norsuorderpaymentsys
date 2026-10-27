@@ -3,12 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\UacsRequest;
+use App\Exports\UACSExport;
 use App\Models\UACS;
+use App\Services\UACSService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -16,17 +20,27 @@ use Inertia\Response;
 /** @extends BaseResourceController<UACS> */
 class UACSController extends BaseResourceController
 {
+    public function __construct(private readonly UACSService $uacsService) {}
+
     // ---- Config consumed by BaseResourceController::index() ----
     protected string $model = UACS::class;
 
     /** @var list<string> */
-    protected array $searchableColumns = ['object_code', 'account_title'];
+    protected array $searchableColumns = [
+        'classification',
+        'sub_class',
+        'group',
+        'object_code',
+        'sub_object_code',
+        'uacs',
+        'status',
+    ];
 
     protected string $indexView = 'staff/uacs/uacs';
 
     protected string $resourceKey = 'uacs';
 
-    protected int $perPage = 10;
+    protected int $perPage = 10000;
 
     protected string $orderBy = 'id';
 
@@ -34,7 +48,26 @@ class UACSController extends BaseResourceController
     protected string $orderDirection = 'asc';
 
     /** @var list<string> */
-    protected array $sortableColumns = ['id', 'object_code', 'account_title', 'created_at'];
+    protected array $sortableColumns = [
+        'id',
+        'classification',
+        'sub_class',
+        'group',
+        'object_code',
+        'sub_object_code',
+        'uacs',
+        'status',
+        'created_at',
+    ];
+
+    public function index(Request $request): Response
+    {
+        $uacs = UACS::query()->orderBy('uacs', 'asc')->get();
+
+        return Inertia::render($this->indexView, [
+            'uacs' => $uacs,
+        ]);
+    }
 
     /**
      * @param  Builder<Model>  $query
@@ -50,6 +83,35 @@ class UACSController extends BaseResourceController
     public function create(): Response
     {
         return Inertia::render('staff/uacs/createuacs');
+    }
+
+    public function export()
+    {
+        return Excel::download(new UACSExport(), 'uacs_'.now()->format('Ymd_His').'.xlsx');
+    }
+
+    public function import(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
+        ]);
+
+        $file = $request->file('file');
+        if (! $file instanceof UploadedFile) {
+            return back()->with('error', 'The uploaded UACS file is invalid.');
+        }
+
+        try {
+            $count = $this->uacsService->import($file);
+
+            return back()->with('success', "Imported {$count} UACS records successfully.");
+        } catch (\Throwable $e) {
+            Log::error('Failed to import UACS file.', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->with('error', 'Failed to import the UACS file.');
+        }
     }
 
     public function store(UacsRequest $request): RedirectResponse

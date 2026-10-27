@@ -182,13 +182,13 @@ export const columns = columnHelper.columns([
             <div className="flex justify-center">
                 <Tooltip>
                     <TooltipTrigger>
-                        <span className="inline-flex rounded-full bg-primary/15 border border-primary/30 px-3 py-1 text-xs font-semibold tracking-wide text-primary">
+                        <span className="inline-flex rounded-full bg-blue-400 px-3 py-1 text-xs font-semibold tracking-wide text-white">
                             {row.original.course.course_code}
                         </span>
                     </TooltipTrigger>
                     <TooltipContent
                         side='bottom'
-                        className='bg-popover border border-border text-popover-foreground text-sm'>
+                        className='bg-blue-400 text-sm'>
                         {row.original.course.course_desc}
                     </TooltipContent>
                 </Tooltip>

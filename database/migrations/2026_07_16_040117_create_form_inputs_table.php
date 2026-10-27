@@ -21,8 +21,8 @@ return new class extends Migration
             $table->text('address');
             $table->decimal('amount', 12, 2);
             $table->enum('request_type', ['New Request', 'Re-issue Request']);
-            $table->foreignId('membership_id')->constrained()->restrictOnDelete();
-            $table->foreignId('payment_detail_option_id')->constrained('payment_detail_options')->restrictOnDelete();
+            $table->foreignId('membership_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('payment_detail_option_id')->nullable()->constrained('payment_detail_options')->nullOnDelete();
             $table->timestamps();
 
             $table->index('reference_number');
