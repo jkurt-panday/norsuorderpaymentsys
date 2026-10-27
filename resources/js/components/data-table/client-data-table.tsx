@@ -8,12 +8,20 @@ import {
     ArrowDown,
     Search,
     RotateCw,
+    SlidersHorizontal,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { features } from './data-table-features';
 import type { DataTableFeatures } from './data-table-features';
 import { DataTablePagination } from './data-table-pagination';
+import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
     Select,
     SelectContent,
@@ -32,12 +40,20 @@ import {
     TableRow,
 } from '@/components/ui/table';
 
+const formatColumnLabel = (columnId: string) => {
+    const sentence = columnId.replaceAll('_', ' ').toLowerCase();
+
+    return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+};
+
 export interface ClientDataTableFilter<TData extends RowData> {
     column: keyof TData;
     label: string;
     options: { label: string; value: string }[];
     /** Optional fixed width for the trigger and its popup. */
     widthClassName?: string;
+    /** Optional width override for the popup when options need more room. */
+    contentWidthClassName?: string;
 }
 
 interface ClientDataTableProps<TData extends RowData> {
@@ -73,6 +89,9 @@ export function ClientDataTable<TData extends RowData>({
     );
     const [appliedSearch, setAppliedSearch] = useState('');
     const [sorting, setSorting] = useState<SortingState>([]);
+    const [columnVisibility, setColumnVisibility] = useState<
+        Record<string, boolean>
+    >({});
     const [pagination, setPagination] = useState({
         pageIndex: 0,
         pageSize: 10,
@@ -120,7 +139,8 @@ export function ClientDataTable<TData extends RowData>({
         columns,
         onSortingChange: setSorting,
         onPaginationChange: setPagination,
-        state: { sorting, pagination },
+        onColumnVisibilityChange: setColumnVisibility,
+        state: { sorting, pagination, columnVisibility },
     });
 
     const { pageIndex, pageSize } = pagination;
@@ -163,10 +183,43 @@ export function ClientDataTable<TData extends RowData>({
                             </button>
                         </>
                     )}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger
+                            render={
+                                <Button
+                                    variant="outline"
+                                    title="Toggle columns"
+                                    className="h-10 rounded-xl bg-background"
+                                >
+                                    <SlidersHorizontal className="mr-2 h-4 w-4" />
+                                    Columns
+                                </Button>
+                            }
+                        />
+                        <DropdownMenuContent align="start" className="w-48">
+                            {table
+                                .getAllColumns()
+                                .filter((column) => column.getCanHide())
+                                .map((column) => (
+                                    <DropdownMenuCheckboxItem
+                                        key={column.id}
+                                        checked={column.getIsVisible()}
+                                        onCheckedChange={(value) =>
+                                            column.toggleVisibility(!!value)
+                                        }
+                                    >
+                                        {formatColumnLabel(column.id)}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                     {activeFilters.map((currentFilter) => {
                         const filterKey = String(currentFilter.column);
                         const widthClassName =
                             currentFilter.widthClassName ?? 'w-50';
+                        const contentWidthClassName =
+                            currentFilter.contentWidthClassName ??
+                            widthClassName;
 
                         return (
                             <Select
@@ -203,7 +256,7 @@ export function ClientDataTable<TData extends RowData>({
                                 <SelectContent
                                     align="start"
                                     alignItemWithTrigger={false}
-                                    className={`${widthClassName} wrap-break-word whitespace-normal w-50!`}
+                                    className={`${contentWidthClassName} wrap-break-word whitespace-normal`}
                                 >
                                     <SelectGroup>
                                         <SelectLabel>

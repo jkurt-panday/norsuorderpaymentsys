@@ -65,6 +65,7 @@ export const columns = columnHelper.columns([
     columnHelper.display({
         id: 'row_number',
         header: 'ID',
+        enableHiding: false,
         cell: ({ row }) => row.original.display_number ?? row.index + 1,
     }),
     columnHelper.accessor('classification', {
@@ -109,6 +110,7 @@ export const columns = columnHelper.columns([
     columnHelper.display({
         id: 'actions',
         header: 'ACTIONS',
+        enableHiding: false,
         cell: ({ row }) => <UacsActionsCell uacs={row.original} />,
     }),
 ]);

@@ -131,6 +131,7 @@ export default function UacsIndex({ uacs }: UacsProps) {
                                     value,
                                 })),
                                 widthClassName: 'w-50',
+                                contentWidthClassName: 'w-70',
                             },
                             {
                                 column: 'status',
