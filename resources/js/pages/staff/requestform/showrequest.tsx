@@ -1769,6 +1769,10 @@ export default function ShowRequest() {
                                                                 value: 'processed',
                                                             },
                                                             {
+                                                                label: 'Paid',
+                                                                value: 'paid',
+                                                            },
+                                                            {
                                                                 label: 'Cancelled',
                                                                 value: 'cancelled',
                                                             },
@@ -1801,14 +1805,18 @@ export default function ShowRequest() {
                                                                         label: 'Pending',
                                                                         value: 'pending',
                                                                     },
-                                                                    {
-                                                                        label: 'Processed',
-                                                                        value: 'processed',
-                                                                    },
-                                                                    {
-                                                                        label: 'Cancelled',
-                                                                        value: 'cancelled',
-                                                                    },
+                                                                {
+                                                                    label: 'Processed',
+                                                                    value: 'processed',
+                                                                },
+                                                                {
+                                                                    label: 'Paid',
+                                                                    value: 'paid',
+                                                                },
+                                                                {
+                                                                    label: 'Cancelled',
+                                                                    value: 'cancelled',
+                                                                },
                                                                 ].map(
                                                                     (item) => (
                                                                         <SelectItem
@@ -2271,20 +2279,24 @@ export default function ShowRequest() {
                                                 </span>
                                             </label>
                                             <Select
-                                                items={[
-                                                    {
-                                                        label: 'Pending',
-                                                        value: 'pending',
-                                                    },
-                                                    {
-                                                        label: 'Processed',
-                                                        value: 'processed',
-                                                    },
-                                                    {
-                                                        label: 'Cancelled',
-                                                        value: 'cancelled',
-                                                    },
-                                                ]}
+                                                    items={[
+                                                            {
+                                                                label: 'Pending',
+                                                                value: 'pending',
+                                                            },
+                                                            {
+                                                                label: 'Processed',
+                                                                value: 'processed',
+                                                            },
+                                                            {
+                                                                label: 'Paid',
+                                                                value: 'paid',
+                                                            },
+                                                            {
+                                                                label: 'Cancelled',
+                                                                value: 'cancelled',
+                                                            },
+                                                        ]}
                                                 value={processData.status}
                                                 onValueChange={(value) =>
                                                     setProcessData(
