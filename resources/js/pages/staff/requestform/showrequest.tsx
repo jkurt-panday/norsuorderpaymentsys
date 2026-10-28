@@ -69,9 +69,9 @@ interface BankAccount {
     fund_cluster: string;
 }
 
-interface Uacs {
+interface UacsProps {
     id: number;
-    object_code: string;
+    uacs_object_code: string;
     account_title: string;
 }
 
@@ -82,10 +82,10 @@ interface ReferenceDocument {
 
 interface StaffInput {
     id: number;
-    status: 'pending' | 'processed' | 'paid' | 'cancelled' | 'unprocessed';
+    status: 'pending' | 'approved' | 'paid' | 'cancelled' | 'unprocessed';
     ref_date: string | null;
     bank_account: BankAccount | null;
-    uacs: Uacs | null;
+    uacs: UacsProps | null;
     reference_document: ReferenceDocument | null;
     created_at: string;
     purpose: string | null;
@@ -161,7 +161,7 @@ interface PageProps {
     auth: { user: AuthUser | null };
     formInput: FormInput;
     bankAccounts: BankAccount[];
-    uacsList: Uacs[];
+    uacsList: UacsProps[];
     paymentOptions: PaymentDetailOption[];
     academicTerms: AcademicTerm[];
     flash?: FlashProps;
@@ -169,7 +169,7 @@ interface PageProps {
 
 const statusBadgeClass = (status: string) => {
     switch (status) {
-        case 'processed':
+        case 'approved':
             return 'bg-green-50 text-green-700';
         case 'paid':
             return 'bg-green-100 text-green-800';
@@ -184,7 +184,7 @@ const statusBadgeClass = (status: string) => {
 
 const statusBadgeBorder = (status: string) => {
     switch (status) {
-        case 'processed':
+        case 'approved':
             return 'ring-1 ring-green-500';
         case 'paid':
             return 'ring-1 ring-emerald-500';
@@ -629,6 +629,14 @@ export default function ShowRequest() {
         (formInput as any).supporting_documents ??
         [];
 
+    const sortedUacsList = [...uacsList].sort((a, b) => a.id - b.id);
+    // Keep the complete UACS record as the Combobox item. The selected
+    // record's ID is stored in the form while its code/title is displayed.
+    const filterUacs = (item: UacsProps, query: string) =>
+        `${item.uacs_object_code} - ${item.account_title}`
+            .toLocaleLowerCase()
+            .includes(query.trim().toLocaleLowerCase());
+
     const confirmDelete = (documentId: number) => {
         setDeleteTargetId(documentId);
     };
@@ -701,7 +709,7 @@ export default function ShowRequest() {
         uacs_id: formInput.staff_input?.uacs
             ? String(formInput.staff_input.uacs.id)
             : '',
-        status: formInput.staff_input?.status ?? 'processed',
+        status: formInput.staff_input?.status ?? 'approved',
         purpose: formInput.staff_input?.purpose ?? '',
     });
 
@@ -795,7 +803,7 @@ export default function ShowRequest() {
         ref_document_id: '',
         ref_date: todayIso(),
         uacs_id: '',
-        status: 'processed',
+        status: 'approved',
         purpose: '',
     });
     const handleProcessSubmit = (e: React.FormEvent) => {
@@ -1431,7 +1439,7 @@ export default function ShowRequest() {
                                                             formInput
                                                                 .staff_input
                                                                 ?.status ??
-                                                            'processed',
+                                                            'approved',
                                                         purpose:
                                                             formInput
                                                                 .staff_input
@@ -1555,17 +1563,20 @@ export default function ShowRequest() {
                                                                 found.
                                                             </ComboboxEmpty>
                                                             <ComboboxList>
-                                                                {(account) => (
+                                                                {(item: {
+                                                                    label: string;
+                                                                    value: string;
+                                                                }) => (
                                                                     <ComboboxItem
                                                                         key={
-                                                                            account.value
+                                                                            item.value
                                                                         }
                                                                         value={
-                                                                            account.value
+                                                                            item.value
                                                                         }
                                                                     >
                                                                         {
-                                                                            account.label
+                                                                            item.label
                                                                         }
                                                                     </ComboboxItem>
                                                                 )}
@@ -1685,32 +1696,27 @@ export default function ShowRequest() {
                                                     }
                                                 >
                                                     <Combobox
-                                                        items={uacsList.map(
-                                                            (uacs) => ({
-                                                                label: `${uacs.object_code} - ${uacs.account_title}`,
-                                                                value: `${uacs.object_code} - ${uacs.account_title}`,
-                                                            }),
-                                                        )}
+                                                        items={sortedUacsList}
+                                                        filter={filterUacs}
+                                                        itemToStringLabel={(
+                                                            uacs,
+                                                        ) =>
+                                                            `${uacs.uacs_object_code} - ${uacs.account_title}`
+                                                        }
                                                         value={
-                                                            uacsList.find(
+                                                            sortedUacsList.find(
                                                                 (uacs) =>
                                                                     String(
                                                                         uacs.id,
                                                                     ) ===
                                                                     staffInputData.uacs_id,
-                                                            )
-                                                                ? `${uacsList.find((uacs) => String(uacs.id) === staffInputData.uacs_id)?.object_code} - ${uacsList.find((uacs) => String(uacs.id) === staffInputData.uacs_id)?.account_title}`
-                                                                : ''
+                                                            ) ?? null
                                                         }
                                                         onValueChange={(
                                                             value,
                                                         ) => {
                                                             const selected =
-                                                                uacsList.find(
-                                                                    (uacs) =>
-                                                                        `${uacs.object_code} - ${uacs.account_title}` ===
-                                                                        value,
-                                                                );
+                                                                value as UacsProps | null;
                                                             setStaffInputData(
                                                                 'uacs_id',
                                                                 selected
@@ -1736,14 +1742,18 @@ export default function ShowRequest() {
                                                                 {(uacs) => (
                                                                     <ComboboxItem
                                                                         key={
-                                                                            uacs.value
+                                                                            uacs.id
                                                                         }
                                                                         value={
-                                                                            uacs.value
+                                                                            uacs
                                                                         }
                                                                     >
                                                                         {
-                                                                            uacs.label
+                                                                            uacs.uacs_object_code
+                                                                        }{' '}
+                                                                        -{' '}
+                                                                        {
+                                                                            uacs.account_title
                                                                         }
                                                                     </ComboboxItem>
                                                                 )}
@@ -1766,7 +1776,7 @@ export default function ShowRequest() {
                                                             },
                                                             {
                                                                 label: 'Processed',
-                                                                value: 'processed',
+                                                                value: 'approved',
                                                             },
                                                             {
                                                                 label: 'Cancelled',
@@ -1803,7 +1813,7 @@ export default function ShowRequest() {
                                                                     },
                                                                     {
                                                                         label: 'Processed',
-                                                                        value: 'processed',
+                                                                        value: 'approved',
                                                                     },
                                                                     {
                                                                         label: 'Cancelled',
@@ -1960,7 +1970,7 @@ export default function ShowRequest() {
                                                     value={
                                                         formInput.staff_input
                                                             .uacs
-                                                            ? `${formInput.staff_input.uacs.object_code} - ${formInput.staff_input.uacs.account_title}`
+                                                            ? `${formInput.staff_input.uacs.uacs_object_code} - ${formInput.staff_input.uacs.account_title}`
                                                             : 'N/A'
                                                     }
                                                     valueClass="text-black-400"
@@ -2201,26 +2211,21 @@ export default function ShowRequest() {
                                                 </span>
                                             </label>
                                             <Combobox
-                                                items={uacsList.map((uacs) => ({
-                                                    label: `${uacs.object_code} - ${uacs.account_title}`,
-                                                    value: `${uacs.object_code} - ${uacs.account_title}`,
-                                                }))}
+                                                items={sortedUacsList}
+                                                filter={filterUacs}
+                                                itemToStringLabel={(uacs) =>
+                                                    `${uacs.uacs_object_code} - ${uacs.account_title}`
+                                                }
                                                 value={
-                                                    uacsList.find(
+                                                    sortedUacsList.find(
                                                         (uacs) =>
                                                             String(uacs.id) ===
                                                             processData.uacs_id,
-                                                    )
-                                                        ? `${uacsList.find((uacs) => String(uacs.id) === processData.uacs_id)?.object_code} - ${uacsList.find((uacs) => String(uacs.id) === processData.uacs_id)?.account_title}`
-                                                        : ''
+                                                    ) ?? null
                                                 }
                                                 onValueChange={(value) => {
                                                     const selected =
-                                                        uacsList.find(
-                                                            (uacs) =>
-                                                                `${uacs.object_code} - ${uacs.account_title}` ===
-                                                                value,
-                                                        );
+                                                        value as UacsProps | null;
                                                     setProcessData(
                                                         'uacs_id',
                                                         selected
@@ -2245,12 +2250,16 @@ export default function ShowRequest() {
                                                     <ComboboxList>
                                                         {(uacs) => (
                                                             <ComboboxItem
-                                                                key={uacs.value}
-                                                                value={
-                                                                    uacs.value
-                                                                }
+                                                                key={uacs.id}
+                                                                value={uacs}
                                                             >
-                                                                {uacs.label}
+                                                                {
+                                                                    uacs.uacs_object_code
+                                                                }{' '}
+                                                                -{' '}
+                                                                {
+                                                                    uacs.account_title
+                                                                }
                                                             </ComboboxItem>
                                                         )}
                                                     </ComboboxList>
@@ -2278,7 +2287,7 @@ export default function ShowRequest() {
                                                     },
                                                     {
                                                         label: 'Processed',
-                                                        value: 'processed',
+                                                        value: 'approved',
                                                     },
                                                     {
                                                         label: 'Cancelled',
@@ -2310,7 +2319,7 @@ export default function ShowRequest() {
                                                             },
                                                             {
                                                                 label: 'Processed',
-                                                                value: 'processed',
+                                                                value: 'approved',
                                                             },
                                                             {
                                                                 label: 'Cancelled',
