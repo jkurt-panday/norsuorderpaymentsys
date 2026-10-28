@@ -21,6 +21,7 @@ import {
     CheckSquare,
     Square,
     Calendar as CalendarIcon,
+    MoreHorizontal,
 } from 'lucide-react';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import StudentBalanceDrawer from './StudentBalanceDrawer';
@@ -50,6 +51,13 @@ import {
     CardDescription,
     CardFooter,
 } from '@/components/ui/card';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
 import {
     Dialog,
     DialogContent,
@@ -1741,37 +1749,58 @@ export default function Index({
                                                         </td>
                                                     )}
                                                     <td className="py-2 pr-2 text-center whitespace-nowrap">
-                                                        <button
-                                                            onClick={(
-                                                                event,
-                                                            ) => {
-                                                                event.stopPropagation();
-                                                                router.get(
-                                                                    `/graduate-ledger/${r.id}/edit`,
-                                                                );
-                                                            }}
-                                                            className="mr-1 inline-flex items-center justify-center rounded p-1.5 text-primary transition-colors hover:bg-primary/10"
-                                                            title="Edit"
-                                                        >
-                                                            <Pencil className="h-3.5 w-3.5" />
-                                                        </button>
-                                                        <button
-                                                            onClick={(
-                                                                event,
-                                                            ) => {
-                                                                event.stopPropagation();
-                                                                setDeleteTarget(
-                                                                    {
-                                                                        id: r.id,
-                                                                        name: r.name,
-                                                                    },
-                                                                );
-                                                            }}
-                                                            className="inline-flex items-center justify-center rounded p-1.5 text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
-                                                            title="Delete"
-                                                        >
-                                                            <Trash2 className="h-3.5 w-3.5" />
-                                                        </button>
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(
+                                                                        event,
+                                                                    ) => {
+                                                                        event.stopPropagation();
+                                                                    }}
+                                                                    className="inline-flex items-center justify-center rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                                                    title="Actions"
+                                                                >
+                                                                    <MoreHorizontal className="h-4 w-4" />
+                                                                </button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent
+                                                                align="end"
+                                                                className="border-border bg-popover text-popover-foreground"
+                                                            >
+                                                                <DropdownMenuItem
+                                                                    onClick={(
+                                                                        event,
+                                                                    ) => {
+                                                                        event.stopPropagation();
+                                                                        router.get(
+                                                                            `/graduate-ledger/${r.id}/edit`,
+                                                                        );
+                                                                    }}
+                                                                    className="cursor-pointer"
+                                                                >
+                                                                    <Pencil className="mr-2 h-3.5 w-3.5" />
+                                                                    Edit
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    onClick={(
+                                                                        event,
+                                                                    ) => {
+                                                                        event.stopPropagation();
+                                                                        setDeleteTarget(
+                                                                            {
+                                                                                id: r.id,
+                                                                                name: r.name,
+                                                                            },
+                                                                        );
+                                                                    }}
+                                                                    className="cursor-pointer text-red-500 dark:text-red-400"
+                                                                >
+                                                                    <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                                                    Delete
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
                                                     </td>
                                                 </tr>
                                             ))

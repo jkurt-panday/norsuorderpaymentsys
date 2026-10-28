@@ -44,12 +44,12 @@ export default function CoursesEdit({ courses }: CoursesEditProps ) {
                 <Head title="Add Course" />
 
                 <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-slate-900">
+                    <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                         Edit Course
                     </h2>
                     <Link
                         href="/staff/courses"
-                        className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                        className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                     >
                         <ArrowLeft className="h-4 w-4" />
                         Back
@@ -65,13 +65,13 @@ export default function CoursesEdit({ courses }: CoursesEditProps ) {
                         >
                             {/* Course Code */}
                             <div className="flex flex-col gap-2">
-                                <Label className="text-sm font-medium text-slate-800">
+                                <Label className="text-sm font-medium text-slate-800 dark:text-slate-200">
                                     Course Code
                                     <span className="text-red-400">*</span>
                                 </Label>
 
                                 <Input
-                                    className="rounded-md border-slate-500 focus-visible:ring-slate-500/40"
+                                    className="rounded-md border-slate-500 focus-visible:ring-slate-500/40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                                     placeholder="ex. BSCS"
                                     value={data.course_code}
                                     onChange={(e) =>
@@ -79,7 +79,7 @@ export default function CoursesEdit({ courses }: CoursesEditProps ) {
                                     }
                                 />
 
-                                <FieldDescription className="mt-1 text-xs text-slate-400">
+                                <FieldDescription className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                                     Unique identifier for this input.
                                 </FieldDescription>
 
@@ -92,13 +92,13 @@ export default function CoursesEdit({ courses }: CoursesEditProps ) {
 
                             {/* Course Description */}
                             <div className="flex flex-col gap-2">
-                                <Label className="text-sm font-medium text-slate-800">
+                                <Label className="text-sm font-medium text-slate-800 dark:text-slate-200">
                                     Course Description
                                     <span className="text-red-400">*</span>
                                 </Label>
 
                                 <Input
-                                    className="rounded-md border-slate-500 focus-visible:ring-slate-500/40"
+                                    className="rounded-md border-slate-500 focus-visible:ring-slate-500/40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                                     placeholder="ex. BoS in Computer Science"
                                     value={data.course_desc}
                                     onChange={(e) =>
@@ -115,7 +115,7 @@ export default function CoursesEdit({ courses }: CoursesEditProps ) {
 
                             {/* Course College (Radio Group) */}
                             <div className="flex flex-col gap-3 md:col-span-2">
-                                <Label className="text-sm font-medium text-slate-800">
+                                <Label className="text-sm font-medium text-slate-800 dark:text-slate-200">
                                     College / Unit
                                     <span className="text-red-400">*</span>
                                 </Label>
@@ -131,15 +131,15 @@ export default function CoursesEdit({ courses }: CoursesEditProps ) {
                                         htmlFor="college-graduate-school"
                                         className={`flex cursor-pointer items-center gap-3 rounded-md border p-3.5 transition-colors ${
                                             data.course_college === 'Graduate School'
-                                                ? 'border-slate-800 bg-slate-50'
-                                                : 'border-slate-300 hover:bg-slate-50'
+                                                ? 'border-slate-800 bg-slate-50 dark:border-slate-600 dark:bg-slate-700'
+                                                : 'border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800'
                                         }`}
                                     >
                                         <RadioGroupItem
                                             value="Graduate School"
                                             id="college-graduate-school"
                                         />
-                                        <span className="text-sm font-medium text-slate-800">
+                                        <span className="text-sm font-medium text-slate-800 dark:text-slate-200">
                                             Graduate School
                                         </span>
                                     </label>
@@ -148,15 +148,15 @@ export default function CoursesEdit({ courses }: CoursesEditProps ) {
                                         htmlFor="college-school-of-law"
                                         className={`flex cursor-pointer items-center gap-3 rounded-md border p-3.5 transition-colors ${
                                             data.course_college === 'School of Law'
-                                                ? 'border-slate-800 bg-slate-50'
-                                                : 'border-slate-300 hover:bg-slate-50'
+                                                ? 'border-slate-800 bg-slate-50 dark:border-slate-600 dark:bg-slate-700'
+                                                : 'border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800'
                                         }`}
                                     >
                                         <RadioGroupItem
                                             value="School of Law"
                                             id="college-school-of-law"
                                         />
-                                        <span className="text-sm font-medium text-slate-800">
+                                        <span className="text-sm font-medium text-slate-800 dark:text-slate-200">
                                             School of Law
                                         </span>
                                     </label>
@@ -177,7 +177,7 @@ export default function CoursesEdit({ courses }: CoursesEditProps ) {
                                     <Button
                                         type="submit"
                                         disabled={processing}
-                                        className="rounded-md bg-blue-600 text-white hover:bg-blue-400"
+                                        className="rounded-md bg-blue-600 text-white hover:bg-blue-400 dark:bg-blue-500 dark:hover:bg-blue-600"
                                     >
                                         <Save className="h-4 w-4" />
 

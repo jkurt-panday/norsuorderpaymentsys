@@ -4,7 +4,6 @@ import { Mail, User, ClipboardList, FileText, Home, GraduationCap, Plus } from '
 import { useState, useMemo, useEffect } from 'react';
 import AddCollegeOfficeModal from '@/components/AddCollegeOfficeModal';
 import { FileUpload } from '@/components/application/file-upload/file-upload-base';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -277,7 +276,6 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
     return (
         <>
             <Head title="Order of Payment Form" />
-            <ThemeToggle className="fixed top-4 right-4 z-50 rounded-full shadow-md bg-card/80 dark:bg-slate-900/80 backdrop-blur" />
             <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-300 to-white px-6 py-12">
                 <div className="mx-auto max-w-4xl">
                     <div className="mb-6 rounded-2xl border border-blue-100 bg-card px-8 py-8 text-center shadow-md">

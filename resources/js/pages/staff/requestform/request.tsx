@@ -795,7 +795,7 @@ clearTimeout(pollTimeoutId);
 
                         {/* Recipient selection dropdown */}
                         <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-slate-700">
+                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                                 Whom do you want to send email to?
                             </label>
                             <Select
@@ -806,7 +806,7 @@ clearTimeout(pollTimeoutId);
                                     }
                                 }}
                             >
-                                <SelectTrigger className="h-10 w-full rounded-lg border-slate-200 bg-white shadow-sm">
+                                <SelectTrigger className="h-10 w-full rounded-lg border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-[#101D31]">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -1196,7 +1196,7 @@ return true;
 
                         {/* Subject + Note */}
                         <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-slate-700">
+                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                                 Subject (optional)
                             </label>
                             <Input
@@ -1207,7 +1207,7 @@ return true;
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-slate-700">
+                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                                 Note (optional)
                             </label>
                             <Textarea
