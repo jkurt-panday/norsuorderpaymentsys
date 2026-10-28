@@ -64,7 +64,7 @@ export default function AuthorizedOfficialIndex({
         {
             header: 'Name',
             sortable: 'name',
-            width: '240px',
+            width: '320px',
             render: (row) => (
                 <span className="block font-medium text-foreground">
                     {row.name}
@@ -125,7 +125,7 @@ export default function AuthorizedOfficialIndex({
             columns={columns}
             resource={authorizedOfficials}
             resourceKey="authorizedOfficials"
-            pollInterval={15000}
+            pollInterval={300000}
             editHref={(row) => edit(row.id)}
             deleteUrl={(id) => destroy(id).url}
             emptyIcon={Users}

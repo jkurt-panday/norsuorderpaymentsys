@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Label, Pie, PieChart } from 'recharts';
-import { buildCategoryChartData  } from './types';
-import type {CategoryDatum} from './types';
+import { buildCategoryChartData } from './types';
+import type { CategoryDatum } from './types';
 import {
     Card,
     CardContent,
@@ -65,7 +65,7 @@ export function DonutChartCard({
                     </CardDescription>
                 )}
             </CardHeader>
-            <CardContent className="flex-1 pb-0">
+            <CardContent className="flex min-h-[320px] flex-1 items-center justify-center pb-0">
                 {data.length === 0 ? (
                     <div
                         className={`flex ${size} items-center justify-center text-sm text-muted-foreground`}
@@ -75,9 +75,9 @@ export function DonutChartCard({
                 ) : (
                     <ChartContainer
                         config={config}
-                        className={`mx-auto aspect-square ${size}`}
+                        className={`mx-auto aspect-square h-full w-full ${size}`}
                     >
-                        <PieChart>
+                        <PieChart width={320} height={320}>
                             <ChartTooltip
                                 cursor={false}
                                 content={
@@ -96,20 +96,40 @@ export function DonutChartCard({
                                 strokeWidth={5}
                             >
                                 <Label
-                                  content={({ viewBox }) => {
-                                    if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                                      return (
-                                        <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle">
-                                          {/*<tspan x={viewBox.cx} y={(viewBox.cy ?? 0) - 25} className="fill-foreground text-2xl font-bold">
-                                            {total.toLocaleString()}
-                                          </tspan>
-                                          <tspan x={viewBox.cx} y={(viewBox.cy ?? 0) + 1} className="fill-muted-foreground text-xs">
-                                            {centerLabel}
-                                          </tspan>*/}
-                                        </text>
-                                      )
-                                    }
-                                  }}
+                                    content={({ viewBox }) => {
+                                        if (
+                                            viewBox &&
+                                            'cx' in viewBox &&
+                                            'cy' in viewBox
+                                        ) {
+                                            return (
+                                                <text
+                                                    x={viewBox.cx}
+                                                    y={viewBox.cy}
+                                                    textAnchor="middle"
+                                                    dominantBaseline="middle"
+                                                >
+                                                    {/* do not modify this unless told to */}
+                                                    {/* <tspan
+                                                        x={viewBox.cx}
+                                                        dy="-0.1em"
+                                                        className="fill-foreground text-2xl font-bold"
+                                                    >
+                                                        {total.toLocaleString()}
+                                                    </tspan>
+                                                    <tspan
+                                                        x={viewBox.cx}
+                                                        dy="1.6em"
+                                                        className="fill-muted-foreground text-xs"
+                                                    >
+                                                        {centerLabel}
+                                                    </tspan> */}
+                                                </text>
+                                            );
+                                        }
+
+                                        return null;
+                                    }}
                                 />
                             </Pie>
                             {showLegend && (

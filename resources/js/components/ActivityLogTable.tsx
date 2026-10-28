@@ -28,7 +28,9 @@ import {
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
+    SelectLabel,
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
@@ -103,32 +105,38 @@ const EVENT_UI: Record<
     created: {
         label: 'Created',
         icon: Plus,
-        badgeClass: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border dark:border-emerald-800/40',
+        badgeClass:
+            'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border dark:border-emerald-800/40',
     },
     updated: {
         label: 'Updated',
         icon: Pencil,
-        badgeClass: 'bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-400 dark:border dark:border-amber-800/40',
+        badgeClass:
+            'bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-400 dark:border dark:border-amber-800/40',
     },
     deleted: {
         label: 'Deleted',
         icon: Trash2,
-        badgeClass: 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 dark:border dark:border-rose-800/40',
+        badgeClass:
+            'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 dark:border dark:border-rose-800/40',
     },
     deactivated: {
         label: 'Deactivated',
         icon: Trash2,
-        badgeClass: 'bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-400 dark:border dark:border-orange-800/40',
+        badgeClass:
+            'bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-400 dark:border dark:border-orange-800/40',
     },
     reactivated: {
         label: 'Reactivated',
         icon: RotateCcw,
-        badgeClass: 'bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-400 dark:border dark:border-teal-800/40',
+        badgeClass:
+            'bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-400 dark:border dark:border-teal-800/40',
     },
     processed: {
         label: 'Processed',
         icon: CheckCircle2,
-        badgeClass: 'bg-blue-100 text-blue-800 dark:bg-sky-950/60 dark:text-sky-400 dark:border dark:border-sky-800/40',
+        badgeClass:
+            'bg-blue-100 text-blue-800 dark:bg-sky-950/60 dark:text-sky-400 dark:border dark:border-sky-800/40',
     },
 };
 
@@ -136,8 +144,6 @@ const ACTION_OPTIONS = [
     { value: 'created', label: 'Created' },
     { value: 'updated', label: 'Updated' },
     { value: 'deleted', label: 'Deleted' },
-    { value: 'deactivated', label: 'Deactivated' },
-    { value: 'reactivated', label: 'Reactivated' },
     { value: 'processed', label: 'Processed' },
 ];
 
@@ -146,7 +152,8 @@ function getEventUi(event: string) {
         EVENT_UI[event] ?? {
             label: event,
             icon: Activity,
-            badgeClass: 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40',
+            badgeClass:
+                'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40',
         }
     );
 }
@@ -247,14 +254,13 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
     // 5 seconds. This is a background Inertia visit (no full page reload) and
     // preserves the current search/sort/page URL, so filters stay intact.
     const { start, stop } = usePoll(
-        5000,
+        60000,
         { only: ['activityLogs'] },
         { autoStart: false },
     );
 
     useEffect(() => {
         start();
-
         return () => stop();
     }, [start, stop]);
 
@@ -315,15 +321,17 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
     };
 
     const handleActionChange = (value: string | null) => {
-        const selected = value ?? 'All Actions';
+        const selected = value ?? 'All';
         setAction(selected);
+        setSortKey('');
+        setSortDir('');
         navigateWithParams({
             activity_search: search.trim() || undefined,
             activity_action: selected === 'All' ? undefined : selected,
             date_from: dateFrom || undefined,
             date_to: dateTo || undefined,
-            sort: sortKey || undefined,
-            direction: sortDir || undefined,
+            sort: undefined,
+            direction: undefined,
         });
     };
 
@@ -484,21 +492,68 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                         />
                     </div>
 
-                    {/* Action Filter Select */}
+                    {/* Action/Sort Filter Select */}
                     <Select
-                        value={action || 'All'}
-                        onValueChange={handleActionChange}
+                        items={[
+                            { label: 'All actions', value: 'All' },
+                            ...ACTION_OPTIONS,
+                            { label: 'Oldest first', value: 'Oldest' },
+                            { label: 'Newest first', value: 'Newest' },
+                        ]}
+                        value={
+                            action || sortKey
+                                ? sortKey === 'created_at'
+                                    ? sortDir === 'asc'
+                                        ? 'Oldest'
+                                        : 'Newest'
+                                    : action || 'All'
+                                : action || 'All'
+                        }
+                        onValueChange={(v) => {
+                            if (v === 'Oldest' || v === 'Newest') {
+                                navigateWithParams({
+                                    activity_search: search.trim() || undefined,
+                                    activity_action:
+                                        action === 'All'
+                                            ? undefined
+                                            : action || undefined,
+                                    date_from: dateFrom || undefined,
+                                    date_to: dateTo || undefined,
+                                    sort: 'created_at',
+                                    direction: v === 'Oldest' ? 'asc' : 'desc',
+                                });
+                                setSortKey('created_at');
+                                setSortDir(v === 'Oldest' ? 'asc' : 'desc');
+                                return;
+                            }
+                            handleActionChange(v);
+                        }}
                     >
-                        <SelectTrigger className="h-9 w-full text-xs sm:w-36">
+                        <SelectTrigger className="h-9! w-full text-xs sm:w-40">
                             <SelectValue placeholder="All actions" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="All">All actions</SelectItem>
-                            {ACTION_OPTIONS.map((opt) => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                    {opt.label}
+                            <SelectGroup>
+                                <SelectLabel>Activity filter</SelectLabel>
+                                <SelectItem value="All">All actions</SelectItem>
+                                {ACTION_OPTIONS.map((opt) => (
+                                    <SelectItem
+                                        key={opt.value}
+                                        value={opt.value}
+                                    >
+                                        {opt.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectGroup>
+                            <SelectGroup>
+                                <SelectLabel>Sort by date</SelectLabel>
+                                <SelectItem value="Oldest">
+                                    Oldest first
                                 </SelectItem>
-                            ))}
+                                <SelectItem value="Newest">
+                                    Newest first
+                                </SelectItem>
+                            </SelectGroup>
                         </SelectContent>
                     </Select>
 
@@ -613,7 +668,10 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                 const actorRole = log.actor_role ?? '—';
 
                                 return (
-                                    <TableRow key={log.id} className="border-b border-border hover:bg-muted/50">
+                                    <TableRow
+                                        key={log.id}
+                                        className="border-b border-border hover:bg-muted/50"
+                                    >
                                         <TableCell className="pl-6">
                                             <Badge
                                                 variant="secondary"
@@ -753,7 +811,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                         />
                                         <PopoverContent
                                             align="center"
-                                            className="w-48 space-y-2 p-2 border-border bg-popover"
+                                            className="w-48 space-y-2 border-border bg-popover p-2"
                                         >
                                             <form
                                                 onSubmit={(e) => {

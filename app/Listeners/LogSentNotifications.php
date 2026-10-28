@@ -25,7 +25,20 @@ class LogSentNotifications
 
         Cache::put($dedupKey, true, 5);
 
-        $actor = Auth::guard('web')->user();
+        $actor = app()->bound('email.actor')
+            ? app('email.actor')
+            : Auth::guard('web')->user();
+
+        if (! $actor) {
+            $cached = Cache::get('email_actor:'.md5((string) $recipient.'|'.$notificationClass));
+            if ($cached) {
+                $actor = (object) [
+                    'id' => $cached['id'],
+                    'name' => $cached['name'],
+                    'role' => $cached['role'],
+                ];
+            }
+        }
 
         ActivityLog::create([
             'actor_id' => $actor?->getAuthIdentifier(),

@@ -8,7 +8,24 @@ import {
     UserPlus,
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import {
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+} from '@/components/ui/combobox';
 import { DatePicker } from '@/components/ui/date-picker';
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import {
     Dialog,
     DialogContent,
@@ -231,7 +248,9 @@ const ReadOnlyRow = ({
     ) : (
         <p
             className={`min-w-0 flex-1 text-sm ${valueClass} ${
-                shouldTruncate ? 'truncate' : 'wrap-break-word whitespace-pre-wrap'
+                shouldTruncate
+                    ? 'truncate'
+                    : 'wrap-break-word whitespace-pre-wrap'
             }`}
             title={shouldTruncate ? stringValue : undefined}
         >
@@ -806,8 +825,8 @@ export default function ShowRequest() {
             <div className="mx-auto sm:max-w-6xl">
                 <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
-                        <h2 className="text-2xl font-bold text-foreground">
-                            Request Details
+                        <h2 className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-2xl! font-black tracking-tight text-transparent sm:text-4xl">
+                            Request Details: {formInput.reference_number}
                         </h2>
                         <p className="text-sm text-muted-foreground">
                             Reference:{' '}
@@ -1107,6 +1126,7 @@ export default function ShowRequest() {
                                             )}
                                         </div>
 
+                                        {/* payment option select */}
                                         <div className="mb-6">
                                             <label className="mb-1 block text-sm font-medium text-foreground">
                                                 Payment Option{' '}
@@ -1116,44 +1136,71 @@ export default function ShowRequest() {
                                             </label>
                                             {!isAddingPaymentOption ? (
                                                 <div className="flex gap-2">
-                                                    <select
-                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                            detailsErrors.payment_detail_option_id
-                                                                ? 'border-rose-400'
-                                                                : 'border-border'
-                                                        }`}
+                                                    <Combobox
+                                                        items={paymentOptions}
                                                         value={
-                                                            detailsData.payment_detail_option_id
+                                                            paymentOptions.find(
+                                                                (option) =>
+                                                                    String(
+                                                                        option.id,
+                                                                    ) ===
+                                                                    detailsData.payment_detail_option_id,
+                                                            )?.payment_desc ??
+                                                            ''
                                                         }
-                                                        onChange={(e) =>
+                                                        onValueChange={(
+                                                            value,
+                                                        ) => {
+                                                            const selected =
+                                                                paymentOptions.find(
+                                                                    (option) =>
+                                                                        option.payment_desc ===
+                                                                        value,
+                                                                );
                                                             setDetailsData(
                                                                 'payment_detail_option_id',
-                                                                e.target.value,
-                                                            )
-                                                        }
-                                                        required
+                                                                selected
+                                                                    ? String(
+                                                                          selected.id,
+                                                                      )
+                                                                    : '',
+                                                            );
+                                                        }}
                                                     >
-                                                        <option value="">
-                                                            Select Payment
-                                                            Option
-                                                        </option>
-                                                        {paymentOptions.map(
-                                                            (option) => (
-                                                                <option
-                                                                    key={
-                                                                        option.id
-                                                                    }
-                                                                    value={
-                                                                        option.id
-                                                                    }
-                                                                >
-                                                                    {
-                                                                        option.payment_desc
-                                                                    }
-                                                                </option>
-                                                            ),
-                                                        )}
-                                                    </select>
+                                                        <ComboboxInput
+                                                            placeholder="Select Payment Option"
+                                                            className={`h-9! w-full rounded-xl border bg-background px-4 py-2 text-sm text-foreground outline-none ${
+                                                                detailsErrors.payment_detail_option_id
+                                                                    ? 'border-rose-400'
+                                                                    : 'border-border'
+                                                            }`}
+                                                            showClear={
+                                                                !!detailsData.payment_detail_option_id
+                                                            }
+                                                        />
+                                                        <ComboboxContent>
+                                                            <ComboboxEmpty>
+                                                                No payment
+                                                                options found.
+                                                            </ComboboxEmpty>
+                                                            <ComboboxList>
+                                                                {(option) => (
+                                                                    <ComboboxItem
+                                                                        key={
+                                                                            option.id
+                                                                        }
+                                                                        value={
+                                                                            option.payment_desc
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            option.payment_desc
+                                                                        }
+                                                                    </ComboboxItem>
+                                                                )}
+                                                            </ComboboxList>
+                                                        </ComboboxContent>
+                                                    </Combobox>
                                                     <button
                                                         type="button"
                                                         onClick={() =>
@@ -1161,7 +1208,7 @@ export default function ShowRequest() {
                                                                 true,
                                                             )
                                                         }
-                                                        className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+                                                        className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground text-white transition-colors hover:bg-primary/90"
                                                     >
                                                         Add
                                                     </button>
@@ -1194,7 +1241,7 @@ export default function ShowRequest() {
                                                                 false,
                                                             );
                                                         }}
-                                                        className="inline-flex items-center justify-center rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+                                                        className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground text-white transition-colors hover:bg-primary/90"
                                                     >
                                                         Close
                                                     </button>
@@ -1427,7 +1474,7 @@ export default function ShowRequest() {
                                                         ? 'Assign an academic term before processing.'
                                                         : undefined
                                                 }
-                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-primary/20 text-muted-foreground"
+                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-xs font-medium text-muted-foreground text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-primary/20"
                                             >
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
@@ -1458,56 +1505,73 @@ export default function ShowRequest() {
                                                         staffInputErrors.fundcluster_id
                                                     }
                                                 >
-                                                    <select
-                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                            staffInputErrors.fundcluster_id
-                                                                ? 'border-rose-400'
-                                                                : 'border-border'
-                                                        }`}
+                                                    <Combobox
+                                                        items={bankAccounts.map(
+                                                            (account) => ({
+                                                                label: `${account.fund_cluster} - ${account.account_name} - ${account.bank_name} (${account.account_num})`,
+                                                                value: `${account.fund_cluster} - ${account.account_name} - ${account.bank_name} (${account.account_num})`,
+                                                            }),
+                                                        )}
                                                         value={
-                                                            staffInputData.fundcluster_id
+                                                            bankAccounts.find(
+                                                                (account) =>
+                                                                    String(
+                                                                        account.id,
+                                                                    ) ===
+                                                                    staffInputData.fundcluster_id,
+                                                            )
+                                                                ? `${bankAccounts.find((account) => String(account.id) === staffInputData.fundcluster_id)?.fund_cluster} - ${bankAccounts.find((account) => String(account.id) === staffInputData.fundcluster_id)?.account_name} - ${bankAccounts.find((account) => String(account.id) === staffInputData.fundcluster_id)?.bank_name} (${bankAccounts.find((account) => String(account.id) === staffInputData.fundcluster_id)?.account_num})`
+                                                                : ''
                                                         }
-                                                        onChange={(e) =>
+                                                        onValueChange={(
+                                                            value,
+                                                        ) => {
+                                                            const selected =
+                                                                bankAccounts.find(
+                                                                    (account) =>
+                                                                        `${account.fund_cluster} - ${account.account_name} - ${account.bank_name} (${account.account_num})` ===
+                                                                        value,
+                                                                );
                                                             setStaffInputData(
                                                                 'fundcluster_id',
-                                                                e.target.value,
-                                                            )
-                                                        }
-                                                        required
+                                                                selected
+                                                                    ? String(
+                                                                          selected.id,
+                                                                      )
+                                                                    : '',
+                                                            );
+                                                        }}
                                                     >
-                                                        <option value="">
-                                                            Select Bank Account
-                                                        </option>
-                                                        {bankAccounts.map(
-                                                            (account) => (
-                                                                <option
-                                                                    key={
-                                                                        account.id
-                                                                    }
-                                                                    value={
-                                                                        account.id
-                                                                    }
-                                                                >
-                                                                    {
-                                                                        account.fund_cluster
-                                                                    }{' '}
-                                                                    -{' '}
-                                                                    {
-                                                                        account.account_name
-                                                                    }{' '}
-                                                                    -{' '}
-                                                                    {
-                                                                        account.bank_name
-                                                                    }{' '}
-                                                                    (
-                                                                    {
-                                                                        account.account_num
-                                                                    }
-                                                                    )
-                                                                </option>
-                                                            ),
-                                                        )}
-                                                    </select>
+                                                        <ComboboxInput
+                                                            placeholder="Select Bank Account"
+                                                            className={`h-9! rounded-xl border bg-background px-4 py-2 text-sm text-foreground outline-none not-only-of-type:w-full ${staffInputErrors.fundcluster_id ? 'border-rose-400' : 'border-border'}`}
+                                                            showClear={
+                                                                !!staffInputData.fundcluster_id
+                                                            }
+                                                        />
+                                                        <ComboboxContent>
+                                                            <ComboboxEmpty>
+                                                                No bank accounts
+                                                                found.
+                                                            </ComboboxEmpty>
+                                                            <ComboboxList>
+                                                                {(account) => (
+                                                                    <ComboboxItem
+                                                                        key={
+                                                                            account.value
+                                                                        }
+                                                                        value={
+                                                                            account.value
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            account.label
+                                                                        }
+                                                                    </ComboboxItem>
+                                                                )}
+                                                            </ComboboxList>
+                                                        </ComboboxContent>
+                                                    </Combobox>
                                                 </FormField>
 
                                                 <FormField
@@ -1516,43 +1580,75 @@ export default function ShowRequest() {
                                                         staffInputErrors.ref_document_id
                                                     }
                                                 >
-                                                    <select
-                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                            staffInputErrors.ref_document_id
-                                                                ? 'border-rose-400'
-                                                                : 'border-border'
-                                                        }`}
+                                                    <Combobox
+                                                        items={supportingDocuments.map(
+                                                            (document) => ({
+                                                                label: document.original_filename,
+                                                                value: document.original_filename,
+                                                            }),
+                                                        )}
                                                         value={
-                                                            staffInputData.ref_document_id
+                                                            supportingDocuments.find(
+                                                                (document) =>
+                                                                    String(
+                                                                        document.id,
+                                                                    ) ===
+                                                                    staffInputData.ref_document_id,
+                                                            )
+                                                                ?.original_filename ??
+                                                            ''
                                                         }
-                                                        onChange={(e) =>
+                                                        onValueChange={(
+                                                            value,
+                                                        ) => {
+                                                            const selected =
+                                                                supportingDocuments.find(
+                                                                    (
+                                                                        document,
+                                                                    ) =>
+                                                                        document.original_filename ===
+                                                                        value,
+                                                                );
                                                             setStaffInputData(
                                                                 'ref_document_id',
-                                                                e.target.value,
-                                                            )
-                                                        }
+                                                                selected
+                                                                    ? String(
+                                                                          selected.id,
+                                                                      )
+                                                                    : '',
+                                                            );
+                                                        }}
                                                     >
-                                                        <option value="">
-                                                            Select Reference
-                                                            Document (Optional)
-                                                        </option>
-                                                        {supportingDocuments.map(
-                                                            (document) => (
-                                                                <option
-                                                                    key={
-                                                                        document.id
-                                                                    }
-                                                                    value={
-                                                                        document.id
-                                                                    }
-                                                                >
-                                                                    {
-                                                                        document.original_filename
-                                                                    }
-                                                                </option>
-                                                            ),
-                                                        )}
-                                                    </select>
+                                                        <ComboboxInput
+                                                            placeholder="Select Reference Document (Optional)"
+                                                            className={`h-9! w-full rounded-xl border bg-background px-4 py-2 text-sm text-foreground outline-none ${staffInputErrors.ref_document_id ? 'border-rose-400' : 'border-border'}`}
+                                                            showClear={
+                                                                !!staffInputData.ref_document_id
+                                                            }
+                                                        />
+                                                        <ComboboxContent>
+                                                            <ComboboxEmpty>
+                                                                No reference
+                                                                documents found.
+                                                            </ComboboxEmpty>
+                                                            <ComboboxList>
+                                                                {(document) => (
+                                                                    <ComboboxItem
+                                                                        key={
+                                                                            document.value
+                                                                        }
+                                                                        value={
+                                                                            document.value
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            document.label
+                                                                        }
+                                                                    </ComboboxItem>
+                                                                )}
+                                                            </ComboboxList>
+                                                        </ComboboxContent>
+                                                    </Combobox>
                                                 </FormField>
                                                 <FormField
                                                     label="Reference Date"
@@ -1588,47 +1684,72 @@ export default function ShowRequest() {
                                                         staffInputErrors.uacs_id
                                                     }
                                                 >
-                                                    <select
-                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                            staffInputErrors.uacs_id
-                                                                ? 'border-rose-400'
-                                                                : 'border-border'
-                                                        }`}
+                                                    <Combobox
+                                                        items={uacsList.map(
+                                                            (uacs) => ({
+                                                                label: `${uacs.object_code} - ${uacs.account_title}`,
+                                                                value: `${uacs.object_code} - ${uacs.account_title}`,
+                                                            }),
+                                                        )}
                                                         value={
-                                                            staffInputData.uacs_id
+                                                            uacsList.find(
+                                                                (uacs) =>
+                                                                    String(
+                                                                        uacs.id,
+                                                                    ) ===
+                                                                    staffInputData.uacs_id,
+                                                            )
+                                                                ? `${uacsList.find((uacs) => String(uacs.id) === staffInputData.uacs_id)?.object_code} - ${uacsList.find((uacs) => String(uacs.id) === staffInputData.uacs_id)?.account_title}`
+                                                                : ''
                                                         }
-                                                        onChange={(e) =>
+                                                        onValueChange={(
+                                                            value,
+                                                        ) => {
+                                                            const selected =
+                                                                uacsList.find(
+                                                                    (uacs) =>
+                                                                        `${uacs.object_code} - ${uacs.account_title}` ===
+                                                                        value,
+                                                                );
                                                             setStaffInputData(
                                                                 'uacs_id',
-                                                                e.target.value,
-                                                            )
-                                                        }
-                                                        required
+                                                                selected
+                                                                    ? String(
+                                                                          selected.id,
+                                                                      )
+                                                                    : '',
+                                                            );
+                                                        }}
                                                     >
-                                                        <option value="">
-                                                            Select UACS
-                                                        </option>
-                                                        {uacsList.map(
-                                                            (uacs) => (
-                                                                <option
-                                                                    key={
-                                                                        uacs.id
-                                                                    }
-                                                                    value={
-                                                                        uacs.id
-                                                                    }
-                                                                >
-                                                                    {
-                                                                        uacs.object_code
-                                                                    }{' '}
-                                                                    -{' '}
-                                                                    {
-                                                                        uacs.account_title
-                                                                    }
-                                                                </option>
-                                                            ),
-                                                        )}
-                                                    </select>
+                                                        <ComboboxInput
+                                                            placeholder="Select UACS"
+                                                            className={`h-9! w-full rounded-xl border bg-background px-4 py-2 text-sm text-foreground outline-none ${staffInputErrors.uacs_id ? 'border-rose-400' : 'border-border'}`}
+                                                            showClear={
+                                                                !!staffInputData.uacs_id
+                                                            }
+                                                        />
+                                                        <ComboboxContent>
+                                                            <ComboboxEmpty>
+                                                                No UACS found.
+                                                            </ComboboxEmpty>
+                                                            <ComboboxList>
+                                                                {(uacs) => (
+                                                                    <ComboboxItem
+                                                                        key={
+                                                                            uacs.value
+                                                                        }
+                                                                        value={
+                                                                            uacs.value
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            uacs.label
+                                                                        }
+                                                                    </ComboboxItem>
+                                                                )}
+                                                            </ComboboxList>
+                                                        </ComboboxContent>
+                                                    </Combobox>
                                                 </FormField>
                                                 <FormField
                                                     label="Status"
@@ -1637,34 +1758,76 @@ export default function ShowRequest() {
                                                         staffInputErrors.status
                                                     }
                                                 >
-                                                    <select
-                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                            staffInputErrors.status
-                                                                ? 'border-rose-400'
-                                                                : 'border-border'
-                                                        }`}
+                                                    <Select
+                                                        items={[
+                                                            {
+                                                                label: 'Pending',
+                                                                value: 'pending',
+                                                            },
+                                                            {
+                                                                label: 'Processed',
+                                                                value: 'processed',
+                                                            },
+                                                            {
+                                                                label: 'Cancelled',
+                                                                value: 'cancelled',
+                                                            },
+                                                        ]}
                                                         value={
                                                             staffInputData.status
                                                         }
-                                                        onChange={(e) =>
+                                                        onValueChange={(
+                                                            value,
+                                                        ) =>
                                                             setStaffInputData(
                                                                 'status',
-                                                                e.target
-                                                                    .value as StaffInput['status'],
+                                                                (value ??
+                                                                    '') as StaffInput['status'],
                                                             )
                                                         }
-                                                        required
                                                     >
-                                                        <option value="pending">
-                                                            Pending
-                                                        </option>
-                                                        <option value="processed">
-                                                            Processed
-                                                        </option>
-                                                        <option value="cancelled">
-                                                            Cancelled
-                                                        </option>
-                                                    </select>
+                                                        <SelectTrigger
+                                                            className={`h-9! w-full rounded-xl text-sm ${staffInputErrors.status ? 'border-rose-400' : 'border-border'}`}
+                                                        >
+                                                            <SelectValue placeholder="Select Status" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectGroup>
+                                                                <SelectLabel>
+                                                                    Status
+                                                                </SelectLabel>
+                                                                {[
+                                                                    {
+                                                                        label: 'Pending',
+                                                                        value: 'pending',
+                                                                    },
+                                                                    {
+                                                                        label: 'Processed',
+                                                                        value: 'processed',
+                                                                    },
+                                                                    {
+                                                                        label: 'Cancelled',
+                                                                        value: 'cancelled',
+                                                                    },
+                                                                ].map(
+                                                                    (item) => (
+                                                                        <SelectItem
+                                                                            key={
+                                                                                item.value
+                                                                            }
+                                                                            value={
+                                                                                item.value
+                                                                            }
+                                                                        >
+                                                                            {
+                                                                                item.label
+                                                                            }
+                                                                        </SelectItem>
+                                                                    ),
+                                                                )}
+                                                            </SelectGroup>
+                                                        </SelectContent>
+                                                    </Select>
                                                 </FormField>
                                                 <FormField
                                                     label="Purpose"
@@ -1862,38 +2025,68 @@ export default function ShowRequest() {
                                                     *
                                                 </span>
                                             </label>
-                                            <select
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                    processErrors.fundcluster_id
-                                                        ? 'border-rose-400'
-                                                        : 'border-border'
-                                                }`}
+                                            <Combobox
+                                                items={bankAccounts.map(
+                                                    (account) => ({
+                                                        label: `${account.fund_cluster} - ${account.account_name} - ${account.bank_name} (${account.account_num})`,
+                                                        value: `${account.fund_cluster} - ${account.account_name} - ${account.bank_name} (${account.account_num})`,
+                                                    }),
+                                                )}
                                                 value={
-                                                    processData.fundcluster_id
+                                                    bankAccounts.find(
+                                                        (account) =>
+                                                            String(
+                                                                account.id,
+                                                            ) ===
+                                                            processData.fundcluster_id,
+                                                    )
+                                                        ? `${bankAccounts.find((account) => String(account.id) === processData.fundcluster_id)?.fund_cluster} - ${bankAccounts.find((account) => String(account.id) === processData.fundcluster_id)?.account_name} - ${bankAccounts.find((account) => String(account.id) === processData.fundcluster_id)?.bank_name} (${bankAccounts.find((account) => String(account.id) === processData.fundcluster_id)?.account_num})`
+                                                        : ''
                                                 }
-                                                onChange={(e) =>
+                                                onValueChange={(value) => {
+                                                    const selected =
+                                                        bankAccounts.find(
+                                                            (account) =>
+                                                                `${account.fund_cluster} - ${account.account_name} - ${account.bank_name} (${account.account_num})` ===
+                                                                value,
+                                                        );
                                                     setProcessData(
                                                         'fundcluster_id',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                required
+                                                        selected
+                                                            ? String(
+                                                                  selected.id,
+                                                              )
+                                                            : '',
+                                                    );
+                                                }}
                                             >
-                                                <option value="">
-                                                    Select Bank Account
-                                                </option>
-                                                {bankAccounts.map((account) => (
-                                                    <option
-                                                        key={account.id}
-                                                        value={account.id}
-                                                    >
-                                                        {account.fund_cluster} -{' '}
-                                                        {account.account_name} -{' '}
-                                                        {account.bank_name} (
-                                                        {account.account_num})
-                                                    </option>
-                                                ))}
-                                            </select>
+                                                <ComboboxInput
+                                                    placeholder="Select Bank Account"
+                                                    className={`h-9! w-full rounded-xl border bg-background px-4 py-2 text-sm text-foreground outline-none ${processErrors.fundcluster_id ? 'border-rose-400' : 'border-border'}`}
+                                                    showClear={
+                                                        !!processData.fundcluster_id
+                                                    }
+                                                />
+                                                <ComboboxContent>
+                                                    <ComboboxEmpty>
+                                                        No bank accounts found.
+                                                    </ComboboxEmpty>
+                                                    <ComboboxList>
+                                                        {(account) => (
+                                                            <ComboboxItem
+                                                                key={
+                                                                    account.value
+                                                                }
+                                                                value={
+                                                                    account.value
+                                                                }
+                                                            >
+                                                                {account.label}
+                                                            </ComboboxItem>
+                                                        )}
+                                                    </ComboboxList>
+                                                </ComboboxContent>
+                                            </Combobox>
                                             {processErrors.fundcluster_id && (
                                                 <p className="mt-1 text-xs text-rose-500">
                                                     {
@@ -1907,39 +2100,67 @@ export default function ShowRequest() {
                                             <label className="mb-1 block text-sm font-medium text-foreground">
                                                 Reference Document
                                             </label>
-                                            <select
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                    processErrors.ref_document_id
-                                                        ? 'border-rose-400'
-                                                        : 'border-border'
-                                                }`}
+                                            <Combobox
+                                                items={supportingDocuments.map(
+                                                    (document) => ({
+                                                        label: document.original_filename,
+                                                        value: document.original_filename,
+                                                    }),
+                                                )}
                                                 value={
-                                                    processData.ref_document_id
+                                                    supportingDocuments.find(
+                                                        (document) =>
+                                                            String(
+                                                                document.id,
+                                                            ) ===
+                                                            processData.ref_document_id,
+                                                    )?.original_filename ?? ''
                                                 }
-                                                onChange={(e) =>
+                                                onValueChange={(value) => {
+                                                    const selected =
+                                                        supportingDocuments.find(
+                                                            (document) =>
+                                                                document.original_filename ===
+                                                                value,
+                                                        );
                                                     setProcessData(
                                                         'ref_document_id',
-                                                        e.target.value,
-                                                    )
-                                                }
+                                                        selected
+                                                            ? String(
+                                                                  selected.id,
+                                                              )
+                                                            : '',
+                                                    );
+                                                }}
                                             >
-                                                <option value="">
-                                                    Select Reference Document
-                                                    (Optional)
-                                                </option>
-                                                {supportingDocuments.map(
-                                                    (document) => (
-                                                        <option
-                                                            key={document.id}
-                                                            value={document.id}
-                                                        >
-                                                            {
-                                                                document.original_filename
-                                                            }
-                                                        </option>
-                                                    ),
-                                                )}
-                                            </select>
+                                                <ComboboxInput
+                                                    placeholder="Select Reference Document (Optional)"
+                                                    className={`h-9! w-full rounded-xl border bg-background px-4 py-2 text-sm text-foreground outline-none ${processErrors.ref_document_id ? 'border-rose-400' : 'border-border'}`}
+                                                    showClear={
+                                                        !!processData.ref_document_id
+                                                    }
+                                                />
+                                                <ComboboxContent>
+                                                    <ComboboxEmpty>
+                                                        No reference documents
+                                                        found.
+                                                    </ComboboxEmpty>
+                                                    <ComboboxList>
+                                                        {(document) => (
+                                                            <ComboboxItem
+                                                                key={
+                                                                    document.value
+                                                                }
+                                                                value={
+                                                                    document.value
+                                                                }
+                                                            >
+                                                                {document.label}
+                                                            </ComboboxItem>
+                                                        )}
+                                                    </ComboboxList>
+                                                </ComboboxContent>
+                                            </Combobox>
                                             {processErrors.ref_document_id && (
                                                 <p className="mt-1 text-xs text-rose-500">
                                                     {
@@ -1979,34 +2200,62 @@ export default function ShowRequest() {
                                                     *
                                                 </span>
                                             </label>
-                                            <select
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                    processErrors.uacs_id
-                                                        ? 'border-rose-400'
-                                                        : 'border-border'
-                                                }`}
-                                                value={processData.uacs_id}
-                                                onChange={(e) =>
+                                            <Combobox
+                                                items={uacsList.map((uacs) => ({
+                                                    label: `${uacs.object_code} - ${uacs.account_title}`,
+                                                    value: `${uacs.object_code} - ${uacs.account_title}`,
+                                                }))}
+                                                value={
+                                                    uacsList.find(
+                                                        (uacs) =>
+                                                            String(uacs.id) ===
+                                                            processData.uacs_id,
+                                                    )
+                                                        ? `${uacsList.find((uacs) => String(uacs.id) === processData.uacs_id)?.object_code} - ${uacsList.find((uacs) => String(uacs.id) === processData.uacs_id)?.account_title}`
+                                                        : ''
+                                                }
+                                                onValueChange={(value) => {
+                                                    const selected =
+                                                        uacsList.find(
+                                                            (uacs) =>
+                                                                `${uacs.object_code} - ${uacs.account_title}` ===
+                                                                value,
+                                                        );
                                                     setProcessData(
                                                         'uacs_id',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                required
+                                                        selected
+                                                            ? String(
+                                                                  selected.id,
+                                                              )
+                                                            : '',
+                                                    );
+                                                }}
                                             >
-                                                <option value="">
-                                                    Select UACS
-                                                </option>
-                                                {uacsList.map((uacs) => (
-                                                    <option
-                                                        key={uacs.id}
-                                                        value={uacs.id}
-                                                    >
-                                                        {uacs.object_code} -{' '}
-                                                        {uacs.account_title}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                                <ComboboxInput
+                                                    placeholder="Select UACS"
+                                                    className={`h-9! w-full rounded-xl border bg-background px-4 py-2 text-sm text-foreground outline-none ${processErrors.uacs_id ? 'border-rose-400' : 'border-border'}`}
+                                                    showClear={
+                                                        !!processData.uacs_id
+                                                    }
+                                                />
+                                                <ComboboxContent>
+                                                    <ComboboxEmpty>
+                                                        No UACS found.
+                                                    </ComboboxEmpty>
+                                                    <ComboboxList>
+                                                        {(uacs) => (
+                                                            <ComboboxItem
+                                                                key={uacs.value}
+                                                                value={
+                                                                    uacs.value
+                                                                }
+                                                            >
+                                                                {uacs.label}
+                                                            </ComboboxItem>
+                                                        )}
+                                                    </ComboboxList>
+                                                </ComboboxContent>
+                                            </Combobox>
                                             {processErrors.uacs_id && (
                                                 <p className="mt-1 text-xs text-rose-500">
                                                     {processErrors.uacs_id}
@@ -2021,34 +2270,65 @@ export default function ShowRequest() {
                                                     *
                                                 </span>
                                             </label>
-                                            <select
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                    processErrors.status
-                                                        ? 'border-rose-400'
-                                                        : 'border-border'
-                                                }`}
+                                            <Select
+                                                items={[
+                                                    {
+                                                        label: 'Pending',
+                                                        value: 'pending',
+                                                    },
+                                                    {
+                                                        label: 'Processed',
+                                                        value: 'processed',
+                                                    },
+                                                    {
+                                                        label: 'Cancelled',
+                                                        value: 'cancelled',
+                                                    },
+                                                ]}
                                                 value={processData.status}
-                                                onChange={(e) =>
+                                                onValueChange={(value) =>
                                                     setProcessData(
                                                         'status',
-                                                        e.target.value,
+                                                        value ?? '',
                                                     )
                                                 }
-                                                required
                                             >
-                                                <option value="">
-                                                    Select Status
-                                                </option>
-                                                <option value="pending">
-                                                    Pending
-                                                </option>
-                                                <option value="processed">
-                                                    Processed
-                                                </option>
-                                                <option value="cancelled">
-                                                    Cancelled
-                                                </option>
-                                            </select>
+                                                <SelectTrigger
+                                                    className={`h-9 w-full rounded-xl text-sm ${processErrors.status ? 'border-rose-400' : 'border-border'}`}
+                                                >
+                                                    <SelectValue placeholder="Select Status" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        <SelectLabel>
+                                                            Status
+                                                        </SelectLabel>
+                                                        {[
+                                                            {
+                                                                label: 'Pending',
+                                                                value: 'pending',
+                                                            },
+                                                            {
+                                                                label: 'Processed',
+                                                                value: 'processed',
+                                                            },
+                                                            {
+                                                                label: 'Cancelled',
+                                                                value: 'cancelled',
+                                                            },
+                                                        ].map((item) => (
+                                                            <SelectItem
+                                                                key={item.value}
+                                                                value={
+                                                                    item.value
+                                                                }
+                                                            >
+                                                                {item.label}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
                                             {processErrors.status && (
                                                 <p className="mt-1 text-xs text-rose-500">
                                                     {processErrors.status}
@@ -3067,7 +3347,7 @@ export default function ShowRequest() {
 
             {/* Delete Document Confirmation Modal */}
             {deleteTargetId !== null && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary text-primary-foreground/40 px-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary px-4 text-primary-foreground/40">
                     <div className="w-full max-w-sm rounded-3xl bg-card p-6 shadow-xl">
                         <h3 className="text-lg font-semibold text-foreground">
                             Delete Document

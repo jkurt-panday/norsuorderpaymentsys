@@ -33,6 +33,14 @@ import PublicLayout from '@/pages/layouts/PublicLayout';
 const enlarge =
     'h-12 rounded-xl border-border bg-card px-4 text-base shadow-sm transition-all duration-200';
 
+const toSentenceCase = (value: string): string => {
+    const normalized = value.toLowerCase();
+
+    return normalized.replace(/(^\s*[a-z])|([.!?]\s+[a-z])/g, (match) =>
+        match.toUpperCase(),
+    );
+};
+
 // Generates array of academic years: ["2026-2027", "2025-2026", "2024-2025", ...]
 export const SCHOOL_YEAR_OPTIONS = (() => {
     const today = new Date();
@@ -273,10 +281,10 @@ export default function AssessmentForm({ courses }: Props) {
                                                     placeholder="Juan"
                                                     value={data.first_name}
                                                     onChange={(e) =>
-                                                        setData(
-                                                            'first_name',
-                                                            e.target.value,
-                                                        )
+setData(
+                                                             'first_name',
+                                                             toSentenceCase(e.target.value),
+                                                         )
                                                     }
                                                 />
                                                 {errors.first_name && (
@@ -302,10 +310,10 @@ export default function AssessmentForm({ courses }: Props) {
                                                     placeholder="Carlos"
                                                     value={data.middle_name}
                                                     onChange={(e) =>
-                                                        setData(
-                                                            'middle_name',
-                                                            e.target.value,
-                                                        )
+setData(
+                                                             'middle_name',
+                                                             toSentenceCase(e.target.value),
+                                                         )
                                                     }
                                                 />
                                                 {errors.middle_name && (
@@ -331,10 +339,10 @@ export default function AssessmentForm({ courses }: Props) {
                                                     placeholder="Dela Cruz"
                                                     value={data.last_name}
                                                     onChange={(e) =>
-                                                        setData(
-                                                            'last_name',
-                                                            e.target.value,
-                                                        )
+setData(
+                                                             'last_name',
+                                                             toSentenceCase(e.target.value),
+                                                         )
                                                     }
                                                 />
                                                 {errors.last_name && (
@@ -460,10 +468,10 @@ export default function AssessmentForm({ courses }: Props) {
                                                 placeholder="Kagawasan Ave. Dumaguete City"
                                                 value={data.address}
                                                 onChange={(e) =>
-                                                    setData(
-                                                        'address',
-                                                        e.target.value,
-                                                    )
+setData(
+                                                     'address',
+                                                     toSentenceCase(e.target.value),
+                                                 )
                                                 }
                                             />
                                             {errors.address && (

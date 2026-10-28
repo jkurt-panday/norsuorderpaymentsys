@@ -44,7 +44,7 @@ export default function CoursesEdit({ courses }: CoursesEditProps ) {
                 <Head title="Add Course" />
 
                 <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    <h2 className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-2xl! font-black tracking-tight text-transparent sm:text-4xl">
                         Edit Course
                     </h2>
                     <Link

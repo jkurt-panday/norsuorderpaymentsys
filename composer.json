@@ -9,7 +9,7 @@
     ],
     "license": "MIT",
     "require": {
-        "php": "^8.3",
+        "php": "^8.4",
         "barryvdh/laravel-dompdf": "*",
         "blade-ui-kit/blade-icons": "^1.10",
         "inertiajs/inertia-laravel": "^3.0",
@@ -20,6 +20,7 @@
         "laravel/socialite": "^5.31",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.21",
+        "league/flysystem-aws-s3-v3": "^3.35",
         "maatwebsite/excel": "*",
         "mallardduck/blade-lucide-icons": "^2.0",
         "spatie/browsershot": "5.4",

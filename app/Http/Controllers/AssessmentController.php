@@ -171,6 +171,8 @@ class AssessmentController extends Controller
             )
         );
 
+        $assessment->update(['status' => 'mailed']);
+
         return back()->with('success', 'Assessment Statement of Account emailed successfully.');
     }
 

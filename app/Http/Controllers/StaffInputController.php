@@ -120,20 +120,22 @@ class StaffInputController extends Controller
             'totalRequests' => FormInput::count(),
             'unprocessedRequests' => $unprocessedCount,
             'pendingRequests' => $statusCounts->get('pending', 0),
-            'approvedRequests' => $statusCounts->get('approved', 0),
+            'processedRequests' => $statusCounts->get('processed', 0),
+            'paidRequests' => $statusCounts->get('paid', 0),
             'cancelledRequests' => $statusCounts->get('cancelled', 0),
             'totalRequestsLastDate' => $totalRequestsLastDate,
             'unprocessedLastDate' => $unprocessedLastDate,
             'pendingLastDate' => $latestByStatus->get('pending'),
-            'approvedLastDate' => $latestByStatus->get('approved'),
+            'processedLastDate' => $latestByStatus->get('processed'),
+            'paidLastDate' => $latestByStatus->get('paid'),
             'cancelledLastDate' => $latestByStatus->get('cancelled'),
-            // Order here (Unprocessed, Pending, Approved, Cancelled) must match
-            // the pieColors array on the frontend: ['#94a3b8', '#f59e0b', '#22c55e', '#ef4444']
+            // Order here (Unprocessed, Pending, Paid, Cancelled, Processed) must match
+            // the pieColors array on the frontend.
             'statusBreakdown' => collect([
                 ['name' => 'Unprocessed', 'count' => $unprocessedCount],
             ])
                 ->concat(
-                    collect(['pending', 'approved', 'cancelled'])
+                    collect(['pending', 'processed', 'paid', 'cancelled'])
                         ->map(fn (string $status) => [
                             'name' => ucfirst($status),
                             'count' => $statusCounts->get($status, 0),
@@ -311,7 +313,11 @@ class StaffInputController extends Controller
                     ->orWhereRaw('LOWER(firstname_or_office) LIKE ?', ["%{$search}%"])
                     ->orWhereRaw('LOWER(middlename_or_project) LIKE ?', ["%{$search}%"])
                     ->orWhereRaw('LOWER(lastname_or_agency) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"]);
+                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw(
+                        "LOWER(CONCAT_WS(' ', firstname_or_office, middlename_or_project, lastname_or_agency)) LIKE ?",
+                        ["%{$search}%"],
+                    );
             });
         }
 
@@ -379,7 +385,7 @@ class StaffInputController extends Controller
                 $request->validated(),
                 [
                     'form_input_id' => $formInput->id,
-                    'status' => $request->status ?: 'processed',
+                    'status' => $request->status ?: 'approved',
                 ]
             ));
 
@@ -804,7 +810,27 @@ class StaffInputController extends Controller
             )
         );
 
-        $formInput->staffInput()->update(['emailed_at' => now()]);
+        $formInput->staffInput()->update(['emailed_at' => now(), 'email_status' => 'sent', 'email_error' => null]);
+
+        $actor = $request->user();
+        try {
+            ActivityLog::create([
+                'actor_id' => $actor?->getAuthIdentifier(),
+                'actor_name' => $actor?->name,
+                'actor_role' => $actor?->role,
+                'action' => 'email.sent',
+                'target_id' => null,
+                'subject_type' => null,
+                'subject_id' => null,
+                'description' => "Email sent to {$formInput->email} with subject \"".($validated['subject'] ?? "Order of Payment - {$formInput->reference_number}").'".',
+                'meta' => [
+                    'to' => $formInput->email,
+                    'subject' => $validated['subject'] ?? "Order of Payment - {$formInput->reference_number}",
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            \Log::debug('Failed to log single OP email activity', ['error' => $e->getMessage()]);
+        }
 
         return back()->with('success', 'Order of Payment emailed successfully.');
     }
@@ -870,12 +896,21 @@ class StaffInputController extends Controller
         }
 
         foreach ($queueIds as $formInputId) {
-            SendOrderOfPaymentEmail::dispatch(
-                $formInputId,
-                $validated['subject'] ?? null,
-                $validated['recipient_name'] ?? null,
-                $validated['note'] ?? null,
-            );
+            try {
+                SendOrderOfPaymentEmail::dispatchSync(
+                    $formInputId,
+                    $validated['subject'] ?? null,
+                    $validated['recipient_name'] ?? null,
+                    $validated['note'] ?? null,
+                    $request->user()?->id,
+                );
+            } catch (\Throwable $e) {
+                \Log::error('Failed to send OP email synchronously', ['id' => $formInputId, 'error' => $e->getMessage()]);
+                StaffInput::query()->where('form_input_id', $formInputId)->update([
+                    'email_status' => 'failed',
+                    'email_error' => \Str::limit($e->getMessage(), 500),
+                ]);
+            }
         }
 
         $messages = [count($queueIds).' email job(s) queued successfully.'];
@@ -1025,14 +1060,16 @@ class StaffInputController extends Controller
 
         // `created_at` is an unsigned unix timestamp on the database queue
         // driver, so the age check is done in PHP rather than in SQL.
+        // Only the timestamps are read here — pulling every queued job's
+        // payload on every poll gets expensive during a large bulk send.
         $rows = DB::table('jobs')
             ->whereNull('reserved_at')
             ->where('attempts', 0)
-            ->get(['payload', 'created_at']);
+            ->get(['id', 'created_at']);
 
         $cutoff = now()->subSeconds(self::QUEUE_STALL_SECONDS)->getTimestamp();
 
-        $stalled = [];
+        $stalledJobIds = [];
 
         foreach ($rows as $row) {
             $createdAt = is_numeric($row->created_at)
@@ -1043,8 +1080,20 @@ class StaffInputController extends Controller
                 continue;
             }
 
-            if (preg_match('/formInputId[^0-9]+(\d+)/', $row->payload, $matches) === 1) {
-                $stalled[(int) $matches[1]] = true;
+            $stalledJobIds[] = $row->id;
+        }
+
+        $stalled = [];
+
+        if ($stalledJobIds !== []) {
+            $payloads = DB::table('jobs')
+                ->whereIn('id', $stalledJobIds)
+                ->pluck('payload', 'id');
+
+            foreach ($payloads as $payload) {
+                if (preg_match('/formInputId[^0-9]+(\d+)/', (string) $payload, $matches) === 1) {
+                    $stalled[(int) $matches[1]] = true;
+                }
             }
         }
 

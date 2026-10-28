@@ -271,19 +271,21 @@ class AdminUserController extends Controller
             if ($activitySort === 'actor_name') {
                 $activityQuery->orderByRaw('actor_name IS NULL ASC')
                     ->orderBy('actor_name', $activityDir)
-                    ->orderBy('created_at', 'desc');
+                    ->orderBy('updated_at', 'desc');
             } elseif ($activitySort === 'subject_type') {
                 $activityQuery->orderByRaw('subject_type IS NULL ASC')
                     ->orderBy('subject_type', $activityDir)
-                    ->orderBy('created_at', 'desc');
+                    ->orderBy('updated_at', 'desc');
             } elseif ($activitySort === 'action') {
                 $activityQuery->orderBy('action', $activityDir)
-                    ->orderBy('created_at', 'desc');
+                    ->orderBy('updated_at', 'desc');
+            } elseif ($activitySort === 'created_at') {
+                $activityQuery->orderBy('updated_at', $activityDir);
             } else {
-                $activityQuery->orderBy('created_at', $activityDir);
+                $activityQuery->orderBy($activitySort === 'created_at' ? 'updated_at' : $activitySort, $activityDir);
             }
         } else {
-            $activityQuery->latest();
+            $activityQuery->latest('updated_at');
         }
 
         $activityLogs = $activityQuery

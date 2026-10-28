@@ -29,10 +29,11 @@ use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
-use PhpOffice\PhpSpreadsheet\Shared\Date;
 // use Spatie\LaravelPdf\Facades\Pdf;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 use Spatie\Browsershot\Browsershot;
 use Spatie\LaravelPdf\Facades\Pdf;
 use Spatie\LaravelPdf\PdfBuilder;
@@ -1382,20 +1383,36 @@ class LawSchoolLedgerController extends Controller
                 continue;
             }
 
-            SendLawLedgerStatementEmail::dispatch(
+            SendLawLedgerStatementEmail::dispatchSync(
                 (int) $student->id,
                 $validated['school_year'] ?? null,
-                $semester,
+                $validated['semester'] ?? ($validated['sem'] ?? null),
                 $validated['subject'] ?? null,
                 $validated['note'] ?? null,
                 $validated['exam_period'] ?? null,
                 $validated['exam_deadline'] ?? null,
             );
 
+            try {
+                $actor = auth()->user();
+                ActivityLog::create([
+                    'actor_id' => $actor?->getAuthIdentifier(),
+                    'actor_name' => $actor?->name,
+                    'actor_role' => $actor?->role,
+                    'action' => 'email.sent',
+                    'target_id' => null,
+                    'subject_type' => null,
+                    'subject_id' => null,
+                    'description' => "Email sent to {$student->email} with subject \"".($validated['subject'] ?? 'Statement of Account').'".',
+                    'meta' => ['to' => $student->email, 'subject' => $validated['subject'] ?? 'Statement of Account'],
+                ]);
+            } catch (\Throwable $e) {
+            }
+
             $sent++;
         }
 
-        return back()->with('success', "Queued SOA email for {$sent} student(s).".($skipped > 0 ? " {$skipped} student(s) skipped (no email)." : ''));
+        return back()->with('success', "Emailed SOA to {$sent} student(s).".($skipped > 0 ? " {$skipped} student(s) skipped (no email)." : ''));
     }
 
     private function normalizeStatementSemester(?string $semester): ?string
@@ -1602,7 +1619,7 @@ class LawSchoolLedgerController extends Controller
         return $studentNumber;
     }
 
-    private function spreadsheetCellValue(\PhpOffice\PhpSpreadsheet\Cell\Cell $cell): mixed
+    private function spreadsheetCellValue(Cell $cell): mixed
     {
         if (! $cell->isFormula()) {
             return $cell->getValue();
@@ -1826,6 +1843,7 @@ class LawSchoolLedgerController extends Controller
     /**
      * Applies the shared Browsershot hardening used by the Chrome-rendered
      * statements. The statement templates are styled entirely with Tailwind via
+     *
      * @vite, so they must go through Chrome - dompdf cannot parse the built
      * stylesheet and renders them unstyled.
      */
@@ -1842,31 +1860,31 @@ class LawSchoolLedgerController extends Controller
     }
 
     /** @return array<string, mixed> */
-     private function transformRecord(LawSchoolLedger $r): array
-     {
-         $entryTypeLower = strtolower(trim((string) $r->entry_type));
-         $status = (string) ($r->status ?? '');
-         $orLink = null;
+    private function transformRecord(LawSchoolLedger $r): array
+    {
+        $entryTypeLower = strtolower(trim((string) $r->entry_type));
+        $status = (string) ($r->status ?? '');
+        $orLink = null;
 
-         if ($entryTypeLower === 'payment' && filled($r->reference_number)) {
-             $staffInput = StaffInput::query()
-                 ->where('or_no', $r->reference_number)
-                 ->select('id', 'form_input_id', 'status')
-                 ->first();
+        if ($entryTypeLower === 'payment' && filled($r->reference_number)) {
+            $staffInput = StaffInput::query()
+                ->where('or_no', $r->reference_number)
+                ->select('id', 'form_input_id', 'status')
+                ->first();
 
-             if ($staffInput !== null) {
-                 $orLink = route('staff.requests.show', $staffInput->form_input_id);
+            if ($staffInput !== null) {
+                $orLink = route('staff.requests.show', $staffInput->form_input_id);
 
-                 if ($staffInput->status === 'paid') {
-                     $status = 'Paid';
-                 }
-             }
-         }
+                if ($staffInput->status === 'paid') {
+                    $status = 'Paid';
+                }
+            }
+        }
 
-         return [
-             'id' => $r->id,
-             'studentId' => $r->student_id,
-             'studentNumber' => $r->lawStudent?->student_number,
+        return [
+            'id' => $r->id,
+            'studentId' => $r->student_id,
+            'studentNumber' => $r->lawStudent?->student_number,
             'lastName' => $r->last_name,
             'firstName' => $r->first_name,
             'middleInitial' => $this->normalizeMiddleInitial($r->middle_initial),

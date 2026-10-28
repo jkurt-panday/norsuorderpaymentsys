@@ -13,7 +13,7 @@ import { flashToast } from '@/utils/flashToast';
 
 interface PaymentRequest {
     id: number;
-    status: 'processed' | 'paid' | 'cancelled';
+    status: 'approved' | 'paid' | 'cancelled';
     purpose: string | null;
     or_no: string | null;
     or_date: string | null;
@@ -49,7 +49,7 @@ const getStatusBadgeConfig = (status: PaymentRequest['status']) => {
                 label: 'Paid',
                 className: 'bg-emerald-100 text-emerald-800 border-emerald-200',
             };
-        case 'processed':
+        case 'approved':
             return {
                 label: 'Ready for payment',
                 className: 'bg-amber-100 text-amber-800 border-amber-200',
@@ -62,7 +62,8 @@ const getStatusBadgeConfig = (status: PaymentRequest['status']) => {
         default:
             return {
                 label: status,
-                className: 'bg-slate-100 text-slate-800 border-border dark:bg-slate-800 dark:text-slate-300',
+                className:
+                    'bg-slate-100 text-slate-800 border-border dark:bg-slate-800 dark:text-slate-300',
             };
     }
 };
@@ -116,7 +117,7 @@ export default function CashierRequestShow({
     const orAutoPromoted = useRef(false);
 
     const syncStatusFromOr = () => {
-        if (form.data.or_no.trim() !== '' && form.data.status === 'processed') {
+        if (form.data.or_no.trim() !== '' && form.data.status === 'approved') {
             form.setData('status', 'paid');
             orAutoPromoted.current = true;
         }
@@ -159,7 +160,7 @@ export default function CashierRequestShow({
                             <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                                 Reference number
                             </p>
-                            <h1 className="mt-1 text-2xl font-semibold text-foreground">
+                            <h1 className="mt-1 bg-[#3399FF] bg-clip-text font-['Poppins'] text-2xl! font-black tracking-tight text-transparent sm:text-4xl">
                                 {request.form_input.reference_number}
                             </h1>
                         </div>
@@ -180,7 +181,10 @@ export default function CashierRequestShow({
                                     View OP
                                     <ChevronDown className="h-3.5 w-3.5" />
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-44">
+                                <DropdownMenuContent
+                                    align="end"
+                                    className="w-44"
+                                >
                                     <DropdownMenuItem
                                         render={
                                             <a
@@ -282,7 +286,7 @@ export default function CashierRequestShow({
                                     }
                                     className="mt-1.5 w-full rounded-lg border border-border bg-card px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 >
-                                    <option value="processed">
+                                    <option value="approved">
                                         Ready for payment
                                     </option>
                                     <option value="paid">Paid</option>
@@ -369,7 +373,9 @@ function Detail({ label, value }: { label: string; value: string }) {
             <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                 {label}
             </dt>
-            <dd className="mt-1 text-sm break-words text-foreground">{value}</dd>
+            <dd className="mt-1 text-sm break-words text-foreground">
+                {value}
+            </dd>
         </div>
     );
 }

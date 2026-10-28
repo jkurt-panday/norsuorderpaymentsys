@@ -10,12 +10,10 @@ use App\Models\AcademicTerm;
 use App\Models\ActivityLog;
 use App\Models\Course;
 use App\Models\GraduateLedger;
+use App\Models\StaffInput;
 use App\Models\Student;
-use App\Services\GraduateLedgerImportClassifier;
 // use Barryvdh\DomPDF\Facade\Pdf;
-use Spatie\Browsershot\Browsershot;
-use Spatie\LaravelPdf\Facades\Pdf;
-use Spatie\LaravelPdf\PdfBuilder;
+use App\Services\GraduateLedgerImportClassifier;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -33,8 +31,9 @@ use Maatwebsite\Excel\Facades\Excel;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-
-
+use Spatie\Browsershot\Browsershot;
+use Spatie\LaravelPdf\Facades\Pdf;
+use Spatie\LaravelPdf\PdfBuilder;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
@@ -1010,10 +1009,10 @@ class GraduateLedgerController extends Controller
                 $this->configureBrowsershot($browsershot);
             })
             ->format('a4');
-            // ->setPaper('a4', 'portrait')
-            // ->setOption('defaultFont', 'DejaVu Sans')
-            // ->setOption('isHtml5ParserEnabled', true)
-            // ->setOption('isRemoteEnabled', true);
+        // ->setPaper('a4', 'portrait')
+        // ->setOption('defaultFont', 'DejaVu Sans')
+        // ->setOption('isHtml5ParserEnabled', true)
+        // ->setOption('isRemoteEnabled', true);
 
         $filename = 'Statement_of_Account_'.str_replace(['/', '\\', ' '], '_', $studentName).'.pdf';
 
@@ -1138,6 +1137,22 @@ class GraduateLedgerController extends Controller
                 )
             );
 
+            try {
+                $actor = auth()->user();
+                ActivityLog::create([
+                    'actor_id' => $actor?->getAuthIdentifier(),
+                    'actor_name' => $actor?->name,
+                    'actor_role' => $actor?->role,
+                    'action' => 'email.sent',
+                    'target_id' => null,
+                    'subject_type' => null,
+                    'subject_id' => null,
+                    'description' => "Email sent to {$student->email} with subject \"".($validated['subject'] ?? 'Statement of Account').'".',
+                    'meta' => ['to' => $student->email, 'subject' => $validated['subject'] ?? 'Statement of Account'],
+                ]);
+            } catch (\Throwable $e) {
+            }
+
             $sent++;
         }
 
@@ -1199,6 +1214,7 @@ class GraduateLedgerController extends Controller
     /**
      * Applies the shared Browsershot hardening used by the Chrome-rendered
      * statements. The statement templates are styled entirely with Tailwind via
+     *
      * @vite, so they must go through Chrome - dompdf cannot parse the built
      * stylesheet and renders them unstyled.
      */
@@ -1262,7 +1278,7 @@ class GraduateLedgerController extends Controller
         // Resolve a clickable link to the Order of Payment for payment entries
         $orLink = null;
         if ($entryTypeLower === 'payment' && filled($r->reference_number)) {
-            $staffInput = \App\Models\StaffInput::where('or_no', $r->reference_number)
+            $staffInput = StaffInput::where('or_no', $r->reference_number)
                 ->select('id', 'form_input_id')
                 ->first();
             if ($staffInput) {

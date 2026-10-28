@@ -404,7 +404,7 @@ export default function EditTransaction({
                             <ArrowLeft className="mr-1 h-4 w-4" /> Back
                         </Button>
                         <div>
-                            <h1 className="text-2xl font-bold text-foreground">
+                            <h1 className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-2xl! font-black tracking-tight text-transparent sm:text-4xl">
                                 Edit Transaction
                             </h1>
                             <p className="mt-1 text-sm text-muted-foreground">

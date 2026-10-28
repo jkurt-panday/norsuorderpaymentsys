@@ -25,17 +25,15 @@ function SingleDatePicker({ label, value, onChange }: SingleDatePickerProps) {
         <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">{label}:</span>
             <Popover open={open} onOpenChange={setOpen}>
-                <PopoverTrigger
-                    render={
-                        <Button
-                            variant="outline"
-                            className="justify-start px-2.5 font-normal"
-                        >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {value ? value.toLocaleDateString() : 'Select date'}
-                        </Button>
-                    }
-                />
+                <PopoverTrigger asChild>
+                    <Button
+                        variant="outline"
+                        className="justify-start px-2.5 font-normal"
+                    >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {value ? value.toLocaleDateString() : 'Select date'}
+                    </Button>
+                </PopoverTrigger>
                 <PopoverContent
                     className="w-auto overflow-hidden p-0"
                     align="start"

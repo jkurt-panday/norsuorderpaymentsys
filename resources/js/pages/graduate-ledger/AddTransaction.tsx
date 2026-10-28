@@ -632,7 +632,7 @@ return;
             {/* ── Top Header ───────────────────────────────────────────── */}
             <div className="flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">
+                    <h1 className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-2xl! font-black tracking-tight text-transparent sm:text-4xl">
                         Add New Transaction
                     </h1>
                     <p className="text-xs text-muted-foreground">

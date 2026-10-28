@@ -1,26 +1,27 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import {
-    Search,
-    DollarSign,
-    GraduationCap,
-    Wallet,
-    AlertTriangle,
-    PlusCircle,
-    Pencil,
-    Trash2,
-    XCircle,
-    Download,
-    Loader2,
-    CheckCircle2,
-    ChevronLeft,
-    ChevronRight,
-    Columns3,
-    ChevronDown,
-    Filter,
-    Mail,
-    CheckSquare,
-    Square,
-    Calendar as CalendarIcon,
+  Search,
+  DollarSign,
+  GraduationCap,
+  Wallet,
+  AlertTriangle,
+  PlusCircle,
+  Pencil,
+  Trash2,
+  XCircle,
+  Filter,
+  Loader2,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Columns3,
+  Mail,
+  CheckSquare,
+  Square,
+  Calendar as CalendarIcon,
+  Upload,
+  Download,
     MoreHorizontal,
 } from 'lucide-react';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -375,7 +376,7 @@ export default function Index({
     const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
     const [emailTarget, setEmailTarget] = useState<
         'all_matching' | 'specific' | 'all_outstanding'
-    >('all_matching');
+    >('specific');
     const [emailSearch, setEmailSearch] = useState('');
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const [allRecipients, setAllRecipients] = useState<
@@ -441,7 +442,7 @@ export default function Index({
 
                 const data = (await res.json()) as typeof allRecipients;
                 setAllRecipients(data);
-                setSelectedIds(new Set(data.map((r) => r.id)));
+                // Do not auto-select recipients; user must choose explicitly.
             } catch (e) {
                 flashToast('error', 'Failed to load recipients.');
             } finally {
@@ -458,7 +459,7 @@ export default function Index({
         setExamPeriod('');
         setExamDeadline('');
         setEmailSearch('');
-        setEmailTarget('all_matching');
+        setEmailTarget('specific');
         setSelectedIds(new Set());
         setIsEmailModalOpen(true);
     };

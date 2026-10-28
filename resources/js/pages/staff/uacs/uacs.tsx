@@ -1,98 +1,160 @@
-import { Code } from 'lucide-react';
-import React, { useEffect } from 'react';
-import {
-    create,
-    edit,
-    destroy,
-} from '@/actions/App/Http/Controllers/UACSController';
-import ResourceTable from '@/components/ResourceTable';
-import type {PaginatedData, ColumnDef} from '@/components/ResourceTable';
-import { Badge } from '@/components/ui/badge';
-import { flashToast } from '@/utils/flashToast';
+import { Head, Link, router } from '@inertiajs/react';
+import { Download, Plus, Upload } from 'lucide-react';
+import { useRef } from 'react';
 
-// ============ TYPE DEFINITIONS ============
-// created_at added here even though it's not rendered as a visible column —
-// it's still present on the row data from Supabase/Eloquent by default (as
-// long as it isn't in the model's $hidden array), and it's needed so the
-// "Newest"/"Oldest" sort options below have a real field to reference.
-interface UacsRecord {
-    id: number;
-    object_code: string;
-    account_title: string;
-    created_at: string;
-    display_number: number;
-}
+import { columns } from './columns';
+import type { UacsType } from './columns';
+import { Button } from '@/components/base/buttons/button';
+import { ClientDataTable } from '@/components/data-table/client-data-table';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 
-interface FlashProps {
-    success?: string;
-    error?: string;
-}
+type UacsProps = {
+    uacs: UacsType[];
+};
 
-interface UacsIndexProps {
-    uacs: PaginatedData<UacsRecord>;
-    flash?: FlashProps;
-}
+export default function UacsIndex({ uacs }: UacsProps) {
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-// ============ COMPONENT ============
-export default function UacsIndex({ uacs, flash }: UacsIndexProps) {
-    // Surface flash messages from the backend (e.g. delete blocked because the
-    // UACS code is still in use). Without this, a rejected delete silently
-    // redirects back with no visible feedback to the user.
-    useEffect(() => {
-        if (flash?.success) {
-flashToast('success', flash.success);
-}
-
-        if (flash?.error) {
-flashToast('error', flash.error);
-}
-    }, [flash]);
-
-    const columns: ColumnDef<UacsRecord>[] = [
-        {
-            header: 'ID',
-            sortable: 'id',
-            render: (row) => row.display_number,
-        },
-        {
-            header: 'Object Code',
-            sortable: 'object_code',
-            render: (row) => (
-                <Badge
-                    variant="secondary"
-                    className="border-primary/20 bg-primary/10 font-mono text-primary hover:bg-primary/20 dark:bg-primary/20 dark:text-primary"
-                >
-                    {row.object_code}
-                </Badge>
-            ),
-        },
-        {
-            header: 'Account Title',
-            sortable: 'account_title',
-            render: (row) => row.account_title,
-        },
-    ];
+    const handleImport = (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        router.post('/staff/uacs/import', formData, {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                router.reload({ only: ['uacs'] });
+            },
+        });
+    };
 
     return (
-        <ResourceTable<UacsRecord>
-            title="UACS Account Information"
-            addLabel="Add UACS"
-            addHref={create()}
-            columns={columns}
-            resource={uacs}
-            resourceKey="uacs"
-            pollInterval={15000}
-            editHref={(row) => edit(row.id)}
-            deleteUrl={(id) => destroy(id).url}
-            emptyIcon={Code}
-            emptyMessage="No UACS records found"
-            deleteConfirmMessage="Are you sure you want to delete this UACS record?"
-            sortOptions={[
-                { label: 'Newest', sort: 'created_at', direction: 'desc' },
-                { label: 'Oldest', sort: 'created_at', direction: 'asc' },
-                { label: 'A–Z', sort: 'account_title', direction: 'asc' },
-                { label: 'Z–A', sort: 'account_title', direction: 'desc' },
-            ]}
-        />
+        <>
+            <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-page-background p-3 sm:p-6">
+                <Head title="UACS" />
+
+                <Card className="rounded-2xl border border-border bg-card px-2! py-2! text-card-foreground shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between p-3">
+                        <CardTitle className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
+                            UACS
+                        </CardTitle>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <a href="/staff/uacs/export" download>
+                                <Button className="inline-flex flex-row items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700">
+                                    <div className="flex flex-row items-center gap-1.5">
+                                        <Download className="h-4 w-4" />
+                                        <span>Export</span>
+                                    </div>
+                                </Button>
+                            </a>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept=".xlsx,.xls,.csv"
+                                className="hidden"
+                                onChange={(event) => {
+                                    const file = event.target.files?.[0];
+
+                                    if (file) {
+                                        handleImport(file);
+                                    }
+
+                                    event.currentTarget.value = '';
+                                }}
+                            />
+                            <Button
+                                className="inline-flex flex-row items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                <div className="flex flex-row items-center gap-1.5">
+                                    <Upload className="h-4 w-4" />
+                                    <span>Import</span>
+                                </div>
+                            </Button>
+                            <Link href="/staff/uacs/create">
+                                <Button className="inline-flex flex-row items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90">
+                                    <div className="flex flex-row items-center gap-1.5">
+                                        <Plus className="h-4 w-4 stroke-[2.5]" />
+                                        <span>Add UACS</span>
+                                    </div>
+                                </Button>
+                            </Link>
+                        </div>
+                    </CardHeader>
+                </Card>
+
+                <div className="rounded-2xl">
+                    <ClientDataTable
+                        columns={columns}
+                        data={uacs}
+                        storageKey="uacs"
+                        searchableColumns={[
+                            'classification',
+                            'sub_class',
+                            'group',
+                            'object_code',
+                            'sub_object_code',
+                            'uacs',
+                            'status',
+                        ]}
+                        searchPlaceholder="Search for any values or status"
+                        emptyMessage="No UACS records found"
+                        filters={[
+                            {
+                                column: 'classification',
+                                label: 'Classification',
+                                options: Array.from(
+                                    new Set(
+                                        uacs
+                                            .map((row) => row.classification)
+                                            .filter((value): value is string =>
+                                                Boolean(value),
+                                            ),
+                                    ),
+                                ).map((value) => ({
+                                    label: value,
+                                    value,
+                                })),
+                                widthClassName: 'w-44',
+                            },
+                            {
+                                column: 'sub_class',
+                                label: 'Sub-Class',
+                                options: Array.from(
+                                    new Set(
+                                        uacs
+                                            .map((row) => row.sub_class)
+                                            .filter((value): value is string =>
+                                                Boolean(value),
+                                            ),
+                                    ),
+                                ).map((value) => ({
+                                    label: value,
+                                    value,
+                                })),
+                                widthClassName: 'w-50',
+                                contentWidthClassName: 'w-70',
+                            },
+                            {
+                                column: 'status',
+                                label: 'Status',
+                                options: Array.from(
+                                    new Set(
+                                        uacs
+                                            .map((row) => row.status)
+                                            .filter((value): value is string =>
+                                                Boolean(value),
+                                            ),
+                                    ),
+                                ).map((value) => ({
+                                    label: value,
+                                    value,
+                                })),
+                                widthClassName: 'w-36',
+                            },
+                        ]}
+                    />
+                </div>
+            </div>
+        </>
     );
 }

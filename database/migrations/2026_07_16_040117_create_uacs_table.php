@@ -10,12 +10,17 @@ return new class extends Migration
     {
         Schema::create('uacs', function (Blueprint $table) {
             $table->id();
-            $table->string('account_title', 255);
-            $table->string('object_code', 50)->unique();
+            $table->string('classification', 255)->nullable();
+            $table->string('sub_class', 255)->nullable();
+            $table->string('group', 255)->nullable();
+            $table->string('object_code', 255)->nullable();
+            $table->string('sub_object_code', 255)->nullable();
+            $table->string('uacs', 20)->nullable();
+            $table->string('status', 50)->nullable();
             $table->timestamps();
 
-            $table->index('object_code');
-            $table->index('account_title');
+            $table->index('uacs');
+            $table->index('status');
         });
     }
 

@@ -1,29 +1,16 @@
-import inertia from '@inertiajs/vite';
+import path from 'path';
 import { wayfinder } from '@laravel/vite-plugin-wayfinder';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import laravel from 'laravel-vite-plugin';
-import { bunny } from 'laravel-vite-plugin/fonts';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-    server: {
-        watch: {
-            ignored: ['**/*.csv', '**/*.xlsx', '**/*.xls', '**/*.pdf', '**/storage/**'],
-        },
-    },
     plugins: [
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.tsx'],
             refresh: true,
-            fonts: [
-                bunny('Karla', {
-                    weights: [400, 500, 600, 700],
-                    fontDisplay: 'swap',
-                }),
-            ],
         }),
-        inertia(),
         react({
             babel: {
                 plugins: ['babel-plugin-react-compiler'],
@@ -34,31 +21,9 @@ export default defineConfig({
             formVariants: true,
         }),
     ],
-    // Add build configuration for better font handling
-    build: {
-        rollupOptions: {
-            output: {
-                assetFileNames: (assetInfo) => {
-                    // Ensure fonts go to correct directory
-                    if (assetInfo.name?.match(/\.(woff2?|ttf|eot|otf)$/)) {
-                        return 'fonts/[name].[hash][extname]';
-                    }
-                    return 'assets/[name].[hash][extname]';
-                }
-            }
+    resolve: {
+        alias: {
+            '@': path.resolve(__dirname, './resources/js'),
         },
-        // Improve chunk splitting
-        chunkSizeWarningLimit: 1000,
-    },
-    // Optimize dependencies
-    optimizeDeps: {
-        include: [
-            'react',
-            'react-dom',
-            'react-is',
-            'recharts',
-            '@inertiajs/react',
-            // Add any other dependencies that might cause issues
-        ],
     },
 });

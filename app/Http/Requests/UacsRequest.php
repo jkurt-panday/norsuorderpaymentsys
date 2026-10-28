@@ -23,22 +23,28 @@ class UacsRequest extends FormRequest
             : (is_numeric($uacs) ? (int) $uacs : null);
 
         return [
-            'account_title' => ['required', 'string', 'max:255'],
-            'object_code' => [
+            'classification' => ['nullable', 'string', 'max:255'],
+            'sub_class' => ['nullable', 'string', 'max:255'],
+            'group' => ['nullable', 'string', 'max:255'],
+            'object_code' => ['nullable', 'string', 'max:255'],
+            'sub_object_code' => ['nullable', 'string', 'max:255'],
+            'uacs' => [
                 'required',
                 'string',
-                'max:50',
-                Rule::unique('uacs', 'object_code')->ignore($uacsId),
+                'max:20',
+                Rule::unique('uacs', 'uacs')->ignore($uacsId),
             ],
+            'status' => ['required', Rule::in(['Active', 'Inactive'])],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'account_title.required' => 'Account title is required.',
-            'object_code.required' => 'Object code is required.',
-            'object_code.unique' => 'This object code already exists.',
+            'uacs.required' => 'The UACS code is required.',
+            'uacs.unique' => 'This UACS code already exists.',
+            'status.required' => 'The status is required.',
+            'status.in' => 'Status must be Active or Inactive.',
         ];
     }
 }

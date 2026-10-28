@@ -32,6 +32,7 @@ class StoreGraduateLedgerRequest extends FormRequest
                 $item['reference_number'] = $item['reference_number'] ?? $item['reference_or_jev_number'] ?? null;
                 $item['input_by'] = $this->user()?->id;
                 $item['status'] = $item['status'] ?? 'posted';
+
                 return $item;
             }, $this->input('items'));
             $this->merge(['items' => $items]);

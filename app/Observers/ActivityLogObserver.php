@@ -332,6 +332,10 @@ class ActivityLogObserver
 
     private function record(Model $model, string $event): void
     {
+        if ($model instanceof ActivityLog) {
+            return;
+        }
+
         $actor = Auth::guard('web')->user();
 
         if (! $actor) {
