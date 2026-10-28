@@ -11,7 +11,7 @@ Design system for the **NORSU (Negros Oriental State University) Order of Paymen
 | Icons         | lucide-react, @untitledui/icons                                 |
 | Charts        | Recharts                                                        |
 | Toasts        | Sonner                                                          |
-| Fonts         | `@fontsource` (self-hosted) + Google Fonts for public/PDF views |
+| Fonts         | `@fontsource` (self-hosted)                                     |
 
 ## Color Palette
 
@@ -48,15 +48,16 @@ The project uses the **NORSU Core Azure** brand on a **Lily White** background.
 
 ### Status / Semantic Colors
 
-Used for badges and data visualization.
+Used for badges, ledger entries, and data visualization.
 
-| Status                | Color                                       |
-| :-------------------- | :------------------------------------------ |
-| Approved              | Emerald (`bg-emerald-100 text-emerald-800`) |
-| Cancelled / Error     | Rose (`bg-rose-100 text-rose-800`)          |
-| Pending               | Amber (`bg-amber-100 text-amber-900`)       |
-| Unprocessed / Neutral | Slate (`bg-slate-100 text-slate-800`)       |
-| Destructive           | `--destructive` (red)                       |
+| Status / Category     | Color / Classes                             | Usage                                      |
+| :-------------------- | :------------------------------------------ | :----------------------------------------- |
+| Approved / Payments   | Emerald (`bg-emerald-100 text-emerald-800`) | Approved requests, payment receipts        |
+| Cancelled / Error     | Rose (`bg-rose-100 text-rose-800`)          | Rejected / cancelled items                 |
+| Pending               | Amber (`bg-amber-100 text-amber-900`)       | Awaiting assessment or processing          |
+| Unprocessed / Neutral | Slate (`bg-slate-100 text-slate-800`)       | General metadata / inactive tags           |
+| Adjustments           | Purple / Violet (`text-purple-700 bg-purple-50`) | Ledger adjustments & balance adjustments   |
+| Destructive           | `--destructive` (red)                       | Delete and destructive actions             |
 
 ### Toast Colors (Sonner)
 
@@ -67,17 +68,20 @@ Used for badges and data visualization.
 | Warning | `#f59e0b`  | `#d97706` | `#0f172a` |
 | Info    | `#0f172a`  | `#334155` | `#f8fafc` |
 
-> **Note:** The dark theme is currently disabled in `app.css`. The app renders light-only, with hardcoded brand colors in the app shell and auth layouts so they stay on-brand regardless of appearance preference.
+> **Note on Appearance:** Public routes (`/public/*`) strictly force light mode. Authenticated pages (admin, staff, cashier, student ledgers) fully support dark mode using CSS variables and `.dark` tokens defined in `app.css`.
 
 ## Typography
 
+All fonts are self-hosted via `@fontsource` packages (no external Google Fonts stylesheet requests during render).
+
 ### Font Families
 
-| Role                    | Family                                                                                                              |
-| :---------------------- | :------------------------------------------------------------------------------------------------------------------ |
-| Body / Interface        | **Karla** (self-hosted via `@fontsource/karla` + Bunny/Google Fonts)                                                |
-| UI / Headings           | **Poppins** (self-hosted via `@fontsourcurl -sSfL https://raw.githubusercontent.com/eugenioenko/ttt/main/install.sh | shcurl -sSfL https://raw.githubusercontent.com/eugenioenko/ttt/main/install.sh | shce/poppins` + Google Fonts) |
-| Technical / Mono labels | System `font-mono` (JetBrains Mono loaded for public/PDF views)                                                     |
+| Role                    | Family                                                         | Source                                    |
+| :---------------------- | :------------------------------------------------------------- | :---------------------------------------- |
+| Body / Interface        | **Geist Variable**                                             | `@fontsource-variable/geist`              |
+| UI / Headings           | **Poppins** (400, 500, 600, 700)                               | `@fontsource/poppins`                     |
+| Technical / Mono labels | **IBM Plex Mono** (700)                                        | `@fontsource/ibm-plex-mono`               |
+| Print & Export Docs     | Arial, sans-serif                                              | System fallback for exact physical print  |
 
 ### Sizes & Weights
 
@@ -85,7 +89,7 @@ Used for badges and data visualization.
 | :------------------- | :----------------- | :----------------------- | :----------------------------- |
 | Page heading         | `text-2xl` (24px)  | Semibold                 | Page headers / section titles  |
 | Card title           | `text-base` (16px) | Semibold                 | Card and table headings        |
-| Body                 | `text-sm` (14px)   | Normal                   | Tables, cards, forms           |
+| Body base            | `18px`             | Regular (400)            | Base document font size        |
 | Muted text           | `text-sm`          | Normal, `text-slate-500` | Descriptions, secondary labels |
 | Label / table header | `text-xs` (12px)   | Medium                   | Column headers, badges         |
 
@@ -93,7 +97,7 @@ Used for badges and data visualization.
 
 ### App Shell (`AppSidebarLayout`)
 
-- **Sidebar**: full-height deep azure (`#003f7d`) with white text; contains the finance logo, navigation, and a logout confirm.
+- **Sidebar**: full-height deep azure (`#003f7d`) with white text; contains the finance logo, navigation, and a logout confirm dialog.
     - Top-level nav items and collapsible submenus (Graduate Ledger, Law Ledger).
     - Active item uses `#0078d4` background with a soft shadow.
 - **Header**: fixed `h-16` bar with sidebar trigger, vertical separator, and breadcrumbs.
@@ -106,20 +110,11 @@ Used for badges and data visualization.
 
 ### Public Pages
 
-- **Submit Form** (`/public/form`): full-screen multi-field form — personal/office info, contact details, amount, request type (New / Re-issue), membership + payment option comboboxes, and drag-and-drop supporting document upload with animated progress.
-- **Success** (`/public/success`): confirmation page with a prominent mono reference number.
+- **Submit Form** (`/public/opform`): full-screen multi-field form — personal/office info, contact details, amount, request type (New / Re-issue), membership + payment option comboboxes, and real Inertia-driven upload progress tracking.
+- **Assessment Form** (`/public/assessmentform`): student assessment request form with course/semester selector.
+- **Success** (`/public/success` and `/public/assessment_complete`): confirmation pages with mono reference numbers and print/download actions.
 
-### Reusable Patterns
-
-- **Cards**: white panels, `rounded-3xl`, `border-slate-200`, `shadow-sm`, section headers with bottom border.
-- **Stat cards**: colored background tiles (`bg-slate-900`, `bg-amber-100`, etc.) with value, label, and date subtitle.
-- **Charts**: Recharts cards — pie (status breakdown), line (30-day volume), bar (requests by membership).
-- **Status badges**: `inline-flex rounded-full px-3 py-1 text-xs font-semibold`.
-- **Buttons**: pill / fully-rounded primary buttons; ghost/outline for secondary actions.
-- **Tables**: sticky table headers, `divide-y` rows, muted secondary text.
-- **Dialogs**: confirmation dialogs (e.g., logout, deletes) via AlertDialog.
-
-## Print & PDF Styles
+### Print & PDF Styles
 
 - **Receipts**: `@page { size: A4 portrait; margin: 8mm }`.
 - Utility classes: `.print-container` (flush layout), `.print-card` (border only, no shadow, `break-inside: avoid`), `.no-print` (hide action buttons), `.print-header` / `.print-content` (tightened spacing for one-page fit).

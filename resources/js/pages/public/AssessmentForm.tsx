@@ -366,7 +366,7 @@ setData(
                                             </FieldLabel>
                                             <Input
                                                 className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
-                                                id="input-field-fname"
+                                                id="input-field-studentId"
                                                 type="number"
                                                 placeholder="202300000"
                                                 value={data.student_id}
@@ -420,6 +420,7 @@ setData(
                                             >
                                                 <ComboboxInput
                                                     placeholder="Select course"
+                                                    aria-label="Course"
                                                     className={`border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
                                                     showClear={
                                                         !!data.course_id
@@ -657,6 +658,7 @@ setData(
                                 >
                                     <ComboboxInput
                                         placeholder="Select School Year"
+                                        aria-label="School Year last attended"
                                         className={`border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
                                         showClear={!!data.sy_last_attended}
                                     />

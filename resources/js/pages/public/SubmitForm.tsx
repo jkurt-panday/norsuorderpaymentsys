@@ -197,6 +197,18 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
         post('/public/opform', {
             forceFormData: true,
             preserveState: true,
+            onProgress: (event) => {
+                // event.percentage is available from Inertia
+                if (event?.percentage) {
+                    // Update progress for all files in documents
+                    const progressVal = event.percentage;
+                    const newProgress: Record<string, number> = {};
+                    data.documents.forEach((file) => {
+                        newProgress[getFileKey(file)] = progressVal;
+                    });
+                    setUploadProgress(newProgress);
+                }
+            },
             onSuccess: () => console.log('Success'),
             onError: (errs) => console.error('Validation errors:', errs),
         });
@@ -205,31 +217,12 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
     // contact num length
     const isValidContact = data.contact_num.length === 11;
 
-    // Tracks animated upload progress (0-100) for each file, keyed by a stable file identifier
+    // Tracks real upload progress (0-100) for each file, keyed by a stable file identifier
     const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
 
     // Builds a stable, unique key for a File object so we can track its progress
     const getFileKey = (file: File) =>
         `${file.name}-${file.size}-${file.lastModified}`;
-
-    // Animates a single file's progress from 0 to 100 over ~0.8s
-    const animateFileProgress = (file: File) => {
-        const key = getFileKey(file);
-        setUploadProgress((prev) => ({ ...prev, [key]: 0 }));
-
-        let progress = 0;
-        const interval = setInterval(() => {
-            progress += 10;
-            setUploadProgress((prev) => ({
-                ...prev,
-                [key]: Math.min(progress, 100),
-            }));
-
-            if (progress >= 100) {
-                clearInterval(interval);
-            }
-        }, 80);
-    };
 
     // ? file upload
     // Add state for supporting documents
@@ -254,7 +247,6 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
         setDocumentError('');
 
         setData('documents', [...data.documents, ...newFiles]);
-        newFiles.forEach(animateFileProgress);
     };
 
     // Handle file deletion
@@ -570,6 +562,7 @@ setData(
                                                     >
                                                         <ComboboxInput
                                                             placeholder="Select office / college"
+                                                            aria-label="Office or College"
                                                             className={`${comboboxInputClass} w-full`}
                                                             showClear={!!data.office_or_college}
                                                         />
@@ -740,6 +733,7 @@ setData(
                                                 >
                                                     <ComboboxInput
                                                         placeholder="Select course"
+                                                        aria-label="Course"
                                                         className={comboboxInputClass}
                                                         showClear={!!data.course_id}
                                                     />
@@ -779,6 +773,7 @@ setData(
                                                 >
                                                     <ComboboxInput
                                                         placeholder="Select school year"
+                                                        aria-label="School Year"
                                                         className={
                                                             comboboxInputClass
                                                         }

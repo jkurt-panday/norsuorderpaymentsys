@@ -117,12 +117,13 @@ class AdminUserController extends Controller
             'role' => ['required', Rule::enum(UserRole::class)],
         ]);
 
-        $user = User::create([
+        $user = new User([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'role' => $validated['role'],
         ]);
+        $user->role = $validated['role'];
+        $user->save();
 
         return back()->with('success', 'New system account registered successfully!');
     }

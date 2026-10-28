@@ -334,6 +334,7 @@ setLoading(false);
                                 variant="outline"
                                 size="icon"
                                 title="Edit selected transaction"
+                                aria-label="Edit selected transaction"
                                 disabled={selectedTransactionId === null}
                                 onClick={() => selectedTransactionId !== null && router.get(edit.url(selectedTransactionId))}
                                 className="border-input text-foreground hover:bg-muted"
@@ -344,6 +345,7 @@ setLoading(false);
                                 variant="outline"
                                 size="icon"
                                 title="Print statement"
+                                aria-label="Print statement"
                                 onClick={() => window.open(generatePdf.url({ query: { student_id: data.student.id } }), '_blank', 'noopener,noreferrer')}
                                 className="border-input text-foreground hover:bg-muted"
                             >

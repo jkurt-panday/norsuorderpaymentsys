@@ -86,7 +86,7 @@ class GraduateLedgerController extends Controller
 
         return Inertia::render('graduate-ledger/Index', [
             'records' => $records,
-            'filters' => $request->only(['search', 'school_year', 'semester', 'course', 'date_from', 'date_to', 'balance_status']),
+            'filters' => $request->only(['search', 'school_year', 'semester', 'course', 'entry_type', 'date_from', 'date_to', 'balance_status']),
             'stats' => [
                 'totalStudents' => $totalStudents,
                 'totalAssessments' => $totalAssessments,
@@ -128,6 +128,7 @@ class GraduateLedgerController extends Controller
         $dateTo = $request->input('date_to');
         $search = $request->input('search');
         $balanceStatus = $request->input('balance_status');
+        $entryType = $request->input('entry_type');
 
         $query = GraduateLedger::query();
 
@@ -181,6 +182,10 @@ class GraduateLedgerController extends Controller
             $query->whereHas('course', fn ($q) => $q->where('course_code', $course));
         }
 
+        if ($entryType) {
+            $query->whereRaw('LOWER(TRIM(entry_type)) = ?', [strtolower(trim($entryType))]);
+        }
+
         $query
             ->when($dateFrom, fn ($q, $v) => $q->whereDate('transaction_date', '>=', $v))
             ->when($dateTo, fn ($q, $v) => $q->whereDate('transaction_date', '<=', $v));
@@ -196,7 +201,7 @@ class GraduateLedgerController extends Controller
                     AND (LOWER(gs.last_name) LIKE ? OR LOWER(gs.first_name) LIKE ?)
                 ) THEN 0 ELSE 1 END',
                 [$prefix, $prefix]
-            );
+            )->latest('id');
         } else {
             $query->latest('id');
         }
@@ -1304,6 +1309,7 @@ class GraduateLedgerController extends Controller
             'remark' => $remark,
             'inputBy' => $r->inputByDisplay(),
             'membership' => $r->membership,
+            'discountAmount' => (float) ($r->discount_amount ?? 0),
             'orLink' => $orLink,
         ];
     }
@@ -1819,6 +1825,7 @@ class GraduateLedgerController extends Controller
             'courses' => array_values(Course::where('course_college', 'Graduate School')->orderBy('course_code')->pluck('course_code')->filter()->map(fn (mixed $code): string => (string) $code)->all()),
             'schoolYears' => array_values($schoolYears ?: $defaultSchoolYears),
             'semesters' => ['First Semester', 'Second Semester', 'Summer'],
+            'types' => ['AR', 'Payment', 'Adjustment'],
         ];
     }
 

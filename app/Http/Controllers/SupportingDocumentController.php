@@ -50,7 +50,7 @@ class SupportingDocumentController extends Controller
             // 2. Gather metadata
             $originalName = $file->getClientOriginalName();
             $extension = $file->getClientOriginalExtension();
-            $mimeType = $file->getClientMimeType();
+            $mimeType = $file->getMimeType();
             $fileSize = $file->getSize();
 
             // 3. Generate a unique stored filename to prevent overwriting existing files

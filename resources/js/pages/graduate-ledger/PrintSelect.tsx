@@ -287,28 +287,25 @@ export default function PrintSelect({
 
             <div className="mx-auto max-w-5xl space-y-6">
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-border pb-4">
+                <div className="flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => router.get('/graduate-ledger')}
-                                className="border-border text-foreground"
-                            >
-                                <ArrowLeft className="mr-1 h-4 w-4" /> Back
-                            </Button>
-                            <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
-                                Student Statement Printer
-                            </CardTitle>
-                            {/* <h1 className="text-2xl font-bold text-foreground">
-                                Search Student
-                            </h1> */}
-                        </div>
+                        <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
+                            Student Statement Printer
+                        </CardTitle>
                         <p className="mt-1 text-sm text-muted-foreground">
                             Select a graduate student to review their
                             transaction breakdown and print a formal SOA PDF.
                         </p>
+                    </div>
+                    <div className="flex items-center sm:self-start">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.get('/graduate-ledger')}
+                            className="border-border text-foreground"
+                        >
+                            <ArrowLeft className="mr-1 h-4 w-4" /> Back
+                        </Button>
                     </div>
                 </div>
 
@@ -335,10 +332,12 @@ export default function PrintSelect({
                                 />
                                 {search && (
                                     <button
+                                        type="button"
                                         onClick={() => setSearch('')}
-                                        className="absolute top-2.5 right-2.5 text-muted-foreground hover:text-foreground"
+                                        aria-label="Clear search"
+                                        className="absolute top-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
                                     >
-                                        <X className="h-4 w-4" />
+                                        <X className="h-4 w-4" aria-hidden="true" />
                                     </button>
                                 )}
                             </div>
@@ -451,11 +450,11 @@ export default function PrintSelect({
                                         </h3>
                                     </Card>
                                     {(summary.totalAdjustments ?? 0) > 0 && (
-                                        <Card className="border-purple-200 bg-purple-50/40 p-4">
-                                            <p className="text-xs font-medium text-purple-700">
+                                        <Card className="border-purple-200 bg-purple-50/40 p-4 dark:border-purple-800 dark:bg-purple-950/40">
+                                            <p className="text-xs font-medium text-purple-700 dark:text-purple-300">
                                                 Total Adjustments
                                             </p>
-                                            <h3 className="mt-1 text-base font-bold text-purple-900">
+                                            <h3 className="mt-1 text-base font-bold text-purple-900 dark:text-purple-100">
                                                 {currency(
                                                     summary.totalAdjustments ??
                                                         0,

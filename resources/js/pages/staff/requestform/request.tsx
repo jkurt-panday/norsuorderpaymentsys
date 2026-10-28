@@ -760,7 +760,12 @@ const ManageRequests: React.FC = () => {
         setDateTo('');
         router.get(
             staff.requests.index.url(),
-            {},
+            {
+                search: undefined,
+                status: undefined,
+                date_from: undefined,
+                date_to: undefined,
+            },
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -904,7 +909,7 @@ const ManageRequests: React.FC = () => {
                     { value: 'cancelled', label: 'Cancelled', color: 'red' },
                     {
                         value: 'unprocessed',
-                        label: 'Unapproved',
+                        label: 'Unprocessed',
                         color: 'grey',
                     },
                 ]}
@@ -982,7 +987,7 @@ const ManageRequests: React.FC = () => {
                                         }
                                     }}
                                 >
-                                    <SelectTrigger className="h-10 w-full rounded-lg border-slate-200 bg-white shadow-sm">
+                                    <SelectTrigger className="h-10 w-full rounded-lg border-input bg-background shadow-sm">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -1236,7 +1241,7 @@ const ManageRequests: React.FC = () => {
                                                                 >
                                                                     {row.staff_input
                                                                         ?.status ??
-                                                                        'Unapproved'}
+                                                                        'Unprocessed'}
                                                                 </span>
                                                                 {row.staff_input
                                                                     ?.email_status ===
@@ -1533,7 +1538,7 @@ const ManageRequests: React.FC = () => {
                                                                 >
                                                                     {row.staff_input
                                                                         ?.status ??
-                                                                        'Unapproved'}
+                                                                        'Unprocessed'}
                                                                 </span>
                                                                 {row.staff_input
                                                                     ?.email_status ===
@@ -1810,7 +1815,7 @@ const ManageRequests: React.FC = () => {
                         </p>
 
                         {/* Job List - Scrollable */}
-                        <div className="max-h-96 overflow-y-auto rounded-lg border border-slate-200">
+                        <div className="max-h-96 overflow-y-auto rounded-lg border border-border">
                             {emailProgress.length === 0 ? (
                                 <div className="p-4 text-center text-sm text-slate-400">
                                     No jobs to display

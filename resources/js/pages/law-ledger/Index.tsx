@@ -516,20 +516,6 @@ export default function Index({
             .map((r) => r.id);
     };
 
-    const visibleRecipients = allRecipients.filter((r) => {
-        if (emailSearch.trim()) {
-            const q = emailSearch.toLowerCase();
-
-            return (
-                r.full_name.toLowerCase().includes(q) ||
-                r.email.toLowerCase().includes(q) ||
-                (r.student_number ?? '').toLowerCase().includes(q)
-            );
-        }
-
-        return true;
-    });
-
     const bulkRecipients = useMemo(
         () =>
             allRecipients.filter((r) => {
@@ -547,6 +533,7 @@ export default function Index({
             }),
         [allRecipients, emailSearch],
     );
+    const visibleRecipients = bulkRecipients;
 
     const prevEmailTargetRef = useRef<string | null>(null);
     useEffect(() => {
@@ -1859,6 +1846,7 @@ export default function Index({
                                                         }}
                                                         className="mr-1 inline-flex items-center justify-center rounded p-1.5 text-primary transition-colors hover:bg-primary/10"
                                                         title="Edit"
+                                                        aria-label="Edit transaction"
                                                     >
                                                         <Pencil className="h-3.5 w-3.5" />
                                                     </button>
@@ -1870,6 +1858,7 @@ export default function Index({
                                                         }}
                                                         className="inline-flex items-center justify-center rounded p-1.5 text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
                                                         title="Delete"
+                                                        aria-label="Delete transaction"
                                                     >
                                                         <Trash2 className="h-3.5 w-3.5" />
                                                     </button>
@@ -2398,53 +2387,58 @@ export default function Index({
                                             </div>
                                         ) : (
                                             <div>
-                                                <div
-                                                    className="flex cursor-pointer items-center gap-3 border-b border-slate-100 p-2 hover:bg-slate-50"
-                                                    onClick={() => {
-                                                        const visibleIds =
-                                                            new Set(
-                                                                visibleRecipients.map(
-                                                                    (r) => r.id,
-                                                                ),
-                                                            );
-
-                                                        setSelectedIds(
-                                                            (prev) => {
-                                                                const next =
-                                                                    new Set(
-                                                                        prev,
-                                                                    );
-
-                                                                if (
-                                                                    visibleRecipients.every(
-                                                                        (r) =>
-                                                                            next.has(
-                                                                                r.id,
-                                                                            ),
-                                                                    )
-                                                                ) {
-                                                                    visibleIds.forEach(
-                                                                        (id) =>
-                                                                            next.delete(
-                                                                                id,
-                                                                            ),
-                                                                    );
-                                                                } else {
-                                                                    visibleIds.forEach(
-                                                                        (id) =>
-                                                                            next.add(
-                                                                                id,
-                                                                            ),
-                                                                    );
-                                                                }
-
-                                                                return next;
-                                                            },
-                                                        );
-                                                    }}
+                                                <label
+                                                    className="flex cursor-pointer items-center gap-3 border-b border-border p-2 hover:bg-muted/50 dark:hover:bg-muted/30"
                                                 >
-                                                    <div className="flex h-4 w-4 items-center justify-center">
-                                                        {visibleRecipients.every(
+                                                    <input
+                                                        type="checkbox"
+                                                        className="sr-only"
+                                                        checked={visibleRecipients.length > 0 && visibleRecipients.every((r) => selectedIds.has(r.id))}
+                                                        onChange={() => {
+                                                            const visibleIds =
+                                                                new Set(
+                                                                    visibleRecipients.map(
+                                                                        (r) => r.id,
+                                                                    ),
+                                                                );
+
+                                                            setSelectedIds(
+                                                                (prev) => {
+                                                                    const next =
+                                                                        new Set(
+                                                                            prev,
+                                                                        );
+
+                                                                    if (
+                                                                        visibleRecipients.every(
+                                                                            (r) =>
+                                                                                next.has(
+                                                                                    r.id,
+                                                                                ),
+                                                                        )
+                                                                    ) {
+                                                                        visibleIds.forEach(
+                                                                            (id) =>
+                                                                                next.delete(
+                                                                                    id,
+                                                                                ),
+                                                                        );
+                                                                    } else {
+                                                                        visibleIds.forEach(
+                                                                            (id) =>
+                                                                                next.add(
+                                                                                    id,
+                                                                                ),
+                                                                        );
+                                                                    }
+
+                                                                    return next;
+                                                                },
+                                                            );
+                                                        }}
+                                                    />
+                                                    <div className="flex h-4 w-4 items-center justify-center" aria-hidden="true">
+                                                        {visibleRecipients.length > 0 && visibleRecipients.every(
                                                             (r) =>
                                                                 selectedIds.has(
                                                                     r.id,
@@ -2452,7 +2446,7 @@ export default function Index({
                                                         ) ? (
                                                             <CheckSquare className="h-4 w-4 text-emerald-600" />
                                                         ) : (
-                                                            <Square className="h-4 w-4 text-slate-400" />
+                                                            <Square className="h-4 w-4 text-muted-foreground" />
                                                         )}
                                                     </div>
                                                     <span className="font-medium text-foreground">
@@ -2462,25 +2456,30 @@ export default function Index({
                                                         }
                                                         )
                                                     </span>
-                                                </div>
+                                                </label>
                                                 {visibleRecipients.map(
                                                     (row) => (
-                                                        <div
+                                                        <label
                                                             key={row.id}
-                                                            className="flex cursor-pointer items-center gap-3 p-2 hover:bg-slate-50"
-                                                            onClick={() =>
-                                                                toggleSelectId(
-                                                                    row.id,
-                                                                )
-                                                            }
+                                                            className="flex cursor-pointer items-center gap-3 border-b border-border p-2 last:border-0 hover:bg-muted/50 dark:hover:bg-muted/30"
                                                         >
-                                                            <div className="flex h-4 w-4 items-center justify-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="sr-only"
+                                                                checked={selectedIds.has(row.id)}
+                                                                onChange={() =>
+                                                                    toggleSelectId(
+                                                                        row.id,
+                                                                    )
+                                                                }
+                                                            />
+                                                            <div className="flex h-4 w-4 items-center justify-center" aria-hidden="true">
                                                                 {selectedIds.has(
                                                                     row.id,
                                                                 ) ? (
                                                                     <CheckSquare className="h-4 w-4 text-emerald-600" />
                                                                 ) : (
-                                                                    <Square className="h-4 w-4 text-slate-400" />
+                                                                    <Square className="h-4 w-4 text-muted-foreground" />
                                                                 )}
                                                             </div>
                                                             <div className="min-w-0 flex-1">
@@ -2489,7 +2488,7 @@ export default function Index({
                                                                         row.full_name
                                                                     }
                                                                 </div>
-                                                                <div className="truncate text-xs text-slate-500">
+                                                                <div className="truncate text-xs text-muted-foreground">
                                                                     {row.student_number ??
                                                                         '-'}{' '}
                                                                     ·{' '}
@@ -2518,7 +2517,7 @@ export default function Index({
                                                                     )}
                                                                 </span>
                                                             </div>
-                                                        </div>
+                                                        </label>
                                                     ),
                                                 )}
                                             </div>
@@ -2602,20 +2601,25 @@ export default function Index({
                                                         selectedIds.has(row.id);
 
                                                     return (
-                                                        <div
+                                                        <label
                                                             key={row.id}
-                                                            className="flex cursor-pointer items-center gap-3 border-b border-slate-100 p-2 last:border-0 hover:bg-slate-50"
-                                                            onClick={() =>
-                                                                toggleSelectId(
-                                                                    row.id,
-                                                                )
-                                                            }
+                                                            className="flex cursor-pointer items-center gap-3 border-b border-border p-2 last:border-0 hover:bg-muted/50 dark:hover:bg-muted/30"
                                                         >
-                                                            <div className="flex h-4 w-4 items-center justify-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="sr-only"
+                                                                checked={isSelected}
+                                                                onChange={() =>
+                                                                    toggleSelectId(
+                                                                        row.id,
+                                                                    )
+                                                                }
+                                                            />
+                                                            <div className="flex h-4 w-4 items-center justify-center" aria-hidden="true">
                                                                 {isSelected ? (
                                                                     <CheckSquare className="h-4 w-4 text-emerald-600" />
                                                                 ) : (
-                                                                    <Square className="h-4 w-4 text-slate-400" />
+                                                                    <Square className="h-4 w-4 text-muted-foreground" />
                                                                 )}
                                                             </div>
                                                             <div className="min-w-0 flex-1">
@@ -2624,7 +2628,7 @@ export default function Index({
                                                                         row.full_name
                                                                     }
                                                                 </div>
-                                                                <div className="truncate text-xs text-slate-500">
+                                                                <div className="truncate text-xs text-muted-foreground">
                                                                     {row.student_number ??
                                                                         '-'}{' '}
                                                                     ·{' '}
@@ -2653,7 +2657,7 @@ export default function Index({
                                                                     )}
                                                                 </span>
                                                             </div>
-                                                        </div>
+                                                        </label>
                                                     );
                                                 })}
                                             </div>

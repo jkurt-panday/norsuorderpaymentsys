@@ -2,20 +2,19 @@
 **Date:** Wed Oct 28 2026
 
 ## Current State
-Phase 1 & 2 of `/plan/optimize_and_fix.md` completed. Vite dev pipeline restored, unused Google Font sheets removed, and Material Symbols replaced with Lucide icons.
-
-## Done
-- [x] Unignored `vite.config.ts` in `.gitignore`
-- [x] Created `vite.config.ts` (Laravel Vite plugin, React Compiler, Tailwind v4, Wayfinder, path alias)
-- [x] Cleaned `resources/views/app.blade.php`: removed preconnects and 2 redundant Google Font sheets
-- [x] Swapped `Material Symbols` for `Lucide` icons in `auth-card-layout.tsx`
+- UI & Accessibility audit fixes implemented (`plan/finished/ui_a11y_audit_fixes.md`):
+  1. `resources/css/app.css`: Added `@media (prefers-reduced-motion: reduce)` override.
+  2. `resources/js/pages/dashboard.tsx`: Upgraded logout button styling with WCAG-compliant destructive tokens.
+  3. `resources/js/pages/graduate-ledger/PrintSelect.tsx`: Expanded search clear touch target, added `aria-label`, added dark mode to adjustment summary card.
+  4. `resources/js/pages/graduate-ledger/StudentBalanceDrawer.tsx`: Added `aria-label` to edit and print icon buttons.
+  5. `resources/js/pages/graduate-ledger/Index.tsx`: Deduplicated `visibleRecipients`, added `aria-label` to row actions & page-jump input, converted recipient selection rows to accessible `<label>` + sr-only checkbox with `aria-hidden="true"` icons.
+  6. `resources/js/pages/law-ledger/Index.tsx`: Deduplicated `visibleRecipients`, added `aria-label` to inline edit & delete buttons, converted recipient selection rows to accessible `<label>` + sr-only checkbox.
+  7. `resources/js/pages/staff/requestform/request.tsx`: Replaced hard-coded slate colors with theme tokens (`border-input bg-background` and `border-border`).
 
 ## Next Steps
-- Execute Phase 3: Optimize images (`norsu-campus.jpg`, `finance_logo1.png`) and layout shift attributes
-- Execute Phase 4: Wire real Inertia upload progress in `SubmitForm.tsx`
-
-## Decisions & Files Touched
-- `.gitignore`: removed `vite.config.ts`
-- `vite.config.ts`: created
-- `resources/views/app.blade.php`: removed Google Fonts sheets
-- `resources/js/layouts/auth/auth-card-layout.tsx`: swapped Material Symbols for Lucide (`Landmark`, `Lock`)
+- Security & pnpm migration remaining items (`plan/pnpm_migration_and_security_audit.md`):
+  1. pnpm migration (update `.github/workflows/tests.yml` and `lint.yml`)
+  2. SEC-05 (throttle public client API routes in `routes/api.php`)
+  3. SEC-07 (`SecureHeaders` middleware)
+  4. SEC-08 (Vite Supabase env documentation & guard)
+  5. Dependabot ecosystem updates
