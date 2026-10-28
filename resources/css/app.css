@@ -254,11 +254,11 @@
     background: #0b5ddb;
 }
 
-/* Respect user's motion preference */
+/* Respect user's motion preference — exempt functional loading indicators */
 @media (prefers-reduced-motion: reduce) {
-    *,
-    ::before,
-    ::after {
+    *:not(.animate-spin):not(.animate-pulse):not([aria-busy="true"]):not([data-state="loading"]),
+    *:not(.animate-spin):not(.animate-pulse):not([aria-busy="true"]):not([data-state="loading"])::before,
+    *:not(.animate-spin):not(.animate-pulse):not([aria-busy="true"]):not([data-state="loading"])::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;

@@ -2,19 +2,17 @@
 **Date:** Wed Oct 28 2026
 
 ## Current State
-- UI & Accessibility audit fixes implemented (`plan/finished/ui_a11y_audit_fixes.md`):
-  1. `resources/css/app.css`: Added `@media (prefers-reduced-motion: reduce)` override.
-  2. `resources/js/pages/dashboard.tsx`: Upgraded logout button styling with WCAG-compliant destructive tokens.
-  3. `resources/js/pages/graduate-ledger/PrintSelect.tsx`: Expanded search clear touch target, added `aria-label`, added dark mode to adjustment summary card.
-  4. `resources/js/pages/graduate-ledger/StudentBalanceDrawer.tsx`: Added `aria-label` to edit and print icon buttons.
-  5. `resources/js/pages/graduate-ledger/Index.tsx`: Deduplicated `visibleRecipients`, added `aria-label` to row actions & page-jump input, converted recipient selection rows to accessible `<label>` + sr-only checkbox with `aria-hidden="true"` icons.
-  6. `resources/js/pages/law-ledger/Index.tsx`: Deduplicated `visibleRecipients`, added `aria-label` to inline edit & delete buttons, converted recipient selection rows to accessible `<label>` + sr-only checkbox.
-  7. `resources/js/pages/staff/requestform/request.tsx`: Replaced hard-coded slate colors with theme tokens (`border-input bg-background` and `border-border`).
+Completed pnpm migration and security audit hardening items:
+- Migrated CI/CD to pnpm with frozen lockfiles (`tests.yml`, `lint.yml`).
+- Deleted legacy `package-lock.json`.
+- Removed `role` from `User` `$fillable`; explicit assignment in `AdminUserController::store`.
+- Created & registered `SecureHeaders` middleware (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`).
+- Removed dead `routes/api.php` and deleted unused Supabase module/package.
+- Added `throttle:20,1` rate-limiting to public `POST /opform` in `routes/web.php`.
+- Moved plan to `plan/finished/pnpm_migration_and_security_audit.md`.
+
+## Finished Plans
+- `plan/finished/pnpm_migration_and_security_audit.md` (Completed: Wed Oct 28 2026)
 
 ## Next Steps
-- Security & pnpm migration remaining items (`plan/pnpm_migration_and_security_audit.md`):
-  1. pnpm migration (update `.github/workflows/tests.yml` and `lint.yml`)
-  2. SEC-05 (throttle public client API routes in `routes/api.php`)
-  3. SEC-07 (`SecureHeaders` middleware)
-  4. SEC-08 (Vite Supabase env documentation & guard)
-  5. Dependabot ecosystem updates
+- Open for next feature request or enhancement.

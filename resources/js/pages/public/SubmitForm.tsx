@@ -543,7 +543,7 @@ setData(
                                             {/* office / college */}
                                             <Field>
                                                 <FieldLabel
-                                                    htmlFor="input-field-off-coll"
+                                                    htmlFor="combobox-office"
                                                     className="font-medium text-slate-700"
                                                 >
                                                     Office / College
@@ -561,6 +561,7 @@ setData(
                                                         }}
                                                     >
                                                         <ComboboxInput
+                                                            id="combobox-office"
                                                             placeholder="Select office / college"
                                                             aria-label="Office or College"
                                                             className={`${comboboxInputClass} w-full`}
