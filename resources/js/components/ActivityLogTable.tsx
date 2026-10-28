@@ -411,8 +411,11 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
 
         stop();
 
+        const url = new URL(window.location.href);
+        url.search = '';
+
         router.get(
-            window.location.pathname,
+            url.pathname,
             {},
             {
                 preserveScroll: true,

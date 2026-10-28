@@ -437,8 +437,11 @@ export default function ResourceTable<T extends { id: number }>({
             onSearchSubmit?.('');
         }
 
+        const url = new URL(window.location.href);
+        url.search = '';
+
         router.get(
-            window.location.pathname,
+            url.pathname,
             {},
             {
                 preserveScroll: true,

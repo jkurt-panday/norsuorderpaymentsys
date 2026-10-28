@@ -760,7 +760,12 @@ const ManageRequests: React.FC = () => {
         setDateTo('');
         router.get(
             staff.requests.index.url(),
-            {},
+            {
+                search: undefined,
+                status: undefined,
+                date_from: undefined,
+                date_to: undefined,
+            },
             {
                 preserveState: true,
                 preserveScroll: true,
