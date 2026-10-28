@@ -197,7 +197,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Charts */}
-                <div className="mt-6 grid gap-4 lg:grid-cols-3">
+                <div className="mt-2 grid gap-4 lg:grid-cols-3">
                     <ChartCard
                         title="OP Requests by Status"
                         description="Current breakdown of all requests"
@@ -279,11 +279,11 @@ export default function Dashboard() {
                                                             {request.staff_input
                                                                 ?.status
                                                                 ? request.staff_input.status
-                                                                      .charAt(0)
-                                                                      .toUpperCase() +
-                                                                  request.staff_input.status.slice(
-                                                                      1,
-                                                                  )
+                                                                    .charAt(0)
+                                                                    .toUpperCase() +
+                                                                request.staff_input.status.slice(
+                                                                    1,
+                                                                )
                                                                 : 'Unprocessed'}
                                                         </span>
                                                     </td>

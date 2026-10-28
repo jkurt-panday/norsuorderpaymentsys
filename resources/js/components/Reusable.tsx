@@ -5,7 +5,6 @@ import {
     BarChart,
     CartesianGrid,
     Cell,
-    Legend,
     Line,
     LineChart,
     Pie,
@@ -20,8 +19,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export function getDayLabel(dateString?: string | null): string | null {
     if (!dateString) {
-return null;
-}
+        return null;
+    }
 
     const date = new Date(dateString);
     const today = new Date();
@@ -31,12 +30,12 @@ return null;
     const diffDays = Math.round((today.getTime() - date.getTime()) / 86400000);
 
     if (diffDays <= 0) {
-return 'Today';
-}
+        return 'Today';
+    }
 
     if (diffDays === 1) {
-return '1 day ago';
-}
+        return '1 day ago';
+    }
 
     return `${diffDays} days ago`;
 }
@@ -99,6 +98,16 @@ const DEFAULT_PIE_COLORS = [
     '#6f42c1',
 ];
 
+// Colors keyed by status name so slices (and legend dots) stay consistent
+// regardless of the order the data arrives in.
+const STATUS_PIE_COLORS: Record<string, string> = {
+    cancelled: '#ef4444', // red
+    paid: '#3b82f6', // blue
+    processed: '#22c55e', // light green
+    pending: '#f59e0b', // light orange
+    unprocessed: '#94a3b8', // grey
+};
+
 // Custom dot renderer for the line chart — only draws a visible dot where
 // the value is greater than 0, so long flat (zero) stretches read as
 // intentionally quiet instead of being cluttered with dots at zero.
@@ -111,14 +120,14 @@ function renderLineDot(yKey: string, color: string) {
         const { cx, cy, payload } = props;
 
         if (cx === undefined || cy === undefined || !payload) {
-return <></>;
-}
+            return <></>;
+        }
 
         const value = Number(payload[yKey] ?? 0);
 
         if (value <= 0) {
-return <></>;
-}
+            return <></>;
+        }
 
         return <circle cx={cx} cy={cy} r={3} fill={color} />;
     };
@@ -151,8 +160,8 @@ export function ChartCard({
                 )}
             </CardHeader>
             <CardContent>
-                <div style={{ width: '100%', height, position: 'relative' }}>
-                    <div className="relative z-10 h-full w-full">
+                <div style={{ width: '100%', height, position: 'relative' }} className={`${type === 'pie' ? '-mt-7' : ''}`}>
+                    <div className={`relative z-10 h-full w-full ${type === 'pie' ? 'flex items-center justify-center' : ''}`}>
                         <ResponsiveContainer minWidth={0} minHeight={undefined} aspect={undefined}>
                             {type === 'bar' ? (
                                 <BarChart
@@ -251,12 +260,6 @@ export function ChartCard({
                                             fontSize: 12,
                                         }}
                                     />
-                                    <Legend
-                                        verticalAlign="bottom"
-                                        height={36}
-                                        iconType="circle"
-                                        wrapperStyle={{ fontSize: 12 }}
-                                    />
                                     <Pie
                                         data={
                                             pieTotal === 0
@@ -266,26 +269,60 @@ export function ChartCard({
                                         dataKey={yKey}
                                         nameKey={xKey}
                                         innerRadius={height / 5}
-                                        outerRadius={height / 2.6}
+                                        outerRadius={height / 3}
                                         paddingAngle={2}
                                     >
-                                        {data.map((_, index) => (
-                                            <Cell
-                                                key={index}
-                                                fill={
-                                                    pieColors[
-                                                        index % pieColors.length
-                                                    ]
-                                                }
-                                            />
-                                        ))}
+                                        {data.map((item, index) => {
+                                            const name = String(
+                                                item[xKey] ?? '',
+                                            ).toLowerCase();
+
+                                            return (
+                                                <Cell
+                                                    key={index}
+                                                    fill={
+                                                        STATUS_PIE_COLORS[
+                                                        name
+                                                        ] ??
+                                                        pieColors[
+                                                        index %
+                                                        pieColors.length
+                                                        ]
+                                                    }
+                                                />
+                                            );
+                                        })}
                                     </Pie>
                                 </PieChart>
                             )}
                         </ResponsiveContainer>
+                        {type === 'pie' && data.length > 0 && (
+                            <div className="absolute bottom-2 left-0 right-0 z-20 flex gap-2 justify-center text-xs text-muted-foreground pointer-events-none">
+                                {data.map((item) => {
+                                    const name = String(item[xKey] ?? '');
+                                    const color =
+                                        STATUS_PIE_COLORS[
+                                        name.toLowerCase()
+                                        ] ?? pieColors[0];
+
+                                    return (
+                                        <div
+                                            key={name}
+                                            className="flex items-center gap-1.5 whitespace-nowrap"
+                                        >
+                                            <span
+                                                className="inline-block w-3 h-3 rounded-full"
+                                                style={{ backgroundColor: color }}
+                                            />
+                                            <span>{name}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                     {type === 'pie' && (
-                        <div className="pointer-events-none absolute inset-0 z-0 flex flex-col items-center justify-center pb-9">
+                        <div className="pointer-events-none absolute inset-0 z-0 flex flex-col items-center justify-center pb-2">
                             <span className="text-2xl font-bold text-foreground">
                                 {pieTotal}
                             </span>

@@ -16,7 +16,7 @@ interface FormInput {
 
 interface PaymentRequest {
     id: number;
-    status: 'approved' | 'paid' | 'cancelled';
+    status: 'processed' | 'paid' | 'cancelled';
     or_no: string | null;
     or_date: string | null;
     created_at: string;
@@ -41,7 +41,7 @@ const money = new Intl.NumberFormat('en-PH', {
 });
 
 const STATUS_TO_COLOR: Record<string, string> = {
-    approved: 'light-green',
+    processed: 'light-green',
     paid: 'dark-green',
     cancelled: 'red',
 };
@@ -50,8 +50,8 @@ const getStatusLabel = (status: string) => {
     switch (status) {
         case 'paid':
             return 'Paid';
-        case 'approved':
-            return 'Ready for payment';
+        case 'processed':
+            return 'Ready for Payment';
         case 'cancelled':
             return 'Cancelled';
         default:
@@ -107,12 +107,17 @@ const CashierRequestsIndex: React.FC<Props> = ({ requests, filters }) => {
         setDateTo('');
         router.get(
             cashier.requests.index.url(),
-            {},
+            {
+                search: undefined,
+                status: undefined,
+                date_from: undefined,
+                date_to: undefined,
+            },
             {
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
-            },
+            }
         );
     };
 
@@ -244,8 +249,8 @@ const CashierRequestsIndex: React.FC<Props> = ({ requests, filters }) => {
                 onStatusChange={setStatus}
                 statusOptions={[
                     {
-                        value: 'approved',
-                        label: 'Ready for payment',
+                        value: 'processed',
+                        label: 'Ready for Payment',
                         color: 'light-green',
                     },
                     { value: 'paid', label: 'Paid', color: 'dark-green' },

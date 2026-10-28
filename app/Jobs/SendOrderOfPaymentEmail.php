@@ -11,6 +11,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -97,8 +98,8 @@ class SendOrderOfPaymentEmail implements ShouldQueue
         $subjectText = $this->subject ?? "Order of Payment - {$formInput->reference_number}";
 
         try {
-            \Illuminate\Support\Facades\Cache::put(
-                'email_actor:'.md5((string)$formInput->email.'|'.$subjectText),
+            Cache::put(
+                'email_actor:'.md5((string) $formInput->email.'|'.$subjectText),
                 [
                     'id' => $actor?->getAuthIdentifier(),
                     'name' => $actor?->name,
@@ -134,7 +135,7 @@ class SendOrderOfPaymentEmail implements ShouldQueue
                 ->where('description', $log->description)
                 ->where('id', '!=', $log->id)
                 ->delete();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::debug('Failed to log OP email activity in job', ['error' => $e->getMessage()]);
         }
 

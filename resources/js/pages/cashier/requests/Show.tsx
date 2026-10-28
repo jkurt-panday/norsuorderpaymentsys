@@ -13,7 +13,7 @@ import { flashToast } from '@/utils/flashToast';
 
 interface PaymentRequest {
     id: number;
-    status: 'approved' | 'paid' | 'cancelled';
+    status: 'processed' | 'paid' | 'cancelled';
     purpose: string | null;
     or_no: string | null;
     or_date: string | null;
@@ -49,9 +49,9 @@ const getStatusBadgeConfig = (status: PaymentRequest['status']) => {
                 label: 'Paid',
                 className: 'bg-emerald-100 text-emerald-800 border-emerald-200',
             };
-        case 'approved':
+        case 'processed':
             return {
-                label: 'Ready for payment',
+                label: 'Ready for Payment',
                 className: 'bg-amber-100 text-amber-800 border-amber-200',
             };
         case 'cancelled':
@@ -117,7 +117,7 @@ export default function CashierRequestShow({
     const orAutoPromoted = useRef(false);
 
     const syncStatusFromOr = () => {
-        if (form.data.or_no.trim() !== '' && form.data.status === 'approved') {
+        if (form.data.or_no.trim() !== '' && form.data.status === 'processed') {
             form.setData('status', 'paid');
             orAutoPromoted.current = true;
         }
@@ -286,8 +286,8 @@ export default function CashierRequestShow({
                                     }
                                     className="mt-1.5 w-full rounded-lg border border-border bg-card px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 >
-                                    <option value="approved">
-                                        Ready for payment
+                                    <option value="processed">
+                                        Ready for Payment
                                     </option>
                                     <option value="paid">Paid</option>
                                     <option value="cancelled">Cancelled</option>
