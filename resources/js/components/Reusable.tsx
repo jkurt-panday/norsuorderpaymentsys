@@ -160,8 +160,8 @@ export function ChartCard({
                 )}
             </CardHeader>
             <CardContent>
-                <div style={{ width: '100%', height, position: 'relative' }} className='-mt-10'>
-                    <div className="relative z-10 h-full w-full">
+                <div style={{ width: '100%', height, position: 'relative' }} className={`${type === 'pie' ? '-mt-7' : ''}`}>
+                    <div className={`relative z-10 h-full w-full ${type === 'pie' ? 'flex items-center justify-center' : ''}`}>
                         <ResponsiveContainer minWidth={0} minHeight={undefined} aspect={undefined}>
                             {type === 'bar' ? (
                                 <BarChart
