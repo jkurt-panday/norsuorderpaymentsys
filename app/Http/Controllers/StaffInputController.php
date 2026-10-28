@@ -120,13 +120,13 @@ class StaffInputController extends Controller
             'totalRequests' => FormInput::count(),
             'unprocessedRequests' => $unprocessedCount,
             'pendingRequests' => $statusCounts->get('pending', 0),
-            'processedRequests' => $statusCounts->get('processed', 0),
+            'processedRequests' => $statusCounts->get('approved', 0),
             'paidRequests' => $statusCounts->get('paid', 0),
             'cancelledRequests' => $statusCounts->get('cancelled', 0),
             'totalRequestsLastDate' => $totalRequestsLastDate,
             'unprocessedLastDate' => $unprocessedLastDate,
             'pendingLastDate' => $latestByStatus->get('pending'),
-            'processedLastDate' => $latestByStatus->get('processed'),
+            'processedLastDate' => $latestByStatus->get('approved'),
             'paidLastDate' => $latestByStatus->get('paid'),
             'cancelledLastDate' => $latestByStatus->get('cancelled'),
             // Order here (Unprocessed, Pending, Paid, Cancelled, Processed) must match
@@ -135,7 +135,7 @@ class StaffInputController extends Controller
                 ['name' => 'Unprocessed', 'count' => $unprocessedCount],
             ])
                 ->concat(
-                    collect(['pending', 'processed', 'paid', 'cancelled'])
+                    collect(['pending', 'approved', 'paid', 'cancelled'])
                         ->map(fn (string $status) => [
                             'name' => ucfirst($status),
                             'count' => $statusCounts->get($status, 0),
@@ -732,12 +732,15 @@ class StaffInputController extends Controller
         // fields, not just the StaffInput fields) has what it needs too.
         return Inertia::render('staff/requestform/showrequest', [
             'formInput' => $formInput,
-            'bankAccounts' => BankAccountInfo::orderBy('bank_name')->get(),
-            'uacsList' => UACS::orderBy('object_code')->get(),
-            'paymentOptions' => PaymentDetailOption::orderBy('payment_desc')->get(),
+            'bankAccounts' => BankAccountInfo::orderBy('bank_name', 'asc')->get(),
+            'uacsList' => UACS::query()
+                ->select(['id', 'uacs_object_code', 'account_title'])
+                ->orderBy('id', 'asc')
+                ->get(),
+            'paymentOptions' => PaymentDetailOption::orderBy('payment_desc', 'asc')->get(),
             'academicTerms' => AcademicTerm::query()
                 ->orderByDesc('school_year')
-                ->orderBy('semester')
+                ->orderBy('semester', 'asc')
                 ->get(['id', 'school_year', 'semester']),
         ]);
     }

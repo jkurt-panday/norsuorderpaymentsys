@@ -88,70 +88,15 @@ export default function UacsIndex({ uacs }: UacsProps) {
                         data={uacs}
                         storageKey="uacs"
                         searchableColumns={[
-                            'classification',
-                            'sub_class',
-                            'group',
-                            'object_code',
-                            'sub_object_code',
-                            'uacs',
-                            'status',
+                            'norsu_object_code',
+                            'norsu_sub_object_code',
+                            'uacs_object_code',
+                            'uacs_sub_object_code',
+                            'rca_code',
+                            'account_title',
                         ]}
-                        searchPlaceholder="Search for any values or status"
+                        searchPlaceholder="Search UACS codes or account titles"
                         emptyMessage="No UACS records found"
-                        filters={[
-                            {
-                                column: 'classification',
-                                label: 'Classification',
-                                options: Array.from(
-                                    new Set(
-                                        uacs
-                                            .map((row) => row.classification)
-                                            .filter((value): value is string =>
-                                                Boolean(value),
-                                            ),
-                                    ),
-                                ).map((value) => ({
-                                    label: value,
-                                    value,
-                                })),
-                                widthClassName: 'w-44',
-                            },
-                            {
-                                column: 'sub_class',
-                                label: 'Sub-Class',
-                                options: Array.from(
-                                    new Set(
-                                        uacs
-                                            .map((row) => row.sub_class)
-                                            .filter((value): value is string =>
-                                                Boolean(value),
-                                            ),
-                                    ),
-                                ).map((value) => ({
-                                    label: value,
-                                    value,
-                                })),
-                                widthClassName: 'w-50',
-                                contentWidthClassName: 'w-70',
-                            },
-                            {
-                                column: 'status',
-                                label: 'Status',
-                                options: Array.from(
-                                    new Set(
-                                        uacs
-                                            .map((row) => row.status)
-                                            .filter((value): value is string =>
-                                                Boolean(value),
-                                            ),
-                                    ),
-                                ).map((value) => ({
-                                    label: value,
-                                    value,
-                                })),
-                                widthClassName: 'w-36',
-                            },
-                        ]}
                     />
                 </div>
             </div>
