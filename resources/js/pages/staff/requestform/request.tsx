@@ -904,7 +904,7 @@ const ManageRequests: React.FC = () => {
                     { value: 'cancelled', label: 'Cancelled', color: 'red' },
                     {
                         value: 'unprocessed',
-                        label: 'Unapproved',
+                        label: 'Unprocessed',
                         color: 'grey',
                     },
                 ]}
@@ -1236,7 +1236,7 @@ const ManageRequests: React.FC = () => {
                                                                 >
                                                                     {row.staff_input
                                                                         ?.status ??
-                                                                        'Unapproved'}
+                                                                        'Unprocessed'}
                                                                 </span>
                                                                 {row.staff_input
                                                                     ?.email_status ===
@@ -1533,7 +1533,7 @@ const ManageRequests: React.FC = () => {
                                                                 >
                                                                     {row.staff_input
                                                                         ?.status ??
-                                                                        'Unapproved'}
+                                                                        'Unprocessed'}
                                                                 </span>
                                                                 {row.staff_input
                                                                     ?.email_status ===
