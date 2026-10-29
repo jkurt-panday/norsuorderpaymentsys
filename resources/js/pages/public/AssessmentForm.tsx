@@ -34,14 +34,6 @@ import PublicLayout from '@/pages/layouts/PublicLayout';
 const enlarge =
     'h-12 rounded-xl border-border bg-card px-4 text-base shadow-sm transition-all duration-200';
 
-const toSentenceCase = (value: string): string => {
-    const normalized = value.toLowerCase();
-
-    return normalized.replace(/(^\s*[a-z])|([.!?]\s+[a-z])/g, (match) =>
-        match.toUpperCase(),
-    );
-};
-
 // Generates array of academic years: ["2026-2027", "2025-2026", "2024-2025", ...]
 export const SCHOOL_YEAR_OPTIONS = (() => {
     const today = new Date();
@@ -125,8 +117,8 @@ export default function AssessmentForm({ courses }: Props) {
             forceFormData: true,
             preserveState: true,
             onSuccess: () => console.log('Success'),
-            onError: (errs) => console.error('Validation errors: ', errs)
-        })
+            onError: (errs) => console.error('Validation errors: ', errs),
+        });
     };
 
     // contact num length
@@ -135,7 +127,7 @@ export default function AssessmentForm({ courses }: Props) {
     return (
         <>
             <Head title="Assessment Form" />
-            <ThemeToggle className="fixed top-4 right-4 z-50 rounded-full shadow-md bg-card/80 dark:bg-slate-900/80 backdrop-blur" />
+            <ThemeToggle className="fixed top-4 right-4 z-50 rounded-full bg-card/80 shadow-md backdrop-blur dark:bg-slate-900/80" />
             <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-200 to-white px-6 py-12">
                 <div className="mx-auto max-w-4xl">
                     <div className="mb-6 rounded-2xl border border-blue-100 bg-card px-8 py-8 text-center shadow-md">
@@ -283,10 +275,10 @@ export default function AssessmentForm({ courses }: Props) {
                                                     placeholder="Juan"
                                                     value={data.first_name}
                                                     onChange={(e) =>
-setData(
-                                                             'first_name',
-                                                             toSentenceCase(e.target.value),
-                                                         )
+                                                        setData(
+                                                            'first_name',
+                                                            e.target.value,
+                                                        )
                                                     }
                                                 />
                                                 {errors.first_name && (
@@ -312,10 +304,10 @@ setData(
                                                     placeholder="Carlos"
                                                     value={data.middle_name}
                                                     onChange={(e) =>
-setData(
-                                                             'middle_name',
-                                                             toSentenceCase(e.target.value),
-                                                         )
+                                                        setData(
+                                                            'middle_name',
+                                                            e.target.value,
+                                                        )
                                                     }
                                                 />
                                                 {errors.middle_name && (
@@ -341,10 +333,10 @@ setData(
                                                     placeholder="Dela Cruz"
                                                     value={data.last_name}
                                                     onChange={(e) =>
-setData(
-                                                             'last_name',
-                                                             toSentenceCase(e.target.value),
-                                                         )
+                                                        setData(
+                                                            'last_name',
+                                                            e.target.value,
+                                                        )
                                                     }
                                                 />
                                                 {errors.last_name && (
@@ -367,16 +359,22 @@ setData(
                                                 Student ID
                                             </FieldLabel>
                                             <Input
-                                                className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+                                                className={`${enlarge} [appearance:textfield] focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
                                                 id="input-field-fname"
                                                 type="number"
                                                 placeholder="202300000"
                                                 value={data.student_id}
-                                                onChange={(e) =>{
-                                                    const value = e.target.value.slice(0, 9); // Enforce max 9 digits
-                                                    setData('student_id', value);
-                                                }
-                                                }
+                                                onChange={(e) => {
+                                                    const value =
+                                                        e.target.value.slice(
+                                                            0,
+                                                            9,
+                                                        ); // Enforce max 9 digits
+                                                    setData(
+                                                        'student_id',
+                                                        value,
+                                                    );
+                                                }}
                                             />
                                             {errors.student_id && (
                                                 <p className="mt-1 text-sm text-red-500">
@@ -423,9 +421,7 @@ setData(
                                                 <ComboboxInput
                                                     placeholder="Select course"
                                                     className={`border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
-                                                    showClear={
-                                                        !!data.course_id
-                                                    }
+                                                    showClear={!!data.course_id}
                                                 />
                                                 <ComboboxContent>
                                                     <ComboboxEmpty>
@@ -470,10 +466,12 @@ setData(
                                                 placeholder="Kagawasan Ave. Dumaguete City"
                                                 value={data.address}
                                                 onChange={(e) =>
-setData(
-                                                     'address',
-                                                     toSentenceCase(e.target.value),
-                                                 )
+                                                    setData(
+                                                        'address',
+                                                        toSentenceCase(
+                                                            e.target.value,
+                                                        ),
+                                                    )
                                                 }
                                             />
                                             {errors.address && (
@@ -703,7 +701,7 @@ setData(
                                 >
                                     Reset
                                 </Button>
-                            
+
                                 {/* Submit Assessment Button */}
                                 <Button
                                     type="submit"
