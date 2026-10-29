@@ -1,0 +1,49 @@
+services:
+  minio:
+    image: cgr.dev/chainguard/minio:latest
+    container_name: opsystemMINIO
+    ports:
+      - '9000:9000' # S3 API Port
+      - '9002:9001' # Web Console Port
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - opsystem_minio_data:/data
+    command: server /data --console-address ":9001"
+
+  mysql:
+    image: mysql:8.4
+    container_name: opsystemMYSQL
+    ports:
+      - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: opsystem
+      MYSQL_USER: opsystem
+      MYSQL_PASSWORD: opsystempassword
+    volumes:
+      - opsystem_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-p${MYSQL_ROOT_PASSWORD}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: opsystemPHPMYADMIN
+    ports:
+      - '8080:80'
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: opsystem
+      PMA_PASSWORD: opsystempassword
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  opsystem_minio_data:
+  opsystem_mysql_data:

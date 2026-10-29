@@ -36,7 +36,7 @@ class StaffInput extends Model
         'email_queued_at' => 'datetime',
     ];
 
-    public const STATUSES = ['pending', 'processed', 'paid', 'cancelled'];
+    public const STATUSES = ['pending', 'approved', 'paid', 'cancelled'];
 
     /**
      * Delivery states for a queued Order of Payment email.

@@ -27,13 +27,12 @@ class UACSController extends BaseResourceController
 
     /** @var list<string> */
     protected array $searchableColumns = [
-        'classification',
-        'sub_class',
-        'group',
-        'object_code',
-        'sub_object_code',
-        'uacs',
-        'status',
+        'norsu_object_code',
+        'norsu_sub_object_code',
+        'uacs_object_code',
+        'uacs_sub_object_code',
+        'rca_code',
+        'account_title',
     ];
 
     protected string $indexView = 'staff/uacs/uacs';
@@ -42,7 +41,7 @@ class UACSController extends BaseResourceController
 
     protected int $perPage = 10000;
 
-    protected string $orderBy = 'id';
+    protected string $orderBy = 'uacs_object_code';
 
     /** @var 'asc'|'desc' */
     protected string $orderDirection = 'asc';
@@ -50,19 +49,21 @@ class UACSController extends BaseResourceController
     /** @var list<string> */
     protected array $sortableColumns = [
         'id',
-        'classification',
-        'sub_class',
-        'group',
-        'object_code',
-        'sub_object_code',
-        'uacs',
-        'status',
+        'norsu_object_code',
+        'norsu_sub_object_code',
+        'uacs_object_code',
+        'uacs_sub_object_code',
+        'rca_code',
+        'account_title',
         'created_at',
     ];
 
     public function index(Request $request): Response
     {
-        $uacs = UACS::query()->orderBy('uacs', 'asc')->get();
+        $uacs = UACS::query()
+            ->orderBy('uacs_object_code', 'asc')
+            ->orderBy('uacs_sub_object_code', 'asc')
+            ->get();
 
         return Inertia::render($this->indexView, [
             'uacs' => $uacs,
@@ -110,7 +111,7 @@ class UACSController extends BaseResourceController
                 'error' => $e->getMessage(),
             ]);
 
-            return back()->with('error', 'Failed to import the UACS file.');
+            return back()->with('error', 'Failed to import the UACS file: '.$e->getMessage());
         }
     }
 

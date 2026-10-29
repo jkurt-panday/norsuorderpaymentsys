@@ -69,9 +69,9 @@ interface BankAccount {
     fund_cluster: string;
 }
 
-interface Uacs {
+interface UacsProps {
     id: number;
-    object_code: string;
+    uacs_object_code: string;
     account_title: string;
 }
 
@@ -85,7 +85,7 @@ interface StaffInput {
     status: 'pending' | 'processed' | 'paid' | 'cancelled' | 'unprocessed';
     ref_date: string | null;
     bank_account: BankAccount | null;
-    uacs: Uacs | null;
+    uacs: UacsProps | null;
     reference_document: ReferenceDocument | null;
     created_at: string;
     purpose: string | null;
@@ -161,7 +161,7 @@ interface PageProps {
     auth: { user: AuthUser | null };
     formInput: FormInput;
     bankAccounts: BankAccount[];
-    uacsList: Uacs[];
+    uacsList: UacsProps[];
     paymentOptions: PaymentDetailOption[];
     academicTerms: AcademicTerm[];
     flash?: FlashProps;
@@ -247,11 +247,10 @@ const ReadOnlyRow = ({
         </div>
     ) : (
         <p
-            className={`min-w-0 flex-1 text-sm ${valueClass} ${
-                shouldTruncate
-                    ? 'truncate'
-                    : 'wrap-break-word whitespace-pre-wrap'
-            }`}
+            className={`min-w-0 flex-1 text-sm ${valueClass} ${shouldTruncate
+                ? 'truncate'
+                : 'wrap-break-word whitespace-pre-wrap'
+                }`}
             title={shouldTruncate ? stringValue : undefined}
         >
             {displayValue}
@@ -629,6 +628,14 @@ export default function ShowRequest() {
         (formInput as any).supporting_documents ??
         [];
 
+    const sortedUacsList = [...uacsList].sort((a, b) => a.id - b.id);
+    // Keep the complete UACS record as the Combobox item. The selected
+    // record's ID is stored in the form while its code/title is displayed.
+    const filterUacs = (item: UacsProps, query: string) =>
+        `${item.uacs_object_code} - ${item.account_title}`
+            .toLocaleLowerCase()
+            .includes(query.trim().toLocaleLowerCase());
+
     const confirmDelete = (documentId: number) => {
         setDeleteTargetId(documentId);
     };
@@ -883,10 +890,10 @@ export default function ShowRequest() {
                                                 payment_detail_option_id:
                                                     formInput.payment_detail_option
                                                         ? String(
-                                                              formInput
-                                                                  .payment_detail_option
-                                                                  .id,
-                                                          )
+                                                            formInput
+                                                                .payment_detail_option
+                                                                .id,
+                                                        )
                                                         : '',
                                                 new_payment_option: '',
                                             });
@@ -922,11 +929,10 @@ export default function ShowRequest() {
                                             </label>
                                             <input
                                                 type="text"
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                    detailsErrors.firstname_or_office
-                                                        ? 'border-rose-400'
-                                                        : 'border-border'
-                                                }`}
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${detailsErrors.firstname_or_office
+                                                    ? 'border-rose-400'
+                                                    : 'border-border'
+                                                    }`}
                                                 value={
                                                     detailsData.firstname_or_office
                                                 }
@@ -953,11 +959,10 @@ export default function ShowRequest() {
                                             </label>
                                             <input
                                                 type="text"
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                    detailsErrors.middlename_or_project
-                                                        ? 'border-rose-400'
-                                                        : 'border-border'
-                                                }`}
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${detailsErrors.middlename_or_project
+                                                    ? 'border-rose-400'
+                                                    : 'border-border'
+                                                    }`}
                                                 value={
                                                     detailsData.middlename_or_project
                                                 }
@@ -986,11 +991,10 @@ export default function ShowRequest() {
                                             </label>
                                             <input
                                                 type="text"
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                    detailsErrors.lastname_or_agency
-                                                        ? 'border-rose-400'
-                                                        : 'border-border'
-                                                }`}
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${detailsErrors.lastname_or_agency
+                                                    ? 'border-rose-400'
+                                                    : 'border-border'
+                                                    }`}
                                                 value={
                                                     detailsData.lastname_or_agency
                                                 }
@@ -1105,11 +1109,10 @@ export default function ShowRequest() {
                                                 type="number"
                                                 step="0.01"
                                                 min="0"
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                    detailsErrors.amount
-                                                        ? 'border-rose-400'
-                                                        : 'border-border'
-                                                }`}
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${detailsErrors.amount
+                                                    ? 'border-rose-400'
+                                                    : 'border-border'
+                                                    }`}
                                                 value={detailsData.amount}
                                                 onChange={(e) =>
                                                     setDetailsData(
@@ -1161,19 +1164,18 @@ export default function ShowRequest() {
                                                                 'payment_detail_option_id',
                                                                 selected
                                                                     ? String(
-                                                                          selected.id,
-                                                                      )
+                                                                        selected.id,
+                                                                    )
                                                                     : '',
                                                             );
                                                         }}
                                                     >
                                                         <ComboboxInput
                                                             placeholder="Select Payment Option"
-                                                            className={`h-9! w-full rounded-xl border bg-background px-4 py-2 text-sm text-foreground outline-none ${
-                                                                detailsErrors.payment_detail_option_id
-                                                                    ? 'border-rose-400'
-                                                                    : 'border-border'
-                                                            }`}
+                                                            className={`h-9! w-full rounded-xl border bg-background px-4 py-2 text-sm text-foreground outline-none ${detailsErrors.payment_detail_option_id
+                                                                ? 'border-rose-400'
+                                                                : 'border-border'
+                                                                }`}
                                                             showClear={
                                                                 !!detailsData.payment_detail_option_id
                                                             }
@@ -1398,22 +1400,22 @@ export default function ShowRequest() {
                                                                 .staff_input
                                                                 ?.bank_account
                                                                 ? String(
-                                                                      formInput
-                                                                          .staff_input
-                                                                          .bank_account
-                                                                          .id,
-                                                                  )
+                                                                    formInput
+                                                                        .staff_input
+                                                                        .bank_account
+                                                                        .id,
+                                                                )
                                                                 : '',
                                                         ref_document_id:
                                                             formInput
                                                                 .staff_input
                                                                 ?.reference_document
                                                                 ? String(
-                                                                      formInput
-                                                                          .staff_input
-                                                                          .reference_document
-                                                                          .id,
-                                                                  )
+                                                                    formInput
+                                                                        .staff_input
+                                                                        .reference_document
+                                                                        .id,
+                                                                )
                                                                 : '',
                                                         ref_date:
                                                             formInput.staff_input?.ref_date?.split(
@@ -1422,10 +1424,10 @@ export default function ShowRequest() {
                                                         uacs_id: formInput
                                                             .staff_input?.uacs
                                                             ? String(
-                                                                  formInput
-                                                                      .staff_input
-                                                                      .uacs.id,
-                                                              )
+                                                                formInput
+                                                                    .staff_input
+                                                                    .uacs.id,
+                                                            )
                                                             : '',
                                                         status:
                                                             formInput
@@ -1536,8 +1538,8 @@ export default function ShowRequest() {
                                                                 'fundcluster_id',
                                                                 selected
                                                                     ? String(
-                                                                          selected.id,
-                                                                      )
+                                                                        selected.id,
+                                                                    )
                                                                     : '',
                                                             );
                                                         }}
@@ -1555,17 +1557,20 @@ export default function ShowRequest() {
                                                                 found.
                                                             </ComboboxEmpty>
                                                             <ComboboxList>
-                                                                {(account) => (
+                                                                {(item: {
+                                                                    label: string;
+                                                                    value: string;
+                                                                }) => (
                                                                     <ComboboxItem
                                                                         key={
-                                                                            account.value
+                                                                            item.value
                                                                         }
                                                                         value={
-                                                                            account.value
+                                                                            item.value
                                                                         }
                                                                     >
                                                                         {
-                                                                            account.label
+                                                                            item.label
                                                                         }
                                                                     </ComboboxItem>
                                                                 )}
@@ -1613,8 +1618,8 @@ export default function ShowRequest() {
                                                                 'ref_document_id',
                                                                 selected
                                                                     ? String(
-                                                                          selected.id,
-                                                                      )
+                                                                        selected.id,
+                                                                    )
                                                                     : '',
                                                             );
                                                         }}
@@ -1685,38 +1690,33 @@ export default function ShowRequest() {
                                                     }
                                                 >
                                                     <Combobox
-                                                        items={uacsList.map(
-                                                            (uacs) => ({
-                                                                label: `${uacs.object_code} - ${uacs.account_title}`,
-                                                                value: `${uacs.object_code} - ${uacs.account_title}`,
-                                                            }),
-                                                        )}
+                                                        items={sortedUacsList}
+                                                        filter={filterUacs}
+                                                        itemToStringLabel={(
+                                                            uacs,
+                                                        ) =>
+                                                            `${uacs.uacs_object_code} - ${uacs.account_title}`
+                                                        }
                                                         value={
-                                                            uacsList.find(
+                                                            sortedUacsList.find(
                                                                 (uacs) =>
                                                                     String(
                                                                         uacs.id,
                                                                     ) ===
                                                                     staffInputData.uacs_id,
-                                                            )
-                                                                ? `${uacsList.find((uacs) => String(uacs.id) === staffInputData.uacs_id)?.object_code} - ${uacsList.find((uacs) => String(uacs.id) === staffInputData.uacs_id)?.account_title}`
-                                                                : ''
+                                                            ) ?? null
                                                         }
                                                         onValueChange={(
                                                             value,
                                                         ) => {
                                                             const selected =
-                                                                uacsList.find(
-                                                                    (uacs) =>
-                                                                        `${uacs.object_code} - ${uacs.account_title}` ===
-                                                                        value,
-                                                                );
+                                                                value as UacsProps | null;
                                                             setStaffInputData(
                                                                 'uacs_id',
                                                                 selected
                                                                     ? String(
-                                                                          selected.id,
-                                                                      )
+                                                                        selected.id,
+                                                                    )
                                                                     : '',
                                                             );
                                                         }}
@@ -1736,14 +1736,18 @@ export default function ShowRequest() {
                                                                 {(uacs) => (
                                                                     <ComboboxItem
                                                                         key={
-                                                                            uacs.value
+                                                                            uacs.id
                                                                         }
                                                                         value={
-                                                                            uacs.value
+                                                                            uacs
                                                                         }
                                                                     >
                                                                         {
-                                                                            uacs.label
+                                                                            uacs.uacs_object_code
+                                                                        }{' '}
+                                                                        -{' '}
+                                                                        {
+                                                                            uacs.account_title
                                                                         }
                                                                     </ComboboxItem>
                                                                 )}
@@ -1767,6 +1771,10 @@ export default function ShowRequest() {
                                                             {
                                                                 label: 'Processed',
                                                                 value: 'processed',
+                                                            },
+                                                            {
+                                                                label: 'Paid',
+                                                                value: 'paid',
                                                             },
                                                             {
                                                                 label: 'Cancelled',
@@ -1806,6 +1814,10 @@ export default function ShowRequest() {
                                                                         value: 'processed',
                                                                     },
                                                                     {
+                                                                        label: 'Paid',
+                                                                        value: 'paid',
+                                                                    },
+                                                                    {
                                                                         label: 'Cancelled',
                                                                         value: 'cancelled',
                                                                     },
@@ -1836,11 +1848,10 @@ export default function ShowRequest() {
                                                     }
                                                 >
                                                     <textarea
-                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                            staffInputErrors.purpose
-                                                                ? 'border-rose-400'
-                                                                : 'border-border'
-                                                        }`}
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${staffInputErrors.purpose
+                                                            ? 'border-rose-400'
+                                                            : 'border-border'
+                                                            }`}
                                                         value={
                                                             staffInputData.purpose
                                                         }
@@ -1945,10 +1956,10 @@ export default function ShowRequest() {
                                                         formInput.staff_input
                                                             .ref_date
                                                             ? formatDateOnly(
-                                                                  formInput
-                                                                      .staff_input
-                                                                      .ref_date,
-                                                              )
+                                                                formInput
+                                                                    .staff_input
+                                                                    .ref_date,
+                                                            )
                                                             : 'N/A'
                                                     }
                                                     valueClass="text-black-400"
@@ -1960,7 +1971,7 @@ export default function ShowRequest() {
                                                     value={
                                                         formInput.staff_input
                                                             .uacs
-                                                            ? `${formInput.staff_input.uacs.object_code} - ${formInput.staff_input.uacs.account_title}`
+                                                            ? `${formInput.staff_input.uacs.uacs_object_code} - ${formInput.staff_input.uacs.account_title}`
                                                             : 'N/A'
                                                     }
                                                     valueClass="text-black-400"
@@ -2054,8 +2065,8 @@ export default function ShowRequest() {
                                                         'fundcluster_id',
                                                         selected
                                                             ? String(
-                                                                  selected.id,
-                                                              )
+                                                                selected.id,
+                                                            )
                                                             : '',
                                                     );
                                                 }}
@@ -2127,8 +2138,8 @@ export default function ShowRequest() {
                                                         'ref_document_id',
                                                         selected
                                                             ? String(
-                                                                  selected.id,
-                                                              )
+                                                                selected.id,
+                                                            )
                                                             : '',
                                                     );
                                                 }}
@@ -2201,32 +2212,27 @@ export default function ShowRequest() {
                                                 </span>
                                             </label>
                                             <Combobox
-                                                items={uacsList.map((uacs) => ({
-                                                    label: `${uacs.object_code} - ${uacs.account_title}`,
-                                                    value: `${uacs.object_code} - ${uacs.account_title}`,
-                                                }))}
+                                                items={sortedUacsList}
+                                                filter={filterUacs}
+                                                itemToStringLabel={(uacs) =>
+                                                    `${uacs.uacs_object_code} - ${uacs.account_title}`
+                                                }
                                                 value={
-                                                    uacsList.find(
+                                                    sortedUacsList.find(
                                                         (uacs) =>
                                                             String(uacs.id) ===
                                                             processData.uacs_id,
-                                                    )
-                                                        ? `${uacsList.find((uacs) => String(uacs.id) === processData.uacs_id)?.object_code} - ${uacsList.find((uacs) => String(uacs.id) === processData.uacs_id)?.account_title}`
-                                                        : ''
+                                                    ) ?? null
                                                 }
                                                 onValueChange={(value) => {
                                                     const selected =
-                                                        uacsList.find(
-                                                            (uacs) =>
-                                                                `${uacs.object_code} - ${uacs.account_title}` ===
-                                                                value,
-                                                        );
+                                                        value as UacsProps | null;
                                                     setProcessData(
                                                         'uacs_id',
                                                         selected
                                                             ? String(
-                                                                  selected.id,
-                                                              )
+                                                                selected.id,
+                                                            )
                                                             : '',
                                                     );
                                                 }}
@@ -2245,12 +2251,16 @@ export default function ShowRequest() {
                                                     <ComboboxList>
                                                         {(uacs) => (
                                                             <ComboboxItem
-                                                                key={uacs.value}
-                                                                value={
-                                                                    uacs.value
-                                                                }
+                                                                key={uacs.id}
+                                                                value={uacs}
                                                             >
-                                                                {uacs.label}
+                                                                {
+                                                                    uacs.uacs_object_code
+                                                                }{' '}
+                                                                -{' '}
+                                                                {
+                                                                    uacs.account_title
+                                                                }
                                                             </ComboboxItem>
                                                         )}
                                                     </ComboboxList>
@@ -2279,6 +2289,10 @@ export default function ShowRequest() {
                                                     {
                                                         label: 'Processed',
                                                         value: 'processed',
+                                                    },
+                                                    {
+                                                        label: 'Paid',
+                                                        value: 'paid',
                                                     },
                                                     {
                                                         label: 'Cancelled',
@@ -2341,11 +2355,10 @@ export default function ShowRequest() {
                                                 Purpose
                                             </label>
                                             <textarea
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                    processErrors.purpose
-                                                        ? 'border-rose-400'
-                                                        : 'border-border'
-                                                }`}
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${processErrors.purpose
+                                                    ? 'border-rose-400'
+                                                    : 'border-border'
+                                                    }`}
                                                 value={processData.purpose}
                                                 onChange={(e) =>
                                                     setProcessData(
@@ -2445,8 +2458,8 @@ export default function ShowRequest() {
                                                             .staff_input
                                                             ?.or_date
                                                             ? formInput.staff_input.or_date.split(
-                                                                  'T',
-                                                              )[0]
+                                                                'T',
+                                                            )[0]
                                                             : '',
                                                     });
                                                     setIsEditingOr(true);
@@ -2485,11 +2498,10 @@ export default function ShowRequest() {
                                                         type="text"
                                                         inputMode="text"
                                                         placeholder="e.g. 56-980 or 2024/001"
-                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                            orErrors.or_no
-                                                                ? 'border-rose-400'
-                                                                : 'border-border'
-                                                        }`}
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${orErrors.or_no
+                                                            ? 'border-rose-400'
+                                                            : 'border-border'
+                                                            }`}
                                                         value={orData.or_no}
                                                         onChange={(e) => {
                                                             const filtered =
@@ -2586,10 +2598,10 @@ export default function ShowRequest() {
                                                         formInput.staff_input
                                                             ?.or_date
                                                             ? formatDateOnly(
-                                                                  formInput
-                                                                      .staff_input
-                                                                      .or_date,
-                                                              )
+                                                                formInput
+                                                                    .staff_input
+                                                                    .or_date,
+                                                            )
                                                             : 'N/A'
                                                     }
                                                     valueClass="text-black-400"
@@ -2983,22 +2995,20 @@ export default function ShowRequest() {
                         <button
                             type="button"
                             onClick={() => setStudentMatchMode('existing')}
-                            className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                                studentMatchMode === 'existing'
-                                    ? 'bg-card text-blue-700 shadow-sm'
-                                    : 'text-muted-foreground hover:text-foreground'
-                            }`}
+                            className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${studentMatchMode === 'existing'
+                                ? 'bg-card text-blue-700 shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground'
+                                }`}
                         >
                             Search Existing
                         </button>
                         <button
                             type="button"
                             onClick={() => setStudentMatchMode('create')}
-                            className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                                studentMatchMode === 'create'
-                                    ? 'bg-card text-blue-700 shadow-sm'
-                                    : 'text-muted-foreground hover:text-foreground'
-                            }`}
+                            className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${studentMatchMode === 'create'
+                                ? 'bg-card text-blue-700 shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground'
+                                }`}
                         >
                             Create Student
                         </button>
@@ -3040,11 +3050,10 @@ export default function ShowRequest() {
                                                         String(student.id),
                                                     )
                                                 }
-                                                className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
-                                                    selected
-                                                        ? 'border-blue-500 bg-blue-50'
-                                                        : 'border-transparent hover:bg-muted/50'
-                                                }`}
+                                                className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${selected
+                                                    ? 'border-blue-500 bg-blue-50'
+                                                    : 'border-transparent hover:bg-muted/50'
+                                                    }`}
                                             >
                                                 <span>
                                                     <span className="block text-sm font-semibold text-foreground">
@@ -3224,7 +3233,7 @@ export default function ShowRequest() {
                             disabled={
                                 studentMatchMode === 'existing'
                                     ? !linkStudentForm.data.student_id ||
-                                      linkStudentForm.processing
+                                    linkStudentForm.processing
                                     : createStudentForm.processing
                             }
                             className="rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
@@ -3234,8 +3243,8 @@ export default function ShowRequest() {
                                     ? 'Linking...'
                                     : 'Confirm Match'
                                 : createStudentForm.processing
-                                  ? 'Creating...'
-                                  : 'Create and Match'}
+                                    ? 'Creating...'
+                                    : 'Create and Match'}
                         </button>
                     </DialogFooter>
                 </DialogContent>
