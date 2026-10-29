@@ -7,9 +7,5 @@ allowBuilds:
   puppeteer: true
   unrs-resolver: false
 
-permissions:
-  '@tanstack/react-table':
-    skills: false
-
 publicHoistPattern:
   - '@inertiajs/core'
