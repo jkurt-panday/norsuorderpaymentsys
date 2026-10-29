@@ -20,6 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Cloudflare terminates HTTPS before forwarding requests to Laravel.
+        // Trust the forwarded scheme so @vite and URL helpers generate HTTPS URLs.
+        $middleware->trustProxies(at: '*');
+
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->web(append: [
