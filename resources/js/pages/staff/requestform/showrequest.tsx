@@ -82,7 +82,7 @@ interface ReferenceDocument {
 
 interface StaffInput {
     id: number;
-    status: 'pending' | 'approved' | 'paid' | 'cancelled' | 'unprocessed';
+    status: 'pending' | 'processed' | 'paid' | 'cancelled' | 'unprocessed';
     ref_date: string | null;
     bank_account: BankAccount | null;
     uacs: UacsProps | null;
@@ -169,7 +169,7 @@ interface PageProps {
 
 const statusBadgeClass = (status: string) => {
     switch (status) {
-        case 'approved':
+        case 'processed':
             return 'bg-green-50 text-green-700';
         case 'paid':
             return 'bg-green-100 text-green-800';
@@ -184,7 +184,7 @@ const statusBadgeClass = (status: string) => {
 
 const statusBadgeBorder = (status: string) => {
     switch (status) {
-        case 'approved':
+        case 'processed':
             return 'ring-1 ring-green-500';
         case 'paid':
             return 'ring-1 ring-emerald-500';
@@ -708,7 +708,7 @@ export default function ShowRequest() {
         uacs_id: formInput.staff_input?.uacs
             ? String(formInput.staff_input.uacs.id)
             : '',
-        status: formInput.staff_input?.status ?? 'approved',
+        status: formInput.staff_input?.status ?? 'processed',
         purpose: formInput.staff_input?.purpose ?? '',
     });
 
@@ -802,7 +802,7 @@ export default function ShowRequest() {
         ref_document_id: '',
         ref_date: todayIso(),
         uacs_id: '',
-        status: 'approved',
+        status: 'processed',
         purpose: '',
     });
     const handleProcessSubmit = (e: React.FormEvent) => {
@@ -1433,7 +1433,7 @@ export default function ShowRequest() {
                                                             formInput
                                                                 .staff_input
                                                                 ?.status ??
-                                                            'approved',
+                                                            'processed',
                                                         purpose:
                                                             formInput
                                                                 .staff_input
@@ -1770,7 +1770,7 @@ export default function ShowRequest() {
                                                             },
                                                             {
                                                                 label: 'Processed',
-                                                                value: 'approved',
+                                                                value: 'processed',
                                                             },
                                                             {
                                                                 label: 'Paid',
@@ -2324,7 +2324,7 @@ export default function ShowRequest() {
                                                             },
                                                             {
                                                                 label: 'Processed',
-                                                                value: 'approved',
+                                                                value: 'processed',
                                                             },
                                                             {
                                                                 label: 'Cancelled',

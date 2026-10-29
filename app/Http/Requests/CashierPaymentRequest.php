@@ -17,7 +17,7 @@ class CashierPaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['required', 'string', 'in:approved,paid,cancelled'],
+            'status' => ['required', 'string', 'in:processed,approved,paid,cancelled'],
             'or_no' => [
                 'nullable',
                 'string',

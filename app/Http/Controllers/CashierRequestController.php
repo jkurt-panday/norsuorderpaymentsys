@@ -31,7 +31,7 @@ class CashierRequestController extends Controller
 
         $query = StaffInput::query()
             ->with(['formInput.membership', 'formInput.paymentDetailOption'])
-            ->whereIn('staff_inputs.status', ['approved', 'paid', 'cancelled'])
+            ->whereIn('staff_inputs.status', ['processed', 'paid', 'cancelled'])
             ->when($status !== '', function (Builder $query) use ($status): void {
                 $query->where('staff_inputs.status', $status);
             })
