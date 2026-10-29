@@ -52,7 +52,7 @@ const getStatusBadgeConfig = (status: PaymentRequest['status']) => {
         case 'processed':
             return {
                 label: 'Ready for Payment',
-                className: 'bg-amber-100 text-amber-800 border-amber-200',
+                className: 'bg-green-100 text-green-800 border-green-200',
             };
         case 'cancelled':
             return {
