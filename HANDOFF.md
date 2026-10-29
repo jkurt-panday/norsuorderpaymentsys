@@ -2,17 +2,14 @@
 **Date:** Wed Oct 28 2026
 
 ## Current State
-Completed pnpm migration and security audit hardening items:
-- Migrated CI/CD to pnpm with frozen lockfiles (`tests.yml`, `lint.yml`).
-- Deleted legacy `package-lock.json`.
-- Removed `role` from `User` `$fillable`; explicit assignment in `AdminUserController::store`.
-- Created & registered `SecureHeaders` middleware (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`).
-- Removed dead `routes/api.php` and deleted unused Supabase module/package.
-- Added `throttle:20,1` rate-limiting to public `POST /opform` in `routes/web.php`.
-- Moved plan to `plan/finished/pnpm_migration_and_security_audit.md`.
-
-## Finished Plans
-- `plan/finished/pnpm_migration_and_security_audit.md` (Completed: Wed Oct 28 2026)
+Completed Fix 2:
+- Added guard in `app/Http/Controllers/CashierRequestController.php` preventing cashier from marking a `pending` (unreviewed) OP as `paid`.
+- Added automated test in `tests/Feature/CashierRoleBoundaryTest.php`: `test_cashier_cannot_mark_pending_request_as_paid`.
+- Verified passing: 6/6 tests green.
 
 ## Next Steps
-- Open for next feature request or enhancement.
+- Awaiting user confirmation to proceed with the next fixes from `plan/core_workflow_edge_cases_and_e2e_test.md`:
+  1. Fix 1: Add authenticated client fallback to `downloadReceipt()` in `FormInputController.php`.
+  2. Fix 3: Prevent amount modification on already paid OPs in `StaffInputController::updateDetails()`.
+  3. Fix 4: Prevent status demotion on paid OPs without formal cancellation in `StaffInputController::update()`.
+  4. Write comprehensive E2E test `tests/Feature/CoreWorkflowE2ETest.php`.

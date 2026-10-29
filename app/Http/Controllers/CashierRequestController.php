@@ -126,6 +126,12 @@ class CashierRequestController extends Controller
                 $validated = $request->validated();
                 $targetStatus = $validated['status'] ?? 'paid';
 
+                if ($targetStatus === 'paid' && $lockedRequest->status === 'pending') {
+                    throw ValidationException::withMessages([
+                        'status' => 'Cannot mark a pending request as paid. It must be processed first.',
+                    ]);
+                }
+
                 if ($targetStatus === 'paid' && $requiresLedgerStudent && $formInput?->student_num === null) {
                     throw ValidationException::withMessages([
                         'student' => 'A student must be matched before this payment can be completed.',

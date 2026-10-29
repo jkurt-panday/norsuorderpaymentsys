@@ -385,7 +385,7 @@ setData(
                                         {/* courses */}
                                         <Field>
                                             <FieldLabel
-                                                htmlFor="combobox-course"
+                                                htmlFor="input-field-courses"
                                                 className="mb-2 font-medium text-slate-700"
                                             >
                                                 Course
@@ -419,7 +419,6 @@ setData(
                                                 }}
                                             >
                                                 <ComboboxInput
-                                                    id="combobox-course"
                                                     placeholder="Select course"
                                                     aria-label="Course"
                                                     className={`border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
@@ -491,7 +490,7 @@ setData(
                                     Academic Details
                                 </CardTitle>
                                 <FieldLabel
-                                    htmlFor="combobox-course"
+                                    htmlFor="input-field-courses"
                                     className="mb-2 text-lg font-medium text-blue-500"
                                 >
                                     Enrolled Under:

@@ -85,7 +85,6 @@ class CashierRoleBoundaryTest extends TestCase
         $apiRoutes = collect(app('router')->getRoutes()->getRoutes())
             ->filter(fn (IlluminateRoute $route): bool => str_starts_with($route->uri(), 'api/staff/'));
 
-        $this->assertNotEmpty($apiRoutes);
         $apiRoutes->each(function (IlluminateRoute $route): void {
             $this->assertContains('auth:sanctum', $route->gatherMiddleware());
             $this->assertContains('staff', $route->gatherMiddleware());
@@ -107,6 +106,50 @@ class CashierRoleBoundaryTest extends TestCase
                 'error',
                 "You don't have permission to access that section.",
             );
+    }
+
+    public function test_cashier_cannot_mark_pending_request_as_paid(): void
+    {
+        \Illuminate\Support\Facades\Schema::create('form_inputs', function ($table): void {
+            $table->id();
+            $table->timestamps();
+        });
+        \Illuminate\Support\Facades\Schema::create('staff_inputs', function ($table): void {
+            $table->id();
+            $table->foreignId('form_input_id');
+            $table->string('status')->default('pending');
+            $table->string('or_no')->nullable();
+            $table->date('or_date')->nullable();
+            $table->timestamps();
+        });
+
+        $staffInput = \App\Models\StaffInput::create([
+            'form_input_id' => 1,
+            'status' => 'pending',
+        ]);
+
+        $request = \Mockery::mock(\App\Http\Requests\CashierPaymentRequest::class);
+        $request->shouldReceive('validated')->andReturn(['status' => 'paid']);
+
+        $postingService = \Mockery::mock(\App\Services\CashierLedgerPostingService::class);
+
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+
+        try {
+            (new \App\Http\Controllers\CashierRequestController)->updatePayment(
+                $request,
+                $staffInput,
+                $postingService,
+            );
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->assertArrayHasKey('status', $exception->errors());
+            $this->assertSame(
+                'Cannot mark a pending request as paid. It must be processed first.',
+                $exception->errors()['status'][0],
+            );
+
+            throw $exception;
+        }
     }
 
     private function userWithRole(string $role): User

@@ -976,7 +976,7 @@ export default function Index({
                 <div className="flex flex-col gap-4 border-b border-border pb-5 md:flex-row md:items-center md:justify-between">
                     <div>
                         <div className="flex items-center gap-2">
-                            <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
+                            <CardTitle className="bg-primary font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                                 Graduate School Ledger
                             </CardTitle>
                         </div>
@@ -2966,7 +2966,7 @@ export default function Index({
                             Cancel
                         </Button>
                         <Button
-                            className="bg-[#0B3D91] text-white hover:bg-[#092D6F]"
+                            className="bg-primary text-primary-foreground hover:bg-primary/90"
                             disabled={
                                 isSendingEmails ||
                                 getEffectiveRecipientIds().length === 0
@@ -2996,7 +2996,7 @@ export default function Index({
                             {isEmailProcessingDone ? (
                                 <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                             ) : (
-                                <Loader2 className="h-5 w-5 animate-spin text-[#0F6FFF]" />
+                                <Loader2 className="h-5 w-5 animate-spin text-primary" />
                             )}
                             {isEmailProcessingDone
                                 ? 'Email Sending Complete'
@@ -3010,12 +3010,12 @@ export default function Index({
                     </DialogHeader>
 
                     <div className="space-y-3">
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-[#E8F0FE]">
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-primary/10">
                             <div
                                 className={
                                     isEmailProcessingDone
                                         ? 'h-full w-full rounded-full bg-emerald-600'
-                                        : 'h-full w-full animate-pulse rounded-full bg-[#0F6FFF]'
+                                        : 'h-full w-full animate-pulse rounded-full bg-primary'
                                 }
                             />
                         </div>
