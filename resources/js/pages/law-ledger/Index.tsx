@@ -2134,7 +2134,7 @@ export default function Index({
 
             {/* Floating Bottom-Right Import Progress Bar & Toast */}
             {(isImporting || importSuccess) && (
-                <div className="fixed right-6 bottom-6 z-50 flex min-w-[320px] flex-col gap-2.5 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-xl transition-all duration-300">
+                <div className="fixed inset-x-4 bottom-4 z-50 flex flex-col gap-2.5 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-xl transition-all duration-300 sm:inset-x-auto sm:right-6 sm:bottom-6 sm:min-w-[320px] max-w-[calc(100vw-2rem)]">
                     {isImporting ? (
                         <>
                             <div className="flex items-center gap-3">

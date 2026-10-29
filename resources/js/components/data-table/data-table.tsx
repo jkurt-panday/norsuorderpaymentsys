@@ -102,7 +102,13 @@ export function DataTable<TData extends RowData>({
                         onKeyDown={(e) => e.key === 'Enter' && runSearch()}
                         className="max-w-sm"
                     />
-                    <Button onClick={runSearch} variant="outline" size="icon" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                    <Button
+                        onClick={runSearch}
+                        variant="outline"
+                        size="icon"
+                        aria-label="Search records"
+                        className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
                         <Search className="h-4 w-4" />
                     </Button>
                 </div>

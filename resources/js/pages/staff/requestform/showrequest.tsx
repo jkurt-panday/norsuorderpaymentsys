@@ -2729,6 +2729,7 @@ export default function ShowRequest() {
                                                     <button
                                                         type="button"
                                                         title="Delete"
+                                                        aria-label="Delete document"
                                                         onClick={() =>
                                                             confirmDelete(
                                                                 document.id,
