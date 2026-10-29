@@ -1,0 +1,112 @@
+﻿[
+  {
+    "antipattern": "overused-font",
+    "name": "Overused font",
+    "description": "Inter, Roboto, Fraunces, Geist, Plus Jakarta Sans, and Space Grotesk are used on so many sites they no longer feel distinctive. Each new wave of AI-generated UIs converges on the same handful of faces. Choose a face that gives your interface personality.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "C:\\Users\\Owner\\Desktop\\OJT_Ledger\\norsuorderpaymentsys\\resources\\js\\pages\\graduate-ledger\\Index.tsx",
+    "line": 496,
+    "snippet": "font-family: Arial"
+  },
+  {
+    "antipattern": "ai-color-palette",
+    "name": "AI color palette",
+    "description": "Purple/violet gradients and cyan-on-dark are the most recognizable tells of AI-generated UIs. A gradient in one of those hues is the tell on its own; flat neon ink on a dark ground is charged once a second tell hue joins it. Choose a distinctive, intentional palette.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "C:\\Users\\Owner\\Desktop\\OJT_Ledger\\norsuorderpaymentsys\\resources\\js\\pages\\graduate-ledger\\PrintSelect.tsx",
+    "line": 457,
+    "snippet": "text-purple-900 on heading"
+  },
+  {
+    "antipattern": "ai-color-palette",
+    "name": "AI color palette",
+    "description": "Purple/violet gradients and cyan-on-dark are the most recognizable tells of AI-generated UIs. A gradient in one of those hues is the tell on its own; flat neon ink on a dark ground is charged once a second tell hue joins it. Choose a distinctive, intentional palette.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "C:\\Users\\Owner\\Desktop\\OJT_Ledger\\norsuorderpaymentsys\\resources\\js\\pages\\graduate-ledger\\PrintSelect.tsx",
+    "line": 457,
+    "snippet": "text-purple-100 on heading"
+  },
+  {
+    "antipattern": "overused-font",
+    "name": "Overused font",
+    "description": "Inter, Roboto, Fraunces, Geist, Plus Jakarta Sans, and Space Grotesk are used on so many sites they no longer feel distinctive. Each new wave of AI-generated UIs converges on the same handful of faces. Choose a face that gives your interface personality.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "C:\\Users\\Owner\\Desktop\\OJT_Ledger\\norsuorderpaymentsys\\resources\\js\\pages\\law-ledger\\Index.tsx",
+    "line": 471,
+    "snippet": "font-family: Arial"
+  },
+  {
+    "antipattern": "overused-font",
+    "name": "Overused font",
+    "description": "Inter, Roboto, Fraunces, Geist, Plus Jakarta Sans, and Space Grotesk are used on so many sites they no longer feel distinctive. Each new wave of AI-generated UIs converges on the same handful of faces. Choose a face that gives your interface personality.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "C:\\Users\\Owner\\Desktop\\OJT_Ledger\\norsuorderpaymentsys\\resources\\js\\pages\\staff\\assessments\\assessmentEdit.tsx",
+    "line": 308,
+    "snippet": "font-family: Arial"
+  },
+  {
+    "antipattern": "overused-font",
+    "name": "Overused font",
+    "description": "Inter, Roboto, Fraunces, Geist, Plus Jakarta Sans, and Space Grotesk are used on so many sites they no longer feel distinctive. Each new wave of AI-generated UIs converges on the same handful of faces. Choose a face that gives your interface personality.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "C:\\Users\\Owner\\Desktop\\OJT_Ledger\\norsuorderpaymentsys\\resources\\js\\pages\\staff\\requestform\\request.tsx",
+    "line": 269,
+    "snippet": "font-family: Arial"
+  },
+  {
+    "antipattern": "overused-font",
+    "name": "Overused font",
+    "description": "Inter, Roboto, Fraunces, Geist, Plus Jakarta Sans, and Space Grotesk are used on so many sites they no longer feel distinctive. Each new wave of AI-generated UIs converges on the same handful of faces. Choose a face that gives your interface personality.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "C:\\Users\\Owner\\Desktop\\OJT_Ledger\\norsuorderpaymentsys\\resources\\js\\pages\\staff\\requestform\\showrequest.tsx",
+    "line": 580,
+    "snippet": "font-family: Arial"
+  },
+  {
+    "antipattern": "overused-font",
+    "name": "Overused font",
+    "description": "Inter, Roboto, Fraunces, Geist, Plus Jakarta Sans, and Space Grotesk are used on so many sites they no longer feel distinctive. Each new wave of AI-generated UIs converges on the same handful of faces. Choose a face that gives your interface personality.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "C:\\Users\\Owner\\Desktop\\OJT_Ledger\\norsuorderpaymentsys\\resources\\views\\emails\\email-assessment-soa.blade.php",
+    "line": 3,
+    "snippet": "font-family: Arial"
+  },
+  {
+    "antipattern": "overused-font",
+    "name": "Overused font",
+    "description": "Inter, Roboto, Fraunces, Geist, Plus Jakarta Sans, and Space Grotesk are used on so many sites they no longer feel distinctive. Each new wave of AI-generated UIs converges on the same handful of faces. Choose a face that gives your interface personality.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "C:\\Users\\Owner\\Desktop\\OJT_Ledger\\norsuorderpaymentsys\\resources\\views\\emails\\email-order-of-payment.blade.php",
+    "line": 3,
+    "snippet": "font-family: Arial"
+  },
+  {
+    "antipattern": "overused-font",
+    "name": "Overused font",
+    "description": "Inter, Roboto, Fraunces, Geist, Plus Jakarta Sans, and Space Grotesk are used on so many sites they no longer feel distinctive. Each new wave of AI-generated UIs converges on the same handful of faces. Choose a face that gives your interface personality.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "C:\\Users\\Owner\\Desktop\\OJT_Ledger\\norsuorderpaymentsys\\resources\\views\\emails\\graduate-ledger-statement.blade.php",
+    "line": 3,
+    "snippet": "font-family: Arial"
+  },
+  {
+    "antipattern": "overused-font",
+    "name": "Overused font",
+    "description": "Inter, Roboto, Fraunces, Geist, Plus Jakarta Sans, and Space Grotesk are used on so many sites they no longer feel distinctive. Each new wave of AI-generated UIs converges on the same handful of faces. Choose a face that gives your interface personality.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "C:\\Users\\Owner\\Desktop\\OJT_Ledger\\norsuorderpaymentsys\\resources\\views\\emails\\law-ledger-statement.blade.php",
+    "line": 3,
+    "snippet": "font-family: Arial"
+  }
+]

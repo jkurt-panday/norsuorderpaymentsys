@@ -1,0 +1,234 @@
+{
+  "/login": {
+    "status": 500,
+    "desktop": {
+      "title": "Laravel",
+      "url": "http://localhost:8000/login",
+      "h1": [
+        "Illuminate\\Database\\QueryException"
+      ],
+      "bodyBg": "oklch(0.985 0 0)",
+      "bodyColor": "rgb(0, 0, 0)",
+      "bodyFont": "ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "bodySize": "16px",
+      "tokens": {
+        "background": "",
+        "foreground": "",
+        "primary": "",
+        "mutedForeground": "",
+        "border": "",
+        "radius": ""
+      },
+      "textLen": 1821,
+      "horizontalOverflow": 0
+    },
+    "mobileOverflow": {
+      "scrollW": 390,
+      "clientW": 390,
+      "offenders": [
+        {
+          "tag": "span",
+          "cls": "",
+          "right": 459,
+          "width": 442
+        },
+        {
+          "tag": "span",
+          "cls": "text-neutral-500",
+          "right": 459,
+          "width": 26
+        },
+        {
+          "tag": "div",
+          "cls": "inline-flex w-fit shrink-0 items-center justify-center gap-1 font-mono leading-3 uppercase transition-colors dark:border",
+          "right": 395,
+          "width": 71
+        },
+        {
+          "tag": "code",
+          "cls": "",
+          "right": 603,
+          "width": 534
+        },
+        {
+          "tag": "span",
+          "cls": "line",
+          "right": 603,
+          "width": 534
+        },
+        {
+          "tag": "span",
+          "cls": "",
+          "right": 392,
+          "width": 7
+        },
+        {
+          "tag": "span",
+          "cls": "",
+          "right": 432,
+          "width": 40
+        },
+        {
+          "tag": "span",
+          "cls": "",
+          "right": 603,
+          "width": 172
+        },
+        {
+          "tag": "pre",
+          "cls": "shiki shiki-themes light-plus dark-plus bg-transparent! w-fit min-w-full",
+          "right": 501,
+          "width": 472
+        },
+        {
+          "tag": "code",
+          "cls": "",
+          "right": 501,
+          "width": 472
+        },
+        {
+          "tag": "span",
+          "cls": "line inline-block w-full px-4 py-1 h-7 even:bg-white odd:bg-white/2 even:dark:bg-white/2 odd:dark:bg-white/4",
+          "right": 501,
+          "width": 472
+        },
+        {
+          "tag": "span",
+          "cls": "line inline-block w-full px-4 py-1 h-7 even:bg-white odd:bg-white/2 even:dark:bg-white/2 odd:dark:bg-white/4",
+          "right": 501,
+          "width": 472
+        }
+      ]
+    },
+    "smallTargets": [
+      {
+        "tag": "a",
+        "text": "1 previous exception",
+        "w": 128,
+        "h": 20
+      }
+    ],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [],
+    "failed": []
+  },
+  "/public/opform": {
+    "status": 500,
+    "desktop": {
+      "title": "Laravel",
+      "url": "http://localhost:8000/public/opform",
+      "h1": [
+        "Illuminate\\Database\\QueryException"
+      ],
+      "bodyBg": "oklch(0.985 0 0)",
+      "bodyColor": "rgb(0, 0, 0)",
+      "bodyFont": "ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "bodySize": "16px",
+      "tokens": {
+        "background": "",
+        "foreground": "",
+        "primary": "",
+        "mutedForeground": "",
+        "border": "",
+        "radius": ""
+      },
+      "textLen": 1797,
+      "horizontalOverflow": 0
+    },
+    "mobileOverflow": {
+      "scrollW": 390,
+      "clientW": 390,
+      "offenders": [
+        {
+          "tag": "span",
+          "cls": "",
+          "right": 459,
+          "width": 442
+        },
+        {
+          "tag": "span",
+          "cls": "text-neutral-500",
+          "right": 459,
+          "width": 26
+        },
+        {
+          "tag": "div",
+          "cls": "inline-flex w-fit shrink-0 items-center justify-center gap-1 font-mono leading-3 uppercase transition-colors dark:border",
+          "right": 395,
+          "width": 71
+        },
+        {
+          "tag": "code",
+          "cls": "",
+          "right": 603,
+          "width": 534
+        },
+        {
+          "tag": "span",
+          "cls": "line",
+          "right": 603,
+          "width": 534
+        },
+        {
+          "tag": "span",
+          "cls": "",
+          "right": 392,
+          "width": 7
+        },
+        {
+          "tag": "span",
+          "cls": "",
+          "right": 432,
+          "width": 40
+        },
+        {
+          "tag": "span",
+          "cls": "",
+          "right": 603,
+          "width": 172
+        },
+        {
+          "tag": "pre",
+          "cls": "shiki shiki-themes light-plus dark-plus bg-transparent! w-fit min-w-full",
+          "right": 501,
+          "width": 472
+        },
+        {
+          "tag": "code",
+          "cls": "",
+          "right": 501,
+          "width": 472
+        },
+        {
+          "tag": "span",
+          "cls": "line inline-block w-full px-4 py-1 h-7 even:bg-white odd:bg-white/2 even:dark:bg-white/2 odd:dark:bg-white/4",
+          "right": 501,
+          "width": 472
+        },
+        {
+          "tag": "span",
+          "cls": "line inline-block w-full px-4 py-1 h-7 even:bg-white odd:bg-white/2 even:dark:bg-white/2 odd:dark:bg-white/4",
+          "right": 501,
+          "width": 472
+        }
+      ]
+    },
+    "smallTargets": [
+      {
+        "tag": "a",
+        "text": "1 previous exception",
+        "w": 128,
+        "h": 20
+      }
+    ],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [],
+    "failed": []
+  }
+}
