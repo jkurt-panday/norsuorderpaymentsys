@@ -185,12 +185,16 @@ export default function PrintSelect({
     const summary = useMemo(() => {
         let totalCharges = 0;
         let totalPayments = 0;
+        let totalAdjustments = 0;
 
         filteredRecords.forEach((r) => {
             const amount = absAmount(r.amount);
+            const entryType = (r.entryType ?? r.arOrPayment ?? '').toLowerCase().trim();
 
-            if (r.arOrPayment === 'AR') {
+            if (entryType === 'ar' || entryType === 'assessment') {
                 totalCharges += amount;
+            } else if (entryType === 'adjustment' || entryType === 'adj') {
+                totalAdjustments += amount;
             } else {
                 totalPayments += amount;
             }
@@ -199,7 +203,8 @@ export default function PrintSelect({
         return {
             totalCharges,
             totalPayments,
-            outstandingBalance: totalCharges - totalPayments,
+            totalAdjustments,
+            outstandingBalance: totalCharges - totalPayments - totalAdjustments,
         };
     }, [filteredRecords]);
 
