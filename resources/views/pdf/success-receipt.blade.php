@@ -4,8 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Receipt #{{ $formInput->reference_number }}</title>
-    @vite('resources/css/app.css')
+    @php
+        // Inline the compiled Tailwind entry so Browsershot does not need to
+        // fetch CSS through the tunnel while generating the PDF.
+        $viteManifestPath = public_path('build/manifest.json');
+        $viteManifest = is_file($viteManifestPath)
+            ? json_decode(file_get_contents($viteManifestPath), true)
+            : [];
+        $tailwindCssFile = $viteManifest['resources/css/app.css']['file'] ?? null;
+        $tailwindCssPath = $tailwindCssFile
+            ? public_path('build/'.$tailwindCssFile)
+            : null;
+        $tailwindCss = $tailwindCssPath && is_file($tailwindCssPath)
+            ? file_get_contents($tailwindCssPath)
+            : '';
+    @endphp
     <style>
+        @page { size: A4; margin: 12mm; }
+        {!! $tailwindCss !!}
         body {
             font-family: 'Instrumental Sans', sans-serif;
             background: white;
@@ -17,7 +33,7 @@
     <div class="page-container bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
 
         <!-- Header Banner -->
-        <div class="bg-gradient-to-b from-blue-500 to-blue-600 text-white text-center p-6 relative">
+        <div class="bg-linear-to-b from-blue-500 to-blue-600 text-white text-center p-6 relative">
             <div class="flex items-center justify-center gap-2 mb-4">
                 <img
                     src="data:image/png;base64,{{ base64_encode(file_get_contents(public_path('finance_logo1.png'))) }}"

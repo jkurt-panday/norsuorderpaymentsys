@@ -71,6 +71,10 @@ class ReceiptPDFService
             $validated['ledger_student'] ?? null,
         );
 
+        if (($ledgerStatement['selectedStudent'] ?? null) === null) {
+            abort(422, 'A valid ledger student must be selected before generating the statement.');
+        }
+
         $authOfficial = AuthorizedOfficial::query()
             ->where('is_active', true)
             ->first();
