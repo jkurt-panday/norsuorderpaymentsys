@@ -467,10 +467,9 @@ export default function AssessmentForm({ courses }: Props) {
                                                 value={data.address}
                                                 onChange={(e) =>
                                                     setData(
-                                                        'address',
-                                                        toSentenceCase(
-                                                            e.target.value,
-                                                        ),
+                                                        'address',                                                        
+                                                        e.target.value,
+                                                        
                                                     )
                                                 }
                                             />
