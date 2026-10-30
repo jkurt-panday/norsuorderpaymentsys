@@ -281,10 +281,10 @@ export default function AssessmentForm({ courses }: Props) {
                                                     placeholder="Juan"
                                                     value={data.first_name}
                                                     onChange={(e) =>
-setData(
-                                                             'first_name',
-                                                             toSentenceCase(e.target.value),
-                                                         )
+                                                        setData(
+                                                            'first_name',
+                                                            toSentenceCase(e.target.value),
+                                                        )
                                                     }
                                                 />
                                                 {errors.first_name && (
@@ -310,10 +310,10 @@ setData(
                                                     placeholder="Carlos"
                                                     value={data.middle_name}
                                                     onChange={(e) =>
-setData(
-                                                             'middle_name',
-                                                             toSentenceCase(e.target.value),
-                                                         )
+                                                        setData(
+                                                            'middle_name',
+                                                            toSentenceCase(e.target.value),
+                                                        )
                                                     }
                                                 />
                                                 {errors.middle_name && (
@@ -339,10 +339,10 @@ setData(
                                                     placeholder="Dela Cruz"
                                                     value={data.last_name}
                                                     onChange={(e) =>
-setData(
-                                                             'last_name',
-                                                             toSentenceCase(e.target.value),
-                                                         )
+                                                        setData(
+                                                            'last_name',
+                                                            toSentenceCase(e.target.value),
+                                                        )
                                                     }
                                                 />
                                                 {errors.last_name && (
@@ -370,7 +370,7 @@ setData(
                                                 type="number"
                                                 placeholder="202300000"
                                                 value={data.student_id}
-                                                onChange={(e) =>{
+                                                onChange={(e) => {
                                                     const value = e.target.value.slice(0, 9); // Enforce max 9 digits
                                                     setData('student_id', value);
                                                 }
@@ -412,8 +412,8 @@ setData(
                                                         'course_id',
                                                         selected
                                                             ? String(
-                                                                  selected.id,
-                                                              )
+                                                                selected.id,
+                                                            )
                                                             : '',
                                                     );
                                                 }}
@@ -469,10 +469,10 @@ setData(
                                                 placeholder="Kagawasan Ave. Dumaguete City"
                                                 value={data.address}
                                                 onChange={(e) =>
-setData(
-                                                     'address',
-                                                     toSentenceCase(e.target.value),
-                                                 )
+                                                    setData(
+                                                        'address',
+                                                        toSentenceCase(e.target.value),
+                                                    )
                                                 }
                                             />
                                             {errors.address && (
@@ -703,7 +703,7 @@ setData(
                                 >
                                     Reset
                                 </Button>
-                            
+
                                 {/* Submit Assessment Button */}
                                 <Button
                                     type="submit"
