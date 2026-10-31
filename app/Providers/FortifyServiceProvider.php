@@ -41,18 +41,22 @@ class FortifyServiceProvider extends ServiceProvider
                     $user = auth()->user();
 
                     if ($user?->role === 'admin') {
+                        session()->flash('success', 'Welcome back, ' . $user->name . '!');
                         return redirect('/admin/dashboard');
                     }
 
                     if ($user?->role === 'staff') {
+                        session()->flash('success', 'Welcome back, ' . $user->name . '!');
                         return redirect('/staff/staffdashboard');
                     }
 
                     if ($user?->role === 'cashier') {
+                        session()->flash('success', 'Welcome back, ' . $user->name . '!');
                         return redirect('/cashier/requests');
                     }
 
                     if ($user?->role === 'client') {
+                        session()->flash('success', 'Welcome back, ' . $user->name . '!');
                         return redirect('/client/dashboard');
                     }
 

@@ -460,7 +460,7 @@ export default function AssessmentEdit({
                     <Card className="h-full rounded-2xl border border-border/70 bg-card px-2! py-2! shadow-sm">
                         <CardContent className="p-4 sm:p-6">
                             <section>
-                                <h2 className="mb-4 text-sm font-bold tracking-wider text-blue-500 uppercase">
+                                <h2 className="mb-4 text-sm font-bold tracking-wider text-primary uppercase">
                                     Student Information
                                 </h2>
                                 <div className="rounded-xl border border-slate-100 bg-transparent px-4">
@@ -497,7 +497,7 @@ export default function AssessmentEdit({
                     <Card className="h-full rounded-2xl border border-border/70 bg-card px-2! py-2! shadow-sm">
                         <CardContent className="p-4 sm:p-6">
                             <section>
-                                <h2 className="mb-4 text-sm font-bold tracking-wider text-blue-500 uppercase">
+                                <h2 className="mb-4 text-sm font-bold tracking-wider text-primary uppercase">
                                     Course & Academic Information Requested
                                 </h2>
                                 <div className="rounded-xl border border-slate-100 bg-transparent px-4">

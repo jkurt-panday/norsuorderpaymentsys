@@ -1,6 +1,14 @@
-import { Link, useForm, Head, usePage } from '@inertiajs/react';
+﻿import { Link, useForm, Head, usePage } from '@inertiajs/react';
 import { UploadCloud02 } from '@untitledui/icons';
-import { Mail, User, ClipboardList, FileText, Home, GraduationCap, Plus } from 'lucide-react';
+import {
+    Mail,
+    User,
+    ClipboardList,
+    FileText,
+    Home,
+    GraduationCap,
+    Plus,
+} from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import AddCollegeOfficeModal from '@/components/AddCollegeOfficeModal';
 import { FileUpload } from '@/components/application/file-upload/file-upload-base';
@@ -21,7 +29,7 @@ import {
     ComboboxItem,
     ComboboxList,
 } from '@/components/ui/combobox';
-import { Field, FieldLabel, FieldDescription } from '@/components/ui/field';
+import { Field, FieldLabel, FieldDescription, FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -32,14 +40,6 @@ const reqType = ['New Request', 'Re-issue Request'] as const;
 const enlarge =
     'h-12 rounded-xl border-border bg-card px-4 text-base shadow-sm transition-all duration-200';
 const comboboxInputClass = `border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`;
-
-const toSentenceCase = (value: string): string => {
-    const normalized = value.toLowerCase();
-
-    return normalized.replace(/(^\s*[a-z])|([.!?]\s+[a-z])/g, (match) =>
-        match.toUpperCase(),
-    );
-};
 
 type FormTab = 'general' | 'student';
 
@@ -116,14 +116,22 @@ type SubmitFormPrefill = Partial<{
 const getSubmitFormPrefill = () =>
     getExpiringLocalStorage<SubmitFormPrefill>('submit-form-prefill');
 
-export default function SubmitForm({ memberships, paymentOptions, course = [], academicTerms = [], collegeOffices = [] }: Props) {
+export default function SubmitForm({
+    memberships,
+    paymentOptions,
+    course = [],
+    academicTerms = [],
+    collegeOffices = [],
+}: Props) {
     const { auth } = usePage<any>().props;
 
     // ? tabs: General (business/default) vs Student (adds Academic Details)
     const [activeTab, setActiveTab] = useState<FormTab>('student');
 
-    // 
-    const [collegeOfficesList, setCollegeOfficesList] = useState(collegeOffices ?? []);
+    //
+    const [collegeOfficesList, setCollegeOfficesList] = useState(
+        collegeOffices ?? [],
+    );
     const [addModalOpen, setAddModalOpen] = useState(false);
     const prefill = getSubmitFormPrefill();
 
@@ -161,11 +169,7 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
             'position_or_designation',
             prefill?.position_or_designation ?? '',
         );
-    }, [
-        activeTab,
-        prefill?.position_or_designation,
-        setData,
-    ]);
+    }, [activeTab, prefill?.position_or_designation, setData]);
 
     const handleTabChange = (value: string) => {
         const nextTab = (value as FormTab) || 'general';
@@ -188,7 +192,6 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
         [academicTerms],
     );
 
-    
     // ? form submit
     // Submit handler with file upload
     const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
@@ -210,15 +213,23 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                 }
             },
             onSuccess: () => console.log('Success'),
-            onError: (errs) => console.error('Validation errors:', errs),
+            onError: (errs) => {
+                console.error('Validation errors:', errs);
+                requestAnimationFrame(() => {
+                    const firstInvalid = document.querySelector<HTMLElement>('[aria-invalid="true"]');
+                    firstInvalid?.focus();
+                });
+            },
         });
     };
 
     // contact num length
     const isValidContact = data.contact_num.length === 11;
 
-    // Tracks real upload progress (0-100) for each file, keyed by a stable file identifier
-    const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+    // Tracks animated upload progress (0-100) for each file, keyed by a stable file identifier
+    const [uploadProgress, setUploadProgress] = useState<
+        Record<string, number>
+    >({});
 
     // Builds a stable, unique key for a File object so we can track its progress
     const getFileKey = (file: File) =>
@@ -283,8 +294,8 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                             <img
                                 src="/finance_logo1.png"
                                 alt="NORSU Logo"
-                                width={500}
-                                height={500}
+                                width={600}
+                                height={114}
                                 className="pb-6"
                             />
                         </div>
@@ -300,7 +311,7 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                     <Tabs
                         value={activeTab}
                         onValueChange={handleTabChange}
-                        className="mb-2 w-full bg-transparent! p-0! rounded-2xl!"
+                        className="mb-2 w-full rounded-2xl! bg-transparent! p-0!"
                     >
                         <TabsList
                             className="flex h-12 w-full items-stretch gap-1 rounded-2xl bg-blue-50 p-1"
@@ -308,13 +319,13 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                         >
                             <TabsTrigger
                                 value="general"
-                                className="flex-1 rounded-xl text-base font-semibold after:bg-blue-500! data-active:text-blue-700 data-active:text-lg"
+                                className="flex-1 rounded-xl text-base font-semibold after:bg-blue-500! data-active:text-lg data-active:text-blue-700"
                             >
                                 General
                             </TabsTrigger>
                             <TabsTrigger
                                 value="student"
-                                className="flex-1 rounded-xl text-base font-semibold after:bg-blue-500! data-active:text-blue-700 data-active:text-lg"
+                                className="flex-1 rounded-xl text-base font-semibold after:bg-blue-500! data-active:text-lg data-active:text-blue-700"
                             >
                                 Student
                             </TabsTrigger>
@@ -354,6 +365,8 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                     type="email"
                                                     placeholder="jondoe@mail.com"
                                                     value={data.email}
+                                                    aria-invalid={Boolean(errors.email)}
+                                                    aria-describedby={errors.email ? 'submit-email-error' : undefined}
                                                     onChange={(e) =>
                                                         setData(
                                                             'email',
@@ -362,9 +375,9 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                     }
                                                 />
                                                 {errors.email && (
-                                                    <p className="mt-1 text-sm text-red-500">
+                                                    <FieldError id="submit-email-error" className="mt-1">
                                                         {errors.email}
-                                                    </p>
+                                                    </FieldError>
                                                 )}{' '}
                                             </Field>
                                         </div>
@@ -383,6 +396,12 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                     type="tel"
                                                     placeholder="0912 333 4444"
                                                     maxLength={13} // 11 digits + 2 spaces
+                                                    aria-invalid={Boolean(errors.contact_num || (data.contact_num.length > 0 && !isValidContact))}
+                                                    aria-describedby={
+                                                        errors.contact_num || (data.contact_num.length > 0 && !isValidContact)
+                                                            ? 'submit-contact_num-error'
+                                                            : undefined
+                                                    }
                                                     value={data.contact_num.replace(
                                                         /^(\d{0,4})(\d{0,3})(\d{0,4}).*/,
                                                         (
@@ -411,17 +430,17 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                     }}
                                                 />
                                                 {errors.contact_num && (
-                                                    <p className="mt-1 text-sm text-red-500">
+                                                    <FieldError id="submit-contact_num-error" className="mt-1">
                                                         {errors.contact_num}
-                                                    </p>
+                                                    </FieldError>
                                                 )}
                                                 {data.contact_num.length > 0 &&
                                                     !isValidContact && (
-                                                        <p className="mt-1 text-sm text-red-500">
+                                                        <FieldError id="submit-contact_num-error" className="mt-1">
                                                             Contact number must
                                                             contain exactly 11
                                                             digits.
-                                                        </p>
+                                                        </FieldError>
                                                     )}
                                             </Field>
                                         </div>
@@ -449,23 +468,23 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-fname"
                                                     type="text"
+                                                    aria-invalid={Boolean(errors.firstname_or_office)}
+                                                    aria-describedby={errors.firstname_or_office ? "submit-firstname_or_office-error" : undefined}
                                                     placeholder="Juan"
                                                     value={
                                                         data.firstname_or_office
                                                     }
                                                     onChange={(e) =>
-setData(
-                                                             'firstname_or_office',
-                                                             toSentenceCase(e.target.value),
-                                                         )
+                                                        setData(
+                                                            'firstname_or_office',
+                                                            e.target.value,
+                                                        )
                                                     }
                                                 />
                                                 {errors.firstname_or_office && (
-                                                    <p className="mt-1 text-sm text-red-500">
-                                                        {
-                                                            errors.firstname_or_office
-                                                        }
-                                                    </p>
+                                                    <FieldError id="submit-firstname_or_office-error" className="mt-1">
+                                                        {errors.firstname_or_office}
+                                                    </FieldError>
                                                 )}
                                             </Field>
                                         </div>
@@ -482,23 +501,23 @@ setData(
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-mname"
                                                     type="text"
+                                                    aria-invalid={Boolean(errors.middlename_or_project)}
+                                                    aria-describedby={errors.middlename_or_project ? "submit-middlename_or_project-error" : undefined}
                                                     placeholder="Carlos"
                                                     value={
                                                         data.middlename_or_project
                                                     }
                                                     onChange={(e) =>
-setData(
-                                                             'middlename_or_project',
-                                                             toSentenceCase(e.target.value),
-                                                         )
+                                                        setData(
+                                                            'middlename_or_project',
+                                                            e.target.value,
+                                                        )
                                                     }
                                                 />
                                                 {errors.middlename_or_project && (
-                                                    <p className="mt-1 text-sm text-red-500">
-                                                        {
-                                                            errors.middlename_or_project
-                                                        }
-                                                    </p>
+                                                    <FieldError id="submit-middlename_or_project-error" className="mt-1">
+                                                        {errors.middlename_or_project}
+                                                    </FieldError>
                                                 )}
                                             </Field>
                                         </div>
@@ -515,23 +534,23 @@ setData(
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-lname"
                                                     type="text"
+                                                    aria-invalid={Boolean(errors.lastname_or_agency)}
+                                                    aria-describedby={errors.lastname_or_agency ? "submit-lastname_or_agency-error" : undefined}
                                                     placeholder="Dela Cruz"
                                                     value={
                                                         data.lastname_or_agency
                                                     }
                                                     onChange={(e) =>
-setData(
-                                                             'lastname_or_agency',
-                                                             toSentenceCase(e.target.value),
-                                                         )
+                                                        setData(
+                                                            'lastname_or_agency',
+                                                            e.target.value,
+                                                        )
                                                     }
                                                 />
                                                 {errors.lastname_or_agency && (
-                                                    <p className="mt-1 text-sm text-red-500">
-                                                        {
-                                                            errors.lastname_or_agency
-                                                        }
-                                                    </p>
+                                                    <FieldError id="submit-lastname_or_agency-error" className="mt-1">
+                                                        {errors.lastname_or_agency}
+                                                    </FieldError>
                                                 )}
                                             </Field>
                                         </div>
@@ -551,13 +570,22 @@ setData(
                                                 <FieldDescription>
                                                     * N/A if not applicable
                                                 </FieldDescription>
-                                                
-                                                <div className='grid grid-cols-[88%_10%] gap-2'>
+
+                                                <div className="grid grid-cols-[88%_10%] gap-2">
                                                     <Combobox
-                                                        items={collegeOfficesList}
-                                                        value={data.office_or_college}
-                                                        onValueChange={(value) => {
-                                                            setData('office_or_college', value ?? '');
+                                                        items={
+                                                            collegeOfficesList
+                                                        }
+                                                        value={
+                                                            data.office_or_college
+                                                        }
+                                                        onValueChange={(
+                                                            value,
+                                                        ) => {
+                                                            setData(
+                                                                'office_or_college',
+                                                                value ?? '',
+                                                            );
                                                         }}
                                                     >
                                                         <ComboboxInput
@@ -565,14 +593,27 @@ setData(
                                                             placeholder="Select office / college"
                                                             aria-label="Office or College"
                                                             className={`${comboboxInputClass} w-full`}
-                                                            showClear={!!data.office_or_college}
+                                                            showClear={
+                                                                !!data.office_or_college
+                                                            }
                                                         />
                                                         <ComboboxContent>
-                                                            <ComboboxEmpty>No items found.</ComboboxEmpty>
+                                                            <ComboboxEmpty>
+                                                                No items found.
+                                                            </ComboboxEmpty>
                                                             <ComboboxList>
                                                                 {(item) => (
-                                                                    <ComboboxItem key={item.id} value={item.name}>
-                                                                        {item.name}
+                                                                    <ComboboxItem
+                                                                        key={
+                                                                            item.id
+                                                                        }
+                                                                        value={
+                                                                            item.name
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            item.name
+                                                                        }
                                                                     </ComboboxItem>
                                                                 )}
                                                             </ComboboxList>
@@ -582,22 +623,32 @@ setData(
                                                         type="button"
                                                         variant="default"
                                                         size="icon"
-                                                        onClick={() => setAddModalOpen(true)}
+                                                        onClick={() =>
+                                                            setAddModalOpen(
+                                                                true,
+                                                            )
+                                                        }
                                                         title="Add new office / college"
-                                                        aria-label="Add new office or college"
-                                                        className="h-12 w-12 bg-blue-500 rounded-xl"
+                                                        className="h-12 w-12 rounded-xl bg-blue-500"
                                                     >
-                                                            <Plus className="h-4 w-4" />
+                                                        <Plus className="h-4 w-4" />
                                                     </Button>
                                                 </div>
-                                                
                                             </Field>
                                             <AddCollegeOfficeModal
                                                 open={addModalOpen}
                                                 onOpenChange={setAddModalOpen}
                                                 onCreated={(newItem) => {
-                                                    setCollegeOfficesList((prev) => [...prev, newItem]);
-                                                    setData('office_or_college', newItem.name);
+                                                    setCollegeOfficesList(
+                                                        (prev) => [
+                                                            ...prev,
+                                                            newItem,
+                                                        ],
+                                                    );
+                                                    setData(
+                                                        'office_or_college',
+                                                        newItem.name,
+                                                    );
                                                 }}
                                             />
                                         </div>
@@ -616,25 +667,27 @@ setData(
                                                 <Input
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-pos-des"
+                                                    aria-invalid={Boolean(errors.position_or_designation)}
+                                                    aria-describedby={errors.position_or_designation ? "submit-position_or_designation-error" : undefined}
                                                     placeholder="Teacher"
                                                     type="text"
                                                     value={
                                                         data.position_or_designation
                                                     }
                                                     onChange={(e) =>
-setData(
-                                                             'position_or_designation',
-                                                             toSentenceCase(e.target.value),
-                                                         )
+                                                        setData(
+                                                            'position_or_designation',
+                                                            e.target.value,
+                                                        )
                                                     }
-                                                    disabled={activeTab === 'student'}
+                                                    disabled={
+                                                        activeTab === 'student'
+                                                    }
                                                 />
                                                 {errors.position_or_designation && (
-                                                    <p className="mt-1 text-sm text-red-500">
-                                                        {
-                                                            errors.position_or_designation
-                                                        }
-                                                    </p>
+                                                    <FieldError id="submit-position_or_designation-error" className="mt-1">
+                                                        {errors.position_or_designation}
+                                                    </FieldError>
                                                 )}
                                             </Field>
                                         </div>
@@ -654,30 +707,32 @@ setData(
                                             id="input-field-address"
                                             type="text"
                                             placeholder="Kagawasan Ave. Dumaguete City"
+                                            aria-invalid={Boolean(errors.address)}
+                                            aria-describedby={errors.address ? "submit-address-error" : undefined}
                                             value={data.address}
                                             onChange={(e) =>
-setData(
-                                                 'address',
-                                                 toSentenceCase(e.target.value),
-                                             )
+                                                setData(
+                                                    'address',
+                                                    e.target.value,
+                                                )
                                             }
                                         />
                                         {errors.address && (
-                                            <p className="mt-1 text-sm text-red-500">
-                                                {errors.address}
-                                            </p>
-                                        )}
+                                                    <FieldError id="submit-address-error" className="mt-1">
+                                                        {errors.address}
+                                                    </FieldError>
+                                                )}
                                     </Field>
                                 </div>
 
                                 {/* Section: Academic Details (Student tab only) */}
                                 {activeTab === 'student' && (
-                                    <div className='gap-y-4'>
+                                    <div className="gap-y-4">
                                         <Separator className="bg-blue-100" />
-                                    <CardTitle className="flex items-center gap-3 my-6 text-xl font-semibold text-blue-900">
-                                        <GraduationCap className="h-5 w-5 text-blue-600" />
-                                        Academic Details
-                                    </CardTitle>
+                                        <CardTitle className="my-6 flex items-center gap-3 text-xl font-semibold text-blue-900">
+                                            <GraduationCap className="h-5 w-5 text-blue-600" />
+                                            Academic Details
+                                        </CardTitle>
                                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
                                             <Field>
                                                 <FieldLabel
@@ -690,20 +745,31 @@ setData(
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-studentnum"
                                                     type="text"
+                                                    aria-invalid={Boolean(errors.student_num)}
+                                                    aria-describedby={errors.student_num ? "submit-student_num-error" : undefined}
                                                     inputMode="numeric"
                                                     placeholder="202100123"
                                                     maxLength={9}
                                                     value={data.student_num}
                                                     onChange={(e) => {
-                                                        const digits = e.target.value.replace(/\D/g, '').slice(0, 9);
-                                            
-                                                        setData('student_num', digits);
+                                                        const digits =
+                                                            e.target.value
+                                                                .replace(
+                                                                    /\D/g,
+                                                                    '',
+                                                                )
+                                                                .slice(0, 9);
+
+                                                        setData(
+                                                            'student_num',
+                                                            digits,
+                                                        );
                                                     }}
                                                 />
                                                 {errors.student_num && (
-                                                    <p className="mt-1 text-sm text-red-500">
+                                                    <FieldError id="submit-student_num-error" className="mt-1">
                                                         {errors.student_num}
-                                                    </p>
+                                                    </FieldError>
                                                 )}
                                             </Field>
 
@@ -719,39 +785,67 @@ setData(
                                                     items={course}
                                                     value={
                                                         course.find(
-                                                            (c) => String(c.id) === data.course_id,
+                                                            (c) =>
+                                                                String(c.id) ===
+                                                                data.course_id,
                                                         )?.course_code || ''
                                                     }
                                                     onValueChange={(value) => {
-                                                        const selected = course.find(
-                                                            (c) => c.course_code === value,
-                                                        );
-                                            
+                                                        const selected =
+                                                            course.find(
+                                                                (c) =>
+                                                                    c.course_code ===
+                                                                    value,
+                                                            );
+
                                                         setData(
                                                             'course_id',
-                                                            selected ? String(selected.id) : '',
+                                                            selected
+                                                                ? String(
+                                                                      selected.id,
+                                                                  )
+                                                                : '',
                                                         );
                                                     }}
                                                 >
                                                     <ComboboxInput
                                                         placeholder="Select course"
                                                         aria-label="Course"
+                                                        aria-invalid={Boolean(errors.course_id)}
+                                                        aria-describedby={errors.course_id ? "submit-course_id-error" : undefined}
                                                         className={comboboxInputClass}
                                                         showClear={!!data.course_id}
                                                     />
                                                     <ComboboxContent>
-                                                        <ComboboxEmpty>No items found.</ComboboxEmpty>
+                                                        <ComboboxEmpty>
+                                                            No items found.
+                                                        </ComboboxEmpty>
                                                         <ComboboxList>
                                                             {(item) => (
-                                                                <ComboboxItem key={item.id} value={item.course_code}>
-                                                                    {item.course_code} — {item.course_desc}
+                                                                <ComboboxItem
+                                                                    key={
+                                                                        item.id
+                                                                    }
+                                                                    value={
+                                                                        item.course_code
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        item.course_code
+                                                                    }{' '}
+                                                                    —{' '}
+                                                                    {
+                                                                        item.course_desc
+                                                                    }
                                                                 </ComboboxItem>
                                                             )}
                                                         </ComboboxList>
                                                     </ComboboxContent>
                                                 </Combobox>
                                                 {errors.course_id && (
-                                                    <p className="mt-1 text-sm text-red-500">{errors.course_id}</p>
+                                                    <FieldError id="submit-course_id-error" className="mt-1">
+                                                        {errors.course_id}
+                                                    </FieldError>
                                                 )}
                                             </Field>
 
@@ -776,6 +870,8 @@ setData(
                                                     <ComboboxInput
                                                         placeholder="Select school year"
                                                         aria-label="School Year"
+                                                        aria-invalid={Boolean(errors.school_year)}
+                                                        aria-describedby={errors.school_year ? "submit-school_year-error" : undefined}
                                                         className={
                                                             comboboxInputClass
                                                         }
@@ -791,9 +887,7 @@ setData(
                                                             {(item) => (
                                                                 <ComboboxItem
                                                                     key={item}
-                                                                    value={
-                                                                        item
-                                                                    }
+                                                                    value={item}
                                                                 >
                                                                     SY {item}
                                                                 </ComboboxItem>
@@ -802,9 +896,9 @@ setData(
                                                     </ComboboxContent>
                                                 </Combobox>
                                                 {errors.school_year && (
-                                                    <p className="mt-1 text-sm text-red-500">
+                                                    <FieldError id="submit-school_year-error" className="mt-1">
                                                         {errors.school_year}
-                                                    </p>
+                                                    </FieldError>
                                                 )}
                                             </Field>
 
@@ -828,6 +922,8 @@ setData(
                                                 >
                                                     <ComboboxInput
                                                         placeholder="Select semester"
+                                                        aria-invalid={Boolean(errors.semester)}
+                                                        aria-describedby={errors.semester ? "submit-semester-error" : undefined}
                                                         className={
                                                             comboboxInputClass
                                                         }
@@ -843,9 +939,7 @@ setData(
                                                             {(item) => (
                                                                 <ComboboxItem
                                                                     key={item}
-                                                                    value={
-                                                                        item
-                                                                    }
+                                                                    value={item}
                                                                 >
                                                                     {item}
                                                                 </ComboboxItem>
@@ -854,15 +948,15 @@ setData(
                                                     </ComboboxContent>
                                                 </Combobox>
                                                 {errors.semester && (
-                                                    <p className="mt-1 text-sm text-red-500">
+                                                    <FieldError id="submit-semester-error" className="mt-1">
                                                         {errors.semester}
-                                                    </p>
+                                                    </FieldError>
                                                 )}
                                             </Field>
                                         </div>
                                     </div>
                                 )}
-                                
+
                                 <Separator className="bg-blue-100" />
                                 <CardTitle className="flex items-center gap-3 text-xl font-semibold text-blue-900">
                                     <ClipboardList className="h-5 w-5 text-blue-600" />
@@ -885,6 +979,8 @@ setData(
                                                 className={`${enlarge} rounded-l-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                 id="input-field-amount"
                                                 type="text"
+                                                aria-invalid={Boolean(errors.amount)}
+                                                aria-describedby={errors.amount ? "submit-amount-error" : undefined}
                                                 inputMode="decimal"
                                                 placeholder="00.00"
                                                 value={data.amount}
@@ -903,10 +999,10 @@ setData(
                                             />
                                         </div>
                                         {errors.amount && (
-                                            <p className="mt-1 text-sm text-red-500">
-                                                {errors.amount}
-                                            </p>
-                                        )}
+                                                    <FieldError id="submit-amount-error" className="mt-1">
+                                                        {errors.amount}
+                                                    </FieldError>
+                                                )}
                                     </Field>
                                     {/* request type */}
                                     <Field>
@@ -929,6 +1025,8 @@ setData(
                                         >
                                             <ComboboxInput
                                                 placeholder="Select a request type"
+                                                aria-invalid={Boolean(errors.request_type)}
+                                                aria-describedby={errors.request_type ? "submit-request_type-error" : undefined}
                                                 className={`border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
 
                                                 showClear={!!data.request_type}
@@ -950,10 +1048,10 @@ setData(
                                             </ComboboxContent>
                                         </Combobox>
                                         {errors.request_type && (
-                                            <p className="mt-1 text-sm text-red-500">
-                                                {errors.request_type}
-                                            </p>
-                                        )}
+                                                    <FieldError id="submit-request_type-error" className="mt-1">
+                                                        {errors.request_type}
+                                                    </FieldError>
+                                                )}
                                     </Field>
                                     {/* membership type */}
                                     <Field>
@@ -991,6 +1089,8 @@ setData(
                                         >
                                             <ComboboxInput
                                                 placeholder="Select membership"
+                                                aria-invalid={Boolean(errors.membership_id)}
+                                                aria-describedby={errors.membership_id ? "submit-membership_id-error" : undefined}
                                                 className={`border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
 
                                                 showClear={!!data.membership_id}
@@ -1014,10 +1114,10 @@ setData(
                                             </ComboboxContent>
                                         </Combobox>
                                         {errors.membership_id && (
-                                            <p className="mt-1 text-sm text-red-500">
-                                                {errors.membership_id}
-                                            </p>
-                                        )}
+                                                    <FieldError id="submit-membership_id-error" className="mt-1">
+                                                        {errors.membership_id}
+                                                    </FieldError>
+                                                )}
                                     </Field>
 
                                     {/* payment details */}
@@ -1057,6 +1157,8 @@ setData(
                                             <ComboboxInput
                                                 itemProp="paymentOption"
                                                 placeholder="Select payment details"
+                                                aria-invalid={Boolean(errors.payment_detail_option_id)}
+                                                aria-describedby={errors.payment_detail_option_id ? "submit-payment_detail_option_id-error" : undefined}
                                                 showClear={
                                                     !!data.payment_detail_option_id
                                                 }
@@ -1081,12 +1183,10 @@ setData(
                                             </ComboboxContent>
                                         </Combobox>
                                         {errors.payment_detail_option_id && (
-                                            <p className="mt-1 text-sm text-red-500">
-                                                {
-                                                    errors.payment_detail_option_id
-                                                }
-                                            </p>
-                                        )}
+                                                    <FieldError id="submit-payment_detail_option_id-error" className="mt-1">
+                                                        {errors.payment_detail_option_id}
+                                                    </FieldError>
+                                                )}
                                     </Field>
                                 </div>
                                 <Separator className="bg-blue-100" />
@@ -1099,11 +1199,7 @@ setData(
                                     Computation Documents, Student ID,
                                     Liquidation Form)
                                 </p>
-                                {documentError && (
-                                    <p className="mt-1 text-sm text-red-500">
-                                        {documentError}
-                                    </p>
-                                )}
+                                {documentError && (<FieldError id="submit-documents-error" className="mt-1">{documentError}</FieldError>)}
                                 {/* file uploads */}
                                 {/* File Upload Drop Zone */}
                                 <FileUpload.Root>
@@ -1253,8 +1349,8 @@ setData(
                                                 : null;
 
                                     if (!homeHref) {
-return null;
-}
+                                        return null;
+                                    }
 
                                     return (
                                         <Button

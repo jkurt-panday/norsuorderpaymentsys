@@ -105,7 +105,8 @@
   - To insert a row into `graduate_ledgers`, the database schema requires a non-null `course_id`.
   - The service looks at the student's *historical* rows in `graduate_ledgers` to find their course.
   - A newly enrolled student has **no prior ledger records**. `$courseId` evaluates to `null`, causing the service to abort with `reason: 'no_ledger_context'`.
-* **Consequence:** New students who pay entrance fees or down payments never have their payments recorded on the ledger. Later, when assessments are imported, they show an erroneous unpaid balance.
+* **Consequence:** New stude
+nts who pay entrance fees or down payments never have their payments recorded on the ledger. Later, when assessments are imported, they show an erroneous unpaid balance.
 
 ---
 

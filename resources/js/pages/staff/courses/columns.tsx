@@ -37,10 +37,11 @@ function CourseActionsCell({ course }: { course: CourseType }) {
     };
 
     return (
-        <div className="grid w-max grid-cols-2 justify-self-end-safe mr-6">
+        <div className="flex w-max items-center gap-1.5 justify-self-end-safe mr-6">
             <Link
                 href={`/staff/courses/${course.id}/edit`}
-                className="flex h-8 w-8 items-center justify-center rounded-l-2xl bg-amber-400 text-white transition-colors hover:bg-amber-500"
+                className="flex h-8 w-8 items-center justify-center rounded-md bg-amber-600 text-white transition-colors hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-neutral-950"
+                aria-label="Edit course"
             >
                 <Pencil className="h-4 w-4" />
             </Link>
@@ -48,7 +49,8 @@ function CourseActionsCell({ course }: { course: CourseType }) {
             <button
                 type="button"
                 onClick={handleDelete}
-                className="flex h-8 w-8 items-center justify-center rounded-r-2xl border-white/20 bg-red-600 text-white transition-colors hover:bg-red-700"
+                className="flex h-8 w-8 items-center justify-center rounded-md bg-red-600 text-white transition-colors hover:bg-red-700"
+                aria-label="Delete course"
             >
                 <Trash2 className="h-4 w-4" />
             </button>

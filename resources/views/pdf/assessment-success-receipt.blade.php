@@ -6,8 +6,24 @@
     <title>
         Assessment Receipt #{{ $assessmentForm->reference_number }}
     </title>
-    @vite('resources/css/app.css')
+    @php
+        // Inline the compiled Tailwind entry so Browsershot does not need to
+        // fetch CSS through the tunnel while generating the PDF.
+        $viteManifestPath = public_path('build/manifest.json');
+        $viteManifest = is_file($viteManifestPath)
+            ? json_decode(file_get_contents($viteManifestPath), true)
+            : [];
+        $tailwindCssFile = $viteManifest['resources/css/app.css']['file'] ?? null;
+        $tailwindCssPath = $tailwindCssFile
+            ? public_path('build/'.$tailwindCssFile)
+            : null;
+        $tailwindCss = $tailwindCssPath && is_file($tailwindCssPath)
+            ? file_get_contents($tailwindCssPath)
+            : '';
+    @endphp
     <style>
+        @page { size: A4; margin: 12mm; }
+        {!! $tailwindCss !!}
         body {
             font-family: 'Instrumental Sans', sans-serif;
             background: white;
@@ -29,7 +45,7 @@
 <body class="bg-gray-100">
     <div class="page-container mx-auto max-w-4xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg">
         <!-- Header -->
-        <div class="relative rounded-b-2xl rounded-t-2xl bg-gradient-to-b from-blue-600 to-blue-400 px-6 py-8 text-center text-white">
+        <div class="relative rounded-b-2xl rounded-t-2xl bg-linear-to-b from-blue-600 to-blue-400 px-6 py-8 text-center text-white">
 
             <!-- NORSU Logo -->
             <div class="mx-auto flex items-center justify-center">
