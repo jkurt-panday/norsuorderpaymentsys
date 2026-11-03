@@ -38,17 +38,19 @@ return new class extends Migration
             return;
         }
 
-        Schema::table($tableName, function (Blueprint $table) use ($column, $constraintName): void {
-            // Passing an array makes Laravel derive the conventional foreign-key
-            // name (for example, form_inputs_membership_id_foreign). Passing a
-            // bare column string makes MySQL try to drop a key named only after
-            // the column, which fails on existing schemas.
-            if ($constraintName !== null) {
-                $table->dropForeign($constraintName);
-            } else {
-                $table->dropForeign([$column]);
-            }
-        });
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            Schema::table($tableName, function (Blueprint $table) use ($column, $constraintName): void {
+                // Passing an array makes Laravel derive the conventional foreign-key
+                // name (for example, form_inputs_membership_id_foreign). Passing a
+                // bare column string makes MySQL try to drop a key named only after
+                // the column, which fails on existing schemas.
+                if ($constraintName !== null) {
+                    $table->dropForeign($constraintName);
+                } else {
+                    $table->dropForeign([$column]);
+                }
+            });
+        }
 
         Schema::table($tableName, function (Blueprint $table) use ($column, $referencedTable, $constraintName): void {
             $table->unsignedBigInteger($column)->nullable()->change();

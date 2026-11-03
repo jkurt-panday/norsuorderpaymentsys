@@ -580,16 +580,18 @@ class GraduateLedgerController extends Controller
         $warnings = $this->emptyImportWarnings();
         $now = now();
 
+        $allErrors = [];
+
         if ($extension === 'csv') {
             $path = $uploadedFile->getRealPath();
             if ($path === false) {
                 return back()->with('error', 'Could not read the uploaded CSV file.');
             }
 
-            return $this->importCsv($path, $imported, $skipped, $warnings, $now, $presetCourseId, $presetTermId, $duplicates);
+            return $this->importCsv($path, $imported, $skipped, $warnings, $now, $presetCourseId, $presetTermId, $duplicates, $allErrors);
         }
 
-        return $this->importExcel($uploadedFile, $imported, $skipped, $warnings, $now, $presetCourseId, $presetTermId, $duplicates);
+        return $this->importExcel($uploadedFile, $imported, $skipped, $warnings, $now, $presetCourseId, $presetTermId, $duplicates, $allErrors);
     }
 
     /**
@@ -610,6 +612,7 @@ class GraduateLedgerController extends Controller
         ?int $presetCourseId = null,
         ?int $presetTermId = null,
         int &$duplicates = 0,
+        array &$allErrors = [],
     ): RedirectResponse {
         // Pass 1: collect distinct values without holding rows in memory
         $handle = fopen($path, 'r');
@@ -665,9 +668,21 @@ class GraduateLedgerController extends Controller
         fgetcsv($handle); // skip header
 
         $insertData = [];
+        $rowNumber = 1; // row 1 was the header
 
         while (($row = fgetcsv($handle)) !== false) {
-            $data = $this->mapImportRowNormalized($row, $studentMap, $courseMap, $termMap, $warnings, $presetCourseId, $presetTermId);
+            $rowNumber++;
+            $data = $this->mapImportRowNormalized(
+                $row,
+                $studentMap,
+                $courseMap,
+                $termMap,
+                $warnings,
+                $presetCourseId,
+                $presetTermId,
+                $rowNumber,
+                $allErrors,
+            );
 
             if ($data === null) {
                 $skipped++;
@@ -706,8 +721,19 @@ class GraduateLedgerController extends Controller
 
         ActivityLog::recordImport(GraduateLedger::class, $imported, 'Graduate Ledger');
 
+        $totalErrors = count($allErrors);
+        $importReport = [
+            'imported' => $imported,
+            'skipped' => $skipped,
+            'duplicates' => $duplicates,
+            'errors' => array_slice($allErrors, 0, 150),
+            'truncated' => $totalErrors > 150,
+            'total_errors' => $totalErrors,
+        ];
+
         return redirect()->route('graduate-ledger.index')
-            ->with('success', $this->importSummary($imported, $skipped, $warnings, $duplicates));
+            ->with('success', $this->importSummary($imported, $skipped, $warnings, $duplicates))
+            ->with('import_report', $importReport);
     }
 
     /**
@@ -726,6 +752,7 @@ class GraduateLedgerController extends Controller
         ?int $presetCourseId = null,
         ?int $presetTermId = null,
         int &$duplicates = 0,
+        array &$allErrors = [],
     ): RedirectResponse {
         $path = $uploadedFile->getRealPath();
         if ($path === false) {
@@ -821,7 +848,17 @@ class GraduateLedgerController extends Controller
                 $sheet->getCell("N{$r}")->getValue(),
             ];
 
-            $data = $this->mapImportRowNormalized($row, $studentMap, $courseMap, $termMap, $warnings, $presetCourseId, $presetTermId);
+            $data = $this->mapImportRowNormalized(
+                $row,
+                $studentMap,
+                $courseMap,
+                $termMap,
+                $warnings,
+                $presetCourseId,
+                $presetTermId,
+                $r,
+                $allErrors,
+            );
 
             if ($data === null) {
                 $skipped++;
@@ -862,8 +899,19 @@ class GraduateLedgerController extends Controller
 
         ActivityLog::recordImport(GraduateLedger::class, $imported, 'Graduate Ledger');
 
+        $totalErrors = count($allErrors);
+        $importReport = [
+            'imported' => $imported,
+            'skipped' => $skipped,
+            'duplicates' => $duplicates,
+            'errors' => array_slice($allErrors, 0, 150),
+            'truncated' => $totalErrors > 150,
+            'total_errors' => $totalErrors,
+        ];
+
         return redirect()->route('graduate-ledger.index')
-            ->with('success', $this->importSummary($imported, $skipped, $warnings, $duplicates));
+            ->with('success', $this->importSummary($imported, $skipped, $warnings, $duplicates))
+            ->with('import_report', $importReport);
     }
 
     // ─── Print Select / PDF ───────────────────────────────────────────────────
@@ -1484,9 +1532,10 @@ class GraduateLedgerController extends Controller
             }
         }
 
-        // 2. Resolve courses — match existing master rows first, normalize recognized
-        //    variants to canonical codes, and auto-create any remaining course values
-        //    so the ledger records are never dropped.
+        // 2. Resolve courses — only match existing master rows.
+        //    Unrecognized courses are NOT auto-created; they will fail row
+        //    resolution and be skipped with a reported reason (unless a preset
+        //    course was selected).
         $courseMap = Course::query()
             ->where('course_college', 'Graduate School')
             ->pluck('id', 'course_code')
@@ -1494,7 +1543,6 @@ class GraduateLedgerController extends Controller
             ->all();
 
         $courseLookup = [];
-        $newCourses = [];
         foreach (array_keys($distinctCourses) as $rawCode) {
             $normalized = Course::normalizeCode($rawCode);
             if ($normalized === '') {
@@ -1506,86 +1554,17 @@ class GraduateLedgerController extends Controller
             $codeToUse = $canonicalCode ?? Course::normalizeCode($rawCode);
             if (isset($courseMap[$codeToUse])) {
                 $courseLookup[$normalized] = $courseMap[$codeToUse];
-
-                continue;
-            }
-            if (! isset($newCourses[$codeToUse])) {
-                $desc = Course::descriptionFor($codeToUse) ?? ($canonicalCode ?? $rawCode);
-                $newCourses[$codeToUse] = [
-                    'course_code' => $codeToUse,
-                    'course_desc' => $desc,
-                    'course_college' => 'Graduate School',
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ];
-            }
-        }
-        if (! empty($newCourses)) {
-            foreach (array_chunk(array_values($newCourses), 500) as $chunk) {
-                Course::insert($chunk);
-            }
-            $courseMap = Course::query()
-                ->where('course_college', 'Graduate School')
-                ->pluck('id', 'course_code')
-                ->map(fn (mixed $id): int => (int) $id)
-                ->all();
-            foreach (array_keys($distinctCourses) as $rawCode) {
-                $normalized = Course::normalizeCode($rawCode);
-                if ($normalized === '') {
-                    continue;
-                }
-
-                $canonicalCode = Course::resolveCanonicalCode($rawCode);
-                // Must mirror pass-1 normalization so unresolvable raw values
-                // (e.g. "M.S. NURSING" → "MS NURSING") resolve to the stored code
-                $codeToUse = $canonicalCode ?? Course::normalizeCode($rawCode);
-                if (isset($courseMap[$codeToUse])) {
-                    $courseLookup[$normalized] = $courseMap[$codeToUse];
-                }
             }
         }
 
-        // 3. Resolve terms — auto-create valid parsed terms so rows with
-        //    unseeded but well-formed school years/semesters are never dropped.
+        // 3. Resolve terms — only match existing master rows.
+        //    Terms that are not seeded yet will fail row resolution and be
+        //    skipped with a reported reason (unless a preset term was selected).
         $termMap = [];
         $termsInDb = AcademicTerm::get(['id', 'school_year', 'semester'])->toArray();
         foreach ($termsInDb as $t) {
             $termMap["{$t['school_year']}|||{$t['semester']}"] = $t['id'];
         }
-
-        $missingTerms = array_filter(array_keys($distinctTerms), fn (string $key): bool => ! isset($termMap[$key]));
-        if (! empty($missingTerms)) {
-            $insertTerms = [];
-            foreach ($missingTerms as $key) {
-                $def = $distinctTerms[$key];
-                $insertTerms[] = [
-                    'school_year' => $def['school_year'],
-                    'semester' => $def['semester'],
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ];
-            }
-            foreach (array_chunk($insertTerms, 500) as $chunk) {
-                AcademicTerm::insertOrIgnore($chunk);
-            }
-            $termsInDb = AcademicTerm::get(['id', 'school_year', 'semester'])->toArray();
-            foreach ($termsInDb as $t) {
-                $termMap["{$t['school_year']}|||{$t['semester']}"] = $t['id'];
-            }
-        }
-
-        // Guarantee default fallback entries so no row is ever dropped due to missing metadata
-        $unassignedCourse = Course::firstOrCreate(
-            ['course_code' => 'UNASSIGNED', 'course_college' => 'Graduate School'],
-            ['course_desc' => 'Unassigned / Pending Course Assignment']
-        );
-        $courseLookup['__DEFAULT__'] = (int) $unassignedCourse->id;
-
-        $unassignedTerm = AcademicTerm::firstOrCreate(
-            ['school_year' => 'Unassigned', 'semester' => 'First Semester'],
-            []
-        );
-        $termMap['__DEFAULT__'] = (int) $unassignedTerm->id;
 
         return [$studentMap, $courseLookup, $termMap];
     }
@@ -1716,8 +1695,10 @@ class GraduateLedgerController extends Controller
      * @param  array<string, int>  $courseMap
      * @param  array<string, int>  $termMap
      * @param  WarningCounts  $warnings
+     * @param  list<array{row: int, student: ?string, reason: string}>  $allErrors
      *
      * @param-out WarningCounts $warnings
+     * @param-out list<array{row: int, student: ?string, reason: string}> $allErrors
      *
      * @return array<string, mixed>|null
      */
@@ -1729,9 +1710,29 @@ class GraduateLedgerController extends Controller
         array &$warnings,
         ?int $presetCourseId = null,
         ?int $presetTermId = null,
+        ?int $rowNumber = null,
+        array &$allErrors = [],
     ): ?array {
         $rawName = trim(str_replace(['−', '–', '—'], '-', (string) ($row[0] ?? '')));
+
+        // Check if student name is empty or a repeated header label
         if ($rawName === '' || in_array(strtolower($rawName), ['student name', 'student', 'ff', 'name'])) {
+            // Check if entire row is blank
+            $hasAnyData = false;
+            foreach ($row as $cell) {
+                if (trim((string) $cell) !== '') {
+                    $hasAnyData = true;
+                    break;
+                }
+            }
+            if ($hasAnyData && $rowNumber !== null) {
+                $allErrors[] = [
+                    'row' => $rowNumber,
+                    'student' => null,
+                    'reason' => 'Missing student name',
+                ];
+            }
+
             return null;
         }
 
@@ -1743,24 +1744,69 @@ class GraduateLedgerController extends Controller
         $normalizedRaw = $rawCode !== '' ? Course::normalizeCode($rawCode) : '';
         // courseMap is keyed by normalized raw → id (see buildImportLookupMaps)
         $courseId = $normalizedRaw !== '' ? ($courseMap[$normalizedRaw] ?? null) : null;
-        // Fall back to preset or default unassigned course so no row is skipped
         if ($courseId === null) {
-            $courseId = $presetCourseId ?? ($courseMap['__DEFAULT__'] ?? null);
+            $courseId = $presetCourseId;
+        }
+
+        if ($courseId === null) {
+            if ($rowNumber !== null) {
+                $reason = $rawCode !== ''
+                    ? "Unrecognized course '{$rawCode}' (select a preset fallback or register the course first)"
+                    : 'Missing course (select a preset fallback or assign a course)';
+                $allErrors[] = [
+                    'row' => $rowNumber,
+                    'student' => $rawName,
+                    'reason' => $reason,
+                ];
+            }
+
+            return null;
         }
 
         // ── Term resolution ──────────────────────────────────────────────────
         // Col E (index 4) = SEMESTER/SUMMER — the labeled, visible column.
         // Fall back to Col D (index 3 = SEMESTER_SHORT) when Col E is blank.
-        $sy = AcademicTerm::parseSchoolYear(trim((string) ($row[2] ?? '')));
+        $rawSY = trim((string) ($row[2] ?? ''));
+        $sy = AcademicTerm::parseSchoolYear($rawSY);
         $rawSemE = trim((string) ($row[4] ?? ''));
         $rawSemD = trim((string) ($row[3] ?? ''));
-        $sem = AcademicTerm::normalizeSemester($rawSemE !== '' ? $rawSemE : $rawSemD);
+        $rawSem = $rawSemE !== '' ? $rawSemE : $rawSemD;
+        $sem = AcademicTerm::normalizeSemester($rawSem);
         $academicTermId = ($sy !== null && $sem !== null)
             ? ($termMap["{$sy}|||{$sem}"] ?? null)
             : null;
-        // Fall back to preset or default unassigned term so no row is skipped
         if ($academicTermId === null) {
-            $academicTermId = $presetTermId ?? ($termMap['__DEFAULT__'] ?? null);
+            $academicTermId = $presetTermId;
+        }
+
+        if ($academicTermId === null) {
+            if ($rowNumber !== null) {
+                $allErrors[] = [
+                    'row' => $rowNumber,
+                    'student' => $rawName,
+                    'reason' => "Invalid school year or semester ('{$rawSY}' / '{$rawSem}')",
+                ];
+            }
+
+            return null;
+        }
+
+        // ── Amount validation ────────────────────────────────────────────────
+        $cleanedAmount = $this->cleanAmount($rawAmount);
+        $cleanedRate = $this->cleanAmount($rawTuition);
+        $units = is_numeric($row[5] ?? null) ? (float) $row[5] : null;
+
+        // If amount is 0 and there are units/tuition rate that should have computed an amount
+        if ($cleanedAmount <= 0 && ($units > 0 && $cleanedRate > 0)) {
+            if ($rowNumber !== null) {
+                $allErrors[] = [
+                    'row' => $rowNumber,
+                    'student' => $rawName,
+                    'reason' => 'Invalid or zero transaction amount',
+                ];
+            }
+
+            return null;
         }
 
         $classification = $this->importClassifier->classify(
@@ -1774,7 +1820,15 @@ class GraduateLedgerController extends Controller
 
         $studentId = $studentMap[$rawName] ?? null;
 
-        if ($studentId === null || $courseId === null || $academicTermId === null) {
+        if ($studentId === null) {
+            if ($rowNumber !== null) {
+                $allErrors[] = [
+                    'row' => $rowNumber,
+                    'student' => $rawName,
+                    'reason' => 'Could not resolve student account',
+                ];
+            }
+
             return null;
         }
 
@@ -1782,13 +1836,13 @@ class GraduateLedgerController extends Controller
             'student_id' => $studentId,
             'course_id' => $courseId,
             'academic_term_id' => $academicTermId,
-            'units' => is_numeric($row[5] ?? null) ? (float) $row[5] : null,
+            'units' => $units,
             'transaction_date' => $this->normalizeDate($row[6] ?? null),
             'reference_number' => trim((string) ($row[7] ?? '')),
             'particulars' => trim((string) ($row[8] ?? '')),
-            'rate' => $this->cleanAmount($rawTuition),
+            'rate' => $cleanedRate,
             'entry_type' => $classification['entry_type'],
-            'amount' => $this->cleanAmount($rawAmount),
+            'amount' => $cleanedAmount,
             'remarks' => $this->cleanRemarks($row[12] ?? null),
             'status' => 'posted',
             'input_by' => auth()->id(),

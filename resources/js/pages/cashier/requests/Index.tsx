@@ -137,7 +137,7 @@ const CashierRequestsIndex: React.FC<Props> = ({ requests, filters }) => {
             render: (row) => (
                 <Link
                     href={cashier.requests.show.url(row.id)}
-                    className="block truncate font-semibold text-blue-600 hover:underline"
+                    className="block truncate font-semibold text-blue-600 hover:underline dark:text-sky-400"
                 >
                     {row.form_input.reference_number}
                 </Link>
@@ -209,7 +209,7 @@ const CashierRequestsIndex: React.FC<Props> = ({ requests, filters }) => {
                 href={cashier.requests.show.url(row.id)}
                 title={row.status === 'paid' ? 'View' : 'Record payment'}
                 aria-label={row.status === 'paid' ? 'View payment request' : 'Record payment'}
-                className="flex h-8 w-8 items-center justify-center bg-cyan-400 text-white transition-colors hover:bg-cyan-500"
+                className="flex h-8 w-8 items-center justify-center bg-cyan-700 text-white transition-colors hover:bg-cyan-800 dark:bg-cyan-600 dark:hover:bg-cyan-700"
             >
                 <svg
                     xmlns="http://www.w3.org/2000/svg"

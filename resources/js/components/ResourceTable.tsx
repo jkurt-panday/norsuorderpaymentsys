@@ -71,7 +71,7 @@ export interface ResourceTableProps<T extends { id: number }> {
     addLabel: string;
     addHref: NonNullable<InertiaLinkProps['href']>;
     columns: ColumnDef<T>[];
-    resource: PaginatedData<T>;
+    resource?: PaginatedData<T> | T[] | null;
     resourceKey?: string;
     editHref: (row: T) => NonNullable<InertiaLinkProps['href']>;
     deleteUrl: (id: number) => string;
@@ -125,6 +125,30 @@ export default function ResourceTable<T extends { id: number }>({
 }: ResourceTableProps<T>) {
     const confirm = useConfirm();
 
+    const safeResource: PaginatedData<T> = useMemo(() => {
+        if (Array.isArray(resource)) {
+            return {
+                data: resource,
+                links: [],
+                from: resource.length > 0 ? 1 : null,
+                to: resource.length > 0 ? resource.length : null,
+                total: resource.length,
+                current_page: 1,
+                last_page: 1,
+            };
+        }
+
+        return {
+            data: resource?.data ?? [],
+            links: resource?.links ?? [],
+            from: resource?.from ?? null,
+            to: resource?.to ?? null,
+            total: resource?.total ?? (resource?.data?.length ?? 0),
+            current_page: resource?.current_page ?? 1,
+            last_page: resource?.last_page ?? 1,
+        };
+    }, [resource]);
+
     const [optimisticSort, setOptimisticSort] = useState<{
         key: string;
         direction: 'asc' | 'desc';
@@ -162,10 +186,10 @@ export default function ResourceTable<T extends { id: number }>({
 
     const displayData = useMemo(() => {
         if (!optimisticSort) {
-            return resource.data;
+            return safeResource.data;
         }
 
-        return [...resource.data].sort((rowA, rowB) => {
+        return [...safeResource.data].sort((rowA, rowB) => {
             const { key: sortKey, direction } = optimisticSort;
             const valueA = (rowA as Record<string, unknown>)[sortKey];
             const valueB = (rowB as Record<string, unknown>)[sortKey];
@@ -173,7 +197,7 @@ export default function ResourceTable<T extends { id: number }>({
 
             return direction === 'asc' ? result : -result;
         });
-    }, [optimisticSort, resource.data]);
+    }, [optimisticSort, safeResource.data]);
 
     function optimisticallySort(sortKey: string, direction: 'asc' | 'desc') {
         setOptimisticSort({ key: sortKey, direction });
@@ -191,7 +215,7 @@ export default function ResourceTable<T extends { id: number }>({
         const nextSignatures = new Map<number, string>();
         const changed: number[] = [];
 
-        for (const row of resource.data) {
+        for (const row of safeResource.data) {
             const sig = rowSignature(row);
             nextSignatures.set(row.id, sig);
 
@@ -242,7 +266,7 @@ export default function ResourceTable<T extends { id: number }>({
             timers.clear();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [resource.data]);
+    }, [safeResource.data]);
 
     const { start, stop } = usePoll(
         pollInterval ?? 300000,
@@ -658,44 +682,61 @@ export default function ResourceTable<T extends { id: number }>({
                                         sortKey !== null &&
                                         currentSort === sortKey;
 
-                                    const headerContent = (
-                                        <span className="inline-flex items-center gap-1.5">
-                                            {col.header}
-                                            {sortKey ? (
-                                                isActiveSort ? (
-                                                    currentDirection ===
-                                                    'asc' ? (
-                                                        <ArrowUp className="h-3 w-3 text-primary" />
-                                                    ) : (
-                                                        <ArrowDown className="h-3 w-3 text-primary" />
-                                                    )
-                                                ) : (
-                                                    <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
-                                                )
+                                    const sortIcon = col.sortable ? (
+                                        isActiveSort ? (
+                                            currentDirection === 'asc' ? (
+                                                <ArrowUp
+                                                    className="h-3 w-3 text-primary"
+                                                    aria-hidden="true"
+                                                />
                                             ) : (
-                                                col.sortable && (
-                                                    <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
-                                                )
-                                            )}
-                                        </span>
-                                    );
+                                                <ArrowDown
+                                                    className="h-3 w-3 text-primary"
+                                                    aria-hidden="true"
+                                                />
+                                            )
+                                        ) : (
+                                            <ArrowUpDown
+                                                className="h-3 w-3 text-muted-foreground"
+                                                aria-hidden="true"
+                                            />
+                                        )
+                                    ) : null;
 
                                     return (
                                         <TableHead
                                             key={i}
-                                            className={`h-11 truncate bg-muted/50 text-xs font-semibold tracking-wide text-muted-foreground uppercase ${
-                                                i === 0 ? 'pl-6' : ''
-                                            } ${sortKey ? 'cursor-pointer select-none hover:text-foreground' : ''}`}
-                                            onClick={
+                                            aria-sort={
                                                 sortKey
-                                                    ? () =>
-                                                          handleSortClick(
-                                                              sortKey,
-                                                          )
+                                                    ? isActiveSort
+                                                        ? currentDirection ===
+                                                          'asc'
+                                                            ? 'ascending'
+                                                            : 'descending'
+                                                        : 'none'
                                                     : undefined
                                             }
+                                            className={`h-11 truncate bg-muted/50 text-xs font-semibold tracking-wide text-muted-foreground uppercase ${
+                                                i === 0 ? 'pl-6' : ''
+                                            } ${sortKey ? 'select-none hover:text-foreground' : ''}`}
                                         >
-                                            {headerContent}
+                                            {sortKey ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleSortClick(sortKey)
+                                                    }
+                                                    className="flex w-full items-center gap-1.5 rounded-sm py-1 text-left focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset focus-visible:outline-none"
+                                                >
+                                                    {col.header}
+                                                    {sortIcon}
+                                                </button>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1.5">
+                                                    {col.header}
+                                                    {sortIcon}
+                                                </span>
+                                            )}
                                         </TableHead>
                                     );
                                 })}
@@ -733,10 +774,10 @@ export default function ResourceTable<T extends { id: number }>({
                                                 </TableCell>
                                             ))}
                                             <TableCell className="py-3 pr-10 text-right">
-                                                <div className="mr-2 inline-flex overflow-hidden rounded-full shadow-sm">
+                                                <div className="mr-2 inline-flex items-center gap-1.5">
                                                     <Link
                                                         href={editHref(row)}
-                                                        className="flex h-8 w-8 cursor-pointer items-center justify-center bg-amber-400 text-white transition-colors hover:bg-amber-500"
+                                                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md bg-amber-600 text-white transition-colors hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-neutral-950"
                                                         aria-label="Edit"
                                                         title="Edit"
                                                     >
@@ -749,7 +790,7 @@ export default function ResourceTable<T extends { id: number }>({
                                                                 row.id,
                                                             )
                                                         }
-                                                        className="flex h-8 w-8 items-center justify-center border-l border-white/20 bg-red-600 text-white transition-colors hover:bg-red-700 cursor-pointer"
+                                                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md bg-red-600 text-white transition-colors hover:bg-red-700"
                                                         aria-label="Delete"
                                                         title="Delete"
                                                     >
@@ -782,28 +823,28 @@ export default function ResourceTable<T extends { id: number }>({
                     </Table>
                 </CardContent>
 
-                {resource.data.length > 0 && (
+                {safeResource.data.length > 0 && (
                     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-3">
                         <p className="shrink-0 text-xs text-muted-foreground sm:text-sm">
-                            Showing {resource.from ?? 0}-{resource.to ?? 0} of{' '}
-                            {resource.total} results
+                            Showing {safeResource.from ?? 0}-{safeResource.to ?? 0} of{' '}
+                            {safeResource.total} results
                         </p>
 
-                        {resource.last_page > 5 ? (
+                        {safeResource.last_page > 5 ? (
                             // ---- Page-jump dropdown (>3 pages) ----
                             // Copied from RequestTable: Prev / a popover with a
                             // type-to-jump input plus a scrollable page list /
                             // Next. Picking a page does a plain full reload —
                             // no preserveState, no `only`.
                             (() => {
-                                const prevLink = resource.links.find((l) =>
+                                const prevLink = safeResource.links.find((l) =>
                                     l.label
                                         .replace(/&laquo;|&raquo;/g, '')
                                         .trim()
                                         .toLowerCase()
                                         .includes('previous'),
                                 );
-                                const nextLink = resource.links.find((l) =>
+                                const nextLink = safeResource.links.find((l) =>
                                     l.label
                                         .replace(/&laquo;|&raquo;/g, '')
                                         .trim()
@@ -818,7 +859,7 @@ export default function ResourceTable<T extends { id: number }>({
                                              disabled={!prevLink?.url}
                                              onClick={() =>
                                                  navigateToPage(
-                                                     resource.current_page - 1,
+                                                     safeResource.current_page - 1,
                                                  )
                                              }
                                              aria-label="Previous page"
@@ -835,7 +876,7 @@ export default function ResourceTable<T extends { id: number }>({
                                                 if (open) {
                                                     setPageJumpInput(
                                                         String(
-                                                            resource.current_page,
+                                                            safeResource.current_page,
                                                         ),
                                                     );
                                                 }
@@ -847,8 +888,8 @@ export default function ResourceTable<T extends { id: number }>({
                                                     tabIndex={0}
                                                     className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                                                 >
-                                                    Page {resource.current_page}{' '}
-                                                    of {resource.last_page}
+                                                    Page {safeResource.current_page}{' '}
+                                                    of {safeResource.last_page}
                                                 </span>
                                             </PopoverTrigger>
                                             <PopoverContent
@@ -869,7 +910,7 @@ export default function ResourceTable<T extends { id: number }>({
                                                             ) &&
                                                             parsed >= 1 &&
                                                             parsed <=
-                                                                resource.last_page
+                                                                safeResource.last_page
                                                         ) {
                                                             navigateToPage(
                                                                 parsed,
@@ -884,14 +925,14 @@ export default function ResourceTable<T extends { id: number }>({
                                                     <input
                                                         type="number"
                                                         min={1}
-                                                        max={resource.last_page}
+                                                        max={safeResource.last_page}
                                                         value={pageJumpInput}
                                                         onChange={(e) =>
                                                             setPageJumpInput(
                                                                 e.target.value,
                                                             )
                                                         }
-                                                        placeholder={`1–${resource.last_page}`}
+                                                        placeholder={`1–${safeResource.last_page}`}
                                                         className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
                                                         autoFocus
                                                     />
@@ -906,7 +947,7 @@ export default function ResourceTable<T extends { id: number }>({
                                                 <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-border pt-1.5">
                                                     {Array.from(
                                                         {
-                                                            length: resource.last_page,
+                                                            length: safeResource.last_page,
                                                         },
                                                         (_, i) => i + 1,
                                                     ).map((page) => (
@@ -923,7 +964,7 @@ export default function ResourceTable<T extends { id: number }>({
                                                              }}
                                                              className={`flex w-full cursor-pointer items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
                                                                 page ===
-                                                                resource.current_page
+                                                                safeResource.current_page
                                                                     ? 'bg-primary/10 font-medium text-primary'
                                                                     : 'text-foreground hover:bg-muted'
                                                             }`}
@@ -940,7 +981,7 @@ export default function ResourceTable<T extends { id: number }>({
                                              disabled={!nextLink?.url}
                                              onClick={() =>
                                                  navigateToPage(
-                                                     resource.current_page + 1,
+                                                     safeResource.current_page + 1,
                                                  )
                                              }
                                              aria-label="Next page"
@@ -954,7 +995,7 @@ export default function ResourceTable<T extends { id: number }>({
                         ) : (
                             // ---- Standard button row (3 pages or fewer, unchanged) ----
                             <div className="flex items-center gap-1.5">
-                                {resource.links.map((link, index) => {
+                                {safeResource.links.map((link, index) => {
                                     const rawLabel = link.label
                                         .replace(/&laquo;|&raquo;/g, '')
                                         .trim();

@@ -13,6 +13,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getExpiringLocalStorage } from '@/lib/expiring-local-storage';
+import { softFlashToast } from '@/lib/flash-toast-soft';
 import { login } from '@/routes';
 import { request as forgotPassword } from '@/routes/password';
 
@@ -28,7 +30,8 @@ export default function Login({
     canResetPassword?: boolean;
     deactivated_account?: boolean;
 }) {
-    const { auth } = usePage<{ auth: { user: { role: string } | null } }>().props;
+    const { auth } = usePage<{ auth: { user: { role: string } | null } }>()
+        .props;
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
         password: '',
@@ -36,7 +39,19 @@ export default function Login({
     });
 
     const [showPassword, setShowPassword] = useState(false);
-    const [isDeactivatedOpen, setIsDeactivatedOpen] = useState(deactivated_account);
+    const [isDeactivatedOpen, setIsDeactivatedOpen] =
+        useState(deactivated_account);
+
+    useEffect(() => {
+        const pendingLogoutToast = getExpiringLocalStorage<boolean>(
+            'pending_logout_toast',
+        );
+
+        if (pendingLogoutToast) {
+            window.localStorage.removeItem('pending_logout_toast');
+            softFlashToast('info', 'You have been signed out.');
+        }
+    }, []);
 
     // If the user is already logged in (e.g. they navigated here via
     // browser back/forward, which restores cached Inertia props), bounce
@@ -86,7 +101,7 @@ export default function Login({
         <AuthSplitLayout>
             <Head title="Order of Payment System – Sign in" />
 
-            <h2 className="font-heading text-[30px] font-bold leading-tight text-[#0F1E33] dark:text-[#E6EEF8]">
+            <h2 className="font-heading text-[30px] leading-tight font-bold text-[#0F1E33] dark:text-[#E6EEF8]">
                 Sign in
             </h2>
             <p className="mt-1 mb-6 text-[#55667D] dark:text-[#8FA4BF]">
@@ -140,7 +155,9 @@ export default function Login({
                             aria-invalid={errors.password ? 'true' : undefined}
                             placeholder="Enter your password"
                             value={data.password}
-                            onChange={(e) => setData('password', e.target.value)}
+                            onChange={(e) =>
+                                setData('password', e.target.value)
+                            }
                             required
                             className={`${sharedInputClass} pr-[76px]`}
                         />
@@ -161,11 +178,12 @@ export default function Login({
                         <Checkbox
                             id="remember"
                             checked={data.remember}
-                            onCheckedChange={(c) => setData('remember', c === true)}
+                            onCheckedChange={(c) =>
+                                setData('remember', c === true)
+                            }
                         />
                         Keep me signed in
                     </label>
-
                 </div>
 
                 <button
@@ -181,7 +199,10 @@ export default function Login({
                 Need access? Contact your system administrator.
             </p>
 
-            <Dialog open={isDeactivatedOpen} onOpenChange={setIsDeactivatedOpen}>
+            <Dialog
+                open={isDeactivatedOpen}
+                onOpenChange={setIsDeactivatedOpen}
+            >
                 <DialogContent className="max-w-md">
                     <DialogHeader>
                         <DialogTitle>Account Deactivated</DialogTitle>

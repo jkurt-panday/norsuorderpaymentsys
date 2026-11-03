@@ -22,6 +22,10 @@ return new class extends Migration
         });
 
         Schema::table('uacs', function (Blueprint $table): void {
+            if (DB::connection()->getDriverName() === 'sqlite') {
+                $table->dropIndex('uacs_uacs_index');
+                $table->dropIndex('uacs_status_index');
+            }
             foreach ([
                 'classification',
                 'sub_class',

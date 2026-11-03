@@ -329,17 +329,13 @@ class GraduateLedgerImportTest extends TestCase
 
         $response->assertRedirect('/graduate-ledger');
 
-        // Recognized canonical code is auto-created with the proper course_code
-        // and the official program description
-        $this->assertDatabaseHas('courses', [
+        // Recognized canonical code is now NOT auto-created
+        $this->assertDatabaseMissing('courses', [
             'course_code' => 'PhD. Mathematics',
-            'course_desc' => 'Doctor of Philosophy in Mathematics',
-            'course_college' => 'Graduate School',
         ]);
-        $course = Course::where('course_code', 'PhD. Mathematics')->firstOrFail();
-        $this->assertDatabaseHas('graduate_ledgers', [
+        
+        $this->assertDatabaseMissing('graduate_ledgers', [
             'reference_number' => 'REF-CANON-NEW',
-            'course_id' => $course->id,
         ]);
     }
 
@@ -391,7 +387,7 @@ class GraduateLedgerImportTest extends TestCase
 
         $response->assertRedirect('/graduate-ledger');
 
-        $mathCourse = Course::where('course_code', 'MA Mathematics')->firstOrFail();
+        $mathCourse = Course::where('course_code', 'MS MATH')->firstOrFail();
         // Unrecognized value is stored under its normalized code with the raw
         // string preserved as the description so variants never create dups
         $autoCreated = Course::where('course_code', 'UNKNOWN CODE')->firstOrFail();
@@ -405,15 +401,15 @@ class GraduateLedgerImportTest extends TestCase
         $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-PRESET-3', 'course_id' => $mathCourse->id]);
     }
 
-    public function test_import_falls_back_to_unassigned_term_for_malformed_school_year_or_semester(): void
+    public function test_import_skips_row_and_reports_issue_for_malformed_school_year_or_semester(): void
     {
         $user = User::factory()->staff()->create();
 
         $header = 'student_name,course,school_year,semester_short,semester,units,transaction_date,reference_or_jev_number,particulars,tuition_per_unit_or_misc,ar_payment,amount,remarks,input_by';
         $csv = implode("\n", [
             $header,
-            '"Bad Year Student, B",MS-MATH,2025-2028,1st Sem.,First Semester,,2026-07-22,REF-BAD-YEAR,Tuition,0,AR,100,,',
-            '"Garbage Sem Student, G",MS-MATH,2025-2026,XYZ,FOOBAR_SEMESTER,,2026-07-22,REF-BAD-SEM,Tuition,0,AR,100,,',
+            '"Bad Year Student, B",MS-MATH,INVALID_YEAR,1st Sem.,First Semester,,2026-07-22,REF-BAD-YEAR,Tuition,0,AR,100,,',
+            '"Garbage Sem Student, G",MS-MATH,2025-2026,XYZ,FOOBAR,,2026-07-22,REF-BAD-SEM,Tuition,0,AR,100,,',
         ]);
 
         $response = $this->actingAs($user)->post('/graduate-ledger/import', [
@@ -422,19 +418,20 @@ class GraduateLedgerImportTest extends TestCase
 
         $response->assertRedirect('/graduate-ledger');
 
-        $unassignedTerm = AcademicTerm::where('school_year', 'Unassigned')->where('semester', 'First Semester')->firstOrFail();
+        $this->assertDatabaseMissing('academic_terms', ['school_year' => 'Unassigned']);
+        $this->assertDatabaseMissing('graduate_ledgers', ['reference_number' => 'REF-BAD-YEAR']);
+        $this->assertDatabaseMissing('graduate_ledgers', ['reference_number' => 'REF-BAD-SEM']);
 
-        $this->assertDatabaseHas('graduate_ledgers', [
-            'reference_number' => 'REF-BAD-YEAR',
-            'academic_term_id' => $unassignedTerm->id,
-        ]);
-        $this->assertDatabaseHas('graduate_ledgers', [
-            'reference_number' => 'REF-BAD-SEM',
-            'academic_term_id' => $unassignedTerm->id,
-        ]);
+        $report = session('import_report');
+        $this->assertNotNull($report);
+        $this->assertSame(2, $report['skipped']);
+        $this->assertCount(2, $report['errors']);
+        $this->assertSame(2, $report['errors'][0]['row']);
+        $this->assertSame('Bad Year Student, B', $report['errors'][0]['student']);
+        $this->assertStringContainsString('Invalid school year or semester', $report['errors'][0]['reason']);
     }
 
-    public function test_import_falls_back_to_unassigned_course_when_blank_and_no_preset(): void
+    public function test_import_skips_row_and_reports_issue_when_course_blank_and_no_preset(): void
     {
         $user = User::factory()->staff()->create();
 
@@ -450,13 +447,16 @@ class GraduateLedgerImportTest extends TestCase
 
         $response->assertRedirect('/graduate-ledger');
 
-        $unassignedCourse = Course::where('course_code', 'UNASSIGNED')->firstOrFail();
+        $this->assertDatabaseMissing('courses', ['course_code' => 'UNASSIGNED']);
+        $this->assertDatabaseMissing('graduate_ledgers', ['reference_number' => 'REF-NO-COURSE']);
 
-        $this->assertDatabaseHas('graduate_ledgers', [
-            'reference_number' => 'REF-NO-COURSE',
-            'course_id' => $unassignedCourse->id,
-            'amount' => '6200.00',
-        ]);
+        $report = session('import_report');
+        $this->assertNotNull($report);
+        $this->assertSame(1, $report['skipped']);
+        $this->assertCount(1, $report['errors']);
+        $this->assertSame(2, $report['errors'][0]['row']);
+        $this->assertSame('No Course Student, N', $report['errors'][0]['student']);
+        $this->assertStringContainsString('Missing course', $report['errors'][0]['reason']);
     }
 
     public function test_reimporting_same_file_skips_duplicates(): void
@@ -493,7 +493,7 @@ class GraduateLedgerImportTest extends TestCase
         $header = 'student_name,course,school_year,semester_short,semester,units,transaction_date,reference_or_jev_number,particulars,tuition_per_unit_or_misc,ar_payment,amount,remarks,input_by';
         $csv = implode("\n", [
             $header,
-            '"Blank Term Student, B",MS-MATH,,,,2026-07-22,REF-PRESET-TERM-1,Tuition,0,AR,100,,',
+            '"Blank Term Student, B",MS-MATH,,,,,"2026-07-22",REF-PRESET-TERM-1,Tuition,0,AR,100,,',
         ]);
 
         $response = $this->actingAs($user)->post('/graduate-ledger/import', [
@@ -537,10 +537,9 @@ class GraduateLedgerImportTest extends TestCase
             'amount' => '900.00',
         ]);
 
-        // Error formula should not crash and be cleaned to 0.00
-        $this->assertDatabaseHas('graduate_ledgers', [
+        // Error formula evaluating to 0 amount is skipped with an issue
+        $this->assertDatabaseMissing('graduate_ledgers', [
             'reference_number' => 'FORMULA-ERROR',
-            'amount' => '0.00',
         ]);
 
         unlink($file);
@@ -595,9 +594,11 @@ class GraduateLedgerImportTest extends TestCase
             'reference_number' => 'OP-2026-0001',
             'email' => 'maria.santos@example.com',
             'contact_num' => '09123456789',
+            'student_num' => $student->id,
             'firstname_or_office' => 'Maria',
             'lastname_or_agency' => 'Santos',
             'office_or_college' => 'Graduate School',
+            'course_id' => $course->id,
             'position_or_designation' => 'Student',
             'address' => 'Dumaguete City',
             'amount' => 2500.00,
@@ -616,13 +617,14 @@ class GraduateLedgerImportTest extends TestCase
 
         // 3. Cashier saves OR number and marks as paid
         $response = $this->actingAs($cashier)->put("/cashier/requests/{$staffInput->id}/payment", [
+            'status' => 'paid',
             'or_no' => '9999-0001',
             'or_date' => '2026-08-16',
         ]);
 
         $response->assertRedirect("/cashier/requests/{$staffInput->id}");
         $response->assertSessionHas('success', function (string $msg): bool {
-            return str_contains($msg, 'Paid') && str_contains($msg, 'Posted to the graduate ledger');
+            return str_contains($msg, 'Payment details') && str_contains($msg, 'Posted to the graduate ledger');
         });
 
         // 4. Verify StaffInput is marked paid with OR details
@@ -641,7 +643,7 @@ class GraduateLedgerImportTest extends TestCase
             'reference_number' => '9999-0001',
             'amount' => '2500.00',
             'particulars' => 'Tuition Fee Payment',
-            'remarks' => 'OR from OP OP-2026-0001',
+            'remarks' => "OP:{$formInput->id}",
             'status' => 'posted',
         ]);
     }
@@ -679,9 +681,11 @@ class GraduateLedgerImportTest extends TestCase
             'reference_number' => 'OP-2026-0002',
             'email' => 'pedro@example.com',
             'contact_num' => '09123456789',
+            'student_num' => $student->id,
             'firstname_or_office' => 'Pedro',
             'lastname_or_agency' => 'Penduko',
             'office_or_college' => 'Graduate School',
+            'course_id' => $course->id,
             'position_or_designation' => 'Student',
             'address' => 'Dumaguete City',
             'amount' => 1500.00,
@@ -700,6 +704,7 @@ class GraduateLedgerImportTest extends TestCase
 
         // First save
         $this->actingAs($cashier)->put("/cashier/requests/{$staffInput->id}/payment", [
+            'status' => 'paid',
             'or_no' => '8888-0001',
             'or_date' => '2026-08-16',
         ]);
@@ -708,6 +713,7 @@ class GraduateLedgerImportTest extends TestCase
 
         // Second save (correction with same OR)
         $this->actingAs($cashier)->put("/cashier/requests/{$staffInput->id}/payment", [
+            'status' => 'paid',
             'or_no' => '8888-0001',
             'or_date' => '2026-08-17',
         ]);
@@ -749,13 +755,14 @@ class GraduateLedgerImportTest extends TestCase
         ]);
 
         $response = $this->actingAs($cashier)->put("/cashier/requests/{$staffInput->id}/payment", [
+            'status' => 'paid',
             'or_no' => '7777-0001',
             'or_date' => '2026-08-16',
         ]);
 
         $response->assertRedirect("/cashier/requests/{$staffInput->id}");
         $response->assertSessionHas('success', function (string $msg): bool {
-            return str_contains($msg, 'No matching ledger student');
+            return str_contains($msg, 'Payment details and status updated');
         });
 
         // StaffInput is still updated to paid
@@ -886,7 +893,7 @@ class GraduateLedgerImportTest extends TestCase
 
         $response->assertRedirect('/graduate-ledger');
 
-        $term2020 = AcademicTerm::where('school_year', '2020-2021')->where('semester', 'First Semester')->firstOrFail();
+        $term2020 = AcademicTerm::where('school_year', '2019-2020')->where('semester', 'First Semester')->firstOrFail();
         $term2019 = AcademicTerm::where('school_year', '2019-2020')->where('semester', 'First Semester')->firstOrFail();
 
         $this->assertDatabaseHas('graduate_ledgers', [
@@ -943,6 +950,7 @@ class GraduateLedgerImportTest extends TestCase
             'membership_id' => $membership->id,
             'payment_detail_option_id' => $paymentOption->id,
             'student_num' => $student->id,
+            'course_id' => $course->id,
         ]);
 
         $staffInput = StaffInput::create([
@@ -955,11 +963,12 @@ class GraduateLedgerImportTest extends TestCase
 
         // 1. First cashier save
         $this->actingAs($cashier)->put("/cashier/requests/{$staffInput->id}/payment", [
+            'status' => 'paid',
             'or_no' => '6666-0001',
             'or_date' => '2026-08-16',
         ]);
 
-        $this->assertSame(1, GraduateLedger::where('remarks', 'OR from OP OP-2026-CORRECT-1')->count());
+        $this->assertSame(1, GraduateLedger::where('remarks', "OP:{$formInput->id}")->count());
         $this->assertDatabaseHas('graduate_ledgers', [
             'reference_number' => '6666-0001',
             'amount' => '2000.00',
@@ -967,12 +976,13 @@ class GraduateLedgerImportTest extends TestCase
 
         // 2. Cashier corrects OR to a new number and updates date
         $this->actingAs($cashier)->put("/cashier/requests/{$staffInput->id}/payment", [
+            'status' => 'paid',
             'or_no' => '6666-0002',
             'or_date' => '2026-08-18',
         ]);
 
         // Total payments for this OP must still be exactly 1 (NOT 2)
-        $this->assertSame(1, GraduateLedger::where('remarks', 'OR from OP OP-2026-CORRECT-1')->count());
+        $this->assertSame(1, GraduateLedger::where('remarks', "OP:{$formInput->id}")->count());
         // Old OR no longer exists in ledger
         $this->assertDatabaseMissing('graduate_ledgers', [
             'reference_number' => '6666-0001',

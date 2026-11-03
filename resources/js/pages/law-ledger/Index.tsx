@@ -536,6 +536,14 @@ export default function Index({
     const visibleRecipients = bulkRecipients;
 
     const prevEmailTargetRef = useRef<string | null>(null);
+    const tableScrollRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (tableScrollRef.current) {
+            tableScrollRef.current.scrollLeft = tableScrollRef.current.scrollWidth;
+        }
+    }, []);
+
     useEffect(() => {
         const isBulkMode = emailTarget !== 'specific';
 
@@ -1130,16 +1138,18 @@ export default function Index({
                             className="flex flex-1 flex-wrap items-center gap-2 md:justify-end"
                         >
                             <Popover>
-                                <PopoverTrigger>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-9 border-input text-foreground hover:bg-muted"
-                                    >
-                                        <Columns3 className="h-4 w-4" /> Columns
-                                    </Button>
-                                </PopoverTrigger>
+                                <PopoverTrigger
+                                    render={
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-9 border-input text-foreground hover:bg-muted"
+                                        >
+                                            <Columns3 className="h-4 w-4" /> Columns
+                                        </Button>
+                                    }
+                                />
                                 <PopoverContent
                                     align="end"
                                     className="w-72 border-border bg-popover p-3 text-popover-foreground"
@@ -1517,6 +1527,7 @@ export default function Index({
                 )}
 
                 <div
+                    ref={tableScrollRef}
                     aria-busy={isFiltering}
                     className={`custom-scrollbar border-collapse rotate-180 overflow-x-auto transition-opacity ${
                         isFiltering

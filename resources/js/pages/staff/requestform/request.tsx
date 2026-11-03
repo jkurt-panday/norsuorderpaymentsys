@@ -1,4 +1,4 @@
-import { Link, router, useForm, usePage } from '@inertiajs/react';
+﻿import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import {
     Inbox,
     Mail,
@@ -794,7 +794,7 @@ const ManageRequests: React.FC = () => {
             render: (row) => (
                 <Link
                     href={staff.requests.show.url(row.id)}
-                    className="truncate font-semibold text-blue-600 hover:underline"
+                    className="truncate font-semibold text-blue-600 hover:underline dark:text-sky-400"
                 >
                     {row.reference_number}
                 </Link>
@@ -861,7 +861,7 @@ const ManageRequests: React.FC = () => {
             <Link
                 href={staff.requests.show.url(row.id)}
                 title="View"
-                className="flex h-8 w-8 items-center justify-center bg-cyan-400 text-white transition-colors hover:bg-cyan-500"
+                className="flex h-8 w-8 items-center justify-center bg-cyan-700 text-white transition-colors hover:bg-cyan-800 dark:bg-cyan-600 dark:hover:bg-cyan-700"
             >
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -882,6 +882,7 @@ const ManageRequests: React.FC = () => {
 
     return (
         <div>
+            <Head title="Requests" />
             <RequestTable<FormInput>
                 title="Order of Payment Requests"
                 columns={columns}
@@ -923,7 +924,7 @@ const ManageRequests: React.FC = () => {
                     <Button
                         type="button"
                         onClick={handleOpenEmailModal}
-                        className="h-10 gap-2 rounded-lg bg-emerald-600 px-4 text-white hover:bg-emerald-700"
+                        className="h-10 gap-2 rounded-lg bg-emerald-700 px-4 text-white hover:bg-emerald-800"
                     >
                         <Mail className="h-4 w-4" />
                         <span>Send Email</span>
@@ -1142,16 +1143,24 @@ const ManageRequests: React.FC = () => {
                                                                     );
                                                                 })
                                                                 .map((row) => (
-                                                                    <div
+                                                                    <button
                                                                         key={row.id}
-                                                                        className="flex cursor-pointer items-center gap-2 px-3 py-1.5 hover:bg-muted/40"
+                                                                        type="button"
+                                                                        role="checkbox"
+                                                                        aria-checked={selectedIds.has(
+                                                                            row.id,
+                                                                        )}
                                                                         onClick={() =>
                                                                             toggleSelectId(
                                                                                 row.id,
                                                                             )
                                                                         }
+                                                                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset focus-visible:outline-none"
                                                                     >
-                                                                        <UserRound className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                                                                        <UserRound
+                                                                            className="h-3.5 w-3.5 shrink-0 text-slate-400"
+                                                                            aria-hidden="true"
+                                                                        />
                                                                         <div className="min-w-0 flex-1">
                                                                             <div className="truncate text-sm font-medium text-foreground">
                                                                                 {formatFullName(
@@ -1168,7 +1177,7 @@ const ManageRequests: React.FC = () => {
                                                                                 }
                                                                             </div>
                                                                         </div>
-                                                                    </div>
+                                                                    </button>
                                                                 ))}
                                                         </div>
                                                     </div>
@@ -1197,12 +1206,12 @@ const ManageRequests: React.FC = () => {
                                                 );
 
                                                 return (
-                                                    <div
+                                                    <button
                                                         key={row.id}
-                                                        className={`flex items-start gap-2 border-b border-border px-3 py-2 text-sm last:border-0 ${eligible
-                                                                ? 'cursor-pointer bg-card text-foreground hover:bg-muted/50'
-                                                                : 'bg-muted/40 opacity-60'
-                                                            }`}
+                                                        type="button"
+                                                        role="checkbox"
+                                                        aria-checked={isSelected}
+                                                        disabled={!eligible}
                                                         onClick={() => {
                                                             if (eligible) {
                                                                 toggleSelectId(
@@ -1210,16 +1219,29 @@ const ManageRequests: React.FC = () => {
                                                                 );
                                                             }
                                                         }}
+                                                        className={`flex w-full items-start gap-2 border-b border-border px-3 py-2 text-left text-sm last:border-0 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset focus-visible:outline-none disabled:cursor-not-allowed ${eligible
+                                                                ? 'bg-card text-foreground hover:bg-muted/50'
+                                                                : 'bg-muted/40 opacity-60'
+                                                            }`}
                                                     >
                                                         <div className="mt-0.5 shrink-0">
                                                             {eligible ? (
                                                                 isSelected ? (
-                                                                    <CheckSquare className="h-4 w-4 text-emerald-600" />
+                                                                    <CheckSquare
+                                                                        className="h-4 w-4 text-emerald-600"
+                                                                        aria-hidden="true"
+                                                                    />
                                                                 ) : (
-                                                                    <Square className="h-4 w-4 text-slate-300" />
+                                                                    <Square
+                                                                        className="h-4 w-4 text-slate-300"
+                                                                        aria-hidden="true"
+                                                                    />
                                                                 )
                                                             ) : (
-                                                                <Square className="h-4 w-4 text-slate-200" />
+                                                                <Square
+                                                                    className="h-4 w-4 text-slate-200"
+                                                                    aria-hidden="true"
+                                                                />
                                                             )}
                                                         </div>
                                                         <div className="min-w-0 flex-1">
@@ -1278,7 +1300,7 @@ const ManageRequests: React.FC = () => {
                                                                 </div>
                                                             ) : null}
                                                         </div>
-                                                    </div>
+                                                    </button>
                                                 );
                                             })
                                         )}
@@ -1308,9 +1330,12 @@ const ManageRequests: React.FC = () => {
                                             {selectedIds.size > 0 && (
                                                 <div className="relative">
                                                     <Button
+                                                        id="selected-recipients-trigger"
                                                         type="button"
                                                         variant="ghost"
                                                         size="sm"
+                                                        aria-haspopup="dialog"
+                                                        aria-expanded={showSelectedPopover}
                                                         onClick={() =>
                                                             setShowSelectedPopover(
                                                                 !showSelectedPopover,
@@ -1328,7 +1353,17 @@ const ManageRequests: React.FC = () => {
                                                     {showSelectedPopover && (
                                                         <div
                                                             ref={popoverRef}
-                                                            className="absolute top-full right-0 z-10 mt-1.5 w-80 rounded-lg border border-border bg-card py-1 text-card-foreground shadow-lg"
+                                                            role="dialog"
+                                                            aria-label="Selected recipients"
+                                                            tabIndex={-1}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Escape') {
+                                                                    e.preventDefault();
+                                                                    setShowSelectedPopover(false);
+                                                                    document.getElementById('selected-recipients-trigger')?.focus();
+                                                                }
+                                                            }}
+                                                            className="absolute top-full right-0 z-10 mt-1.5 w-80 rounded-lg border border-border bg-card py-1 text-card-foreground shadow-lg focus:outline-none"
                                                             onClick={(e) =>
                                                                 e.stopPropagation()
                                                             }
@@ -1739,7 +1774,7 @@ const ManageRequests: React.FC = () => {
                             </div>
                             <div className="h-10 w-px bg-slate-200" />
                             <div className="flex-1 text-center">
-                                <div className="text-2xl font-bold text-blue-600">
+                                <div className="text-2xl font-bold text-blue-600 dark:text-sky-400">
                                     {emailProgress.length}
                                 </div>
                                 <div className="text-xs text-muted-foreground">

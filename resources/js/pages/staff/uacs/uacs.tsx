@@ -39,7 +39,7 @@ export default function UacsIndex({ uacs }: UacsProps) {
                         </CardTitle>
                         <div className="flex flex-wrap items-center gap-2">
                             <a href="/staff/uacs/export" download>
-                                <Button className="inline-flex flex-row items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700">
+                                <Button className="inline-flex flex-row items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-800">
                                     <div className="flex flex-row items-center gap-1.5">
                                         <Download className="h-4 w-4" />
                                         <span>Export</span>

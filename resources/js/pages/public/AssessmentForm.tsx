@@ -1,4 +1,4 @@
-import { useForm, Head } from '@inertiajs/react';
+﻿import { useForm, Head } from '@inertiajs/react';
 import { Mail, User, University } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +21,7 @@ import {
     Field,
     FieldContent,
     FieldDescription,
+    FieldError,
     FieldLabel,
     FieldTitle,
 } from '@/components/ui/field';
@@ -116,8 +117,14 @@ export default function AssessmentForm({ courses }: Props) {
             forceFormData: true,
             preserveState: true,
             onSuccess: () => console.log('Success'),
-            onError: (errs) => console.error('Validation errors: ', errs),
-        });
+            onError: (errs) => {
+                console.error('Validation errors: ', errs);
+                requestAnimationFrame(() => {
+                    const firstInvalid = document.querySelector<HTMLElement>('[aria-invalid="true"]');
+                    firstInvalid?.focus();
+                });
+            }
+        })
     };
 
     // contact num length
@@ -133,8 +140,8 @@ export default function AssessmentForm({ courses }: Props) {
                             <img
                                 src="/finance_logo1.png"
                                 alt="NORSU Logo"
-                                width={500}
-                                height={500}
+                                width={600}
+                                height={114}
                                 className="pb-6"
                             />
                         </div>
@@ -178,6 +185,8 @@ export default function AssessmentForm({ courses }: Props) {
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-email"
                                                     type="email"
+                                                    aria-invalid={Boolean(errors.email)}
+                                                    aria-describedby={errors.email ? "assess-email-error" : undefined}
                                                     placeholder="jondoe@mail.com"
                                                     value={data.email}
                                                     onChange={(e) =>
@@ -188,9 +197,9 @@ export default function AssessmentForm({ courses }: Props) {
                                                     }
                                                 />
                                                 {errors.email && (
-                                                    <p className="mt-1 text-sm text-red-500">
+                                                    <FieldError id="assess-email-error" className="mt-1">
                                                         {errors.email}
-                                                    </p>
+                                                    </FieldError>
                                                 )}{' '}
                                             </Field>
                                         </div>
@@ -207,6 +216,8 @@ export default function AssessmentForm({ courses }: Props) {
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-contact"
                                                     type="tel"
+                                                    aria-invalid={Boolean(errors.contact_num || (data.contact_num.length > 0 && !isValidContact))}
+                                                    aria-describedby={errors.contact_num || (data.contact_num.length > 0 && !isValidContact) ? "assess-contact_num-error" : undefined}
                                                     placeholder="0912 333 4444"
                                                     maxLength={13} // 11 digits + 2 spaces
                                                     value={data.contact_num.replace(
@@ -232,17 +243,16 @@ export default function AssessmentForm({ courses }: Props) {
                                                     }}
                                                 />
                                                 {errors.contact_num && (
-                                                    <p className="mt-1 text-sm text-red-500">
+                                                    <FieldError id="assess-contact_num-error" className="mt-1">
                                                         {errors.contact_num}
-                                                    </p>
+                                                    </FieldError>
                                                 )}
-                                                {data.contact_num.length > 0 &&
-                                                    !isValidContact && (
-                                                        <p className="mt-1 text-sm text-red-500">
+                                                {data.contact_num.length > 0 && !isValidContact && (
+                                                        <FieldError id="assess-contact_num-error" className="mt-1">
                                                             Contact number must
                                                             contain exactly 11
                                                             digits.
-                                                        </p>
+                                                        </FieldError>
                                                     )}
                                             </Field>
                                         </div>
@@ -270,6 +280,8 @@ export default function AssessmentForm({ courses }: Props) {
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-fname"
                                                     type="text"
+                                                    aria-invalid={Boolean(errors.first_name)}
+                                                    aria-describedby={errors.first_name ? "assess-first_name-error" : undefined}
                                                     placeholder="Juan"
                                                     value={data.first_name}
                                                     onChange={(e) =>
@@ -280,9 +292,9 @@ export default function AssessmentForm({ courses }: Props) {
                                                     }
                                                 />
                                                 {errors.first_name && (
-                                                    <p className="mt-1 text-sm text-red-500">
+                                                    <FieldError id="assess-first_name-error" className="mt-1">
                                                         {errors.first_name}
-                                                    </p>
+                                                    </FieldError>
                                                 )}
                                             </Field>
                                         </div>
@@ -299,6 +311,8 @@ export default function AssessmentForm({ courses }: Props) {
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-mname"
                                                     type="text"
+                                                    aria-invalid={Boolean(errors.middle_name)}
+                                                    aria-describedby={errors.middle_name ? "assess-middle_name-error" : undefined}
                                                     placeholder="Carlos"
                                                     value={data.middle_name}
                                                     onChange={(e) =>
@@ -309,9 +323,9 @@ export default function AssessmentForm({ courses }: Props) {
                                                     }
                                                 />
                                                 {errors.middle_name && (
-                                                    <p className="mt-1 text-sm text-red-500">
+                                                    <FieldError id="assess-middle_name-error" className="mt-1">
                                                         {errors.middle_name}
-                                                    </p>
+                                                    </FieldError>
                                                 )}
                                             </Field>
                                         </div>
@@ -328,6 +342,8 @@ export default function AssessmentForm({ courses }: Props) {
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-lname"
                                                     type="text"
+                                                    aria-invalid={Boolean(errors.last_name)}
+                                                    aria-describedby={errors.last_name ? "assess-last_name-error" : undefined}
                                                     placeholder="Dela Cruz"
                                                     value={data.last_name}
                                                     onChange={(e) =>
@@ -338,9 +354,9 @@ export default function AssessmentForm({ courses }: Props) {
                                                     }
                                                 />
                                                 {errors.last_name && (
-                                                    <p className="mt-1 text-sm text-red-500">
+                                                    <FieldError id="assess-last_name-error" className="mt-1">
                                                         {errors.last_name}
-                                                    </p>
+                                                    </FieldError>
                                                 )}
                                             </Field>
                                         </div>
@@ -360,6 +376,8 @@ export default function AssessmentForm({ courses }: Props) {
                                                 className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
                                                 id="input-field-studentId"
                                                 type="number"
+                                                aria-invalid={Boolean(errors.student_id)}
+                                                aria-describedby={errors.student_id ? "assess-student_id-error" : undefined}
                                                 placeholder="202300000"
                                                 value={data.student_id}
                                                 onChange={(e) => {
@@ -375,10 +393,10 @@ export default function AssessmentForm({ courses }: Props) {
                                                 }}
                                             />
                                             {errors.student_id && (
-                                                <p className="mt-1 text-sm text-red-500">
-                                                    {errors.student_id}
-                                                </p>
-                                            )}
+                                                    <FieldError id="assess-student_id-error" className="mt-1">
+                                                        {errors.student_id}
+                                                    </FieldError>
+                                                )}
                                         </Field>
                                         {/* courses */}
                                         <Field>
@@ -419,6 +437,8 @@ export default function AssessmentForm({ courses }: Props) {
                                                 <ComboboxInput
                                                     placeholder="Select course"
                                                     aria-label="Course"
+                                                    aria-invalid={Boolean(errors.course_id)}
+                                                    aria-describedby={errors.course_id ? "assess-course_id-error" : undefined}
                                                     className={`border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
                                                     showClear={!!data.course_id}
                                                 />
@@ -443,10 +463,10 @@ export default function AssessmentForm({ courses }: Props) {
                                                 </ComboboxContent>
                                             </Combobox>
                                             {errors.course_id && (
-                                                <p className="mt-1 text-sm text-red-500">
-                                                    {errors.course_id}
-                                                </p>
-                                            )}
+                                                    <FieldError id="assess-course_id-error" className="mt-1">
+                                                        {errors.course_id}
+                                                    </FieldError>
+                                                )}
                                         </Field>
                                     </div>
                                     <div className="space-y-4">
@@ -462,6 +482,8 @@ export default function AssessmentForm({ courses }: Props) {
                                                 className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                 id="input-field-address"
                                                 type="text"
+                                                aria-invalid={Boolean(errors.address)}
+                                                aria-describedby={errors.address ? "assess-address-error" : undefined}
                                                 placeholder="Kagawasan Ave. Dumaguete City"
                                                 value={data.address}
                                                 onChange={(e) =>
@@ -473,10 +495,10 @@ export default function AssessmentForm({ courses }: Props) {
                                                 }
                                             />
                                             {errors.address && (
-                                                <p className="mt-1 text-sm text-red-500">
-                                                    {errors.address}
-                                                </p>
-                                            )}
+                                                    <FieldError id="assess-address-error" className="mt-1">
+                                                        {errors.address}
+                                                    </FieldError>
+                                                )}
                                         </Field>
                                     </div>
                                 </div>
@@ -488,7 +510,7 @@ export default function AssessmentForm({ courses }: Props) {
                                 </CardTitle>
                                 <FieldLabel
                                     htmlFor="input-field-courses"
-                                    className="mb-2 text-lg font-medium text-blue-500"
+                                    className="mb-2 text-lg font-medium text-primary"
                                 >
                                     Enrolled Under:
                                 </FieldLabel>
@@ -567,15 +589,15 @@ export default function AssessmentForm({ courses }: Props) {
                                 </RadioGroup>
                                 {/* Validation Error Display */}
                                 {errors.enrolled_under && (
-                                    <p className="mt-1 text-sm text-red-600">
-                                        {errors.enrolled_under}
-                                    </p>
-                                )}
+                                                    <FieldError id="assess-enrolled_under-error" className="mt-1">
+                                                        {errors.enrolled_under}
+                                                    </FieldError>
+                                                )}
 
                                 {/* semester */}
                                 <FieldLabel
                                     htmlFor="input-field-courses"
-                                    className="mb-2 text-lg font-medium text-blue-500"
+                                    className="mb-2 text-lg font-medium text-primary"
                                 >
                                     Semester:
                                 </FieldLabel>
@@ -642,7 +664,7 @@ export default function AssessmentForm({ courses }: Props) {
                                 {/* School year */}
                                 <FieldLabel
                                     htmlFor="input-field-courses"
-                                    className="mb-2 text-lg font-medium text-blue-500"
+                                    className="mb-2 text-lg font-medium text-primary"
                                 >
                                     School-Year last attended | SY Request:
                                 </FieldLabel>
@@ -656,6 +678,8 @@ export default function AssessmentForm({ courses }: Props) {
                                     <ComboboxInput
                                         placeholder="Select School Year"
                                         aria-label="School Year last attended"
+                                        aria-invalid={Boolean(errors.sy_last_attended)}
+                                        aria-describedby={errors.sy_last_attended ? "assess-sy_last_attended-error" : undefined}
                                         className={`border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
                                         showClear={!!data.sy_last_attended}
                                     />
@@ -678,10 +702,10 @@ export default function AssessmentForm({ courses }: Props) {
 
                                 {/* Validation Error Display */}
                                 {errors.sy_last_attended && (
-                                    <p className="mt-1 text-sm text-red-600">
-                                        {errors.sy_last_attended}
-                                    </p>
-                                )}
+                                                    <FieldError id="assess-sy_last_attended-error" className="mt-1">
+                                                        {errors.sy_last_attended}
+                                                    </FieldError>
+                                                )}
                                 {/* end of the card*/}
                             </CardContent>
 
