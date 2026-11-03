@@ -69,7 +69,7 @@
             font-weight: 600;
         }
         .status-pending { background: #ffc107; color: #856404; }
-        .status-approved { background: #28a745; color: #fff; }
+        .status-processed { background: #28a745; color: #fff; }
         .status-cancelled { background: #dc3545; color: #fff; }
         .file-upload-box {
             border: 2px dashed #ddd;

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->foreignId('ref_document_id')->nullable()->constrained('supporting_documents')->nullOnDelete();
             $table->date('ref_date');
             $table->foreignId('uacs_id')->nullable()->constrained()->nullOnDelete();
-            $table->enum('status', ['pending', 'approved', 'cancelled'])->default('pending');
+            $table->enum('status', ['pending', 'processed', 'cancelled'])->default('pending');
             $table->timestamps();
 
             $table->unique('form_input_id');

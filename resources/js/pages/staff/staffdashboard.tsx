@@ -46,7 +46,7 @@ interface DashboardPageProps {
 
 const statusBadgeClass = (status?: string) => {
     switch (status) {
-        case 'approved':
+        case 'processed':
             return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border dark:border-emerald-800/40';
         case 'cancelled':
             return 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 dark:border dark:border-rose-800/40';

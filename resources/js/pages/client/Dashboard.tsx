@@ -43,7 +43,7 @@ interface PaymentDetailOption {
 }
 
 interface StaffInput {
-    status: 'pending' | 'approved' | 'cancelled';
+    status: 'pending' | 'processed' | 'paid' | 'cancelled';
 }
 
 interface Submission {
@@ -64,7 +64,7 @@ interface PageProps {
 
 const statusBadgeClass = (status?: string) => {
     switch (status) {
-        case 'approved':
+        case 'processed':
             return 'bg-emerald-100 text-emerald-800';
         case 'cancelled':
             return 'bg-rose-100 text-rose-800';

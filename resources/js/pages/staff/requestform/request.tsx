@@ -690,12 +690,12 @@ const ManageRequests: React.FC = () => {
                 if (data.summary.failed > 0) {
                     flashToast(
                         'warning',
-                        `Emails approved: ${data.summary.sent} sent, ${data.summary.failed} failed.`,
+                        `Emails processed: ${data.summary.sent} sent, ${data.summary.failed} failed.`,
                     );
                 } else {
                     flashToast(
                         'success',
-                        `All emails approved: ${data.summary.sent} sent, ${data.summary.failed} failed.`,
+                        `All emails processed: ${data.summary.sent} sent, ${data.summary.failed} failed.`,
                     );
                 }
             } else {

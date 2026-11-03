@@ -30,8 +30,8 @@
     <div class="col-md-3 mb-3">
         <div class="card bg-success text-white">
             <div class="card-body">
-                <h5 class="card-title">Approved</h5>
-                <h2 class="mb-0">{{ $approvedRequests ?? 0 }}</h2>
+                <h5 class="card-title">Processed</h5>
+                <h2 class="mb-0">{{ $processedRequests ?? 0 }}</h2>
             </div>
         </div>
     </div>
