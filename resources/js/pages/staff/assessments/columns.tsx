@@ -3,7 +3,7 @@
 import { Link } from '@inertiajs/react';
 import { router } from '@inertiajs/react';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Pencil, Trash2, Eye } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { useConfirm } from '@/components/confirm-dialog';
 import type {DataTableFeatures} from '@/components/data-table/data-table-features';
 import { Badge } from '@/components/ui/badge';

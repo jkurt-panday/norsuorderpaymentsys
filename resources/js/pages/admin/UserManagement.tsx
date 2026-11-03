@@ -14,6 +14,7 @@ import PasswordInput from '@/components/password-input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -51,7 +52,6 @@ import {
     toggle as toggleAdminUser,
 } from '@/routes/admin/users';
 import { store as storeAdminUser } from '@/routes/admin/users';
-import { CardTitle } from '@/components/ui/card';
 
 type UserRole = 'admin' | 'staff' | 'cashier' | 'client';
 

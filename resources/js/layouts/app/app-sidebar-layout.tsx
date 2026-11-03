@@ -1,13 +1,10 @@
-import { Link, usePage } from '@inertiajs/react';
-import { ChevronRight } from 'lucide-react';
 import React from 'react';
+import { AppSidebar } from '@/components/app-sidebar';
+import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import {
     SidebarInset,
     SidebarProvider,
-    SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/components/app-sidebar';
-import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import type { AppLayoutProps } from '@/types';
 
 export default function AppSidebarLayout({

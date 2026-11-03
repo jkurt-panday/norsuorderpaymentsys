@@ -6,7 +6,6 @@ import {
     Wallet,
     AlertTriangle,
     PlusCircle,
-    Scale,
     Pencil,
     Trash2,
     XCircle,
@@ -425,7 +424,7 @@ export default function Index({
                 const data = (await res.json()) as typeof allRecipients;
                 setAllRecipients(data);
                 // Do not auto-select recipients; user must choose explicitly.
-            } catch (e) {
+            } catch {
                 flashToast('error', 'Failed to load recipients.');
             } finally {
                 setIsLoadingRecipients(false);

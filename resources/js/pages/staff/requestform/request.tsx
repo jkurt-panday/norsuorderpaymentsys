@@ -1,4 +1,5 @@
-﻿import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+﻿/* eslint-disable @typescript-eslint/no-unused-vars */
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     Inbox,
     Mail,
@@ -22,7 +23,6 @@ import React, {
 } from 'react';
 import RequestTable, { StatusBadge } from '@/components/RequestTable';
 import type { ColumnDef, PaginatedData } from '@/components/RequestTable';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -32,26 +32,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import staff from '@/routes/staff';
-import { flashToast } from '@/utils/flashToast';
-
-// Direct URL for email job status (bypasses Wayfinder parser issue)
-const EMAIL_JOB_STATUS_URL = '/staff/requests/email-job-status';
-const BULK_EMAIL_OP_URL = '/staff/requests/bulk-email-op';
-import { Textarea } from '@/components/ui/textarea';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
 import {
     Select,
     SelectContent,
@@ -59,6 +40,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import staff from '@/routes/staff';
+import { flashToast } from '@/utils/flashToast';
+
+// Direct URL for email job status (bypasses Wayfinder parser issue)
+const EMAIL_JOB_STATUS_URL = '/staff/requests/email-job-status';
+const BULK_EMAIL_OP_URL = '/staff/requests/bulk-email-op';
 
 interface StaffInput {
     id: number;
@@ -293,13 +281,11 @@ const ManageRequests: React.FC = () => {
         stalled?: boolean;
         error?: string | null;
     }
-    const [emailFormInputIds, setEmailFormInputIds] = useState<number[]>([]);
     const [emailProgress, setEmailProgress] = useState<EmailProgress[]>([]);
     const [isPollingProgress, setIsPollingProgress] = useState(false);
     const isPollingRef = useRef(false); // Ref for immediate polling state
     const [showProgressModal, setShowProgressModal] = useState(false);
-    const [pollingStartTime, setPollingStartTime] = useState<number | null>(
-        null,
+    const [pollingStartTime] = useState<number | null>(        null,
     );
     // Polling bookkeeping lives in refs. The async poll chain used to
     // capture `pollTimeoutId` from the render it was created in, so the
@@ -384,7 +370,7 @@ const ManageRequests: React.FC = () => {
                 setIsQueueStalled(Boolean(json.queue_stalled));
                 setIsLoadingRecipients(false);
             })
-            .catch((err) => {
+            .catch(() => {
                 if (cancelled) {
                     return;
                 }
@@ -399,8 +385,6 @@ const ManageRequests: React.FC = () => {
     }, [isEmailModalOpen]);
 
     // Build the list of all form inputs from the paginated resource (current page)
-    const allFormInputs: FormInput[] = formInputs.data ?? [];
-
     // Filtered list for the "specific person" search — uses ALL recipients, not just current page
     const filteredSpecific = useMemo(
         () =>
@@ -558,7 +542,6 @@ const ManageRequests: React.FC = () => {
 
             if (data.success && data.form_input_ids?.length > 0) {
                 hasShownStalledToast.current = false;
-                setEmailFormInputIds(data.form_input_ids);
                 setEmailProgress(
                     data.form_input_ids.map((id: number) => ({
                         form_input_id: id,
@@ -580,7 +563,7 @@ const ManageRequests: React.FC = () => {
             } else {
                 flashToast('error', data.message ?? 'Failed to send emails.');
             }
-        } catch (err) {
+        } catch {
             flashToast('error', 'Failed to send emails. Please try again.');
         } finally {
             setIsSendingEmail(false);
@@ -597,14 +580,7 @@ const ManageRequests: React.FC = () => {
         }
     };
 
-    const startProgressPolling = (ids: number[]) => {
-        // Cancel any previous chain first, otherwise a second bulk send
-        // leaves the old chain polling on top of the new one.
-        stopProgressPolling();
-        // No longer polling since we send synchronously
-        return;
-    };
-
+    // Retained for the progress dialog's existing asynchronous status flow.
     const pollProgressWithIds = async (ids: number[]) => {
         if (!isPollingRef.current || ids.length === 0) {
             return;
@@ -717,7 +693,7 @@ const ManageRequests: React.FC = () => {
                     EMAIL_PROGRESS_POLLING_INTERVAL,
                 );
             }
-        } catch (err) {
+        } catch {
             // Retry at the normal interval after a transient request failure.
             pollTimeoutRef.current = setTimeout(
                 () => pollProgressWithIds(ids),

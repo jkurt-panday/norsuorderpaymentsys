@@ -1,5 +1,5 @@
-import puppeteer from 'puppeteer';
 import fs from 'node:fs';
+import puppeteer from 'puppeteer';
 
 const base = 'http://localhost:8000';
 const out = 'tmp/audit';
@@ -17,18 +17,24 @@ for (const path of pages) {
     const consoleErrors = [];
     const pageErrors = [];
     const failed = [];
-    page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
+    page.on('console', (m) => {
+ if (m.type() === 'error') {
+consoleErrors.push(m.text());
+} 
+});
     page.on('pageerror', (e) => pageErrors.push(String(e)));
     page.on('requestfailed', (r) => failed.push(`${r.url()} :: ${r.failure()?.errorText}`));
 
     await page.setViewport({ width: 1440, height: 900 });
     let status = null;
+
     try {
         const res = await page.goto(base + path, { waitUntil: 'networkidle2', timeout: 45000 });
         status = res?.status();
     } catch (e) {
         pageErrors.push('NAV: ' + String(e));
     }
+
     await new Promise((r) => setTimeout(r, 1200));
 
     const slug = (path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'root');
@@ -37,6 +43,7 @@ for (const path of pages) {
     const desktop = await page.evaluate(() => {
         const cs = getComputedStyle(document.documentElement);
         const body = getComputedStyle(document.body);
+
         return {
             title: document.title,
             url: location.href,
@@ -65,22 +72,27 @@ for (const path of pages) {
         const offenders = [];
         document.querySelectorAll('*').forEach((el) => {
             const r = el.getBoundingClientRect();
+
             if (r.width && r.right > de.clientWidth + 1) {
                 offenders.push({ tag: el.tagName.toLowerCase(), cls: (el.className || '').toString().slice(0, 120), right: Math.round(r.right), width: Math.round(r.width) });
             }
         });
+
         return { scrollW: de.scrollWidth, clientW: de.clientWidth, offenders: offenders.slice(0, 12) };
     });
     await page.screenshot({ path: `${out}/${slug}-mobile.png`, fullPage: true });
 
     const smallTargets = await page.evaluate(() => {
         const els = [...document.querySelectorAll('a,button,input,select,textarea,[role="button"],[role="checkbox"],[role="tab"],[role="combobox"]')];
+
         return els.filter((el) => {
             const r = el.getBoundingClientRect();
             const s = getComputedStyle(el);
+
             return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && (r.width < 24 || r.height < 24);
         }).slice(0, 15).map((el) => {
             const r = el.getBoundingClientRect();
+
             return { tag: el.tagName.toLowerCase(), text: (el.textContent || '').trim().slice(0, 40), w: Math.round(r.width), h: Math.round(r.height) };
         });
     });

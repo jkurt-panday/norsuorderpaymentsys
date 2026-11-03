@@ -57,6 +57,7 @@ const applyTheme = (appearance: Appearance): void => {
     if (isPublicRoute()) {
         document.documentElement.classList.remove('dark');
         document.documentElement.style.colorScheme = 'light';
+
         return;
     }
 

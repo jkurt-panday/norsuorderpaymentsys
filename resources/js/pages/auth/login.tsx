@@ -1,6 +1,5 @@
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
-import AuthSplitLayout from '@/layouts/auth/auth-split-layout';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -13,21 +12,19 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import AuthSplitLayout from '@/layouts/auth/auth-split-layout';
 import { getExpiringLocalStorage } from '@/lib/expiring-local-storage';
 import { softFlashToast } from '@/lib/flash-toast-soft';
 import { login } from '@/routes';
-import { request as forgotPassword } from '@/routes/password';
 
 const sharedInputClass =
     'min-h-[54px] w-full rounded-[9px] border-[1.5px] border-[#D3DCE6] bg-white px-4 py-3 text-[#0F1E33] placeholder:text-[#55667D] placeholder:opacity-70 focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#0B7BE0] aria-invalid:border-[#B3261E] dark:border-[#243652] dark:bg-[#101D31] dark:text-[#E6EEF8] dark:focus-visible:outline-[#5AA9F5] dark:aria-invalid:border-[#FF8A80]';
 
 export default function Login({
     status,
-    canResetPassword,
     deactivated_account = false,
 }: {
     status?: string;
-    canResetPassword?: boolean;
     deactivated_account?: boolean;
 }) {
     const { auth } = usePage<{ auth: { user: { role: string } | null } }>()
