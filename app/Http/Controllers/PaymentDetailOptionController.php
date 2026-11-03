@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\PaymentDetailOptionRequest;
 use App\Models\PaymentDetailOption;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -50,8 +51,8 @@ class PaymentDetailOptionController extends BaseResourceController
      * search, sort, filters, and pagination all keep working exactly as
      * the base class already implements them.
      *
-     * @param  Builder<PaymentDetailOption>  $query
-     * @return Builder<PaymentDetailOption>
+     * @param  Builder<Model>  $query
+     * @return Builder<Model>
      */
     protected function modifyIndexQuery(Builder $query, Request $request): Builder
     {

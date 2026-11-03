@@ -29,7 +29,7 @@ class StoreLawSchoolLedgerRequest extends FormRequest
             $items = array_map(function (array $item): array {
                 $item['tuition_per_unit_or_fee_per_semester'] = ($item['tuition_per_unit_or_fee_per_semester'] ?? null)
                     ?: (($item['tuition_per_unit_or_misc'] ?? null) ?: '0.00');
-                $item['rate'] = ($item['rate'] ?? null) ?: (($item['tuition_per_unit_or_fee_per_semester'] ?? null) ?: '0.00');
+                $item['rate'] = $item['rate'] ?? '0.00';
                 $item['reference_jev_or_number'] = $item['reference_jev_or_number'] ?? $item['reference_or_jev_number'] ?? null;
                 $item['reference_number'] = $item['reference_number'] ?? $item['reference_jev_or_number'] ?? null;
                 $item['status'] = $item['status'] ?? $this->input('status', 'Pending');

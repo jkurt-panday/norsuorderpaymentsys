@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
  */
 class Student extends Model
 {
+    /** @use HasFactory<\Illuminate\Database\Eloquent\Factories\Factory<Student>> */
     use HasFactory;
 
     protected $fillable = [
@@ -113,7 +114,8 @@ class Student extends Model
                     $first = implode(' ', $parts);
                 }
             } else {
-                $middle = self::normalizeMiddleInitial($parts[$count - 1]);
+                $lastPart = $parts[$count - 1] ?? '';
+                $middle = self::normalizeMiddleInitial($lastPart);
                 $first = implode(' ', array_slice($parts, 0, $count - 1));
             }
 

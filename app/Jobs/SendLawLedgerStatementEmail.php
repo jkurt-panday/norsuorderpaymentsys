@@ -147,7 +147,10 @@ class SendLawLedgerStatementEmail implements ShouldQueue
             ->setOption('protocolTimeout', 300_000);
     }
 
-    /** @param iterable<LawSchoolLedger> $records */
+    /**
+     * @param iterable<LawSchoolLedger> $records
+     * @return array{totalCharges: float, totalPayments: float, totalAdjustments: float, outstandingBalance: float}
+     */
     private function calculateStudentBalanceNormalized(iterable $records): array
     {
         $totalCharges = 0.0;

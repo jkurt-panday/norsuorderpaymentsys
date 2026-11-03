@@ -70,10 +70,6 @@ class UACSController extends BaseResourceController
         ]);
     }
 
-    /**
-     * @param  Builder<UACS>  $query
-     * @return Builder<UACS>
-     */
     protected function modifyIndexQuery(Builder $query, Request $request): Builder
     {
         return $query

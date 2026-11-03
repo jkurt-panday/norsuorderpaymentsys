@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\MembershipRequest;
 use App\Models\Membership;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -48,8 +49,8 @@ class MembershipController extends BaseResourceController
      * order (id ASC), independent of whatever sort the user currently has
      * applied for display.
      *
-     * @param  Builder<Membership>  $query
-     * @return Builder<Membership>
+     * @param  Builder<Model>  $query
+     * @return Builder<Model>
      */
     protected function modifyIndexQuery(Builder $query, Request $request): Builder
     {

@@ -27,6 +27,7 @@ class UACSService
 
         $rows = [];
         $collection = new class implements ToCollection {
+            /** @var Collection<int, mixed> */
             public Collection $rows;
 
             public function collection(Collection $collection): void
@@ -64,7 +65,7 @@ class UACSService
             // placeholders such as '-', N/A, or blank code cells. Preserve
             // those values as text instead of rejecting the entire upload.
             $record = [
-                'norsu_object_code' => $this->normalizeImportedCode($values[0] ?? null, 12),
+                'norsu_object_code' => $this->normalizeImportedCode($values[0], 12),
                 'norsu_sub_object_code' => $this->normalizeImportedCode($values[1] ?? null, 2),
                 'uacs_object_code' => $this->normalizeImportedCode($values[2] ?? null, 10),
                 'uacs_sub_object_code' => $this->normalizeImportedCode($values[3] ?? null, 2),

@@ -1292,8 +1292,9 @@ class GraduateLedgerController extends Controller
      * Index.tsx consumes this shape.
      *
      * @param  array<string, float>  $termBalances
+     * @return array<string, mixed>
      */
-    /** @return array<string, mixed> */
+
     private function transformRecord(GraduateLedger $r, array $termBalances = []): array
     {
         $name = $r->student->full_name ?? '';

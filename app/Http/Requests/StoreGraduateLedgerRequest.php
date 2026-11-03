@@ -28,7 +28,7 @@ class StoreGraduateLedgerRequest extends FormRequest
         if ($this->has('items') && is_array($this->input('items'))) {
             $items = array_map(function (array $item): array {
                 $item['tuition_per_unit_or_misc'] = $item['tuition_per_unit_or_misc'] ?? '0.00';
-                $item['rate'] = $item['rate'] ?? $item['tuition_per_unit_or_misc'] ?? '0.00';
+                $item['rate'] = $item['rate'] ?? '0.00';
                 $item['reference_number'] = $item['reference_number'] ?? $item['reference_or_jev_number'] ?? null;
                 $item['input_by'] = $this->user()?->id;
                 $item['status'] = $item['status'] ?? 'posted';
@@ -131,6 +131,7 @@ class StoreGraduateLedgerRequest extends FormRequest
      * empty when its final amount is zero or negative after applying the same
      * AR auto-compute rule used by the store action.
      */
+    /** @return list<callable(Validator): void> */
     public function after(): array
     {
         return [

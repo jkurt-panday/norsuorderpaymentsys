@@ -23,6 +23,7 @@ use Inertia\Response;
 abstract class BaseResourceController extends Controller
 {
     /** @var class-string<TModel> Fully-qualified Eloquent model class. */
+
     protected string $model;
 
     /**
@@ -118,7 +119,9 @@ abstract class BaseResourceController extends Controller
             }
         }
 
-        $query = $this->modifyIndexQuery($query, $request);
+        /** @var Builder<Model> $baseQuery */
+        $baseQuery = $query;
+        $query = $this->modifyIndexQuery($baseQuery, $request);
 
         // ---- Sorting (allowlisted — falls back to the default if the
         // requested column isn't explicitly permitted) ----
@@ -172,9 +175,8 @@ abstract class BaseResourceController extends Controller
      * Default: no-op, returns the query unchanged.
      */
     /**
-     * @template TQuery of Model
-     * @param  Builder<TQuery>  $query
-     * @return Builder<TQuery>
+     * @param  Builder<Model>  $query
+     * @return Builder<Model>
      */
     protected function modifyIndexQuery(Builder $query, Request $request): Builder
     {

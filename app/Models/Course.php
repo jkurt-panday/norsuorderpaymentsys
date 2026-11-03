@@ -176,7 +176,6 @@ class Course extends Model
             'DM HRM' => 'DM HRM',
             'DOCTOR IN MANAGEMENT HRM' => 'DM HRM',
             'DM PUBLIC ADMINISTRATION' => 'DM Public Administration',
-            'DM PA' => 'DM Public Administration',
             'DMPA' => 'DM Public Administration',
             'DOCTOR IN MANAGEMENT PUBLIC ADMINISTRATION' => 'DM Public Administration',
             'PHD EDUCATIONAL MANAGEMENT' => 'PhD. Educational Management',
@@ -189,7 +188,6 @@ class Course extends Model
             'PHD MATH' => 'PhD. Mathematics',
             'PHD MATH ED' => 'PhD. Mathematics',
             'PHD MATHED' => 'PhD. Mathematics',
-            'PHDMATH' => 'PhD. Mathematics',
             // "PH" is used in the wild as shorthand for PhD (e.g. "PH Math")
             'PH MATH' => 'PhD. Mathematics',
             'PH MATHEMATICS' => 'PhD. Mathematics',
@@ -211,7 +209,6 @@ class Course extends Model
             'EDD SCIENCE EDUCATION' => 'EdD. Science Education',
             'EDD SCED' => 'EdD. Science Education',
             'EDD FIL' => 'EdD. Filipino',
-            'EDDFIL' => 'EdD. Filipino',
             'EDD FILIPINO' => 'EdD. Filipino',
             'EDD TECHNOLOGY MANAGEMENT' => 'EdD. Technology Management',
             'EDD TM' => 'EdD. Technology Management',
@@ -227,11 +224,9 @@ class Course extends Model
             'NONE' => 'UNASSIGNED',
 
             // Legacy spellings from the normalized graduate-course workbook.
-            'DM PA' => 'DM Public Administration',
             'ED D' => 'EdD. Educational Management',
             'ED D FIL' => 'EdD. Filipino',
             'ED D FILIPINO' => 'EdD. Filipino',
-            'EDDFIL' => 'EdD. Filipino',
             'EDDMT' => 'EDD MT',
             'MA ECED' => 'MAECED',
             'MA EM' => 'MAEM',
@@ -258,7 +253,6 @@ class Course extends Model
             'PH D MATH ED' => 'PhD. Mathematics',
             'PHD APLNG' => 'PHD APPLIED LINGUISTICS',
             'PHD APPLIED LINGUISTIC' => 'PHD APPLIED LINGUISTICS',
-            'PHDMATH' => 'PhD. Mathematics',
         ];
     }
 

@@ -48,10 +48,6 @@ class BankAccountInfoController extends BaseResourceController
     /**
      * Show create form
      */
-    /**
-     * @param  Builder<BankAccountInfo>  $query
-     * @return Builder<BankAccountInfo>
-     */
     protected function modifyIndexQuery(Builder $query, Request $request): Builder
     {
         return $query
