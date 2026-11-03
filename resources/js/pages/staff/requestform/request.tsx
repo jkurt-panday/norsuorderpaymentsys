@@ -487,7 +487,7 @@ const ManageRequests: React.FC = () => {
         }
 
         prevBulkTargetRef.current = emailTarget;
-    }, [emailTarget]); // Only depend on emailTarget, not bulkRecipients
+    }, [emailTarget, bulkRecipients]);
 
     const computeTargetIds = (): number[] => {
         return Array.from(selectedIds);

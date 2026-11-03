@@ -485,7 +485,7 @@ export default function Index({
         };
 
         fetchRecipients();
-    }, [isEmailModalOpen]);
+    }, [isEmailModalOpen, filterState]);
 
     const handleOpenEmailModal = () => {
         setEmailSubject('');
@@ -2181,7 +2181,7 @@ return;
                                                         }}
                                                         className={`cursor-pointer font-medium ${
                                                             link.active
-                                                                ? '!bg-primary font-bold !text-primary-foreground shadow-sm hover:!bg-primary/90'
+                                                                ? 'bg-primary! font-bold text-primary-foreground! shadow-sm hover:bg-primary/90!'
                                                                 : 'text-foreground hover:bg-muted'
                                                         }`}
                                                     >
@@ -3006,7 +3006,7 @@ return;
                                         examPeriod,
                                         examDeadline,
                                     )}
-                                    className="h-[28rem] w-[500px] bg-card"
+                                    className="h-112 w-125 bg-card"
                                 />
                             </div>
                         </div>
