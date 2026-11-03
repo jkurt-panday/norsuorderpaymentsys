@@ -1,6 +1,14 @@
 import { Link, useForm, Head, usePage } from '@inertiajs/react';
 import { UploadCloud02 } from '@untitledui/icons';
-import { Mail, User, ClipboardList, FileText, Home, GraduationCap, Plus } from 'lucide-react';
+import {
+    Mail,
+    User,
+    ClipboardList,
+    FileText,
+    Home,
+    GraduationCap,
+    Plus,
+} from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import AddCollegeOfficeModal from '@/components/AddCollegeOfficeModal';
 import { FileUpload } from '@/components/application/file-upload/file-upload-base';
@@ -32,14 +40,6 @@ const reqType = ['New Request', 'Re-issue Request'] as const;
 const enlarge =
     'h-12 rounded-xl border-border bg-card px-4 text-base shadow-sm transition-all duration-200';
 const comboboxInputClass = `border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`;
-
-const toSentenceCase = (value: string): string => {
-    const normalized = value.toLowerCase();
-
-    return normalized.replace(/(^\s*[a-z])|([.!?]\s+[a-z])/g, (match) =>
-        match.toUpperCase(),
-    );
-};
 
 type FormTab = 'general' | 'student';
 
@@ -116,14 +116,22 @@ type SubmitFormPrefill = Partial<{
 const getSubmitFormPrefill = () =>
     getExpiringLocalStorage<SubmitFormPrefill>('submit-form-prefill');
 
-export default function SubmitForm({ memberships, paymentOptions, course = [], academicTerms = [], collegeOffices = [] }: Props) {
+export default function SubmitForm({
+    memberships,
+    paymentOptions,
+    course = [],
+    academicTerms = [],
+    collegeOffices = [],
+}: Props) {
     const { auth } = usePage<any>().props;
 
     // ? tabs: General (business/default) vs Student (adds Academic Details)
     const [activeTab, setActiveTab] = useState<FormTab>('student');
 
-    // 
-    const [collegeOfficesList, setCollegeOfficesList] = useState(collegeOffices ?? []);
+    //
+    const [collegeOfficesList, setCollegeOfficesList] = useState(
+        collegeOffices ?? [],
+    );
     const [addModalOpen, setAddModalOpen] = useState(false);
     const prefill = getSubmitFormPrefill();
 
@@ -161,11 +169,7 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
             'position_or_designation',
             prefill?.position_or_designation ?? '',
         );
-    }, [
-        activeTab,
-        prefill?.position_or_designation,
-        setData,
-    ]);
+    }, [activeTab, prefill?.position_or_designation, setData]);
 
     const handleTabChange = (value: string) => {
         const nextTab = (value as FormTab) || 'general';
@@ -188,7 +192,6 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
         [academicTerms],
     );
 
-    
     // ? form submit
     // Submit handler with file upload
     const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
@@ -217,8 +220,10 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
     // contact num length
     const isValidContact = data.contact_num.length === 11;
 
-    // Tracks real upload progress (0-100) for each file, keyed by a stable file identifier
-    const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+    // Tracks animated upload progress (0-100) for each file, keyed by a stable file identifier
+    const [uploadProgress, setUploadProgress] = useState<
+        Record<string, number>
+    >({});
 
     // Builds a stable, unique key for a File object so we can track its progress
     const getFileKey = (file: File) =>
@@ -300,7 +305,7 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                     <Tabs
                         value={activeTab}
                         onValueChange={handleTabChange}
-                        className="mb-2 w-full bg-transparent! p-0! rounded-2xl!"
+                        className="mb-2 w-full rounded-2xl! bg-transparent! p-0!"
                     >
                         <TabsList
                             className="flex h-12 w-full items-stretch gap-1 rounded-2xl bg-blue-50 p-1"
@@ -308,13 +313,13 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                         >
                             <TabsTrigger
                                 value="general"
-                                className="flex-1 rounded-xl text-base font-semibold after:bg-blue-500! data-active:text-blue-700 data-active:text-lg"
+                                className="flex-1 rounded-xl text-base font-semibold after:bg-blue-500! data-active:text-lg data-active:text-blue-700"
                             >
                                 General
                             </TabsTrigger>
                             <TabsTrigger
                                 value="student"
-                                className="flex-1 rounded-xl text-base font-semibold after:bg-blue-500! data-active:text-blue-700 data-active:text-lg"
+                                className="flex-1 rounded-xl text-base font-semibold after:bg-blue-500! data-active:text-lg data-active:text-blue-700"
                             >
                                 Student
                             </TabsTrigger>
@@ -454,10 +459,10 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                         data.firstname_or_office
                                                     }
                                                     onChange={(e) =>
-setData(
-                                                             'firstname_or_office',
-                                                             toSentenceCase(e.target.value),
-                                                         )
+                                                        setData(
+                                                            'firstname_or_office',
+                                                            e.target.value,
+                                                        )
                                                     }
                                                 />
                                                 {errors.firstname_or_office && (
@@ -487,10 +492,10 @@ setData(
                                                         data.middlename_or_project
                                                     }
                                                     onChange={(e) =>
-setData(
-                                                             'middlename_or_project',
-                                                             toSentenceCase(e.target.value),
-                                                         )
+                                                        setData(
+                                                            'middlename_or_project',
+                                                            e.target.value,
+                                                        )
                                                     }
                                                 />
                                                 {errors.middlename_or_project && (
@@ -520,10 +525,10 @@ setData(
                                                         data.lastname_or_agency
                                                     }
                                                     onChange={(e) =>
-setData(
-                                                             'lastname_or_agency',
-                                                             toSentenceCase(e.target.value),
-                                                         )
+                                                        setData(
+                                                            'lastname_or_agency',
+                                                            e.target.value,
+                                                        )
                                                     }
                                                 />
                                                 {errors.lastname_or_agency && (
@@ -551,13 +556,22 @@ setData(
                                                 <FieldDescription>
                                                     * N/A if not applicable
                                                 </FieldDescription>
-                                                
-                                                <div className='grid grid-cols-[88%_10%] gap-2'>
+
+                                                <div className="grid grid-cols-[88%_10%] gap-2">
                                                     <Combobox
-                                                        items={collegeOfficesList}
-                                                        value={data.office_or_college}
-                                                        onValueChange={(value) => {
-                                                            setData('office_or_college', value ?? '');
+                                                        items={
+                                                            collegeOfficesList
+                                                        }
+                                                        value={
+                                                            data.office_or_college
+                                                        }
+                                                        onValueChange={(
+                                                            value,
+                                                        ) => {
+                                                            setData(
+                                                                'office_or_college',
+                                                                value ?? '',
+                                                            );
                                                         }}
                                                     >
                                                         <ComboboxInput
@@ -565,14 +579,27 @@ setData(
                                                             placeholder="Select office / college"
                                                             aria-label="Office or College"
                                                             className={`${comboboxInputClass} w-full`}
-                                                            showClear={!!data.office_or_college}
+                                                            showClear={
+                                                                !!data.office_or_college
+                                                            }
                                                         />
                                                         <ComboboxContent>
-                                                            <ComboboxEmpty>No items found.</ComboboxEmpty>
+                                                            <ComboboxEmpty>
+                                                                No items found.
+                                                            </ComboboxEmpty>
                                                             <ComboboxList>
                                                                 {(item) => (
-                                                                    <ComboboxItem key={item.id} value={item.name}>
-                                                                        {item.name}
+                                                                    <ComboboxItem
+                                                                        key={
+                                                                            item.id
+                                                                        }
+                                                                        value={
+                                                                            item.name
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            item.name
+                                                                        }
                                                                     </ComboboxItem>
                                                                 )}
                                                             </ComboboxList>
@@ -582,22 +609,32 @@ setData(
                                                         type="button"
                                                         variant="default"
                                                         size="icon"
-                                                        onClick={() => setAddModalOpen(true)}
+                                                        onClick={() =>
+                                                            setAddModalOpen(
+                                                                true,
+                                                            )
+                                                        }
                                                         title="Add new office / college"
-                                                        aria-label="Add new office or college"
-                                                        className="h-12 w-12 bg-blue-500 rounded-xl"
+                                                        className="h-12 w-12 rounded-xl bg-blue-500"
                                                     >
-                                                            <Plus className="h-4 w-4" />
+                                                        <Plus className="h-4 w-4" />
                                                     </Button>
                                                 </div>
-                                                
                                             </Field>
                                             <AddCollegeOfficeModal
                                                 open={addModalOpen}
                                                 onOpenChange={setAddModalOpen}
                                                 onCreated={(newItem) => {
-                                                    setCollegeOfficesList((prev) => [...prev, newItem]);
-                                                    setData('office_or_college', newItem.name);
+                                                    setCollegeOfficesList(
+                                                        (prev) => [
+                                                            ...prev,
+                                                            newItem,
+                                                        ],
+                                                    );
+                                                    setData(
+                                                        'office_or_college',
+                                                        newItem.name,
+                                                    );
                                                 }}
                                             />
                                         </div>
@@ -622,12 +659,14 @@ setData(
                                                         data.position_or_designation
                                                     }
                                                     onChange={(e) =>
-setData(
-                                                             'position_or_designation',
-                                                             toSentenceCase(e.target.value),
-                                                         )
+                                                        setData(
+                                                            'position_or_designation',
+                                                            e.target.value,
+                                                        )
                                                     }
-                                                    disabled={activeTab === 'student'}
+                                                    disabled={
+                                                        activeTab === 'student'
+                                                    }
                                                 />
                                                 {errors.position_or_designation && (
                                                     <p className="mt-1 text-sm text-red-500">
@@ -656,10 +695,10 @@ setData(
                                             placeholder="Kagawasan Ave. Dumaguete City"
                                             value={data.address}
                                             onChange={(e) =>
-setData(
-                                                 'address',
-                                                 toSentenceCase(e.target.value),
-                                             )
+                                                setData(
+                                                    'address',
+                                                    e.target.value,
+                                                )
                                             }
                                         />
                                         {errors.address && (
@@ -672,12 +711,12 @@ setData(
 
                                 {/* Section: Academic Details (Student tab only) */}
                                 {activeTab === 'student' && (
-                                    <div className='gap-y-4'>
+                                    <div className="gap-y-4">
                                         <Separator className="bg-blue-100" />
-                                    <CardTitle className="flex items-center gap-3 my-6 text-xl font-semibold text-blue-900">
-                                        <GraduationCap className="h-5 w-5 text-blue-600" />
-                                        Academic Details
-                                    </CardTitle>
+                                        <CardTitle className="my-6 flex items-center gap-3 text-xl font-semibold text-blue-900">
+                                            <GraduationCap className="h-5 w-5 text-blue-600" />
+                                            Academic Details
+                                        </CardTitle>
                                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
                                             <Field>
                                                 <FieldLabel
@@ -695,9 +734,18 @@ setData(
                                                     maxLength={9}
                                                     value={data.student_num}
                                                     onChange={(e) => {
-                                                        const digits = e.target.value.replace(/\D/g, '').slice(0, 9);
-                                            
-                                                        setData('student_num', digits);
+                                                        const digits =
+                                                            e.target.value
+                                                                .replace(
+                                                                    /\D/g,
+                                                                    '',
+                                                                )
+                                                                .slice(0, 9);
+
+                                                        setData(
+                                                            'student_num',
+                                                            digits,
+                                                        );
                                                     }}
                                                 />
                                                 {errors.student_num && (
@@ -719,17 +767,26 @@ setData(
                                                     items={course}
                                                     value={
                                                         course.find(
-                                                            (c) => String(c.id) === data.course_id,
+                                                            (c) =>
+                                                                String(c.id) ===
+                                                                data.course_id,
                                                         )?.course_code || ''
                                                     }
                                                     onValueChange={(value) => {
-                                                        const selected = course.find(
-                                                            (c) => c.course_code === value,
-                                                        );
-                                            
+                                                        const selected =
+                                                            course.find(
+                                                                (c) =>
+                                                                    c.course_code ===
+                                                                    value,
+                                                            );
+
                                                         setData(
                                                             'course_id',
-                                                            selected ? String(selected.id) : '',
+                                                            selected
+                                                                ? String(
+                                                                      selected.id,
+                                                                  )
+                                                                : '',
                                                         );
                                                     }}
                                                 >
@@ -740,18 +797,35 @@ setData(
                                                         showClear={!!data.course_id}
                                                     />
                                                     <ComboboxContent>
-                                                        <ComboboxEmpty>No items found.</ComboboxEmpty>
+                                                        <ComboboxEmpty>
+                                                            No items found.
+                                                        </ComboboxEmpty>
                                                         <ComboboxList>
                                                             {(item) => (
-                                                                <ComboboxItem key={item.id} value={item.course_code}>
-                                                                    {item.course_code} — {item.course_desc}
+                                                                <ComboboxItem
+                                                                    key={
+                                                                        item.id
+                                                                    }
+                                                                    value={
+                                                                        item.course_code
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        item.course_code
+                                                                    }{' '}
+                                                                    —{' '}
+                                                                    {
+                                                                        item.course_desc
+                                                                    }
                                                                 </ComboboxItem>
                                                             )}
                                                         </ComboboxList>
                                                     </ComboboxContent>
                                                 </Combobox>
                                                 {errors.course_id && (
-                                                    <p className="mt-1 text-sm text-red-500">{errors.course_id}</p>
+                                                    <p className="mt-1 text-sm text-red-500">
+                                                        {errors.course_id}
+                                                    </p>
                                                 )}
                                             </Field>
 
@@ -791,9 +865,7 @@ setData(
                                                             {(item) => (
                                                                 <ComboboxItem
                                                                     key={item}
-                                                                    value={
-                                                                        item
-                                                                    }
+                                                                    value={item}
                                                                 >
                                                                     SY {item}
                                                                 </ComboboxItem>
@@ -843,9 +915,7 @@ setData(
                                                             {(item) => (
                                                                 <ComboboxItem
                                                                     key={item}
-                                                                    value={
-                                                                        item
-                                                                    }
+                                                                    value={item}
                                                                 >
                                                                     {item}
                                                                 </ComboboxItem>
@@ -862,7 +932,7 @@ setData(
                                         </div>
                                     </div>
                                 )}
-                                
+
                                 <Separator className="bg-blue-100" />
                                 <CardTitle className="flex items-center gap-3 text-xl font-semibold text-blue-900">
                                     <ClipboardList className="h-5 w-5 text-blue-600" />
@@ -1253,8 +1323,8 @@ setData(
                                                 : null;
 
                                     if (!homeHref) {
-return null;
-}
+                                        return null;
+                                    }
 
                                     return (
                                         <Button

@@ -112,7 +112,25 @@
 
         <meta charset="utf-8">
         <title>Statement of Account - {{ $studentName }}</title>
-        @vite(['resources/css/app.css'])
+        @php
+            // Inline the compiled Tailwind entry so Browsershot does not need to
+            // fetch CSS through the tunnel while generating the PDF.
+            $viteManifestPath = public_path('build/manifest.json');
+            $viteManifest = is_file($viteManifestPath)
+                ? json_decode(file_get_contents($viteManifestPath), true)
+                : [];
+            $tailwindCssFile = $viteManifest['resources/css/app.css']['file'] ?? null;
+            $tailwindCssPath = $tailwindCssFile
+                ? public_path('build/'.$tailwindCssFile)
+                : null;
+            $tailwindCss = $tailwindCssPath && is_file($tailwindCssPath)
+                ? file_get_contents($tailwindCssPath)
+                : '';
+        @endphp
+        <style>
+            @page { size: A4; margin: 12mm; }
+            {!! $tailwindCss !!}
+        </style>
     </head>
 <body class="text-[11px] w-full min-w-200 text-gray-900 font-sans">
 
@@ -199,7 +217,7 @@
                 <th class="text-left px-1.5 py-1 w-[10%]">Date</th>
                 <th class="text-left px-1.5 py-1 w-[10%]">Ref #</th>
                 <th class="text-left px-1.5 py-1 w-[10%]">Particulars</th>
-                <th class="text-center px-1.5 py-1 w-[10%]">Type</th>
+                <th class="text-right px-1.5 py-1 w-[10%]">Type</th>
                 <th class="text-right px-1.5 py-1 w-[10%]">Amount</th>
             </tr>
         </thead>
