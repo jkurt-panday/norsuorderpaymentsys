@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Courses extends Model
 {
-    /** @use HasFactory<Factory<Courses>> */
     use HasFactory;
 
     /**

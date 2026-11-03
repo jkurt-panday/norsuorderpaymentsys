@@ -5,13 +5,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\CollegeOffice;
+use Inertia\Response;
 use Illuminate\Http\JsonResponse;
+use Inertia\Inertia;
 use Illuminate\Http\Request;
 
 class CollegeOfficeController extends Controller
 {
     // ? used if you ever need a standalone list endpoint
-    public function index(): JsonResponse
+    public function index(): Response
     {
         return Inertia::render('public/SubmitForm', [
             'collegeOffices' => CollegeOffice::orderBy('name')->get(['id', 'name']), // ? new

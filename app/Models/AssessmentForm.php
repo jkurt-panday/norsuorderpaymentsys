@@ -10,7 +10,6 @@ use Illuminate\Http\Request;
 
 class AssessmentForm extends Model
 {
-    /** @use HasFactory<Factory<AssessmentForm>> */
     use HasFactory;
 
     protected $table = 'assessment_forms';

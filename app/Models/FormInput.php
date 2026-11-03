@@ -10,7 +10,6 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class FormInput extends Model
 {
-    /** @use HasFactory<Factory<FormInput>> */
     use HasFactory;
 
     protected $appends = ['full_name'];

@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\BankAccountInfoRequest;
 use App\Models\BankAccountInfo;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -50,8 +49,8 @@ class BankAccountInfoController extends BaseResourceController
      * Show create form
      */
     /**
-     * @param  Builder<Model>  $query
-     * @return Builder<Model>
+     * @param  Builder<BankAccountInfo>  $query
+     * @return Builder<BankAccountInfo>
      */
     protected function modifyIndexQuery(Builder $query, Request $request): Builder
     {

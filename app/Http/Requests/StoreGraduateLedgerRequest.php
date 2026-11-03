@@ -18,7 +18,7 @@ class StoreGraduateLedgerRequest extends FormRequest
     {
         $this->merge([
             'tuition_per_unit_or_misc' => $this->input('tuition_per_unit_or_misc') ?: '0.00',
-            'rate' => $this->input('rate') ?? $this->input('tuition_per_unit_or_misc') ?? '0.00',
+            'rate' => $this->input('rate') ?? '0.00',
             'reference_number' => $this->input('reference_number') ?? $this->input('reference_or_jev_number'),
             'input_by' => $this->user()?->id,
             'status' => $this->input('status', 'posted'),

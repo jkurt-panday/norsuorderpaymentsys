@@ -41,7 +41,7 @@ class UACSService
             $rawValues = match (true) {
                 $row instanceof Collection => $row->all(),
                 is_array($row) => $row,
-                method_exists($row, 'toArray') => $row->toArray(),
+                is_object($row) && method_exists($row, 'toArray') => $row->toArray(),
                 default => [],
             };
 

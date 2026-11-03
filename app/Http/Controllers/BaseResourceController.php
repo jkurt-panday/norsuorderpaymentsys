@@ -172,8 +172,9 @@ abstract class BaseResourceController extends Controller
      * Default: no-op, returns the query unchanged.
      */
     /**
-     * @param  Builder<Model>  $query
-     * @return Builder<Model>
+     * @template TQuery of Model
+     * @param  Builder<TQuery>  $query
+     * @return Builder<TQuery>
      */
     protected function modifyIndexQuery(Builder $query, Request $request): Builder
     {

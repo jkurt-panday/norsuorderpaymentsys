@@ -1143,7 +1143,7 @@ class LawSchoolLedgerController extends Controller
             'remarks' => $data['remarks'] ?? null,
             'status' => $data['status'] ?? 'Pending',
             'input_by' => auth()->id(),
-            'imported_input_by' => $importedInputBy ?? auth()->user()?->name ?? 'System Import',
+            'imported_input_by' => $importedInputBy ?? auth()->user()->name ?? 'System Import',
         ];
     }
 

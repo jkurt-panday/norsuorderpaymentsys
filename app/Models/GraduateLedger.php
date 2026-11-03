@@ -82,6 +82,6 @@ class GraduateLedger extends Model
             return $this->imported_input_by;
         }
 
-        return $this->inputByUser?->name ?? '';
+        return $this->inputByUser->name ?? '';
     }
 }

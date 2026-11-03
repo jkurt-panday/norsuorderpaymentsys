@@ -7,9 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
+/**
+ * @property-read string $full_name
+ */
 class Student extends Model
 {
-    /** @use HasFactory<Factory<Student>> */
     use HasFactory;
 
     protected $fillable = [

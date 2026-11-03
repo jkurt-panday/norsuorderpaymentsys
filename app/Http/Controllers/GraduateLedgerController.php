@@ -602,8 +602,10 @@ class GraduateLedgerController extends Controller
      * @param  WarningCounts  $warnings
      *
      * @param-out WarningCounts $warnings
+     * @param  list<array{row: int, student: string|null, reason: string}> $allErrors
+     * @param-out list<array{row: int, student: string|null, reason: string}> $allErrors
      */
-    private function importCsv(
+     private function importCsv(
         string $path,
         int &$imported,
         int &$skipped,
@@ -742,8 +744,10 @@ class GraduateLedgerController extends Controller
      * @param  WarningCounts  $warnings
      *
      * @param-out WarningCounts $warnings
+     * @param  list<array{row: int, student: string|null, reason: string}> $allErrors
+     * @param-out list<array{row: int, student: string|null, reason: string}> $allErrors
      */
-    private function importExcel(
+     private function importExcel(
         UploadedFile $uploadedFile,
         int &$imported,
         int &$skipped,
@@ -1018,7 +1022,7 @@ class GraduateLedgerController extends Controller
         }
 
         abort_if(! $studentId, 404, 'Student not found.');
-        $student = Student::query()->findOrFail($studentId);
+        $student = Student::query()->whereKey($studentId)->firstOrFail();
 
         $rawRecords = GraduateLedger::query()
             ->with(['student', 'course', 'academicTerm', 'inputByUser:id,name'])
@@ -1218,7 +1222,7 @@ class GraduateLedgerController extends Controller
      */
     private function generateStudentPdfContent(int $studentId, ?string $schoolYear, ?string $semester): string
     {
-        $student = Student::query()->findOrFail($studentId);
+        $student = Student::query()->whereKey($studentId)->firstOrFail();
 
         $rawRecords = GraduateLedger::query()
             ->with(['student', 'course', 'academicTerm', 'inputByUser:id,name'])
@@ -1636,7 +1640,7 @@ class GraduateLedgerController extends Controller
      *
      * @param  array<string, true>  $fileIdentities  file-side identity keys (\x1F separated)
      * @param  array<string, int>  $studentMap  lookup map resolved in Pass 1
-     * @return array<string, true> fingerprint => true for rows already in DB
+     * @return array<string, int> fingerprint => remaining duplicate count
      */
     private function existingLedgerFingerprints(array $fileIdentities, array $studentMap): array
     {

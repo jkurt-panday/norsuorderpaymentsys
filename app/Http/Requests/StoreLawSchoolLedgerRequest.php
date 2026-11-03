@@ -22,7 +22,7 @@ class StoreLawSchoolLedgerRequest extends FormRequest
                 ?: ($this->input('tuition_per_unit_or_misc') ?: '0.00'),
             'rate' => $this->input('rate') ?: ($this->input('tuition_per_unit_or_fee_per_semester') ?: ($this->input('tuition_per_unit_or_misc') ?: '0.00')),
             'reference_number' => $this->input('reference_number') ?? $this->input('reference_jev_or_number') ?? $this->input('reference_or_jev_number'),
-            'input_by' => $this->filled('input_by') ? $this->input('input_by') : ($this->user()?->name ?? $this->user()?->id),
+            'input_by' => $this->filled('input_by') ? $this->input('input_by') : ($this->user()->name ?? $this->user()->id),
         ]);
 
         if ($this->has('items') && is_array($this->input('items'))) {

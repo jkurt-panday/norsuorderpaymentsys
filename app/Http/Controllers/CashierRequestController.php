@@ -132,7 +132,7 @@ class CashierRequestController extends Controller
                     ]);
                 }
 
-                if ($targetStatus === 'paid' && $requiresLedgerStudent && $formInput?->student_num === null) {
+                if ($targetStatus === 'paid' && $requiresLedgerStudent && $formInput->student_num === null) {
                     throw ValidationException::withMessages([
                         'student' => 'A student must be matched before this payment can be completed.',
                     ]);
@@ -165,8 +165,9 @@ class CashierRequestController extends Controller
             ? 'Payment details updated successfully.'
             : 'Payment details and status updated successfully.';
 
+        /** @var array{posted: bool, reason: string|null, ledger: string|null} $posting */
         return to_route('cashier.requests.show', $staffInput)
-            ->with('success', $base.$this->ledgerPostingSuffix($posting, $posting['ledger'] ?? null));
+            ->with('success', $base.$this->ledgerPostingSuffix($posting, $posting['ledger']));
     }
 
     /**

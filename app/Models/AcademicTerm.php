@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AcademicTerm extends Model
 {
-    /** @use HasFactory<Factory<AcademicTerm>> */
     use HasFactory;
 
     protected $fillable = [
