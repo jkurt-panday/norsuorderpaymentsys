@@ -11,7 +11,7 @@ import {
     IdCard,
     Printer,
     Download,
-    Home
+    Home,
 } from 'lucide-react';
 import React, { useEffect, useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -119,8 +119,8 @@ export default function Success({
 
     const formatContactNumber = (contactNum: string) => {
         if (!contactNum) {
-return '';
-}
+            return '';
+        }
 
         return contactNum.replace(/^(\d{4})(\d{3})(\d{4})$/, '$1 $2 $3');
     };
@@ -205,8 +205,8 @@ return '';
                                     <img
                                         src="/finance_logo1.png"
                                         alt="NORSU Logo"
-                                        width={500}
-                                        height={500}
+                                        width={600}
+                                        height={114}
                                         className="h-auto max-w-70 pb-4 sm:max-w-md sm:pb-6"
                                     />
                                 </div>
@@ -214,7 +214,9 @@ return '';
                                     <CheckCircle className="h-10 w-10 text-white sm:h-14 sm:w-14" />
                                 </div>
                                 <CardTitle className="mt-2 text-2xl font-bold text-green-300 sm:text-3xl">
-                                    Submission Successful!
+                                    <h1 className="font-inherit text-inherit">
+                                        Submission Successful!
+                                    </h1>
                                 </CardTitle>
                                 <CardDescription className="mt-1 text-sm text-blue-100 sm:mt-2 sm:text-base">
                                     Your request has been submitted
@@ -478,28 +480,32 @@ return '';
                                     >
                                         Submit Assessment Request
                                     </Link>
-                                      <Button
-                                          variant="outline"
-                                          onClick={handleDownload}
-                                         className="h-11 w-full rounded-xl border-blue-200 px-6 text-sm font-semibold text-blue-700 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800 sm:h-12 sm:px-8 sm:text-base"
-                                     >
-                                         <Download className="mr-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
-                                         Download Transaction
-                                     </Button>
-                                     <Button
-                                         variant="outline"
-                                         onClick={handlePrint}
+                                    <Button
+                                        variant="outline"
+                                        onClick={handleDownload}
+                                        className="h-11 w-full rounded-xl border-blue-200 px-6 text-sm font-semibold text-blue-700 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800 sm:h-12 sm:px-8 sm:text-base"
+                                    >
+                                        <Download className="mr-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
+                                        Download Transaction
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={handlePrint}
                                         className="h-11 w-full rounded-xl border-blue-200 px-6 text-sm font-semibold text-blue-700 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800 sm:h-12 sm:px-8 sm:text-base"
                                     >
                                         <Printer className="mr-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
                                         Print Transaction
                                     </Button>
                                     {(() => {
-                                        const role = (auth?.user as { role?: string } | undefined)?.role;
+                                        const role = (
+                                            auth?.user as
+                                                { role?: string } | undefined
+                                        )?.role;
                                         const homeHref =
                                             role === 'admin'
                                                 ? '/admin/dashboard'
-                                                : role === 'staff' || role === 'cashier'
+                                                : role === 'staff' ||
+                                                    role === 'cashier'
                                                   ? '/staff/staffdashboard'
                                                   : role === 'client'
                                                     ? '/client/dashboard'

@@ -1,4 +1,4 @@
-import { Link, useForm, Head, usePage } from '@inertiajs/react';
+﻿import { Link, useForm, Head, usePage } from '@inertiajs/react';
 import { UploadCloud02 } from '@untitledui/icons';
 import { Mail, User, ClipboardList, FileText, Home, GraduationCap, Plus } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
@@ -21,7 +21,7 @@ import {
     ComboboxItem,
     ComboboxList,
 } from '@/components/ui/combobox';
-import { Field, FieldLabel, FieldDescription } from '@/components/ui/field';
+import { Field, FieldLabel, FieldDescription, FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -210,7 +210,13 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                 }
             },
             onSuccess: () => console.log('Success'),
-            onError: (errs) => console.error('Validation errors:', errs),
+            onError: (errs) => {
+                console.error('Validation errors:', errs);
+                requestAnimationFrame(() => {
+                    const firstInvalid = document.querySelector<HTMLElement>('[aria-invalid="true"]');
+                    firstInvalid?.focus();
+                });
+            },
         });
     };
 
@@ -283,8 +289,8 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                             <img
                                 src="/finance_logo1.png"
                                 alt="NORSU Logo"
-                                width={500}
-                                height={500}
+                                width={600}
+                                height={114}
                                 className="pb-6"
                             />
                         </div>
@@ -354,6 +360,8 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                     type="email"
                                                     placeholder="jondoe@mail.com"
                                                     value={data.email}
+                                                    aria-invalid={Boolean(errors.email)}
+                                                    aria-describedby={errors.email ? 'submit-email-error' : undefined}
                                                     onChange={(e) =>
                                                         setData(
                                                             'email',
@@ -362,9 +370,9 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                     }
                                                 />
                                                 {errors.email && (
-                                                    <p className="mt-1 text-sm text-red-500">
+                                                    <FieldError id="submit-email-error" className="mt-1">
                                                         {errors.email}
-                                                    </p>
+                                                    </FieldError>
                                                 )}{' '}
                                             </Field>
                                         </div>
@@ -383,6 +391,12 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                     type="tel"
                                                     placeholder="0912 333 4444"
                                                     maxLength={13} // 11 digits + 2 spaces
+                                                    aria-invalid={Boolean(errors.contact_num || (data.contact_num.length > 0 && !isValidContact))}
+                                                    aria-describedby={
+                                                        errors.contact_num || (data.contact_num.length > 0 && !isValidContact)
+                                                            ? 'submit-contact_num-error'
+                                                            : undefined
+                                                    }
                                                     value={data.contact_num.replace(
                                                         /^(\d{0,4})(\d{0,3})(\d{0,4}).*/,
                                                         (
@@ -411,17 +425,17 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                     }}
                                                 />
                                                 {errors.contact_num && (
-                                                    <p className="mt-1 text-sm text-red-500">
+                                                    <FieldError id="submit-contact_num-error" className="mt-1">
                                                         {errors.contact_num}
-                                                    </p>
+                                                    </FieldError>
                                                 )}
                                                 {data.contact_num.length > 0 &&
                                                     !isValidContact && (
-                                                        <p className="mt-1 text-sm text-red-500">
+                                                        <FieldError id="submit-contact_num-error" className="mt-1">
                                                             Contact number must
                                                             contain exactly 11
                                                             digits.
-                                                        </p>
+                                                        </FieldError>
                                                     )}
                                             </Field>
                                         </div>
@@ -449,6 +463,8 @@ export default function SubmitForm({ memberships, paymentOptions, course = [], a
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-fname"
                                                     type="text"
+                                                    aria-invalid={Boolean(errors.firstname_or_office)}
+                                                    aria-describedby={errors.firstname_or_office ? "submit-firstname_or_office-error" : undefined}
                                                     placeholder="Juan"
                                                     value={
                                                         data.firstname_or_office
@@ -461,11 +477,9 @@ setData(
                                                     }
                                                 />
                                                 {errors.firstname_or_office && (
-                                                    <p className="mt-1 text-sm text-red-500">
-                                                        {
-                                                            errors.firstname_or_office
-                                                        }
-                                                    </p>
+                                                    <FieldError id="submit-firstname_or_office-error" className="mt-1">
+                                                        {errors.firstname_or_office}
+                                                    </FieldError>
                                                 )}
                                             </Field>
                                         </div>
@@ -482,6 +496,8 @@ setData(
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-mname"
                                                     type="text"
+                                                    aria-invalid={Boolean(errors.middlename_or_project)}
+                                                    aria-describedby={errors.middlename_or_project ? "submit-middlename_or_project-error" : undefined}
                                                     placeholder="Carlos"
                                                     value={
                                                         data.middlename_or_project
@@ -494,11 +510,9 @@ setData(
                                                     }
                                                 />
                                                 {errors.middlename_or_project && (
-                                                    <p className="mt-1 text-sm text-red-500">
-                                                        {
-                                                            errors.middlename_or_project
-                                                        }
-                                                    </p>
+                                                    <FieldError id="submit-middlename_or_project-error" className="mt-1">
+                                                        {errors.middlename_or_project}
+                                                    </FieldError>
                                                 )}
                                             </Field>
                                         </div>
@@ -515,6 +529,8 @@ setData(
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-lname"
                                                     type="text"
+                                                    aria-invalid={Boolean(errors.lastname_or_agency)}
+                                                    aria-describedby={errors.lastname_or_agency ? "submit-lastname_or_agency-error" : undefined}
                                                     placeholder="Dela Cruz"
                                                     value={
                                                         data.lastname_or_agency
@@ -527,11 +543,9 @@ setData(
                                                     }
                                                 />
                                                 {errors.lastname_or_agency && (
-                                                    <p className="mt-1 text-sm text-red-500">
-                                                        {
-                                                            errors.lastname_or_agency
-                                                        }
-                                                    </p>
+                                                    <FieldError id="submit-lastname_or_agency-error" className="mt-1">
+                                                        {errors.lastname_or_agency}
+                                                    </FieldError>
                                                 )}
                                             </Field>
                                         </div>
@@ -616,6 +630,8 @@ setData(
                                                 <Input
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-pos-des"
+                                                    aria-invalid={Boolean(errors.position_or_designation)}
+                                                    aria-describedby={errors.position_or_designation ? "submit-position_or_designation-error" : undefined}
                                                     placeholder="Teacher"
                                                     type="text"
                                                     value={
@@ -630,11 +646,9 @@ setData(
                                                     disabled={activeTab === 'student'}
                                                 />
                                                 {errors.position_or_designation && (
-                                                    <p className="mt-1 text-sm text-red-500">
-                                                        {
-                                                            errors.position_or_designation
-                                                        }
-                                                    </p>
+                                                    <FieldError id="submit-position_or_designation-error" className="mt-1">
+                                                        {errors.position_or_designation}
+                                                    </FieldError>
                                                 )}
                                             </Field>
                                         </div>
@@ -654,6 +668,8 @@ setData(
                                             id="input-field-address"
                                             type="text"
                                             placeholder="Kagawasan Ave. Dumaguete City"
+                                            aria-invalid={Boolean(errors.address)}
+                                            aria-describedby={errors.address ? "submit-address-error" : undefined}
                                             value={data.address}
                                             onChange={(e) =>
 setData(
@@ -663,10 +679,10 @@ setData(
                                             }
                                         />
                                         {errors.address && (
-                                            <p className="mt-1 text-sm text-red-500">
-                                                {errors.address}
-                                            </p>
-                                        )}
+                                                    <FieldError id="submit-address-error" className="mt-1">
+                                                        {errors.address}
+                                                    </FieldError>
+                                                )}
                                     </Field>
                                 </div>
 
@@ -690,6 +706,8 @@ setData(
                                                     className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                     id="input-field-studentnum"
                                                     type="text"
+                                                    aria-invalid={Boolean(errors.student_num)}
+                                                    aria-describedby={errors.student_num ? "submit-student_num-error" : undefined}
                                                     inputMode="numeric"
                                                     placeholder="202100123"
                                                     maxLength={9}
@@ -701,9 +719,9 @@ setData(
                                                     }}
                                                 />
                                                 {errors.student_num && (
-                                                    <p className="mt-1 text-sm text-red-500">
+                                                    <FieldError id="submit-student_num-error" className="mt-1">
                                                         {errors.student_num}
-                                                    </p>
+                                                    </FieldError>
                                                 )}
                                             </Field>
 
@@ -736,6 +754,8 @@ setData(
                                                     <ComboboxInput
                                                         placeholder="Select course"
                                                         aria-label="Course"
+                                                        aria-invalid={Boolean(errors.course_id)}
+                                                        aria-describedby={errors.course_id ? "submit-course_id-error" : undefined}
                                                         className={comboboxInputClass}
                                                         showClear={!!data.course_id}
                                                     />
@@ -751,7 +771,9 @@ setData(
                                                     </ComboboxContent>
                                                 </Combobox>
                                                 {errors.course_id && (
-                                                    <p className="mt-1 text-sm text-red-500">{errors.course_id}</p>
+                                                    <FieldError id="submit-course_id-error" className="mt-1">
+                                                        {errors.course_id}
+                                                    </FieldError>
                                                 )}
                                             </Field>
 
@@ -776,6 +798,8 @@ setData(
                                                     <ComboboxInput
                                                         placeholder="Select school year"
                                                         aria-label="School Year"
+                                                        aria-invalid={Boolean(errors.school_year)}
+                                                        aria-describedby={errors.school_year ? "submit-school_year-error" : undefined}
                                                         className={
                                                             comboboxInputClass
                                                         }
@@ -802,9 +826,9 @@ setData(
                                                     </ComboboxContent>
                                                 </Combobox>
                                                 {errors.school_year && (
-                                                    <p className="mt-1 text-sm text-red-500">
+                                                    <FieldError id="submit-school_year-error" className="mt-1">
                                                         {errors.school_year}
-                                                    </p>
+                                                    </FieldError>
                                                 )}
                                             </Field>
 
@@ -828,6 +852,8 @@ setData(
                                                 >
                                                     <ComboboxInput
                                                         placeholder="Select semester"
+                                                        aria-invalid={Boolean(errors.semester)}
+                                                        aria-describedby={errors.semester ? "submit-semester-error" : undefined}
                                                         className={
                                                             comboboxInputClass
                                                         }
@@ -854,9 +880,9 @@ setData(
                                                     </ComboboxContent>
                                                 </Combobox>
                                                 {errors.semester && (
-                                                    <p className="mt-1 text-sm text-red-500">
+                                                    <FieldError id="submit-semester-error" className="mt-1">
                                                         {errors.semester}
-                                                    </p>
+                                                    </FieldError>
                                                 )}
                                             </Field>
                                         </div>
@@ -885,6 +911,8 @@ setData(
                                                 className={`${enlarge} rounded-l-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30`}
                                                 id="input-field-amount"
                                                 type="text"
+                                                aria-invalid={Boolean(errors.amount)}
+                                                aria-describedby={errors.amount ? "submit-amount-error" : undefined}
                                                 inputMode="decimal"
                                                 placeholder="00.00"
                                                 value={data.amount}
@@ -903,10 +931,10 @@ setData(
                                             />
                                         </div>
                                         {errors.amount && (
-                                            <p className="mt-1 text-sm text-red-500">
-                                                {errors.amount}
-                                            </p>
-                                        )}
+                                                    <FieldError id="submit-amount-error" className="mt-1">
+                                                        {errors.amount}
+                                                    </FieldError>
+                                                )}
                                     </Field>
                                     {/* request type */}
                                     <Field>
@@ -929,6 +957,8 @@ setData(
                                         >
                                             <ComboboxInput
                                                 placeholder="Select a request type"
+                                                aria-invalid={Boolean(errors.request_type)}
+                                                aria-describedby={errors.request_type ? "submit-request_type-error" : undefined}
                                                 className={`border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
 
                                                 showClear={!!data.request_type}
@@ -950,10 +980,10 @@ setData(
                                             </ComboboxContent>
                                         </Combobox>
                                         {errors.request_type && (
-                                            <p className="mt-1 text-sm text-red-500">
-                                                {errors.request_type}
-                                            </p>
-                                        )}
+                                                    <FieldError id="submit-request_type-error" className="mt-1">
+                                                        {errors.request_type}
+                                                    </FieldError>
+                                                )}
                                     </Field>
                                     {/* membership type */}
                                     <Field>
@@ -991,6 +1021,8 @@ setData(
                                         >
                                             <ComboboxInput
                                                 placeholder="Select membership"
+                                                aria-invalid={Boolean(errors.membership_id)}
+                                                aria-describedby={errors.membership_id ? "submit-membership_id-error" : undefined}
                                                 className={`border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
 
                                                 showClear={!!data.membership_id}
@@ -1014,10 +1046,10 @@ setData(
                                             </ComboboxContent>
                                         </Combobox>
                                         {errors.membership_id && (
-                                            <p className="mt-1 text-sm text-red-500">
-                                                {errors.membership_id}
-                                            </p>
-                                        )}
+                                                    <FieldError id="submit-membership_id-error" className="mt-1">
+                                                        {errors.membership_id}
+                                                    </FieldError>
+                                                )}
                                     </Field>
 
                                     {/* payment details */}
@@ -1057,6 +1089,8 @@ setData(
                                             <ComboboxInput
                                                 itemProp="paymentOption"
                                                 placeholder="Select payment details"
+                                                aria-invalid={Boolean(errors.payment_detail_option_id)}
+                                                aria-describedby={errors.payment_detail_option_id ? "submit-payment_detail_option_id-error" : undefined}
                                                 showClear={
                                                     !!data.payment_detail_option_id
                                                 }
@@ -1081,12 +1115,10 @@ setData(
                                             </ComboboxContent>
                                         </Combobox>
                                         {errors.payment_detail_option_id && (
-                                            <p className="mt-1 text-sm text-red-500">
-                                                {
-                                                    errors.payment_detail_option_id
-                                                }
-                                            </p>
-                                        )}
+                                                    <FieldError id="submit-payment_detail_option_id-error" className="mt-1">
+                                                        {errors.payment_detail_option_id}
+                                                    </FieldError>
+                                                )}
                                     </Field>
                                 </div>
                                 <Separator className="bg-blue-100" />
@@ -1099,11 +1131,7 @@ setData(
                                     Computation Documents, Student ID,
                                     Liquidation Form)
                                 </p>
-                                {documentError && (
-                                    <p className="mt-1 text-sm text-red-500">
-                                        {documentError}
-                                    </p>
-                                )}
+                                {documentError && (<FieldError id="submit-documents-error" className="mt-1">{documentError}</FieldError>)}
                                 {/* file uploads */}
                                 {/* File Upload Drop Zone */}
                                 <FileUpload.Root>

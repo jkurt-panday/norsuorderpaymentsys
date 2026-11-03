@@ -612,42 +612,62 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                 return (
                                     <TableHead
                                         key={col.label}
+                                        aria-sort={
+                                            sortKeyName
+                                                ? isActive
+                                                    ? effectiveSortDir ===
+                                                      'asc'
+                                                        ? 'ascending'
+                                                        : 'descending'
+                                                    : 'none'
+                                                : undefined
+                                        }
                                         className={`${col.width} ${
                                             col.label === 'Event' ? 'pl-6' : ''
                                         } ${
                                             col.label === 'Date' ? 'pr-6' : ''
                                         } ${
                                             sortKeyName
-                                                ? 'cursor-pointer transition-colors select-none'
+                                                ? 'transition-colors select-none'
                                                 : ''
                                         } ${
                                             isActive
                                                 ? 'bg-primary/10 font-bold text-primary'
                                                 : 'hover:text-foreground'
                                         }`}
-                                        onClick={
-                                            sortKeyName
-                                                ? () =>
-                                                      handleSortClick(
-                                                          sortKeyName,
-                                                      )
-                                                : undefined
-                                        }
                                     >
-                                        <span className="inline-flex items-center gap-1.5">
-                                            {col.label}
-                                            {sortKeyName &&
-                                                (isActive ? (
+                                        {sortKeyName ? (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    handleSortClick(sortKeyName)
+                                                }
+                                                className="flex w-full items-center gap-1.5 rounded-sm py-1 text-left focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset focus-visible:outline-none"
+                                            >
+                                                {col.label}
+                                                {isActive ? (
                                                     effectiveSortDir ===
                                                     'asc' ? (
-                                                        <ArrowUp className="h-4 w-4 stroke-[2.5] text-primary" />
+                                                        <ArrowUp
+                                                            className="h-4 w-4 stroke-[2.5] text-primary"
+                                                            aria-hidden="true"
+                                                        />
                                                     ) : (
-                                                        <ArrowDown className="h-4 w-4 stroke-[2.5] text-primary" />
+                                                        <ArrowDown
+                                                            className="h-4 w-4 stroke-[2.5] text-primary"
+                                                            aria-hidden="true"
+                                                        />
                                                     )
                                                 ) : (
-                                                    <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/60" />
-                                                ))}
-                                        </span>
+                                                    <ArrowUpDown
+                                                        className="h-3.5 w-3.5 text-muted-foreground/60"
+                                                        aria-hidden="true"
+                                                    />
+                                                )}
+                                            </button>
+                                        ) : (
+                                            col.label
+                                        )}
                                     </TableHead>
                                 );
                             })}

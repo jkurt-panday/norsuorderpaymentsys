@@ -18,6 +18,7 @@
         font-family: var(--font-sans);
         font-size: 18px;
         font-weight: 400;
+        color: var(--foreground);
     }
 
     button:not(:disabled),
@@ -111,33 +112,33 @@
     --card-foreground: #0f1e36;
     --popover: #ffffff;
     --popover-foreground: #0f1e36;
-    --primary: #007bff;
+    --primary: #0062cc;
     --primary-foreground: #ffffff;
     --secondary: #e2e8f0;
     --secondary-foreground: #0f1e36;
     --muted: #e2e8f0;
-    --muted-foreground: #62728b;
+    --muted-foreground: #556378;
     --accent: #e2e8f0;
     --accent-foreground: #0f1e36;
     --destructive: #dc2626;
     --destructive-foreground: #ffffff;
     --border: #d5e0f2;
     --input: #d5e0f2;
-    --ring: #007bff;
+    --ring: #0062cc;
     --radius: 0.5rem;
-    --chart-1: #007bff;
+    --chart-1: #0062cc;
     --chart-2: #62728b;
     --chart-3: #1e293b;
     --chart-4: #0f1e36;
     --chart-5: #0f1e36;
     --sidebar: #f8fafc;
     --sidebar-foreground: #0f1e36;
-    --sidebar-primary: #007bff;
+    --sidebar-primary: #0062cc;
     --sidebar-primary-foreground: #ffffff;
     --sidebar-accent: #e2e8f0;
     --sidebar-accent-foreground: #0f1e36;
     --sidebar-border: #d5e0f2;
-    --sidebar-ring: #007bff;
+    --sidebar-ring: #0062cc;
 }
 
 .dark {

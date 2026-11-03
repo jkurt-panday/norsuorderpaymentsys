@@ -837,7 +837,7 @@ export default function ShowRequest() {
                         </h2>
                         <p className="text-sm text-muted-foreground">
                             Reference:{' '}
-                            <span className="font-semibold text-blue-600">
+                            <span className="font-semibold text-blue-600 dark:text-sky-400">
                                 {formInput.reference_number}
                             </span>
                         </p>
@@ -2660,7 +2660,7 @@ export default function ShowRequest() {
                                                                         title={
                                                                             document.original_filename
                                                                         }
-                                                                        className="block max-w-65 min-w-0 truncate text-blue-600 hover:underline"
+                                                                        className="block max-w-65 min-w-0 truncate text-blue-600 hover:underline dark:text-sky-400"
                                                                     />
                                                                 }
                                                             >
@@ -2699,7 +2699,7 @@ export default function ShowRequest() {
                                                         rel="noopener noreferrer"
                                                         title="View"
                                                         aria-label={`View ${document.original_filename}`}
-                                                        className="flex h-8 w-8 items-center justify-center rounded-full border border-blue-200 text-blue-600 transition-colors hover:bg-blue-50"
+                                                        className="flex h-8 w-8 items-center justify-center rounded-full border border-blue-200 text-blue-600 transition-colors hover:bg-blue-50 dark:border-sky-800 dark:text-sky-400 dark:hover:bg-sky-950/40"
                                                     >
                                                         <Eye className="h-4 w-4" />
                                                     </a>
@@ -3081,7 +3081,7 @@ export default function ShowRequest() {
                                             onClick={() =>
                                                 setStudentMatchMode('create')
                                             }
-                                            className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700"
+                                            className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700 dark:text-sky-400 dark:hover:text-sky-300"
                                         >
                                             <UserPlus className="h-4 w-4" />
                                             Create this student

@@ -44,3 +44,4 @@ UACS CODE - ACCTG.xlsx
 UACS CODE ACCTG.xlsx
 .env
 .vite.config.ts
+*.md

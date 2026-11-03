@@ -588,22 +588,26 @@ export default function RequestTable<T extends { id: number | string }>({
                                         col.sortable &&
                                         currentSort === col.sortable;
 
-                                    const headerLabel = (
-                                        <span className="inline-flex items-center gap-1.5">
-                                            {col.header}
-                                            {col.sortable &&
-                                                (isActiveSort ? (
-                                                    currentDirection ===
-                                                    'asc' ? (
-                                                        <ArrowUp className="h-3 w-3 text-primary" />
-                                                    ) : (
-                                                        <ArrowDown className="h-3 w-3 text-primary" />
-                                                    )
-                                                ) : (
-                                                    <ArrowUpDown className="h-3 w-3 text-muted-foreground/60" />
-                                                ))}
-                                        </span>
-                                    );
+                                    const sortIcon = col.sortable ? (
+                                        isActiveSort ? (
+                                            currentDirection === 'asc' ? (
+                                                <ArrowUp
+                                                    className="h-3 w-3 text-primary"
+                                                    aria-hidden="true"
+                                                />
+                                            ) : (
+                                                <ArrowDown
+                                                    className="h-3 w-3 text-primary"
+                                                    aria-hidden="true"
+                                                />
+                                            )
+                                        ) : (
+                                            <ArrowUpDown
+                                                className="h-3 w-3 text-muted-foreground/60"
+                                                aria-hidden="true"
+                                            />
+                                        )
+                                    ) : null;
 
                                     return (
                                         <TableHead
@@ -613,12 +617,14 @@ export default function RequestTable<T extends { id: number | string }>({
                                                     ? { width: col.width }
                                                     : undefined
                                             }
-                                            onClick={
+                                            aria-sort={
                                                 col.sortable
-                                                    ? () =>
-                                                          handleSortClick(
-                                                              col.sortable!,
-                                                          )
+                                                    ? isActiveSort
+                                                        ? currentDirection ===
+                                                          'asc'
+                                                            ? 'ascending'
+                                                            : 'descending'
+                                                        : 'none'
                                                     : undefined
                                             }
                                             className={cn(
@@ -629,11 +635,26 @@ export default function RequestTable<T extends { id: number | string }>({
                                                 col.hideOnMobile &&
                                                     'hidden md:table-cell',
                                                 col.sortable &&
-                                                    'cursor-pointer select-none hover:text-foreground',
+                                                    'select-none hover:text-foreground',
                                                 col.className,
                                             )}
                                         >
-                                            {headerLabel}
+                                            {col.sortable ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleSortClick(
+                                                            col.sortable!,
+                                                        )
+                                                    }
+                                                    className="flex w-full items-center gap-1.5 rounded-sm py-1 text-left focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset focus-visible:outline-none"
+                                                >
+                                                    {col.header}
+                                                    {sortIcon}
+                                                </button>
+                                            ) : (
+                                                col.header
+                                            )}
                                         </TableHead>
                                     );
                                 })}

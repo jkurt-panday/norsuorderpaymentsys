@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { UserInfo } from '@/components/user-info';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
+import { setExpiringLocalStorage } from '@/lib/expiring-local-storage';
 import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
 import type { User } from '@/types';
@@ -21,6 +22,7 @@ export function UserMenuContent({ user }: Props) {
 
     const handleLogout = () => {
         cleanup();
+        setExpiringLocalStorage('pending_logout_toast', true, 10_000);
         router.flushAll();
     };
 
@@ -51,7 +53,7 @@ export function UserMenuContent({ user }: Props) {
             <DropdownMenuItem
                 render={
                     <Link
-                        className="block w-full cursor-pointer bg-white text-red-300 hover:bg-red-50 hover:text-red-400"
+                        className="block w-full cursor-pointer bg-white text-red-600 hover:bg-red-50 hover:text-red-700 dark:bg-transparent dark:text-red-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
                         href={logout()}
                         as="button"
                         onClick={handleLogout}

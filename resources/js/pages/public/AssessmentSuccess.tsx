@@ -52,7 +52,7 @@ interface AssessmentForm {
 }
 
 interface Props {
-    assessmentForm: AssessmentForm;     // must be the same format as the one being sent
+    assessmentForm: AssessmentForm; // must be the same format as the one being sent
 }
 
 export default function AssessmentSuccess({ assessmentForm }: Props) {
@@ -71,13 +71,10 @@ export default function AssessmentSuccess({ assessmentForm }: Props) {
 
     const formatContactNumber = (contactNum: string) => {
         if (!contactNum) {
-return '';
-}
-    
-        return contactNum.replace(
-            /^(\d{4})(\d{3})(\d{4})$/,
-            '$1 $2 $3',
-        );
+            return '';
+        }
+
+        return contactNum.replace(/^(\d{4})(\d{3})(\d{4})$/, '$1 $2 $3');
     };
 
     const getEnrolledUnderBadgeClass = (enrolled_under: string) => {
@@ -164,8 +161,8 @@ return '';
                                     <img
                                         src="/finance_logo1.png"
                                         alt="NORSU Logo"
-                                        width={500}
-                                        height={500}
+                                        width={600}
+                                        height={114}
                                         className="h-auto max-w-70 pb-4 sm:max-w-md sm:pb-6"
                                     />
                                 </div>
@@ -173,7 +170,9 @@ return '';
                                     <CheckCircle className="h-10 w-10 text-white sm:h-14 sm:w-14" />
                                 </div>
                                 <CardTitle className="mt-2 text-2xl font-bold text-green-300 sm:text-3xl">
-                                    Submission Successful!
+                                    <h1 className="font-inherit text-inherit">
+                                        Submission Successful!
+                                    </h1>
                                 </CardTitle>
                                 <CardDescription className="mt-1 text-sm text-blue-100 sm:mt-2 sm:text-base">
                                     Your request has been submitted
@@ -223,7 +222,9 @@ return '';
                                                     Contact Number
                                                 </p>
                                                 <p className="text-base font-semibold break-all text-slate-900 sm:text-xl">
-                                                    {formatContactNumber(assessmentForm.contact_num)}
+                                                    {formatContactNumber(
+                                                        assessmentForm.contact_num,
+                                                    )}
                                                 </p>
                                             </div>
                                         </div>
@@ -238,7 +239,7 @@ return '';
                                         <IdCard className="h-5 w-5 shrink-0 text-blue-700 sm:h-6 sm:w-6" />
                                         Identity Details
                                     </h3>
-                                
+
                                     <div className="grid grid-cols-1 gap-x-10 gap-y-4 sm:gap-y-6 md:grid-cols-2">
                                         {/* Full Name */}
                                         <div className="col-span-full">
@@ -261,7 +262,7 @@ return '';
                                         {/* Student id */}
                                         <div className="col-span-full flex items-start gap-2">
                                             <Hash className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
-                                
+
                                             <div className="min-w-0 flex-1">
                                                 <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase sm:text-sm">
                                                     Student ID
@@ -271,11 +272,11 @@ return '';
                                                 </p>
                                             </div>
                                         </div>
-                                
+
                                         {/* Address */}
                                         <div className="col-span-full flex items-start gap-2">
                                             <MapPin className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
-                                
+
                                             <div className="min-w-0 flex-1">
                                                 <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase sm:text-sm">
                                                     Address
@@ -285,52 +286,55 @@ return '';
                                                 </p>
                                             </div>
                                         </div>
-                                
+
                                         {/* Course */}
                                         <div className="col-span-full md:col-span-1">
                                             <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase sm:text-sm">
                                                 Course
                                             </p>
                                             <p className="text-base font-semibold wrap-break-word text-slate-900 sm:text-xl">
-                                                {assessmentForm.course?.course_desc || ''}
+                                                {assessmentForm.course
+                                                    ?.course_desc || ''}
                                             </p>
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <Separator />
-                                
+
                                 {/* Assessment Details */}
                                 <div>
                                     <h3 className="mb-4 flex items-center gap-2 text-xl font-semibold text-blue-900 sm:mb-6 sm:gap-3 sm:text-2xl">
                                         <Receipt className="h-5 w-5 shrink-0 text-blue-700 sm:h-6 sm:w-6" />
                                         Assessment Details
                                     </h3>
-                                
+
                                     <div className="grid grid-cols-1 gap-x-10 gap-y-4 sm:gap-y-6 md:grid-cols-3">
                                         {/* Enrolled Under */}
                                         <div>
                                             <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase sm:text-sm">
                                                 Enrolled Under:
                                             </p>
-                                
+
                                             <div className="pt-1">
                                                 <Badge
                                                     className={`rounded-full px-3 py-4 text-sm font-semibold shadow-sm sm:px-4 sm:py-4 sm:text-lg ${getEnrolledUnderBadgeClass(
                                                         assessmentForm.enrolled_under,
                                                     )}`}
                                                 >
-                                                    {assessmentForm.enrolled_under}
+                                                    {
+                                                        assessmentForm.enrolled_under
+                                                    }
                                                 </Badge>
                                             </div>
                                         </div>
-                                
+
                                         {/* Semester */}
                                         <div>
                                             <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase sm:text-sm">
                                                 Semester
                                             </p>
-                                
+
                                             <div className="pt-1">
                                                 <Badge
                                                     className={`rounded-full px-3 py-4 text-sm font-semibold shadow-sm sm:px-4 sm:py-4 sm:text-lg ${getSemesterBadgeClass(
@@ -347,20 +351,22 @@ return '';
                                             <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase sm:text-sm">
                                                 Semester
                                             </p>
-                                
+
                                             <div className="pt-1">
                                                 <Badge
-                                                    className={`rounded-full py-4 text-sm font-semibold shadow-sm sm:px-4 sm:py-4 sm:text-lg bg-slate-100 text-slate-700 border border-slate-500 px-4`}
+                                                    className={`rounded-full border border-slate-500 bg-slate-100 px-4 py-4 text-sm font-semibold text-slate-700 shadow-sm sm:px-4 sm:py-4 sm:text-lg`}
                                                 >
-                                                    {assessmentForm.sy_last_attended}
+                                                    {
+                                                        assessmentForm.sy_last_attended
+                                                    }
                                                 </Badge>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <Separator />
-                                
+
                                 {/* Submission Details */}
                                 <div className="text-center leading-7 text-slate-600">
                                     <p className="-mt-2 mb-1 text-xs tracking-wide text-slate-500 sm:-mt-4 sm:text-sm">
@@ -386,33 +392,37 @@ return '';
                                     <Button
                                         variant="outline"
                                         onClick={handleDownload}
-                                         className="h-11 w-full rounded-xl border-blue-200 px-6 text-sm font-semibold text-blue-700 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800 sm:h-12 sm:px-8 sm:text-base"
-                                     >
-                                         <Download className="mr-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
-                                         Download Transaction
-                                     </Button>
-                                     <Button
-                                         variant="outline"
-                                         onClick={handlePrint}
+                                        className="h-11 w-full rounded-xl border-blue-200 px-6 text-sm font-semibold text-blue-700 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800 sm:h-12 sm:px-8 sm:text-base"
+                                    >
+                                        <Download className="mr-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
+                                        Download Transaction
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={handlePrint}
                                         className="h-11 w-full rounded-xl border-blue-200 px-6 text-sm font-semibold text-blue-700 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800 sm:h-12 sm:px-8 sm:text-base"
                                     >
                                         <Printer className="mr-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
                                         Print Transaction
                                     </Button>
                                     {(() => {
-                                        const role = (auth?.user as { role?: string } | undefined)?.role;
+                                        const role = (
+                                            auth?.user as
+                                                { role?: string } | undefined
+                                        )?.role;
                                         const homeHref =
                                             role === 'admin'
                                                 ? '/admin/dashboard'
-                                                : role === 'staff' || role === 'cashier'
+                                                : role === 'staff' ||
+                                                    role === 'cashier'
                                                   ? '/staff/staffdashboard'
                                                   : role === 'client'
                                                     ? '/client/dashboard'
                                                     : null;
 
                                         if (!homeHref) {
-return null;
-}
+                                            return null;
+                                        }
 
                                         return (
                                             <Button

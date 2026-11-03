@@ -264,7 +264,7 @@ export function AppSidebar() {
                         <p className="text-sm font-semibold text-white dark:text-sidebar-foreground">
                             Order of Payment
                         </p>
-                        <p className="text-xs text-white/70 dark:text-sidebar-foreground/70">{portalLabel}</p>
+                        <p className="text-xs text-white/90 dark:text-sidebar-foreground/70">{portalLabel}</p>
                     </div>
                 </div>
             </SidebarHeader>
@@ -280,8 +280,8 @@ export function AppSidebar() {
                                             href={item.href}
                                             className={`my-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[15px] transition-colors duration-200 ${
                                                 isActive(item.href)
-                                                    ? 'bg-white font-medium text-blue-500 shadow-sm dark:bg-sky-400/20 dark:text-sky-300 dark:shadow-none'
-                                                    : 'text-white hover:bg-white/15 hover:text-white dark:text-sidebar-foreground/80 dark:hover:bg-sidebar-accent dark:hover:text-sidebar-foreground'
+                                                    ? 'bg-white font-medium text-primary shadow-sm dark:bg-sky-400/20 dark:text-sky-300 dark:shadow-none'
+                                                    : 'text-white hover:bg-white/10 hover:text-white dark:text-sidebar-foreground/80 dark:hover:bg-sidebar-accent dark:hover:text-sidebar-foreground'
                                             }`}
                                         />
                                     }
@@ -308,8 +308,8 @@ export function AppSidebar() {
                                                         href={item.href}
                                                         className={`my-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[15px] transition-colors duration-200 ${
                                                             isActive(item.href)
-                                                                ? 'bg-white font-medium text-blue-500 shadow-sm dark:bg-sky-400/20 dark:text-sky-300 dark:shadow-none'
-                                                                : 'text-white hover:bg-white/15 hover:text-white dark:text-sidebar-foreground/80 dark:hover:bg-sidebar-accent dark:hover:text-sidebar-foreground'
+                                                                ? 'bg-white font-medium text-primary shadow-sm dark:bg-sky-400/20 dark:text-sky-300 dark:shadow-none'
+                                                                : 'text-white hover:bg-white/10 hover:text-white dark:text-sidebar-foreground/80 dark:hover:bg-sidebar-accent dark:hover:text-sidebar-foreground'
                                                         }`}
                                                     />
                                                 }
@@ -345,8 +345,8 @@ export function AppSidebar() {
                                                     href={item.href}
                                                     className={`my-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[15px] transition-colors duration-200 ${
                                                         isActive(item.href)
-                                                            ? 'bg-white font-medium text-blue-500 shadow-sm dark:bg-sky-400/20 dark:text-sky-300 dark:shadow-none'
-                                                            : 'text-white hover:bg-white/15 hover:text-white dark:text-sidebar-foreground/80 dark:hover:bg-sidebar-accent dark:hover:text-sidebar-foreground'
+                                                            ? 'bg-white font-medium text-primary shadow-sm dark:bg-sky-400/20 dark:text-sky-300 dark:shadow-none'
+                                                            : 'text-white hover:bg-white/10 hover:text-white dark:text-sidebar-foreground/80 dark:hover:bg-sidebar-accent dark:hover:text-sidebar-foreground'
                                                     }`}
                                                 />
                                             }
@@ -402,8 +402,8 @@ export function AppSidebar() {
                                                                                 isActive(
                                                                                     subItem.href,
                                                                                 )
-                                                                                    ? 'bg-white font-medium text-blue-500 dark:bg-sky-400/20 dark:text-sky-300 dark:shadow-none'
-                                                                                    : 'text-white/90 hover:bg-white/15 hover:text-white dark:text-sidebar-foreground/80 dark:hover:bg-sidebar-accent dark:hover:text-sidebar-foreground'
+                                                                                    ? 'bg-white font-medium text-primary dark:bg-sky-400/20 dark:text-sky-300 dark:shadow-none'
+                                                                                    : 'text-white/90 hover:bg-white/10 hover:text-white dark:text-sidebar-foreground/80 dark:hover:bg-sidebar-accent dark:hover:text-sidebar-foreground'
                                                                             }`}
                                                                         />
                                                                     }
@@ -427,7 +427,7 @@ export function AppSidebar() {
                 <AlertDialog>
                     <AlertDialogTrigger
                         render={
-                            <button className="flex w-full items-center gap-2 rounded-lg bg-blue-600 px-3 py-2.5 text-sm text-red-300 transition-colors hover:bg-red-50 hover:text-red-400" />
+                            <button className="flex w-full items-center gap-2 rounded-lg border border-white/30 bg-primary px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none dark:border-white/10 dark:bg-primary dark:hover:bg-red-700" />
                         }
                     >
                         <LogOut className="h-4 w-4" />

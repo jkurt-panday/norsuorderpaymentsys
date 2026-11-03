@@ -1,4 +1,4 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import {
   Search,
   DollarSign,
@@ -23,6 +23,7 @@ import {
   Upload,
   Download,
     MoreHorizontal,
+    Copy,
     Printer,
 } from 'lucide-react';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -245,6 +246,22 @@ interface IndexProps {
     };
     courses?: { id: number; code: string }[];
     academicTerms?: { id: number; school_year: string; semester: string }[];
+    flash?: {
+        success?: string;
+        error?: string;
+        import_report?: {
+            imported: number;
+            skipped: number;
+            duplicates: number;
+            errors: Array<{
+                row: number;
+                student: string | null;
+                reason: string;
+            }>;
+            truncated: boolean;
+            total_errors: number;
+        };
+    };
 }
 
 const defaultVisibleColumns = {
@@ -379,6 +396,17 @@ export default function Index({
     const [isImporting, setIsImporting] = useState(false);
     const [importProgress, setImportProgress] = useState(0);
     const [importSuccess, setImportSuccess] = useState(false);
+    const [importReport, setImportReport] = useState<any>(null);
+    const [isImportReportOpen, setIsImportReportOpen] = useState(false);
+
+    const page = usePage<any>();
+
+    useEffect(() => {
+        if (page.props.flash?.import_report) {
+            setImportReport(page.props.flash.import_report);
+            setIsImportReportOpen(true);
+        }
+    }, [page.props.flash?.import_report]);
 
     const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
     const [emailTarget, setEmailTarget] = useState<
@@ -561,6 +589,14 @@ export default function Index({
     const visibleRecipients = bulkRecipients;
 
     const prevEmailTargetRef = useRef<string | null>(null);
+    const tableScrollRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (tableScrollRef.current) {
+            tableScrollRef.current.scrollLeft = tableScrollRef.current.scrollWidth;
+        }
+    }, []);
+
     useEffect(() => {
         const isBulkMode = emailTarget !== 'specific';
 
@@ -695,6 +731,48 @@ export default function Index({
                 setIsImporting(false);
                 setImportProgress(0);
             },
+        });
+    };
+
+    const copyImportReportToClipboard = () => {
+        if (!importReport?.errors) return;
+
+        const text = importReport.errors
+            .map((e: any) => `Row ${e.row}: ${e.student ?? 'Unknown'} - ${e.reason}`)
+            .join('\n');
+        
+        navigator.clipboard.writeText(text).then(() => {
+            flashToast('success', 'Error report copied to clipboard');
+        });
+    };
+
+    const handleCopyImportReport = () => {
+        if (!importReport) return;
+
+        const lines = [
+            `Graduate Ledger Import Report`,
+            `Imported: ${importReport.imported}`,
+            `Skipped with issues: ${importReport.skipped}`,
+            `Duplicates skipped: ${importReport.duplicates}`,
+            ``,
+            `Rows with issues:`,
+        ];
+
+        for (const err of importReport.errors) {
+            lines.push(
+                `  Row ${err.row}: ${err.student ?? '(no name)'} — ${err.reason}`,
+            );
+        }
+
+        if (importReport.truncated) {
+            lines.push(
+                `  ...and ${importReport.total_errors - importReport.errors.length} more issues`,
+            );
+        }
+
+        navigator.clipboard.writeText(lines.join('\n')).then(() => {
+            flashToast('success', 'Import report copied to clipboard.');
+            setIsImportReportOpen(false);
         });
     };
 
@@ -1535,6 +1613,7 @@ export default function Index({
                         </div>
                     )}
                     <div
+                        ref={tableScrollRef}
                         aria-busy={isFiltering}
                         className={`custom-scrollbar border-collapse rotate-180 overflow-x-auto transition-opacity ${
                             isFiltering
@@ -3254,6 +3333,165 @@ export default function Index({
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            {/* Import Results Dialog */}
+            {isImportReportOpen && (
+                <Dialog open={isImportReportOpen} onOpenChange={setIsImportReportOpen}>
+                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto rounded-xl border border-border bg-card p-6 text-card-foreground shadow-xl">
+                        <DialogHeader className="flex flex-col sm:flex-row items-center gap-3">
+                            <DialogTitle className="text-xl font-bold text-foreground">
+                                Import Results
+                            </DialogTitle>
+                        </DialogHeader>
+                        <DialogDescription className="mt-1 text-sm text-muted-foreground">
+                            Review the outcome of your spreadsheet import below.
+                        </DialogDescription>
+
+                        {/* Summary Metrics */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                            <div className="rounded-lg bg-primary/10 p-4">
+                                <div className="text-2xl font-bold text-primary">{importReport.imported}</div>
+                                <div className="text-sm text-muted-foreground">Imported</div>
+                            </div>
+                            <div className="rounded-lg bg-slate-100 p-4">
+                                <div className="text-2xl font-bold text-slate-800">{importReport.duplicates}</div>
+                                <div className="text-sm text-muted-foreground">Duplicates skipped</div>
+                            </div>
+                            <div className="rounded-lg bg-amber-100 p-4">
+                                <div className="text-2xl font-bold text-amber-800">{importReport.skipped}</div>
+                                <div className="text-sm text-muted-foreground">Skipped with issues</div>
+                            </div>
+                        </div>
+
+                        {/* Error Details Table */}
+                        {importReport.errors.length > 0 && (
+                            <div className="overflow-x-auto rounded-lg border border-border bg-muted/50 p-4 mb-6">
+                                <div className="flex justify-between items-center mb-3">
+                                    <p className="text-sm font-medium text-foreground">
+                                        Rows with issues ({importReport.errors.length})
+                                    </p>
+                                    {importReport.truncated && (
+                                        <span className="text-xs text-amber-600">
+                                            +{importReport.total_errors - importReport.errors.length} more
+                                        </span>
+                                    )}
+                                </div>
+                                <table className="w-full rounded-md bg-card text-sm">
+                                    <thead>
+                                        <tr className="border-b border-border">
+                                            <th className="p-2 text-left text-muted-foreground">Row</th>
+                                            <th className="p-2 text-left text-muted-foreground">Student</th>
+                                            <th className="p-2 text-left text-muted-foreground">Reason</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {importReport.errors.map((err: any, idx: number) => (
+                                            <tr key={idx} className="border-b border-border/50 hover:bg-muted/50">
+                                                <td className="p-2">{err.row}</td>
+                                                <td className="p-2 truncate">{err.student ?? '—'}</td>
+                                                <td className="p-2 truncate text-amber-600">{err.reason}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {/* Copy to Clipboard Button */}
+                        {importReport.errors.length > 0 && (
+                            <div className="flex gap-2 mb-6">
+                                <Button
+                                    variant="outline"
+                                    onClick={copyImportReportToClipboard}
+                                    className="flex-1"
+                                >
+                                    <Copy className="mr-1 h-4 w-4" /> Copy Issues to Clipboard
+                                </Button>
+                                {importReport.truncated && (
+                                    <span className="text-xs text-amber-600">
+                                        (...and {importReport.total_errors - importReport.errors.length} more)
+                                    </span>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Close Button */}
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => setIsImportReportOpen(false)}
+                            >
+                                Close
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            )}
+            {/* Import Results Dialog */}
+            <Dialog open={isImportReportOpen} onOpenChange={setIsImportReportOpen}>
+                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Import Summary</DialogTitle>
+                        <DialogDescription>
+                            Import process finished.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid grid-cols-3 gap-4">
+                        <div className="rounded-lg border bg-card p-4 text-center">
+                            <div className="text-2xl font-bold text-emerald-600">{importReport?.imported ?? 0}</div>
+                            <div className="text-xs text-muted-foreground">Imported</div>
+                        </div>
+                        <div className="rounded-lg border bg-card p-4 text-center">
+                            <div className="text-2xl font-bold text-slate-600">{importReport?.duplicates ?? 0}</div>
+                            <div className="text-xs text-muted-foreground">Duplicates</div>
+                        </div>
+                        <div className="rounded-lg border bg-card p-4 text-center">
+                            <div className="text-2xl font-bold text-rose-600">{importReport?.skipped ?? 0}</div>
+                            <div className="text-xs text-muted-foreground">Skipped Issues</div>
+                        </div>
+                    </div>
+
+                    {importReport?.errors && importReport.errors.length > 0 && (
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <h3 className="font-semibold text-foreground">Skipped Rows</h3>
+                                <Button size="sm" variant="outline" onClick={copyImportReportToClipboard}>
+                                    Copy Errors
+                                </Button>
+                            </div>
+                            <div className="max-h-60 overflow-y-auto rounded-md border border-border">
+                                <table className="w-full text-xs">
+                                    <thead className="bg-muted text-left">
+                                        <tr>
+                                            <th className="p-2">Row</th>
+                                            <th className="p-2">Student</th>
+                                            <th className="p-2">Reason</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border">
+                                        {importReport.errors.map((err: any, i: number) => (
+                                            <tr key={i}>
+                                                <td className="p-2 font-mono">{err.row}</td>
+                                                <td className="p-2">{err.student ?? '-'}</td>
+                                                <td className="p-2 text-rose-700">{err.reason}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {importReport.truncated && (
+                                <p className="text-xs text-muted-foreground italic">
+                                    Showing first 150 of {importReport.total_errors} errors.
+                                </p>
+                            )}
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button onClick={() => setIsImportReportOpen(false)}>Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </>
     );
 }
