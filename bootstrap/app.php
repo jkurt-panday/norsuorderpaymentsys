@@ -21,17 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Cloudflare tunnels (trycloudflare.com) and other reverse proxies
-        // terminate TLS and forward plain HTTP to the app, so Laravel would
-        // otherwise think the request is insecure and emit http:// asset URLs
-        // (mixed content). Trust the local/private proxy hops only.
-        $middleware->trustProxies(at: [
-            '127.0.0.1',
-            '::1',
-            '10.0.0.0/8',
-            '172.16.0.0/12',
-            '192.168.0.0/16',
-        ]);
+        // Cloudflare terminates HTTPS before forwarding requests to Laravel.
+        // Trust the forwarded scheme so @vite and URL helpers generate HTTPS URLs.
+        $middleware->trustProxies(at: '*');
 
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 

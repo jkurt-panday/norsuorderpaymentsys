@@ -34,14 +34,6 @@ import PublicLayout from '@/pages/layouts/PublicLayout';
 const enlarge =
     'h-12 rounded-xl border-border bg-card px-4 text-base shadow-sm transition-all duration-200';
 
-const toSentenceCase = (value: string): string => {
-    const normalized = value.toLowerCase();
-
-    return normalized.replace(/(^\s*[a-z])|([.!?]\s+[a-z])/g, (match) =>
-        match.toUpperCase(),
-    );
-};
-
 // Generates array of academic years: ["2026-2027", "2025-2026", "2024-2025", ...]
 export const SCHOOL_YEAR_OPTIONS = (() => {
     const today = new Date();
@@ -293,10 +285,10 @@ export default function AssessmentForm({ courses }: Props) {
                                                     placeholder="Juan"
                                                     value={data.first_name}
                                                     onChange={(e) =>
-setData(
-                                                             'first_name',
-                                                             toSentenceCase(e.target.value),
-                                                         )
+                                                        setData(
+                                                            'first_name',
+                                                            e.target.value,
+                                                        )
                                                     }
                                                 />
                                                 {errors.first_name && (
@@ -324,10 +316,10 @@ setData(
                                                     placeholder="Carlos"
                                                     value={data.middle_name}
                                                     onChange={(e) =>
-setData(
-                                                             'middle_name',
-                                                             toSentenceCase(e.target.value),
-                                                         )
+                                                        setData(
+                                                            'middle_name',
+                                                            e.target.value,
+                                                        )
                                                     }
                                                 />
                                                 {errors.middle_name && (
@@ -355,10 +347,10 @@ setData(
                                                     placeholder="Dela Cruz"
                                                     value={data.last_name}
                                                     onChange={(e) =>
-setData(
-                                                             'last_name',
-                                                             toSentenceCase(e.target.value),
-                                                         )
+                                                        setData(
+                                                            'last_name',
+                                                            e.target.value,
+                                                        )
                                                     }
                                                 />
                                                 {errors.last_name && (
@@ -388,11 +380,17 @@ setData(
                                                 aria-describedby={errors.student_id ? "assess-student_id-error" : undefined}
                                                 placeholder="202300000"
                                                 value={data.student_id}
-                                                onChange={(e) =>{
-                                                    const value = e.target.value.slice(0, 9); // Enforce max 9 digits
-                                                    setData('student_id', value);
-                                                }
-                                                }
+                                                onChange={(e) => {
+                                                    const value =
+                                                        e.target.value.slice(
+                                                            0,
+                                                            9,
+                                                        ); // Enforce max 9 digits
+                                                    setData(
+                                                        'student_id',
+                                                        value,
+                                                    );
+                                                }}
                                             />
                                             {errors.student_id && (
                                                     <FieldError id="assess-student_id-error" className="mt-1">
@@ -442,9 +440,7 @@ setData(
                                                     aria-invalid={Boolean(errors.course_id)}
                                                     aria-describedby={errors.course_id ? "assess-course_id-error" : undefined}
                                                     className={`border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
-                                                    showClear={
-                                                        !!data.course_id
-                                                    }
+                                                    showClear={!!data.course_id}
                                                 />
                                                 <ComboboxContent>
                                                     <ComboboxEmpty>
@@ -491,10 +487,11 @@ setData(
                                                 placeholder="Kagawasan Ave. Dumaguete City"
                                                 value={data.address}
                                                 onChange={(e) =>
-setData(
-                                                     'address',
-                                                     toSentenceCase(e.target.value),
-                                                 )
+                                                    setData(
+                                                        'address',                                                        
+                                                        e.target.value,
+                                                        
+                                                    )
                                                 }
                                             />
                                             {errors.address && (
@@ -727,7 +724,7 @@ setData(
                                 >
                                     Reset
                                 </Button>
-                            
+
                                 {/* Submit Assessment Button */}
                                 <Button
                                     type="submit"
