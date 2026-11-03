@@ -427,7 +427,7 @@ export function AppSidebar() {
                 <AlertDialog>
                     <AlertDialogTrigger
                         render={
-                            <button className="flex w-full items-center gap-2 rounded-lg border border-white/30 bg-primary px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none dark:border-white/10 dark:bg-primary dark:hover:bg-red-700" />
+                            <button className="flex w-full items-center gap-2 rounded-lg border border-white/30 bg-red-600 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none dark:border-white/10 dark:bg-red-600 dark:hover:bg-red-700" />
                         }
                     >
                         <LogOut className="h-4 w-4" />

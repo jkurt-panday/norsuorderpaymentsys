@@ -4,7 +4,7 @@
 ## Current State
 - **P1 audit fixes COMPLETE (Phases 1–4) → moved to `plan/finished/fix_p1_contrast_and_a11y.md`:**
   - **Phase 1 (contrast tokens):** `--primary`/`--ring`/`--sidebar-primary`/`--sidebar-ring`/`--chart-1` → `#0062cc`; `--muted-foreground` → `#556378`; `body` gets `color: var(--foreground)`.
-  - Sidebar/header: `#007FFF` header → `bg-primary`, active nav `text-blue-500` → `text-primary`, `text-white/70` → `/90`, hover `bg-white/15` → `/10`, Logout uses `bg-primary` + white text with red hover.
+  - Sidebar/header: `#007FFF` header → `bg-primary`, active nav `text-blue-500` → `text-primary`, `text-white/70` → `/90`, hover `bg-white/15` → `/10`, Logout → `bg-red-600` + white text (4.83:1).
   - Emerald fills with white text → `emerald-700` (Send Email, UACS). `text-blue-500` labels → `text-primary`. `text-blue-600` links get `dark:text-sky-400`. User-menu logout `text-red-300` → `text-red-600` + dark variants.
   - **Phase 2 (table headers):** `RequestTable`, `ResourceTable`, `ActivityLogTable` render real `<button>` inside sortable `<th>`, with `aria-sort`, icons `aria-hidden`.
   - **Phase 3 (recipient picker):** `request.tsx` picker rows converted to `<button role="checkbox" aria-checked={...}>`, `disabled` on ineligible rows. "N selected" popover given `role="dialog"`, `aria-label`, Escape key handling with return focus to trigger.
