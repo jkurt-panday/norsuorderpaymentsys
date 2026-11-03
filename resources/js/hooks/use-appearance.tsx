@@ -12,6 +12,14 @@ export type UseAppearanceReturn = {
 const listeners = new Set<() => void>();
 let currentAppearance: Appearance = 'light';
 
+const isPublicRoute = (): boolean => {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    return window.location.pathname.startsWith('/public');
+};
+
 const prefersDark = (): boolean => {
     if (typeof window === 'undefined') {
         return false;
@@ -43,6 +51,12 @@ const isDarkMode = (appearance: Appearance): boolean => {
 
 const applyTheme = (appearance: Appearance): void => {
     if (typeof document === 'undefined') {
+        return;
+    }
+
+    if (isPublicRoute()) {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.style.colorScheme = 'light';
         return;
     }
 

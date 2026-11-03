@@ -332,10 +332,12 @@ export default function PrintSelect({
                                 />
                                 {search && (
                                     <button
+                                        type="button"
                                         onClick={() => setSearch('')}
-                                        className="absolute top-2.5 right-2.5 text-muted-foreground hover:text-foreground"
+                                        aria-label="Clear search"
+                                        className="absolute top-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
                                     >
-                                        <X className="h-4 w-4" />
+                                        <X className="h-4 w-4" aria-hidden="true" />
                                     </button>
                                 )}
                             </div>
@@ -448,11 +450,11 @@ export default function PrintSelect({
                                         </h3>
                                     </Card>
                                     {(summary.totalAdjustments ?? 0) > 0 && (
-                                        <Card className="border-purple-200 bg-purple-50/40 p-4">
-                                            <p className="text-xs font-medium text-purple-700">
+                                        <Card className="border-purple-200 bg-purple-50/40 p-4 dark:border-purple-800 dark:bg-purple-950/40">
+                                            <p className="text-xs font-medium text-purple-700 dark:text-purple-300">
                                                 Total Adjustments
                                             </p>
-                                            <h3 className="mt-1 text-base font-bold text-purple-900">
+                                            <h3 className="mt-1 text-base font-bold text-purple-900 dark:text-purple-100">
                                                 {currency(
                                                     summary.totalAdjustments ??
                                                         0,

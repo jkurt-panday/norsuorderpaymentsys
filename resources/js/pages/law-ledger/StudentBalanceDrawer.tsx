@@ -55,6 +55,7 @@ interface StudentBalanceData {
     summary: {
         totalCharges: number;
         totalPayments: number;
+        totalAdjustments?: number;
         outstandingBalance: number;
     };
     transactions: DrawerTransaction[];
@@ -166,8 +167,8 @@ export default function StudentBalanceDrawer({
                     {loading && (
                         <div className="space-y-5" aria-label="Loading student balance">
                             <div className="h-24 animate-pulse rounded-xl bg-muted" />
-                            <div className="grid grid-cols-3 gap-3">
-                                {[0, 1, 2].map((item) => (
+                            <div className="grid grid-cols-2 gap-3">
+                                {[0, 1, 2, 3].map((item) => (
                                     <div key={item} className="h-20 animate-pulse rounded-lg bg-muted" />
                                 ))}
                             </div>
@@ -212,21 +213,42 @@ export default function StudentBalanceDrawer({
                                 )}
                             </section>
 
-                            <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                                <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3 dark:border-blue-900/50 dark:bg-blue-950/30">
-                                    <ReceiptText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                    <p className="mt-2 text-[11px] font-medium text-blue-700 dark:text-blue-300">Assessments</p>
-                                    <p className="mt-0.5 font-bold text-blue-900 dark:text-blue-100">{currency(data.summary.totalCharges)}</p>
+                            <section className="grid grid-cols-2 gap-3">
+                                <div className="flex min-w-0 flex-col justify-between rounded-lg border border-blue-200 bg-blue-50/60 p-3.5 dark:border-blue-900/50 dark:bg-blue-950/30">
+                                    <div className="flex items-center justify-between gap-1.5">
+                                        <p className="truncate text-xs font-medium text-blue-700 dark:text-blue-300">Assessments</p>
+                                        <ReceiptText className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                                    </div>
+                                    <p className="mt-2 truncate text-base font-bold tracking-tight text-blue-900 dark:text-blue-100 sm:text-lg" title={currency(data.summary.totalCharges)}>
+                                        {currency(data.summary.totalCharges)}
+                                    </p>
                                 </div>
-                                <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 dark:border-emerald-900/50 dark:bg-emerald-950/30">
-                                    <Wallet className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                                    <p className="mt-2 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">Payments</p>
-                                    <p className="mt-0.5 font-bold text-emerald-900 dark:text-emerald-100">{currency(data.summary.totalPayments)}</p>
+                                <div className="flex min-w-0 flex-col justify-between rounded-lg border border-emerald-200 bg-emerald-50/60 p-3.5 dark:border-emerald-900/50 dark:bg-emerald-950/30">
+                                    <div className="flex items-center justify-between gap-1.5">
+                                        <p className="truncate text-xs font-medium text-emerald-700 dark:text-emerald-300">Payments</p>
+                                        <Wallet className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                                    </div>
+                                    <p className="mt-2 truncate text-base font-bold tracking-tight text-emerald-900 dark:text-emerald-100 sm:text-lg" title={currency(data.summary.totalPayments)}>
+                                        {currency(data.summary.totalPayments)}
+                                    </p>
                                 </div>
-                                <div className={`rounded-lg border p-3 ${balance > 0 ? 'border-amber-200 bg-amber-50/70 dark:border-amber-900/50 dark:bg-amber-950/30' : 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/50 dark:bg-emerald-950/30'}`}>
-                                    <AlertCircle className={`h-4 w-4 ${balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`} />
-                                    <p className={`mt-2 text-[11px] font-medium ${balance > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'}`}>Current balance</p>
-                                    <p className={`mt-0.5 font-bold ${balance > 0 ? 'text-amber-900 dark:text-amber-100' : 'text-emerald-900 dark:text-emerald-100'}`}>{currency(balance)}</p>
+                                <div className="flex min-w-0 flex-col justify-between rounded-lg border border-purple-200 bg-purple-50/60 p-3.5 dark:border-purple-900/50 dark:bg-purple-950/30">
+                                    <div className="flex items-center justify-between gap-1.5">
+                                        <p className="truncate text-xs font-medium text-purple-700 dark:text-purple-300">Adjustments</p>
+                                        <Scale className="h-4 w-4 shrink-0 text-purple-600 dark:text-purple-400" />
+                                    </div>
+                                    <p className="mt-2 truncate text-base font-bold tracking-tight text-purple-900 dark:text-purple-100 sm:text-lg" title={currency(data.summary.totalAdjustments ?? 0)}>
+                                        {currency(data.summary.totalAdjustments ?? 0)}
+                                    </p>
+                                </div>
+                                <div className={`flex min-w-0 flex-col justify-between rounded-lg border p-3.5 ${balance > 0 ? 'border-amber-200 bg-amber-50/70 dark:border-amber-900/50 dark:bg-amber-950/30' : 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/50 dark:bg-emerald-950/30'}`}>
+                                    <div className="flex items-center justify-between gap-1.5">
+                                        <p className={`truncate text-xs font-medium ${balance > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'}`}>Current balance</p>
+                                        <AlertCircle className={`h-4 w-4 shrink-0 ${balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`} />
+                                    </div>
+                                    <p className={`mt-2 truncate text-base font-bold tracking-tight sm:text-lg ${balance > 0 ? 'text-amber-900 dark:text-amber-100' : 'text-emerald-900 dark:text-emerald-100'}`} title={currency(balance)}>
+                                        {currency(balance)}
+                                    </p>
                                 </div>
                             </section>
 

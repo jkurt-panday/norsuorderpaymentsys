@@ -1,6 +1,5 @@
 import { useForm, Head } from '@inertiajs/react';
 import { Mail, User, University } from 'lucide-react';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -127,7 +126,6 @@ export default function AssessmentForm({ courses }: Props) {
     return (
         <>
             <Head title="Assessment Form" />
-            <ThemeToggle className="fixed top-4 right-4 z-50 rounded-full bg-card/80 shadow-md backdrop-blur dark:bg-slate-900/80" />
             <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-200 to-white px-6 py-12">
                 <div className="mx-auto max-w-4xl">
                     <div className="mb-6 rounded-2xl border border-blue-100 bg-card px-8 py-8 text-center shadow-md">
@@ -359,8 +357,8 @@ export default function AssessmentForm({ courses }: Props) {
                                                 Student ID
                                             </FieldLabel>
                                             <Input
-                                                className={`${enlarge} [appearance:textfield] focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
-                                                id="input-field-fname"
+                                                className={`${enlarge} focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+                                                id="input-field-studentId"
                                                 type="number"
                                                 placeholder="202300000"
                                                 value={data.student_id}
@@ -420,6 +418,7 @@ export default function AssessmentForm({ courses }: Props) {
                                             >
                                                 <ComboboxInput
                                                     placeholder="Select course"
+                                                    aria-label="Course"
                                                     className={`border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
                                                     showClear={!!data.course_id}
                                                 />
@@ -656,6 +655,7 @@ export default function AssessmentForm({ courses }: Props) {
                                 >
                                     <ComboboxInput
                                         placeholder="Select School Year"
+                                        aria-label="School Year last attended"
                                         className={`border-border focus-within:border-blue-600! focus-within:ring-2! focus-within:ring-blue-600/30! data-[state=open]:border-blue-600! data-[state=open]:ring-2! data-[state=open]:ring-blue-600/30! data-open:border-blue-600! data-open:ring-2! data-open:ring-blue-600/30! ${enlarge}`}
                                         showClear={!!data.sy_last_attended}
                                     />

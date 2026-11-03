@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
+import { Banknote, Lock } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import {
     Card,
@@ -25,9 +26,7 @@ export default function AuthCardLayout({
             <header className="w-full bg-card border-b border-border z-50">
                 <div className="flex items-center justify-between px-6 md:px-10 py-4 max-w-[1280px] mx-auto">
                     <Link href={home()} className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                            account_balance
-                        </span>
+                        <Banknote className="text-primary text-3xl" />
                         <div className="h-8 w-px bg-border mx-2"></div>
                         <h1 className="font-heading text-2xl md:text-3xl font-semibold text-primary leading-none">
                             University Accounting Office
@@ -49,9 +48,7 @@ export default function AuthCardLayout({
                     <Card className="bg-card border border-border rounded-xl shadow-xl p-6 md:p-8">
                         <CardHeader className="flex flex-col items-center justify-center text-center pb-2">
                             <div className="flex justify-center">
-                                <span className="material-symbols-outlined text-primary text-5xl mb-3" style={{ fontVariationSettings: "'FILL' 1" }}>
-                                    lock_person
-                                </span>
+                                <Lock className="text-primary text-5xl mb-3" />
                             </div>
                             <CardTitle className="text-2xl font-bold text-foreground">
                                 {title}

@@ -82,7 +82,7 @@ interface ReferenceDocument {
 
 interface StaffInput {
     id: number;
-    status: 'pending' | 'approved' | 'paid' | 'cancelled' | 'unprocessed';
+    status: 'pending' | 'processed' | 'paid' | 'cancelled' | 'unprocessed';
     ref_date: string | null;
     bank_account: BankAccount | null;
     uacs: UacsProps | null;
@@ -169,7 +169,7 @@ interface PageProps {
 
 const statusBadgeClass = (status: string) => {
     switch (status) {
-        case 'approved':
+        case 'processed':
             return 'bg-green-50 text-green-700';
         case 'paid':
             return 'bg-green-100 text-green-800';
@@ -184,7 +184,7 @@ const statusBadgeClass = (status: string) => {
 
 const statusBadgeBorder = (status: string) => {
     switch (status) {
-        case 'approved':
+        case 'processed':
             return 'ring-1 ring-green-500';
         case 'paid':
             return 'ring-1 ring-emerald-500';
@@ -247,11 +247,10 @@ const ReadOnlyRow = ({
         </div>
     ) : (
         <p
-            className={`min-w-0 flex-1 text-sm ${valueClass} ${
-                shouldTruncate
-                    ? 'truncate'
-                    : 'wrap-break-word whitespace-pre-wrap'
-            }`}
+            className={`min-w-0 flex-1 text-sm ${valueClass} ${shouldTruncate
+                ? 'truncate'
+                : 'wrap-break-word whitespace-pre-wrap'
+                }`}
             title={shouldTruncate ? stringValue : undefined}
         >
             {displayValue}
@@ -709,7 +708,7 @@ export default function ShowRequest() {
         uacs_id: formInput.staff_input?.uacs
             ? String(formInput.staff_input.uacs.id)
             : '',
-        status: formInput.staff_input?.status ?? 'approved',
+        status: formInput.staff_input?.status ?? 'processed',
         purpose: formInput.staff_input?.purpose ?? '',
     });
 
@@ -803,7 +802,7 @@ export default function ShowRequest() {
         ref_document_id: '',
         ref_date: todayIso(),
         uacs_id: '',
-        status: 'approved',
+        status: 'processed',
         purpose: '',
     });
     const handleProcessSubmit = (e: React.FormEvent) => {
@@ -891,10 +890,10 @@ export default function ShowRequest() {
                                                 payment_detail_option_id:
                                                     formInput.payment_detail_option
                                                         ? String(
-                                                              formInput
-                                                                  .payment_detail_option
-                                                                  .id,
-                                                          )
+                                                            formInput
+                                                                .payment_detail_option
+                                                                .id,
+                                                        )
                                                         : '',
                                                 new_payment_option: '',
                                             });
@@ -930,11 +929,10 @@ export default function ShowRequest() {
                                             </label>
                                             <input
                                                 type="text"
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                    detailsErrors.firstname_or_office
-                                                        ? 'border-rose-400'
-                                                        : 'border-border'
-                                                }`}
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${detailsErrors.firstname_or_office
+                                                    ? 'border-rose-400'
+                                                    : 'border-border'
+                                                    }`}
                                                 value={
                                                     detailsData.firstname_or_office
                                                 }
@@ -961,11 +959,10 @@ export default function ShowRequest() {
                                             </label>
                                             <input
                                                 type="text"
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                    detailsErrors.middlename_or_project
-                                                        ? 'border-rose-400'
-                                                        : 'border-border'
-                                                }`}
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${detailsErrors.middlename_or_project
+                                                    ? 'border-rose-400'
+                                                    : 'border-border'
+                                                    }`}
                                                 value={
                                                     detailsData.middlename_or_project
                                                 }
@@ -994,11 +991,10 @@ export default function ShowRequest() {
                                             </label>
                                             <input
                                                 type="text"
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                    detailsErrors.lastname_or_agency
-                                                        ? 'border-rose-400'
-                                                        : 'border-border'
-                                                }`}
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${detailsErrors.lastname_or_agency
+                                                    ? 'border-rose-400'
+                                                    : 'border-border'
+                                                    }`}
                                                 value={
                                                     detailsData.lastname_or_agency
                                                 }
@@ -1113,11 +1109,10 @@ export default function ShowRequest() {
                                                 type="number"
                                                 step="0.01"
                                                 min="0"
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                    detailsErrors.amount
-                                                        ? 'border-rose-400'
-                                                        : 'border-border'
-                                                }`}
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${detailsErrors.amount
+                                                    ? 'border-rose-400'
+                                                    : 'border-border'
+                                                    }`}
                                                 value={detailsData.amount}
                                                 onChange={(e) =>
                                                     setDetailsData(
@@ -1169,19 +1164,18 @@ export default function ShowRequest() {
                                                                 'payment_detail_option_id',
                                                                 selected
                                                                     ? String(
-                                                                          selected.id,
-                                                                      )
+                                                                        selected.id,
+                                                                    )
                                                                     : '',
                                                             );
                                                         }}
                                                     >
                                                         <ComboboxInput
                                                             placeholder="Select Payment Option"
-                                                            className={`h-9! w-full rounded-xl border bg-background px-4 py-2 text-sm text-foreground outline-none ${
-                                                                detailsErrors.payment_detail_option_id
-                                                                    ? 'border-rose-400'
-                                                                    : 'border-border'
-                                                            }`}
+                                                            className={`h-9! w-full rounded-xl border bg-background px-4 py-2 text-sm text-foreground outline-none ${detailsErrors.payment_detail_option_id
+                                                                ? 'border-rose-400'
+                                                                : 'border-border'
+                                                                }`}
                                                             showClear={
                                                                 !!detailsData.payment_detail_option_id
                                                             }
@@ -1406,22 +1400,22 @@ export default function ShowRequest() {
                                                                 .staff_input
                                                                 ?.bank_account
                                                                 ? String(
-                                                                      formInput
-                                                                          .staff_input
-                                                                          .bank_account
-                                                                          .id,
-                                                                  )
+                                                                    formInput
+                                                                        .staff_input
+                                                                        .bank_account
+                                                                        .id,
+                                                                )
                                                                 : '',
                                                         ref_document_id:
                                                             formInput
                                                                 .staff_input
                                                                 ?.reference_document
                                                                 ? String(
-                                                                      formInput
-                                                                          .staff_input
-                                                                          .reference_document
-                                                                          .id,
-                                                                  )
+                                                                    formInput
+                                                                        .staff_input
+                                                                        .reference_document
+                                                                        .id,
+                                                                )
                                                                 : '',
                                                         ref_date:
                                                             formInput.staff_input?.ref_date?.split(
@@ -1430,16 +1424,16 @@ export default function ShowRequest() {
                                                         uacs_id: formInput
                                                             .staff_input?.uacs
                                                             ? String(
-                                                                  formInput
-                                                                      .staff_input
-                                                                      .uacs.id,
-                                                              )
+                                                                formInput
+                                                                    .staff_input
+                                                                    .uacs.id,
+                                                            )
                                                             : '',
                                                         status:
                                                             formInput
                                                                 .staff_input
                                                                 ?.status ??
-                                                            'approved',
+                                                            'processed',
                                                         purpose:
                                                             formInput
                                                                 .staff_input
@@ -1544,8 +1538,8 @@ export default function ShowRequest() {
                                                                 'fundcluster_id',
                                                                 selected
                                                                     ? String(
-                                                                          selected.id,
-                                                                      )
+                                                                        selected.id,
+                                                                    )
                                                                     : '',
                                                             );
                                                         }}
@@ -1624,8 +1618,8 @@ export default function ShowRequest() {
                                                                 'ref_document_id',
                                                                 selected
                                                                     ? String(
-                                                                          selected.id,
-                                                                      )
+                                                                        selected.id,
+                                                                    )
                                                                     : '',
                                                             );
                                                         }}
@@ -1721,8 +1715,8 @@ export default function ShowRequest() {
                                                                 'uacs_id',
                                                                 selected
                                                                     ? String(
-                                                                          selected.id,
-                                                                      )
+                                                                        selected.id,
+                                                                    )
                                                                     : '',
                                                             );
                                                         }}
@@ -1776,7 +1770,11 @@ export default function ShowRequest() {
                                                             },
                                                             {
                                                                 label: 'Processed',
-                                                                value: 'approved',
+                                                                value: 'processed',
+                                                            },
+                                                            {
+                                                                label: 'Paid',
+                                                                value: 'paid',
                                                             },
                                                             {
                                                                 label: 'Cancelled',
@@ -1813,7 +1811,11 @@ export default function ShowRequest() {
                                                                     },
                                                                     {
                                                                         label: 'Processed',
-                                                                        value: 'approved',
+                                                                        value: 'processed',
+                                                                    },
+                                                                    {
+                                                                        label: 'Paid',
+                                                                        value: 'paid',
                                                                     },
                                                                     {
                                                                         label: 'Cancelled',
@@ -1846,11 +1848,10 @@ export default function ShowRequest() {
                                                     }
                                                 >
                                                     <textarea
-                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                            staffInputErrors.purpose
-                                                                ? 'border-rose-400'
-                                                                : 'border-border'
-                                                        }`}
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${staffInputErrors.purpose
+                                                            ? 'border-rose-400'
+                                                            : 'border-border'
+                                                            }`}
                                                         value={
                                                             staffInputData.purpose
                                                         }
@@ -1955,10 +1956,10 @@ export default function ShowRequest() {
                                                         formInput.staff_input
                                                             .ref_date
                                                             ? formatDateOnly(
-                                                                  formInput
-                                                                      .staff_input
-                                                                      .ref_date,
-                                                              )
+                                                                formInput
+                                                                    .staff_input
+                                                                    .ref_date,
+                                                            )
                                                             : 'N/A'
                                                     }
                                                     valueClass="text-black-400"
@@ -2064,8 +2065,8 @@ export default function ShowRequest() {
                                                         'fundcluster_id',
                                                         selected
                                                             ? String(
-                                                                  selected.id,
-                                                              )
+                                                                selected.id,
+                                                            )
                                                             : '',
                                                     );
                                                 }}
@@ -2137,8 +2138,8 @@ export default function ShowRequest() {
                                                         'ref_document_id',
                                                         selected
                                                             ? String(
-                                                                  selected.id,
-                                                              )
+                                                                selected.id,
+                                                            )
                                                             : '',
                                                     );
                                                 }}
@@ -2230,8 +2231,8 @@ export default function ShowRequest() {
                                                         'uacs_id',
                                                         selected
                                                             ? String(
-                                                                  selected.id,
-                                                              )
+                                                                selected.id,
+                                                            )
                                                             : '',
                                                     );
                                                 }}
@@ -2287,7 +2288,11 @@ export default function ShowRequest() {
                                                     },
                                                     {
                                                         label: 'Processed',
-                                                        value: 'approved',
+                                                        value: 'processed',
+                                                    },
+                                                    {
+                                                        label: 'Paid',
+                                                        value: 'paid',
                                                     },
                                                     {
                                                         label: 'Cancelled',
@@ -2319,7 +2324,7 @@ export default function ShowRequest() {
                                                             },
                                                             {
                                                                 label: 'Processed',
-                                                                value: 'approved',
+                                                                value: 'processed',
                                                             },
                                                             {
                                                                 label: 'Cancelled',
@@ -2350,11 +2355,10 @@ export default function ShowRequest() {
                                                 Purpose
                                             </label>
                                             <textarea
-                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                    processErrors.purpose
-                                                        ? 'border-rose-400'
-                                                        : 'border-border'
-                                                }`}
+                                                className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${processErrors.purpose
+                                                    ? 'border-rose-400'
+                                                    : 'border-border'
+                                                    }`}
                                                 value={processData.purpose}
                                                 onChange={(e) =>
                                                     setProcessData(
@@ -2454,8 +2458,8 @@ export default function ShowRequest() {
                                                             .staff_input
                                                             ?.or_date
                                                             ? formInput.staff_input.or_date.split(
-                                                                  'T',
-                                                              )[0]
+                                                                'T',
+                                                            )[0]
                                                             : '',
                                                     });
                                                     setIsEditingOr(true);
@@ -2494,11 +2498,10 @@ export default function ShowRequest() {
                                                         type="text"
                                                         inputMode="text"
                                                         placeholder="e.g. 56-980 or 2024/001"
-                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${
-                                                            orErrors.or_no
-                                                                ? 'border-rose-400'
-                                                                : 'border-border'
-                                                        }`}
+                                                        className={`w-full rounded-xl border px-4 py-2 text-sm text-foreground outline-none ${orErrors.or_no
+                                                            ? 'border-rose-400'
+                                                            : 'border-border'
+                                                            }`}
                                                         value={orData.or_no}
                                                         onChange={(e) => {
                                                             const filtered =
@@ -2595,10 +2598,10 @@ export default function ShowRequest() {
                                                         formInput.staff_input
                                                             ?.or_date
                                                             ? formatDateOnly(
-                                                                  formInput
-                                                                      .staff_input
-                                                                      .or_date,
-                                                              )
+                                                                formInput
+                                                                    .staff_input
+                                                                    .or_date,
+                                                            )
                                                             : 'N/A'
                                                     }
                                                     valueClass="text-black-400"
@@ -2726,6 +2729,7 @@ export default function ShowRequest() {
                                                     <button
                                                         type="button"
                                                         title="Delete"
+                                                        aria-label="Delete document"
                                                         onClick={() =>
                                                             confirmDelete(
                                                                 document.id,
@@ -2992,22 +2996,20 @@ export default function ShowRequest() {
                         <button
                             type="button"
                             onClick={() => setStudentMatchMode('existing')}
-                            className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                                studentMatchMode === 'existing'
-                                    ? 'bg-card text-blue-700 shadow-sm'
-                                    : 'text-muted-foreground hover:text-foreground'
-                            }`}
+                            className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${studentMatchMode === 'existing'
+                                ? 'bg-card text-blue-700 shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground'
+                                }`}
                         >
                             Search Existing
                         </button>
                         <button
                             type="button"
                             onClick={() => setStudentMatchMode('create')}
-                            className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                                studentMatchMode === 'create'
-                                    ? 'bg-card text-blue-700 shadow-sm'
-                                    : 'text-muted-foreground hover:text-foreground'
-                            }`}
+                            className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${studentMatchMode === 'create'
+                                ? 'bg-card text-blue-700 shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground'
+                                }`}
                         >
                             Create Student
                         </button>
@@ -3049,11 +3051,10 @@ export default function ShowRequest() {
                                                         String(student.id),
                                                     )
                                                 }
-                                                className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
-                                                    selected
-                                                        ? 'border-blue-500 bg-blue-50'
-                                                        : 'border-transparent hover:bg-muted/50'
-                                                }`}
+                                                className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${selected
+                                                    ? 'border-blue-500 bg-blue-50'
+                                                    : 'border-transparent hover:bg-muted/50'
+                                                    }`}
                                             >
                                                 <span>
                                                     <span className="block text-sm font-semibold text-foreground">
@@ -3233,7 +3234,7 @@ export default function ShowRequest() {
                             disabled={
                                 studentMatchMode === 'existing'
                                     ? !linkStudentForm.data.student_id ||
-                                      linkStudentForm.processing
+                                    linkStudentForm.processing
                                     : createStudentForm.processing
                             }
                             className="rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
@@ -3243,8 +3244,8 @@ export default function ShowRequest() {
                                     ? 'Linking...'
                                     : 'Confirm Match'
                                 : createStudentForm.processing
-                                  ? 'Creating...'
-                                  : 'Create and Match'}
+                                    ? 'Creating...'
+                                    : 'Create and Match'}
                         </button>
                     </DialogFooter>
                 </DialogContent>

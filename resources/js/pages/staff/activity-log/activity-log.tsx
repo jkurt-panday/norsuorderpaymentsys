@@ -20,12 +20,12 @@ export default function ActivityLogPage() {
         <div className="min-h-screen bg-page-background px-4 py-8">
             <Head title="Activity Log" />
             <div className="mx-auto max-w-7xl">
-                <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
+                <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-[#101D31] md:flex-row md:items-center md:justify-between">
                     <div>
                         <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                             Activity Log
                         </CardTitle>
-                        <p className="text-sm text-slate-500">
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
                             Every change across requests, orders of payment, and
                             settings — who did it and what changed.
                         </p>

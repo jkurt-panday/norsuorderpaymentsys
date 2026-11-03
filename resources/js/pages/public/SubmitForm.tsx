@@ -12,7 +12,6 @@ import {
 import { useState, useMemo, useEffect } from 'react';
 import AddCollegeOfficeModal from '@/components/AddCollegeOfficeModal';
 import { FileUpload } from '@/components/application/file-upload/file-upload-base';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -201,6 +200,18 @@ export default function SubmitForm({
         post('/public/opform', {
             forceFormData: true,
             preserveState: true,
+            onProgress: (event) => {
+                // event.percentage is available from Inertia
+                if (event?.percentage) {
+                    // Update progress for all files in documents
+                    const progressVal = event.percentage;
+                    const newProgress: Record<string, number> = {};
+                    data.documents.forEach((file) => {
+                        newProgress[getFileKey(file)] = progressVal;
+                    });
+                    setUploadProgress(newProgress);
+                }
+            },
             onSuccess: () => console.log('Success'),
             onError: (errs) => console.error('Validation errors:', errs),
         });
@@ -217,25 +228,6 @@ export default function SubmitForm({
     // Builds a stable, unique key for a File object so we can track its progress
     const getFileKey = (file: File) =>
         `${file.name}-${file.size}-${file.lastModified}`;
-
-    // Animates a single file's progress from 0 to 100 over ~0.8s
-    const animateFileProgress = (file: File) => {
-        const key = getFileKey(file);
-        setUploadProgress((prev) => ({ ...prev, [key]: 0 }));
-
-        let progress = 0;
-        const interval = setInterval(() => {
-            progress += 10;
-            setUploadProgress((prev) => ({
-                ...prev,
-                [key]: Math.min(progress, 100),
-            }));
-
-            if (progress >= 100) {
-                clearInterval(interval);
-            }
-        }, 80);
-    };
 
     // ? file upload
     // Add state for supporting documents
@@ -260,7 +252,6 @@ export default function SubmitForm({
         setDocumentError('');
 
         setData('documents', [...data.documents, ...newFiles]);
-        newFiles.forEach(animateFileProgress);
     };
 
     // Handle file deletion
@@ -290,7 +281,6 @@ export default function SubmitForm({
     return (
         <>
             <Head title="Order of Payment Form" />
-            <ThemeToggle className="fixed top-4 right-4 z-50 rounded-full bg-card/80 shadow-md backdrop-blur dark:bg-slate-900/80" />
             <div className="min-h-screen bg-linear-to-b from-blue-500 via-slate-300 to-white px-6 py-12">
                 <div className="mx-auto max-w-4xl">
                     <div className="mb-6 rounded-2xl border border-blue-100 bg-card px-8 py-8 text-center shadow-md">
@@ -558,7 +548,7 @@ export default function SubmitForm({
                                             {/* office / college */}
                                             <Field>
                                                 <FieldLabel
-                                                    htmlFor="input-field-off-coll"
+                                                    htmlFor="combobox-office"
                                                     className="font-medium text-slate-700"
                                                 >
                                                     Office / College
@@ -585,7 +575,9 @@ export default function SubmitForm({
                                                         }}
                                                     >
                                                         <ComboboxInput
+                                                            id="combobox-office"
                                                             placeholder="Select office / college"
+                                                            aria-label="Office or College"
                                                             className={`${comboboxInputClass} w-full`}
                                                             showClear={
                                                                 !!data.office_or_college
@@ -800,12 +792,9 @@ export default function SubmitForm({
                                                 >
                                                     <ComboboxInput
                                                         placeholder="Select course"
-                                                        className={
-                                                            comboboxInputClass
-                                                        }
-                                                        showClear={
-                                                            !!data.course_id
-                                                        }
+                                                        aria-label="Course"
+                                                        className={comboboxInputClass}
+                                                        showClear={!!data.course_id}
                                                     />
                                                     <ComboboxContent>
                                                         <ComboboxEmpty>
@@ -860,6 +849,7 @@ export default function SubmitForm({
                                                 >
                                                     <ComboboxInput
                                                         placeholder="Select school year"
+                                                        aria-label="School Year"
                                                         className={
                                                             comboboxInputClass
                                                         }

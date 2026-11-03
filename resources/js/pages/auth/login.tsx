@@ -118,7 +118,6 @@ export default function Login({
                         type="email"
                         autoComplete="email"
                         inputMode="email"
-                        aria-describedby="email-hint"
                         aria-invalid={errors.email ? 'true' : undefined}
                         placeholder="e.g. cashier@university.edu"
                         value={data.email}

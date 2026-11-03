@@ -11,12 +11,19 @@ export default function AuthSplitLayout({ children }: AuthSplitLayoutProps) {
             {/* Left Brand Panel */}
             <aside className="relative hidden overflow-hidden bg-[#0B4F9C] p-10 lg:flex lg:flex-col lg:justify-between lg:p-14 dark:bg-[#0A2447]">
                 {/* Background image */}
-                <img
-                    src="/images/norsu-campus.jpg"
-                    alt=""
-                    aria-hidden="true"
-                    className="absolute inset-0 h-full w-full object-cover"
-                />
+                <picture>
+                    <source
+                        srcSet="/images/norsu-campus.jpg.webp"
+                        type="image/webp"
+                    />
+                    <img
+                        src="/images/norsu-campus.jpg"
+                        alt=""
+                        aria-hidden="true"
+                        fetchPriority="high"
+                        className="absolute inset-0 h-full w-full object-cover"
+                    />
+                </picture>
 
                 {/* Overlays matching mockup .panel::after */}
                 <div
@@ -39,7 +46,7 @@ export default function AuthSplitLayout({ children }: AuthSplitLayoutProps) {
 
                 {/* Hero copy */}
                 <div className="relative z-10 my-auto py-8">
-                    <h1 className="font-heading text-[clamp(28px,3vw,42px)] font-bold leading-[1.15] text-white">
+                    <h1 className="font-heading text-[clamp(28px,3vw,42px)] leading-[1.15] font-bold text-white">
                         Order of Payment System
                     </h1>
                     <span className="my-5 block h-1 w-14 rounded-sm bg-[#E5A93A]" />
@@ -49,7 +56,7 @@ export default function AuthSplitLayout({ children }: AuthSplitLayoutProps) {
                 </div>
 
                 {/* Bottom note */}
-                <div className="relative z-10 text-xs font-mono tracking-wider text-white/70">
+                <div className="relative z-10 font-mono text-xs tracking-wider text-white/70">
                     Finance & Accounting Portal — 2026
                 </div>
             </aside>
@@ -60,9 +67,7 @@ export default function AuthSplitLayout({ children }: AuthSplitLayoutProps) {
                     <ThemeToggle />
                 </div>
 
-                <div className="w-full max-w-[410px]">
-                    {children}
-                </div>
+                <div className="w-full max-w-[410px]">{children}</div>
             </main>
         </div>
     );

@@ -300,7 +300,7 @@ class LawSchoolLedgerImportTest extends TestCase
             'Tuition',
             '',
             'PAYMENT',
-            -6000,
+            '(6,000.00)',
             '',
             '',
             'JVT',
@@ -334,6 +334,13 @@ class LawSchoolLedgerImportTest extends TestCase
             'amount' => '6000.00',
             'reference_number' => '0655531',
         ]);
+
+        $this->actingAs($user)
+            ->getJson("/law-ledger/students/{$student->id}/balance")
+            ->assertOk()
+            ->assertJsonPath('summary.totalCharges', 16150)
+            ->assertJsonPath('summary.totalPayments', 6000)
+            ->assertJsonPath('summary.outstandingBalance', 10150);
 
         unlink($file);
     }

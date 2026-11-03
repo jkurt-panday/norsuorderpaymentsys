@@ -208,6 +208,7 @@ const CashierRequestsIndex: React.FC<Props> = ({ requests, filters }) => {
             <Link
                 href={cashier.requests.show.url(row.id)}
                 title={row.status === 'paid' ? 'View' : 'Record payment'}
+                aria-label={row.status === 'paid' ? 'View payment request' : 'Record payment'}
                 className="flex h-8 w-8 items-center justify-center bg-cyan-400 text-white transition-colors hover:bg-cyan-500"
             >
                 <svg

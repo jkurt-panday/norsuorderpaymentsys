@@ -22,6 +22,8 @@ import {
   Calendar as CalendarIcon,
   Upload,
   Download,
+    MoreHorizontal,
+    Printer,
 } from 'lucide-react';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import StudentBalanceDrawer from './StudentBalanceDrawer';
@@ -51,6 +53,13 @@ import {
     CardDescription,
     CardFooter,
 } from '@/components/ui/card';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
 import {
     Dialog,
     DialogContent,
@@ -217,6 +226,7 @@ interface IndexProps {
         school_year?: string;
         semester?: string;
         course?: string;
+        entry_type?: string;
         date_from?: string;
         date_to?: string;
         balance_status?: string;
@@ -231,12 +241,14 @@ interface IndexProps {
         courses: string[];
         schoolYears: string[];
         semesters: string[];
+        types?: string[];
     };
     courses?: { id: number; code: string }[];
     academicTerms?: { id: number; school_year: string; semester: string }[];
 }
 
 const defaultVisibleColumns = {
+    studentNumber: true,
     course: true,
     schoolYear: true,
     semester: true,
@@ -253,6 +265,7 @@ const defaultVisibleColumns = {
 type OptionalColumn = keyof typeof defaultVisibleColumns;
 
 const optionalColumnLabels: Record<OptionalColumn, string> = {
+    studentNumber: 'Student ID',
     course: 'Course',
     schoolYear: 'School Year',
     semester: 'Semester',
@@ -305,6 +318,7 @@ export default function Index({
             filters?.school_year ||
             filters?.semester ||
             filters?.course ||
+            filters?.entry_type ||
             filters?.date_from ||
             filters?.date_to ||
             filters?.balance_status,
@@ -349,6 +363,7 @@ export default function Index({
         school_year: filters?.school_year ?? '',
         semester: filters?.semester ?? '',
         course: filters?.course ?? '',
+        entry_type: filters?.entry_type ?? '',
         date_from: filters?.date_from ?? '',
         date_to: filters?.date_to ?? '',
         balance_status: filters?.balance_status ?? '',
@@ -526,20 +541,6 @@ export default function Index({
             .map((r) => r.id);
     };
 
-    const visibleRecipients = allRecipients.filter((r) => {
-        if (emailSearch.trim()) {
-            const q = emailSearch.toLowerCase();
-
-            return (
-                r.full_name.toLowerCase().includes(q) ||
-                r.email.toLowerCase().includes(q) ||
-                (r.student_number ?? '').toLowerCase().includes(q)
-            );
-        }
-
-        return true;
-    });
-
     const bulkRecipients = useMemo(
         () =>
             allRecipients.filter((r) => {
@@ -557,17 +558,18 @@ export default function Index({
             }),
         [allRecipients, emailSearch],
     );
+    const visibleRecipients = bulkRecipients;
 
     const prevEmailTargetRef = useRef<string | null>(null);
     useEffect(() => {
         const isBulkMode = emailTarget !== 'specific';
 
         if (isBulkMode && prevEmailTargetRef.current !== emailTarget) {
-            setSelectedIds(new Set(bulkRecipients.map((r) => r.id)));
+            setSelectedIds(new Set(allRecipients.map((r) => r.id)));
         }
 
         prevEmailTargetRef.current = emailTarget;
-    }, [emailTarget, bulkRecipients]);
+    }, [emailTarget, allRecipients]);
 
     const handleSendEmails = (e: React.FormEvent) => {
         e.preventDefault();
@@ -735,6 +737,10 @@ export default function Index({
                 params.set('course', filterState.course);
             }
 
+            if (filterState.entry_type) {
+                params.set('entry_type', filterState.entry_type);
+            }
+
             if (filterState.date_from) {
                 params.set('date_from', filterState.date_from);
             }
@@ -844,6 +850,7 @@ export default function Index({
     const schoolYear = filterState.school_year;
     const semester = filterState.semester;
     const course = filterState.course;
+    const entryType = filterState.entry_type;
     const dateFrom = filterState.date_from;
     const dateTo = filterState.date_to;
     const balanceStatus = filterState.balance_status;
@@ -855,6 +862,7 @@ export default function Index({
         },
         semester && { key: 'semester', label: semester },
         course && { key: 'course', label: `Course: ${course}` },
+        entryType && { key: 'entry_type', label: `Type: ${entryType}` },
         balanceStatus && {
             key: 'balance_status',
             label:
@@ -968,7 +976,7 @@ export default function Index({
                 <div className="flex flex-col gap-4 border-b border-border pb-5 md:flex-row md:items-center md:justify-between">
                     <div>
                         <div className="flex items-center gap-2">
-                            <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
+                            <CardTitle className="bg-primary font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                                 Graduate School Ledger
                             </CardTitle>
                         </div>
@@ -979,6 +987,15 @@ export default function Index({
                     </div>
 
                     <div className="flex flex-wrap items-center justify-end gap-2">
+                        <Button
+                            variant="outline"
+                            className="h-9 border-input text-foreground hover:bg-muted"
+                            onClick={() => router.get('/graduate-ledger/print-select')}
+                        >
+                            <Printer className="mr-1.5 h-4 w-4" />
+                            Print Statement
+                        </Button>
+
                         <Button
                             className="h-9 bg-primary text-primary-foreground hover:bg-primary/90"
                             onClick={handleOpenEmailModal}
@@ -1148,17 +1165,19 @@ export default function Index({
                                 className="flex flex-1 flex-wrap items-center gap-2 md:justify-end"
                             >
                                 <Popover>
-                                    <PopoverTrigger>
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-9 border-input text-foreground hover:bg-muted"
-                                        >
-                                            <Columns3 className="h-4 w-4" />{' '}
-                                            Columns
-                                        </Button>
-                                    </PopoverTrigger>
+                                    <PopoverTrigger
+                                        render={
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-9 border-input text-foreground hover:bg-muted"
+                                            >
+                                                <Columns3 className="h-4 w-4" />{' '}
+                                                Columns
+                                            </Button>
+                                        }
+                                    />
                                     <PopoverContent
                                         align="end"
                                         className="w-72 border-border bg-popover p-3 text-popover-foreground"
@@ -1322,6 +1341,25 @@ export default function Index({
                                         </select>
 
                                         <select
+                                            value={entryType}
+                                            onChange={(e) =>
+                                                applyFilters({
+                                                    entry_type: e.target.value,
+                                                })
+                                            }
+                                            className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                                        >
+                                            <option value="">All Types</option>
+                                            {(filterOptions?.types ?? ['AR', 'Payment', 'Adjustment']).map(
+                                                (t) => (
+                                                    <option key={t} value={t}>
+                                                        {t}
+                                                    </option>
+                                                ),
+                                            )}
+                                        </select>
+
+                                        <select
                                             value={balanceStatus}
                                             onChange={(e) =>
                                                 applyFilters({
@@ -1431,6 +1469,7 @@ export default function Index({
                                                     school_year: '',
                                                     semester: '',
                                                     course: '',
+                                                    entry_type: '',
                                                     date_from: '',
                                                     date_to: '',
                                                     balance_status: '',
@@ -1471,6 +1510,7 @@ export default function Index({
                                                     school_year: '',
                                                     semester: '',
                                                     course: '',
+                                                    entry_type: '',
                                                     date_from: '',
                                                     date_to: '',
                                                     balance_status: '',
@@ -1507,7 +1547,12 @@ export default function Index({
                                 <table className="w-full border-collapse text-sm">
                                     <thead>
                                         <tr className="border-b border-border bg-muted/50">
-                                            <th className="py-2 pr-4 pl-2 text-left font-medium whitespace-nowrap text-muted-foreground">
+                                            {visibleColumns.studentNumber && (
+                                                <th className="py-2 pr-4 pl-2 text-left font-medium whitespace-nowrap text-muted-foreground">
+                                                    Student ID
+                                                </th>
+                                            )}
+                                            <th className="py-2 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground">
                                                 Name
                                             </th>
                                             {visibleColumns.course && (
@@ -1591,33 +1636,47 @@ export default function Index({
                                                 <tr
                                                     key={r.id}
                                                     role="button"
-                                                    tabIndex={0}
-                                                    aria-label={`View ${r.name}'s balance and transaction history`}
-                                                    onClick={() =>
-                                                        setDrawerSelection({
-                                                            studentId:
-                                                                r.studentId,
-                                                            transactionId: r.id,
-                                                        })
+                                                    tabIndex={r.studentId ? 0 : undefined}
+                                                    aria-label={
+                                                        r.studentId
+                                                            ? `View ${r.name}'s balance and transaction history`
+                                                            : undefined
                                                     }
+                                                    onClick={() => {
+                                                        const studentId = Number(r.studentId);
+                                                        if (!Number.isFinite(studentId) || studentId <= 0) {
+                                                            return;
+                                                        }
+                                                        setDrawerSelection({
+                                                            studentId,
+                                                            transactionId: r.id,
+                                                        });
+                                                    }}
                                                     onKeyDown={(event) => {
                                                         if (
-                                                            event.key ===
-                                                                'Enter' ||
-                                                            event.key === ' '
+                                                            event.key !== 'Enter' &&
+                                                            event.key !== ' '
                                                         ) {
-                                                            event.preventDefault();
-                                                            setDrawerSelection({
-                                                                studentId:
-                                                                    r.studentId,
-                                                                transactionId:
-                                                                    r.id,
-                                                            });
+                                                            return;
                                                         }
+                                                        event.preventDefault();
+                                                        const studentId = Number(r.studentId);
+                                                        if (!Number.isFinite(studentId) || studentId <= 0) {
+                                                            return;
+                                                        }
+                                                        setDrawerSelection({
+                                                            studentId,
+                                                            transactionId: r.id,
+                                                        });
                                                     }}
                                                     className="cursor-pointer border-b border-border/50 transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-2 focus-visible:outline-ring"
                                                 >
-                                                    <td className="py-2 pr-4 pl-2 font-medium whitespace-nowrap text-foreground">
+                                                    {visibleColumns.studentNumber && (
+                                                        <td className="py-2 pr-4 pl-2 whitespace-nowrap text-muted-foreground">
+                                                            {r.studentNumber || r.studentId || '—'}
+                                                        </td>
+                                                    )}
+                                                    <td className="py-2 pr-4 font-medium whitespace-nowrap text-foreground">
                                                         {r.name}
                                                     </td>
                                                     {visibleColumns.course && (
@@ -1722,8 +1781,17 @@ export default function Index({
                                                             </Badge>
                                                         </td>
                                                     )}
-                                                    <td className="py-2 pr-4 text-right font-medium text-foreground">
-                                                        {currency(r.amount)}
+                                                    <td className="py-2 pr-4 text-right">
+                                                        <div className="flex flex-col items-end">
+                                                            <span className="font-medium text-foreground">
+                                                                {currency(r.amount)}
+                                                            </span>
+                                                            {(r.discountAmount ?? 0) > 0 ? (
+                                                                <span className="text-xs text-emerald-600 dark:text-emerald-400">
+                                                                    (Discount: -{currency(r.discountAmount!)})
+                                                                </span>
+                                                            ) : null}
+                                                        </div>
                                                     </td>
                                                     {visibleColumns.remark && (
                                                         <td className="py-2 pr-4">
@@ -1742,37 +1810,61 @@ export default function Index({
                                                         </td>
                                                     )}
                                                     <td className="py-2 pr-2 text-center whitespace-nowrap">
-                                                        <button
-                                                            onClick={(
-                                                                event,
-                                                            ) => {
-                                                                event.stopPropagation();
-                                                                router.get(
-                                                                    `/graduate-ledger/${r.id}/edit`,
-                                                                );
-                                                            }}
-                                                            className="mr-1 inline-flex items-center justify-center rounded p-1.5 text-primary transition-colors hover:bg-primary/10"
-                                                            title="Edit"
-                                                        >
-                                                            <Pencil className="h-3.5 w-3.5" />
-                                                        </button>
-                                                        <button
-                                                            onClick={(
-                                                                event,
-                                                            ) => {
-                                                                event.stopPropagation();
-                                                                setDeleteTarget(
-                                                                    {
-                                                                        id: r.id,
-                                                                        name: r.name,
-                                                                    },
-                                                                );
-                                                            }}
-                                                            className="inline-flex items-center justify-center rounded p-1.5 text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
-                                                            title="Delete"
-                                                        >
-                                                            <Trash2 className="h-3.5 w-3.5" />
-                                                        </button>
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger
+                                                                render={
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(
+                                                                            event,
+                                                                        ) => {
+                                                                            event.stopPropagation();
+                                                                        }}
+                                                                        className="inline-flex items-center justify-center rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                                                        title="Actions"
+                                                                        aria-label="Row actions"
+                                                                    >
+                                                                        <MoreHorizontal className="h-4 w-4" />
+                                                                    </button>
+                                                                }
+                                                            />
+                                                            <DropdownMenuContent
+                                                                align="end"
+                                                                className="border-border bg-popover text-popover-foreground"
+                                                            >
+                                                                <DropdownMenuItem
+                                                                    onClick={(
+                                                                        event,
+                                                                    ) => {
+                                                                        event.stopPropagation();
+                                                                        router.get(
+                                                                            `/graduate-ledger/${r.id}/edit`,
+                                                                        );
+                                                                    }}
+                                                                    className="cursor-pointer"
+                                                                >
+                                                                    <Pencil className="mr-2 h-3.5 w-3.5" />
+                                                                    Edit
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    onClick={(
+                                                                        event,
+                                                                    ) => {
+                                                                        event.stopPropagation();
+                                                                        setDeleteTarget(
+                                                                            {
+                                                                                id: r.id,
+                                                                                name: r.name,
+                                                                            },
+                                                                        );
+                                                                    }}
+                                                                    className="cursor-pointer text-red-500 dark:text-red-400"
+                                                                >
+                                                                    <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                                                    Delete
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
                                                     </td>
                                                 </tr>
                                             ))
@@ -1831,15 +1923,16 @@ export default function Index({
                                     </Button>
 
                                     <Popover>
-                                        <PopoverTrigger>
-                                            <span
-                                                role="button"
-                                                tabIndex={0}
-                                                className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                                            >
-                                                Page {currentPage} of {lastPage}
-                                            </span>
-                                        </PopoverTrigger>
+                                        <PopoverTrigger
+                                            render={
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                                                >
+                                                    Page {currentPage} of {lastPage}
+                                                </button>
+                                            }
+                                        />
                                         <PopoverContent
                                             align="center"
                                             className="w-48 space-y-2 border-border bg-popover p-2 text-popover-foreground"
@@ -1861,6 +1954,7 @@ export default function Index({
                                                     placeholder={String(
                                                         currentPage,
                                                     )}
+                                                    aria-label="Go to page"
                                                     className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
                                                     autoFocus
                                                 />
@@ -2240,7 +2334,7 @@ export default function Index({
 
             {/* Floating Bottom-Right Import Progress Bar & Toast */}
             {(isImporting || importSuccess) && (
-                <div className="fixed right-6 bottom-6 z-50 flex min-w-[320px] flex-col gap-2.5 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-xl transition-all duration-300">
+                <div className="fixed inset-x-4 bottom-4 z-50 flex flex-col gap-2.5 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-xl transition-all duration-300 sm:inset-x-auto sm:right-6 sm:bottom-6 sm:min-w-[320px] max-w-[calc(100vw-2rem)]">
                     {isImporting ? (
                         <>
                             <div className="flex items-center gap-3">
@@ -2447,45 +2541,50 @@ export default function Index({
                                             </div>
                                         ) : (
                                             <div>
-                                                <div
-                                                    className="flex cursor-pointer items-center gap-3 border-b border-slate-100 p-2 hover:bg-slate-50"
-                                                    onClick={() => {
-                                                        setSelectedIds(
-                                                            (prev) => {
-                                                                const next =
-                                                                    new Set(
-                                                                        prev,
-                                                                    );
-
-                                                                if (
-                                                                    visibleRecipients.every(
-                                                                        (r) =>
-                                                                            next.has(
-                                                                                r.id,
-                                                                            ),
-                                                                    )
-                                                                ) {
-                                                                    visibleRecipients.forEach(
-                                                                        (r) =>
-                                                                            next.delete(
-                                                                                r.id,
-                                                                            ),
-                                                                    );
-                                                                } else {
-                                                                    visibleRecipients.forEach(
-                                                                        (r) =>
-                                                                            next.add(
-                                                                                r.id,
-                                                                            ),
-                                                                    );
-                                                                }
-
-                                                                return next;
-                                                            },
-                                                        );
-                                                    }}
+                                                <label
+                                                    className="flex cursor-pointer items-center gap-3 border-b border-border p-2 hover:bg-muted/50 dark:hover:bg-muted/30"
                                                 >
-                                                    <div className="flex h-4 w-4 items-center justify-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="sr-only"
+                                                        checked={visibleRecipients.length > 0 && visibleRecipients.every((r) => selectedIds.has(r.id))}
+                                                        onChange={() => {
+                                                            setSelectedIds(
+                                                                (prev) => {
+                                                                    const next =
+                                                                        new Set(
+                                                                            prev,
+                                                                        );
+
+                                                                    if (
+                                                                        visibleRecipients.every(
+                                                                            (r) =>
+                                                                                next.has(
+                                                                                    r.id,
+                                                                                ),
+                                                                        )
+                                                                    ) {
+                                                                        visibleRecipients.forEach(
+                                                                            (r) =>
+                                                                                next.delete(
+                                                                                    r.id,
+                                                                                ),
+                                                                        );
+                                                                    } else {
+                                                                        visibleRecipients.forEach(
+                                                                            (r) =>
+                                                                                next.add(
+                                                                                    r.id,
+                                                                                ),
+                                                                        );
+                                                                    }
+
+                                                                    return next;
+                                                                },
+                                                            );
+                                                        }}
+                                                    />
+                                                    <div className="flex h-4 w-4 items-center justify-center" aria-hidden="true">
                                                         {visibleRecipients.every(
                                                             (r) =>
                                                                 selectedIds.has(
@@ -2504,25 +2603,26 @@ export default function Index({
                                                         }
                                                         )
                                                     </span>
-                                                </div>
+                                                </label>
                                                 {visibleRecipients.map(
                                                     (row) => (
-                                                        <div
+                                                        <label
                                                             key={row.id}
-                                                            className="flex cursor-pointer items-center gap-3 p-2 hover:bg-slate-50"
-                                                            onClick={() =>
-                                                                toggleSelectId(
-                                                                    row.id,
-                                                                )
-                                                            }
+                                                            className="flex cursor-pointer items-center gap-3 border-b border-border p-2 last:border-0 hover:bg-muted/50 dark:hover:bg-muted/30"
                                                         >
-                                                            <div className="flex h-4 w-4 items-center justify-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="sr-only"
+                                                                checked={selectedIds.has(row.id)}
+                                                                onChange={() => toggleSelectId(row.id)}
+                                                            />
+                                                            <div className="flex h-4 w-4 items-center justify-center" aria-hidden="true">
                                                                 {selectedIds.has(
                                                                     row.id,
                                                                 ) ? (
                                                                     <CheckSquare className="h-4 w-4 text-emerald-600" />
                                                                 ) : (
-                                                                    <Square className="h-4 w-4 text-slate-400" />
+                                                                    <Square className="h-4 w-4 text-muted-foreground" />
                                                                 )}
                                                             </div>
                                                             <div className="min-w-0 flex-1">
@@ -2531,7 +2631,7 @@ export default function Index({
                                                                         row.full_name
                                                                     }
                                                                 </div>
-                                                                <div className="truncate text-xs text-slate-500">
+                                                                <div className="truncate text-xs text-muted-foreground">
                                                                     {row.student_number ??
                                                                         '-'}{' '}
                                                                     ·{' '}
@@ -2560,7 +2660,7 @@ export default function Index({
                                                                     )}
                                                                 </span>
                                                             </div>
-                                                        </div>
+                                                        </label>
                                                     ),
                                                 )}
                                             </div>
@@ -2644,20 +2744,25 @@ export default function Index({
                                                         selectedIds.has(row.id);
 
                                                     return (
-                                                        <div
+                                                        <label
                                                             key={row.id}
-                                                            className="flex cursor-pointer items-center gap-3 border-b border-slate-100 p-2 last:border-0 hover:bg-slate-50"
-                                                            onClick={() =>
-                                                                toggleSelectId(
-                                                                    row.id,
-                                                                )
-                                                            }
+                                                            className="flex cursor-pointer items-center gap-3 border-b border-border p-2 last:border-0 hover:bg-muted/50 dark:hover:bg-muted/30"
                                                         >
-                                                            <div className="flex h-4 w-4 items-center justify-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="sr-only"
+                                                                checked={isSelected}
+                                                                onChange={() =>
+                                                                    toggleSelectId(
+                                                                        row.id,
+                                                                    )
+                                                                }
+                                                            />
+                                                            <div className="flex h-4 w-4 items-center justify-center" aria-hidden="true">
                                                                 {isSelected ? (
                                                                     <CheckSquare className="h-4 w-4 text-emerald-600" />
                                                                 ) : (
-                                                                    <Square className="h-4 w-4 text-slate-400" />
+                                                                    <Square className="h-4 w-4 text-muted-foreground" />
                                                                 )}
                                                             </div>
                                                             <div className="min-w-0 flex-1">
@@ -2666,7 +2771,7 @@ export default function Index({
                                                                         row.full_name
                                                                     }
                                                                 </div>
-                                                                <div className="truncate text-xs text-slate-500">
+                                                                <div className="truncate text-xs text-muted-foreground">
                                                                     {row.student_number ??
                                                                         '-'}{' '}
                                                                     ·{' '}
@@ -2695,7 +2800,7 @@ export default function Index({
                                                                     )}
                                                                 </span>
                                                             </div>
-                                                        </div>
+                                                        </label>
                                                     );
                                                 })}
                                             </div>
@@ -2861,7 +2966,7 @@ export default function Index({
                             Cancel
                         </Button>
                         <Button
-                            className="bg-[#0B3D91] text-white hover:bg-[#092D6F]"
+                            className="bg-primary text-primary-foreground hover:bg-primary/90"
                             disabled={
                                 isSendingEmails ||
                                 getEffectiveRecipientIds().length === 0
@@ -2891,7 +2996,7 @@ export default function Index({
                             {isEmailProcessingDone ? (
                                 <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                             ) : (
-                                <Loader2 className="h-5 w-5 animate-spin text-[#0F6FFF]" />
+                                <Loader2 className="h-5 w-5 animate-spin text-primary" />
                             )}
                             {isEmailProcessingDone
                                 ? 'Email Sending Complete'
@@ -2905,12 +3010,12 @@ export default function Index({
                     </DialogHeader>
 
                     <div className="space-y-3">
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-[#E8F0FE]">
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-primary/10">
                             <div
                                 className={
                                     isEmailProcessingDone
                                         ? 'h-full w-full rounded-full bg-emerald-600'
-                                        : 'h-full w-full animate-pulse rounded-full bg-[#0F6FFF]'
+                                        : 'h-full w-full animate-pulse rounded-full bg-primary'
                                 }
                             />
                         </div>

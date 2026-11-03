@@ -466,22 +466,18 @@ return '';
 
                             <CardFooter className="print-hidden no-print flex flex-col gap-6 border-t px-4 pt-6 pb-6 sm:px-6 sm:pb-8">
                                 <div className="grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-                                    <Button className="h-11 w-full rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-400 hover:text-white hover:shadow-lg active:scale-[0.98] sm:h-12 sm:px-8 sm:text-base">
-                                        <Link href="/public/opform">
-                                            Submit Another Request
-                                        </Link>
-                                     </Button>
-                                     <Button
-                                         variant="outline"
-className="h-11 w-full rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-400 hover:text-white hover:shadow-lg active:scale-[0.98] sm:h-12 sm:px-8 sm:text-base"
-                                       >
-                                           <Link
-                                               href="/public/assessmentform"
-                                             className="flex h-full w-full items-center justify-center"
-                                         >
-                                             Submit Assessment Request
-                                         </Link>
-                                     </Button>
+                                    <Link
+                                        href="/public/opform"
+                                        className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-400 hover:text-white hover:shadow-lg active:scale-[0.98] sm:h-12 sm:px-8 sm:text-base"
+                                    >
+                                        Submit Another Request
+                                    </Link>
+                                    <Link
+                                        href="/public/assessmentform"
+                                        className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-400 hover:text-white hover:shadow-lg active:scale-[0.98] sm:h-12 sm:px-8 sm:text-base"
+                                    >
+                                        Submit Assessment Request
+                                    </Link>
                                       <Button
                                           variant="outline"
                                           onClick={handleDownload}

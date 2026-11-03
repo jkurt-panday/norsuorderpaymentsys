@@ -248,7 +248,7 @@ export function AppSidebar() {
     }, [activeCollapsibleTitles]);
 
     return (
-        <Sidebar className="border-r border-white/20 bg-[#007FFF] text-white dark:border-sidebar-border dark:bg-sidebar dark:text-sidebar-foreground **:data-[sidebar=sidebar]:bg-transparent">
+        <Sidebar className="border-r border-white/20 bg-sidebar-primary text-sidebar-primary-foreground dark:border-sidebar-border dark:bg-sidebar dark:text-sidebar-foreground **:data-[sidebar=sidebar]:bg-transparent">
             <SidebarHeader className="border-b border-blue-400/20 px-4 py-5 dark:border-sidebar-border">
                 <div className="flex flex-col items-center gap-2">
                     <img

@@ -61,7 +61,7 @@ export default function Dashboard() {
                             href="/logout" 
                             method="post" 
                             as="button"
-                            className="inline-flex items-center justify-center rounded-md border border-red-100 bg-white px-4 py-2 text-sm font-medium text-red-300 shadow-sm transition-colors hover:bg-red-50 hover:text-red-400 focus-visible:ring-1 focus-visible:ring-red-200 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 h-9"
+                            className="inline-flex items-center justify-center rounded-md border border-destructive/30 bg-transparent px-4 py-2 text-sm font-medium text-destructive shadow-sm transition-colors hover:bg-destructive/10 focus-visible:ring-1 focus-visible:ring-destructive/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 h-9"
                         >
                             Logout
                         </Link>

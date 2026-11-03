@@ -28,7 +28,7 @@ Route::name('public.')->prefix('public')->group(function () {
     // Route::get('/submit', [FormInputController::class, 'create'])->name('submit');
     // Route::post('/submit', [FormInputController::class, 'store'])->name('submit.store');
     Route::get('/opform', [FormInputController::class, 'create']);
-    Route::post('/opform', [FormInputController::class, 'store']);
+    Route::post('/opform', [FormInputController::class, 'store'])->middleware('throttle:20,1');
 
     Route::post('/college-offices', [CollegeOfficeController::class, 'store'])
         ->name('college-offices.store');
