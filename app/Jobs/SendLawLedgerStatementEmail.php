@@ -152,6 +152,7 @@ class SendLawLedgerStatementEmail implements ShouldQueue
     {
         $totalCharges = 0.0;
         $totalPayments = 0.0;
+        $totalAdjustments = 0.0;
 
         foreach ($records as $record) {
             $entryType = strtolower((string) ($record->entry_type ?? ''));
@@ -159,7 +160,9 @@ class SendLawLedgerStatementEmail implements ShouldQueue
 
             if ($entryType === 'ar') {
                 $totalCharges += abs($amount);
-            } elseif (in_array($entryType, ['payment', 'adjustment'], true)) {
+            } elseif ($entryType === 'adjustment') {
+                $totalAdjustments += abs($amount);
+            } elseif ($entryType === 'payment') {
                 $totalPayments += abs($amount);
             } else {
                 $label = strtoupper(trim((string) ($record->ar_or_payment ?? '')));
@@ -174,7 +177,8 @@ class SendLawLedgerStatementEmail implements ShouldQueue
         return [
             'totalCharges' => $totalCharges,
             'totalPayments' => $totalPayments,
-            'outstandingBalance' => $totalCharges - $totalPayments,
+            'totalAdjustments' => $totalAdjustments,
+            'outstandingBalance' => $totalCharges - $totalPayments - $totalAdjustments,
         ];
     }
 

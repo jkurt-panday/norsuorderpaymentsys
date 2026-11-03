@@ -72,15 +72,15 @@ class LawSchoolLedgerController extends Controller
         // type case-insensitively and accumulate payment magnitudes (positive) to keep
         // the overview figures readable. Adjustments are treated as credits.
         $totalAssessments = (float) (clone $query)
-            ->where('entry_type', 'ar')
-            ->sum('amount');
+            ->whereRaw("LOWER(TRIM(entry_type)) = 'ar'")
+            ->sum(DB::raw('ABS(amount)'));
 
         $totalPayments = (float) (clone $query)
-            ->where('entry_type', 'payment')
+            ->whereRaw("LOWER(TRIM(entry_type)) = 'payment'")
             ->sum(DB::raw('ABS(amount)'));
 
         $totalAdjustments = (float) (clone $query)
-            ->where('entry_type', 'adjustment')
+            ->whereRaw("LOWER(TRIM(entry_type)) = 'adjustment'")
             ->sum(DB::raw('ABS(amount)'));
 
         $outstandingBalance = $totalAssessments - $totalPayments - $totalAdjustments;
@@ -99,8 +99,10 @@ class LawSchoolLedgerController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        $termBalances = $this->calculateTermBalancesForRecords($records->getCollection());
+
         // Transform each row into the shape Index.tsx expects
-        $records->through(fn (LawSchoolLedger $r): array => $this->transformRecord($r));
+        $records->through(fn (LawSchoolLedger $r): array => $this->transformRecord($r, $termBalances));
 
         return Inertia::render('law-ledger/Index', [
             'records' => $records,
@@ -206,6 +208,7 @@ class LawSchoolLedgerController extends Controller
             ->get();
 
         $latestRecord = $records->last();
+        $termBalances = $this->calculateTermBalancesForRecords($records);
 
         return response()->json([
             'student' => [
@@ -218,7 +221,7 @@ class LawSchoolLedgerController extends Controller
             ],
             'summary' => $this->calculateStudentBalanceNormalized($records),
             'transactions' => $records
-                ->map(fn (LawSchoolLedger $record) => $this->transformRecord($record))
+                ->map(fn (LawSchoolLedger $record) => $this->transformRecord($record, $termBalances))
                 ->values(),
         ]);
     }
@@ -977,6 +980,9 @@ class LawSchoolLedgerController extends Controller
                 $studentMap[$kFull] = $matchedId;
                 $studentMap[$kInitial] = $matchedId;
                 $studentMap[$kNoMid] = $matchedId;
+                if ($studentNumber !== null && $studentNumber !== '') {
+                    $studentMap['num:'.$studentNumber] = $matchedId;
+                }
 
                 if ($studentNumber !== null && ! isset($studentsByNumber[$studentNumber])) {
                     $studentNumberUpdates[$matchedId] = $studentNumber;
@@ -1027,6 +1033,9 @@ class LawSchoolLedgerController extends Controller
                     $studentMap[$kFull] = $matchedId;
                     $studentMap[$kInitial] = $matchedId;
                     $studentMap[$kNoMid] = $matchedId;
+                    if ($studentNumber !== null && $studentNumber !== '') {
+                        $studentMap['num:'.$studentNumber] = $matchedId;
+                    }
                 }
             }
         }
@@ -1092,10 +1101,15 @@ class LawSchoolLedgerController extends Controller
         $last = trim((string) ($data['last_name'] ?? ''));
         $first = trim((string) ($data['first_name'] ?? ''));
         $mi = trim((string) ($data['middle_name'] ?? ($data['middle_initial'] ?? '')));
+        $studentNumber = trim((string) ($data['student_number'] ?? ''));
 
         $studentId = null;
 
-        if ($last !== '' || $first !== '') {
+        if ($studentNumber !== '' && isset($studentMap['num:'.$studentNumber])) {
+            $studentId = $studentMap['num:'.$studentNumber];
+        }
+
+        if ($studentId === null && ($last !== '' || $first !== '')) {
             $kFull = $this->studentImportKey($last, $first, $mi);
             $kInitial = $mi !== '' ? $this->studentImportKey($last, $first, substr($mi, 0, 1)) : $kFull;
             $kNoMid = $this->studentImportKey($last, $first, null);
@@ -1122,7 +1136,7 @@ class LawSchoolLedgerController extends Controller
             'units' => ($data['units'] ?? 0) > 0 ? (float) $data['units'] : null,
             'rate' => ($data['tuition_per_unit_or_fee_per_semester'] ?? 0) > 0 ? (float) $data['tuition_per_unit_or_fee_per_semester'] : 0,
             'entry_type' => $entryType,
-            'amount' => abs((float) ($data['amount'] ?? 0)),
+            'amount' => abs($this->cleanAmount($data['amount'] ?? 0)),
             'transaction_date' => $data['transaction_date'] ?? null,
             'reference_number' => $data['reference_jev_or_number'] ?? null,
             'particulars' => $particulars,
@@ -1164,8 +1178,9 @@ class LawSchoolLedgerController extends Controller
                 ->get();
 
             $balanceSummary = $this->calculateStudentBalanceNormalized($rawStudentRecords);
+            $termBalancesForPrint = $this->calculateTermBalancesForRecords($rawStudentRecords);
             $studentRecords = $rawStudentRecords
-                ->map(fn ($r) => $this->transformRecord($r));
+                ->map(fn ($r) => $this->transformRecord($r, $termBalancesForPrint));
         }
 
         return Inertia::render('law-ledger/PrintSelect', [
@@ -1489,7 +1504,7 @@ class LawSchoolLedgerController extends Controller
         }
 
         $rawAmount = Arr::get($normalized, 'amount');
-        $amount = is_numeric($rawAmount) ? (float) $rawAmount : 0.0;
+        $amount = $this->cleanAmount($rawAmount);
 
         $units = (float) (Arr::get($normalized, 'units', 0) ?? 0);
         $tuition = (float) (
@@ -1860,7 +1875,7 @@ class LawSchoolLedgerController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function transformRecord(LawSchoolLedger $r): array
+    private function transformRecord(LawSchoolLedger $r, array $termBalances = []): array
     {
         $entryTypeLower = strtolower(trim((string) $r->entry_type));
         $status = (string) ($r->status ?? '');
@@ -1881,6 +1896,25 @@ class LawSchoolLedgerController extends Controller
             }
         }
 
+        $studentId = $r->student_id;
+        $termId = $r->academic_term_id;
+        $remark = 'Settled';
+
+        if ($studentId && $termId) {
+            $key = "{$studentId}_{$termId}";
+            if (array_key_exists($key, $termBalances)) {
+                $remark = $termBalances[$key] > 0 ? 'Outstanding' : 'Settled';
+            } else {
+                $balance = (float) DB::table('law_school_ledgers')
+                    ->where('student_id', $studentId)
+                    ->where('academic_term_id', $termId)
+                    ->sum(DB::raw("CASE WHEN LOWER(TRIM(entry_type)) = 'ar' THEN amount WHEN LOWER(TRIM(entry_type)) IN ('payment', 'adjustment') THEN -amount ELSE 0 END"));
+                $remark = $balance > 0 ? 'Outstanding' : 'Settled';
+            }
+        } elseif ($entryTypeLower === 'ar' && (float) $r->amount > 0) {
+            $remark = 'Outstanding';
+        }
+
         return [
             'id' => $r->id,
             'studentId' => $r->student_id,
@@ -1897,12 +1931,12 @@ class LawSchoolLedgerController extends Controller
             'referenceNo' => $r->reference_jev_or_number,
             'particulars' => $r->particulars,
             'tuitionPerUnitOrFeePerSemester' => (float) ($r->tuition_per_unit_or_fee_per_semester ?? 0),
-            'arOrPayment' => $r->ar_or_payment,
+            'arOrPayment' => $this->entryTypeToLabel($r->entry_type),
             'arPayment' => $this->entryTypeToLabel($r->entry_type),
             'entryType' => $r->entry_type,
             'amount' => (float) ($r->amount ?? 0),
             'status' => $status,
-            'remark' => $r->remarks,
+            'remark' => $remark,
             'inputBy' => $r->inputByDisplay() ?? '',
             'latinHonor' => $r->latin_honor,
             'discountAmount' => (float) ($r->discount_amount ?? 0),
@@ -2174,16 +2208,50 @@ class LawSchoolLedgerController extends Controller
             $str = ltrim($str, '=');
         }
 
-        $cleaned = (float) preg_replace('/[^\d.\-]/', '', $str);
+        $isNegative = str_starts_with($str, '-')
+            || (str_starts_with($str, '(') && str_ends_with($str, ')'));
+        $cleaned = (float) preg_replace('/[^\d.]/', '', $str);
+        $amount = $isNegative ? -$cleaned : $cleaned;
 
-        if ($cleaned >= 100000000.00) {
+        if ($amount >= 100000000.00) {
             return 99999999.99;
         }
-        if ($cleaned <= -100000000.00) {
+        if ($amount <= -100000000.00) {
             return -99999999.99;
         }
 
-        return $cleaned;
+        return $amount;
+    }
+
+    /**
+     * Batch calculate net balance for student + academic term pairs on the current page.
+     *
+     * @param  Collection<int, LawSchoolLedger>  $records
+     * @return array<string, float> map of "studentId_termId" => netBalance
+     */
+    private function calculateTermBalancesForRecords(Collection $records): array
+    {
+        $studentIds = $records->pluck('student_id')->filter()->unique()->values()->all();
+        $termIds = $records->pluck('academic_term_id')->filter()->unique()->values()->all();
+
+        if (empty($studentIds) || empty($termIds)) {
+            return [];
+        }
+
+        $balances = DB::table('law_school_ledgers')
+            ->select('student_id', 'academic_term_id')
+            ->selectRaw("SUM(CASE WHEN LOWER(TRIM(entry_type)) = 'ar' THEN amount WHEN LOWER(TRIM(entry_type)) IN ('payment', 'adjustment') THEN -amount ELSE 0 END) as net_balance")
+            ->whereIn('student_id', $studentIds)
+            ->whereIn('academic_term_id', $termIds)
+            ->groupBy('student_id', 'academic_term_id')
+            ->get();
+
+        $map = [];
+        foreach ($balances as $b) {
+            $map["{$b->student_id}_{$b->academic_term_id}"] = (float) $b->net_balance;
+        }
+
+        return $map;
     }
 
     /**
@@ -2199,6 +2267,7 @@ class LawSchoolLedgerController extends Controller
     {
         $totalCharges = 0.0;
         $totalPayments = 0.0;
+        $totalAdjustments = 0.0;
 
         foreach ($records as $record) {
             $entryType = strtolower((string) ($record->entry_type ?? ''));
@@ -2206,10 +2275,11 @@ class LawSchoolLedgerController extends Controller
 
             if ($entryType === 'ar') {
                 $totalCharges += abs($amount);
-            } elseif (in_array($entryType, ['payment', 'adjustment'], true)) {
+            } elseif ($entryType === 'adjustment') {
+                $totalAdjustments += abs($amount);
+            } elseif ($entryType === 'payment') {
                 $totalPayments += abs($amount);
             } else {
-                // Legacy rows without an entry_type: fall back to the text label
                 $label = strtoupper(trim((string) ($record->ar_or_payment ?? '')));
                 if ($label === 'AR' || $label === 'ASSESSMENT') {
                     $totalCharges += abs($amount);
@@ -2219,10 +2289,13 @@ class LawSchoolLedgerController extends Controller
             }
         }
 
+        $outstandingBalance = round($totalCharges - $totalPayments - $totalAdjustments, 2);
+
         return [
-            'totalCharges' => $totalCharges,
-            'totalPayments' => $totalPayments,
-            'outstandingBalance' => $totalCharges - $totalPayments,
+            'totalCharges' => round($totalCharges, 2),
+            'totalPayments' => round($totalPayments, 2),
+            'totalAdjustments' => round($totalAdjustments, 2),
+            'outstandingBalance' => abs($outstandingBalance) < 0.005 ? 0.0 : $outstandingBalance,
         ];
     }
 

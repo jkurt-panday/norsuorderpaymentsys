@@ -85,10 +85,66 @@ class LawSchoolLedgerTest extends TestCase
             ->assertJsonPath('summary.totalCharges', 9500)
             ->assertJsonPath('summary.totalPayments', 6000)
             ->assertJsonPath('summary.outstandingBalance', 3500)
+            ->assertJsonPath('transactions.0.remark', 'Outstanding')
+            ->assertJsonPath('transactions.1.remark', 'Outstanding')
             ->assertJsonCount(2, 'transactions')
             ->assertJsonPath('transactions.0.id', $assessment->id)
             ->assertJsonPath('transactions.0.arPayment', 'AR')
             ->assertJsonPath('transactions.1.arPayment', 'Payment');
+    }
+
+    public function test_law_ledger_index_calculates_remarks_per_student_and_term(): void
+    {
+        $user = User::factory()->staff()->create();
+        $course = Course::create([
+            'course_code' => 'JD',
+            'course_desc' => 'Juris Doctor',
+            'course_college' => 'School of Law',
+        ]);
+        $student = Student::create([
+            'student_number' => '202600112',
+            'last_name' => 'Balance',
+            'first_name' => 'Tester',
+        ]);
+        $firstTerm = AcademicTerm::create([
+            'school_year' => '2025-2026',
+            'semester' => 'First Semester',
+        ]);
+        $secondTerm = AcademicTerm::create([
+            'school_year' => '2025-2026',
+            'semester' => 'Second Semester',
+        ]);
+
+        foreach ([
+            [$firstTerm, 'ar', 4000, 'LAW-T1-AR'],
+            [$firstTerm, 'payment', 4000, 'LAW-T1-PAY'],
+            [$secondTerm, 'ar', 5000, 'LAW-T2-AR'],
+            [$secondTerm, 'payment', 2000, 'LAW-T2-PAY'],
+        ] as [$term, $entryType, $amount, $referenceNumber]) {
+            LawSchoolLedger::create([
+                'student_id' => $student->id,
+                'course_id' => $course->id,
+                'academic_term_id' => $term->id,
+                'entry_type' => $entryType,
+                'transaction_date' => '2026-01-10',
+                'reference_number' => $referenceNumber,
+                'particulars' => 'Tuition',
+                'amount' => $amount,
+                'status' => 'Pending',
+            ]);
+        }
+
+        $response = $this->actingAs($user)->get('/law-ledger');
+
+        $response->assertOk()->assertInertia(function ($page): void {
+            $byReference = collect($page->toArray()['props']['records']['data'])
+                ->keyBy('referenceNo');
+
+            $this->assertSame('Settled', $byReference['LAW-T1-AR']['remark']);
+            $this->assertSame('Settled', $byReference['LAW-T1-PAY']['remark']);
+            $this->assertSame('Outstanding', $byReference['LAW-T2-AR']['remark']);
+            $this->assertSame('Outstanding', $byReference['LAW-T2-PAY']['remark']);
+        });
     }
 
     public function test_add_transaction_form_prefills_student_and_entry_type_from_query(): void
