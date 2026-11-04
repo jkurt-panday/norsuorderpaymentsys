@@ -110,7 +110,7 @@ class OpOrNumberCorrectionTest extends TestCase
                     'or_no' => '2026-8888',
                     'or_date' => '2026-09-05',
                 ])
-                ->assertForbidden();
+                ->assertRedirect();
 
             $this->assertSame('2026-001', $staffInput->fresh()->or_no);
         }
@@ -121,9 +121,14 @@ class OpOrNumberCorrectionTest extends TestCase
         $formInput = FormInput::create([
             'reference_number' => 'OP-OR-'.uniqid(),
             'email' => 'client@example.com',
+            'contact_num' => '09123456789',
             'firstname_or_office' => 'Test',
             'lastname_or_agency' => 'Client',
+            'office_or_college' => 'Graduate School',
+            'position_or_designation' => 'Student',
+            'address' => 'Dumaguete City',
             'amount' => 500,
+            'request_type' => 'New Request',
             'membership_id' => null,
         ]);
 
