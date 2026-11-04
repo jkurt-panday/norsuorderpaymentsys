@@ -382,6 +382,18 @@ export default function Index({
     const [emailProcessingSeconds, setEmailProcessingSeconds] = useState(0);
     const [emailProcessingMessage, setEmailProcessingMessage] = useState('');
 
+    const [filterState, setFilterState] = useState({
+        search: filters?.search ?? '',
+        school_year: filters?.school_year ?? '',
+        semester_or_summer: filters?.semester_or_summer ?? '',
+        course: filters?.course ?? '',
+        status: filters?.status ?? '',
+        ar_or_payment: filters?.ar_or_payment ?? '',
+        date_from: filters?.date_from ?? '',
+        date_to: filters?.date_to ?? '',
+        balance_status: filters?.balance_status ?? '',
+    });
+
     useEffect(() => {
         if (!showEmailProcessingModal || isEmailProcessingDone) {
             return;
@@ -681,18 +693,6 @@ export default function Index({
             },
         });
     };
-
-    const [filterState, setFilterState] = useState({
-        search: filters?.search ?? '',
-        school_year: filters?.school_year ?? '',
-        semester_or_summer: filters?.semester_or_summer ?? '',
-        course: filters?.course ?? '',
-        status: filters?.status ?? '',
-        ar_or_payment: filters?.ar_or_payment ?? '',
-        date_from: filters?.date_from ?? '',
-        date_to: filters?.date_to ?? '',
-        balance_status: filters?.balance_status ?? '',
-    });
 
     const [goToPage, setGoToPage] = useState('');
     const [isFiltering, setIsFiltering] = useState(false);
