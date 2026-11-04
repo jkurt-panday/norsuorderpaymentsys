@@ -91,10 +91,14 @@ class SupportingDocumentController extends Controller
             abort(404, 'File not found on storage.');
         }
 
+        // Use only the filename component in the response header; the stored
+        // original name is user-controlled and may contain path separators.
+        $downloadName = basename($supportingDocument->original_filename);
+
         // Use standard Storage responses instead of hardcoding physical paths
         return Storage::disk($this->disk)->download(
             $relativePath,
-            $supportingDocument->original_filename,
+            $downloadName,
             ['Content-Type' => $supportingDocument->mime_type]
         );
     }
@@ -140,11 +144,12 @@ class SupportingDocumentController extends Controller
     public function view(SupportingDocument $supportingDocument): SymfonyResponse
     {
         $headers = ['Content-Type' => $supportingDocument->mime_type];
+        $responseName = basename($supportingDocument->original_filename);
 
         if ($relativePath = $this->storagePath($supportingDocument)) {
             return Storage::disk($this->disk)->response(
                 $relativePath,
-                $supportingDocument->original_filename,
+                $responseName,
                 $headers
             );
         }
@@ -162,11 +167,12 @@ class SupportingDocumentController extends Controller
     public function download(SupportingDocument $supportingDocument): SymfonyResponse
     {
         $headers = ['Content-Type' => $supportingDocument->mime_type];
+        $downloadName = basename($supportingDocument->original_filename);
 
         if ($relativePath = $this->storagePath($supportingDocument)) {
             return Storage::disk($this->disk)->download(
                 $relativePath,
-                $supportingDocument->original_filename,
+                $downloadName,
                 $headers
             );
         }
@@ -174,7 +180,7 @@ class SupportingDocumentController extends Controller
         if ($absolutePath = $this->publicPath($supportingDocument)) {
             return response()->download(
                 $absolutePath,
-                $supportingDocument->original_filename,
+                $downloadName,
                 $headers
             );
         }
