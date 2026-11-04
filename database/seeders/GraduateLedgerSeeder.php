@@ -52,7 +52,7 @@ class GraduateLedgerSeeder extends Seeder
             ->pluck('id');
 
         if ($students->isEmpty() || $terms->isEmpty() || $courses->isEmpty()) {
-            $this->command?->warn(
+            $this->command->warn(
                 'Skipping GraduateLedgerSeeder: run StudentSeeder, AcademicTermSeeder, and CourseSeeder first.'
             );
 
@@ -60,7 +60,7 @@ class GraduateLedgerSeeder extends Seeder
         }
 
         if ($inputByIds->isEmpty()) {
-            $this->command?->warn(
+            $this->command->warn(
                 'No users with role "staff" or "admin" found — input_by will be left null for all rows.'
             );
         }
@@ -72,6 +72,7 @@ class GraduateLedgerSeeder extends Seeder
                 $course = $courses->random();
 
                 for ($i = 0; $i < $transactionsPerTerm; $i++) {
+                    /** @var 'AR'|'ADJUSTMENT'|'PAYMENT' $entryType */
                     $entryType = fake()->randomElement(self::ENTRY_TYPES);
                     $particulars = fake()->randomElement(self::PARTICULARS);
                     $units = fake()->numberBetween(3, 30);
@@ -116,11 +117,15 @@ class GraduateLedgerSeeder extends Seeder
      * Pick up to $count random items from a collection without
      * throwing when the collection is smaller than $count.
      */
+    /**
+     * @param Collection<int, mixed> $items
+     * @return Collection<int, mixed>
+     */
     private function pickRandom(Collection $items, int $count): Collection
     {
         $count = max(1, min($count, $items->count()));
         $result = $items->random($count);
 
-        return $result instanceof Collection ? $result : collect([$result]);
+        return $result;
     }
 }

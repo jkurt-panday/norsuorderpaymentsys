@@ -6,7 +6,6 @@ import {
     Wallet,
     AlertTriangle,
     PlusCircle,
-    Scale,
     Pencil,
     Trash2,
     XCircle,
@@ -383,6 +382,18 @@ export default function Index({
     const [emailProcessingSeconds, setEmailProcessingSeconds] = useState(0);
     const [emailProcessingMessage, setEmailProcessingMessage] = useState('');
 
+    const [filterState, setFilterState] = useState({
+        search: filters?.search ?? '',
+        school_year: filters?.school_year ?? '',
+        semester_or_summer: filters?.semester_or_summer ?? '',
+        course: filters?.course ?? '',
+        status: filters?.status ?? '',
+        ar_or_payment: filters?.ar_or_payment ?? '',
+        date_from: filters?.date_from ?? '',
+        date_to: filters?.date_to ?? '',
+        balance_status: filters?.balance_status ?? '',
+    });
+
     useEffect(() => {
         if (!showEmailProcessingModal || isEmailProcessingDone) {
             return;
@@ -425,7 +436,7 @@ export default function Index({
                 const data = (await res.json()) as typeof allRecipients;
                 setAllRecipients(data);
                 // Do not auto-select recipients; user must choose explicitly.
-            } catch (e) {
+            } catch {
                 flashToast('error', 'Failed to load recipients.');
             } finally {
                 setIsLoadingRecipients(false);
@@ -433,7 +444,7 @@ export default function Index({
         };
 
         fetchRecipients();
-    }, [isEmailModalOpen]);
+    }, [isEmailModalOpen, filterState]);
 
     const handleOpenEmailModal = () => {
         setEmailSubject('');
@@ -682,18 +693,6 @@ export default function Index({
             },
         });
     };
-
-    const [filterState, setFilterState] = useState({
-        search: filters?.search ?? '',
-        school_year: filters?.school_year ?? '',
-        semester_or_summer: filters?.semester_or_summer ?? '',
-        course: filters?.course ?? '',
-        status: filters?.status ?? '',
-        ar_or_payment: filters?.ar_or_payment ?? '',
-        date_from: filters?.date_from ?? '',
-        date_to: filters?.date_to ?? '',
-        balance_status: filters?.balance_status ?? '',
-    });
 
     const [goToPage, setGoToPage] = useState('');
     const [isFiltering, setIsFiltering] = useState(false);
@@ -2127,7 +2126,7 @@ export default function Index({
                                                     }}
                                                     className={`cursor-pointer font-medium ${
                                                         link.active
-                                                            ? '!bg-primary font-bold !text-primary-foreground shadow-sm hover:!bg-primary/90'
+                                                            ? 'bg-primary! font-bold text-primary-foreground! shadow-sm hover:bg-primary/90!'
                                                             : 'text-foreground hover:bg-muted'
                                                     }`}
                                                 >
@@ -2819,7 +2818,7 @@ export default function Index({
                                         examPeriod,
                                         examDeadline,
                                     )}
-                                    className="h-[28rem] w-[500px] bg-card"
+                                    className="h-112 w-125 bg-card"
                                 />
                             </div>
                         </div>

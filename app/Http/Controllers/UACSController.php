@@ -7,8 +7,8 @@ use App\Exports\UACSExport;
 use App\Models\UACS;
 use App\Services\UACSService;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -70,10 +70,6 @@ class UACSController extends BaseResourceController
         ]);
     }
 
-    /**
-     * @param  Builder<Model>  $query
-     * @return Builder<Model>
-     */
     protected function modifyIndexQuery(Builder $query, Request $request): Builder
     {
         return $query
@@ -86,7 +82,7 @@ class UACSController extends BaseResourceController
         return Inertia::render('staff/uacs/createuacs');
     }
 
-    public function export()
+    public function export(): BinaryFileResponse
     {
         return Excel::download(new UACSExport(), 'uacs_'.now()->format('Ymd_His').'.xlsx');
     }

@@ -85,7 +85,7 @@
                         <label class="form-label required-field">Status</label>
                         <select name="status" class="form-select @error('status') is-invalid @enderror" required>
                             <option value="pending" {{ old('status', $staffInput->status) == 'pending' ? 'selected' : '' }}>Pending</option>
-                            <option value="approved" {{ old('status', $staffInput->status) == 'approved' ? 'selected' : '' }}>Approved</option>
+                            <option value="processed" {{ old('status', $staffInput->status) == 'processed' ? 'selected' : '' }}>Processed</option>
                             <option value="cancelled" {{ old('status', $staffInput->status) == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                         </select>
                         @error('status')

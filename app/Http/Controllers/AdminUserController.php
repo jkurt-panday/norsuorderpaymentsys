@@ -280,10 +280,8 @@ class AdminUserController extends Controller
             } elseif ($activitySort === 'action') {
                 $activityQuery->orderBy('action', $activityDir)
                     ->orderBy('updated_at', 'desc');
-            } elseif ($activitySort === 'created_at') {
-                $activityQuery->orderBy('updated_at', $activityDir);
             } else {
-                $activityQuery->orderBy($activitySort === 'created_at' ? 'updated_at' : $activitySort, $activityDir);
+                $activityQuery->orderBy('updated_at', $activityDir);
             }
         } else {
             $activityQuery->latest('updated_at');

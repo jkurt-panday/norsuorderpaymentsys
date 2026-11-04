@@ -40,6 +40,17 @@ class GraduateLedger extends Model
         'transaction_date' => 'date:Y-m-d',
     ];
 
+    /**
+     * Keep ledger output readable when an imported or manually entered row has
+     * no particulars value.
+     */
+    public function setParticularsAttribute(mixed $value): void
+    {
+        $particulars = is_string($value) ? trim($value) : '';
+
+        $this->attributes['particulars'] = $particulars !== '' ? $particulars : '—';
+    }
+
     public function getReferenceOrJevNumberAttribute(): ?string
     {
         return $this->reference_number;
@@ -82,6 +93,6 @@ class GraduateLedger extends Model
             return $this->imported_input_by;
         }
 
-        return $this->inputByUser?->name ?? '';
+        return $this->inputByUser->name ?? '';
     }
 }

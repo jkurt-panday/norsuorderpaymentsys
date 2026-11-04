@@ -28,7 +28,7 @@
                 <select name="status" class="form-select">
                     <option value="">All Status</option>
                     <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                    <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
+                    <option value="processed" {{ request('status') == 'processed' ? 'selected' : '' }}>Processed</option>
                     <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                     <option value="unprocessed" {{ request('status') == 'unprocessed' ? 'selected' : '' }}>Unprocessed</option>
                 </select>

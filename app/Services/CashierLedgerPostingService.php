@@ -156,14 +156,14 @@ class CashierLedgerPostingService
         $orDate = $this->normalizeDate($staffInput->or_date) ?? now()->format('Y-m-d');
         $amount = abs((float) $formInput->amount);
 
-        $particulars = $formInput->paymentDetailOption?->payment_desc
-            ?? $formInput->membership?->member_desc
+        $particulars = $formInput->paymentDetailOption->payment_desc
+            ?? $formInput->membership->member_desc
             ?? 'Payment';
 
         try {
             // Correction path: a ledger payment already exists for this OP.
             // Update it in place so re-saves never double-credit the student.
-            $existing = ($opRemark !== null)
+            $existing = ($opRemark !== '')
                 ? GraduateLedger::query()
                     ->where('remarks', $opRemark)
                     ->where('entry_type', 'payment')
@@ -256,13 +256,13 @@ class CashierLedgerPostingService
         $orDate = $this->normalizeDate($staffInput->or_date) ?? now()->format('Y-m-d');
         $amount = abs((float) $formInput->amount);
 
-        $particulars = $formInput->paymentDetailOption?->payment_desc
-            ?? $formInput->membership?->member_desc
+        $particulars = $formInput->paymentDetailOption->payment_desc
+            ?? $formInput->membership->member_desc
             ?? 'Payment';
 
         try {
             // Correction path: a ledger payment already exists for this OP.
-            $existing = ($opRemark !== null)
+            $existing = ($opRemark !== '')
                 ? LawSchoolLedger::query()
                     ->where('remarks', $opRemark)
                     ->where('entry_type', 'payment')

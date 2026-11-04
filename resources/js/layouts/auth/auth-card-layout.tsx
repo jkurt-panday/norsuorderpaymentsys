@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
-import type { PropsWithChildren } from 'react';
 import { Banknote, Lock } from 'lucide-react';
+import type { PropsWithChildren } from 'react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import {
     Card,

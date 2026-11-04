@@ -1,7 +1,7 @@
 import { Head, usePage } from '@inertiajs/react';
 import { Users, Shield, User } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface AdminDashboardProps {
     [key: string]: unknown;

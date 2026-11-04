@@ -1143,7 +1143,7 @@ class LawSchoolLedgerController extends Controller
             'remarks' => $data['remarks'] ?? null,
             'status' => $data['status'] ?? 'Pending',
             'input_by' => auth()->id(),
-            'imported_input_by' => $importedInputBy ?? auth()->user()?->name ?? 'System Import',
+            'imported_input_by' => $importedInputBy ?? auth()->user()->name ?? 'System Import',
         ];
     }
 
@@ -1874,7 +1874,10 @@ class LawSchoolLedgerController extends Controller
             ->setOption('protocolTimeout', 300_000);
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * @param array<string, float> $termBalances
+     * @return array<string, mixed>
+     */
     private function transformRecord(LawSchoolLedger $r, array $termBalances = []): array
     {
         $entryTypeLower = strtolower(trim((string) $r->entry_type));
@@ -2028,7 +2031,7 @@ class LawSchoolLedgerController extends Controller
         return $term->id;
     }
 
-    private function semesterShort(string $semester): string
+    public function semesterShort(string $semester): string
     {
         return match ($semester) {
             'First Semester' => '1st Sem',
@@ -2354,8 +2357,8 @@ class LawSchoolLedgerController extends Controller
             // Deduplicate status options case-insensitively (ignoring whitespace) so
             // variants like " DROP" and "DROP" collapse into a single "DROP" option.
             'statuses' => $this->deduplicatedOptions('status'),
-            'types' => LawSchoolLedger::query()->distinct()->pluck('entry_type')
-                ->map(fn (string $type): string => $this->entryTypeToLabel($type))->values()->all(),
+            'types' => array_values(LawSchoolLedger::query()->distinct()->pluck('entry_type')
+                 ->map(fn (string $type): string => $this->entryTypeToLabel($type))->values()->all()),
         ];
     }
 
@@ -2371,18 +2374,15 @@ class LawSchoolLedgerController extends Controller
     private function deduplicatedOptions(string $column): array
     {
         if ($column === 'semester_or_summer') {
-            return LawAcademicTerm::query()->distinct()->pluck('semester')->filter()->values()->all();
+            return array_values(LawAcademicTerm::query()->distinct()->pluck('semester')->filter()->values()->all());
         }
 
         if ($column === 'ar_or_payment') {
-            return LawSchoolLedger::query()->distinct()->pluck('entry_type')
-                ->map(fn (string $type): string => $this->entryTypeToLabel($type))->values()->all();
+            return array_values(LawSchoolLedger::query()->distinct()->pluck('entry_type')
+                 ->map(fn (string $type): string => $this->entryTypeToLabel($type))->values()->all());
         }
 
-        $select = match ($column) {
-            'status' => 'status as value, UPPER(TRIM(status)) as option_key, COUNT(*) as option_count',
-            default => throw new \InvalidArgumentException("Unsupported option column: {$column}"),
-        };
+        $select = 'status as value, UPPER(TRIM(status)) as option_key, COUNT(*) as option_count';
 
         return array_values(LawSchoolLedger::query()
             ->selectRaw($select)
@@ -2427,7 +2427,8 @@ class LawSchoolLedgerController extends Controller
      * used so the semester filter matches every equivalent stored variant.
      */
     /** @return list<string> */
-    private function semesterAliases(string $semester): array
+    /** @return list<string> */
+    public function semesterAliases(string $semester): array
     {
         return match ($this->normalizeSemester($semester)) {
             '1st Sem' => ['1st Sem', 'First Semester', '1st Semester', 'First Sem'],
@@ -2498,7 +2499,7 @@ class LawSchoolLedgerController extends Controller
      *
      * @param  array<string, mixed>  $row
      */
-    private function headerlessIdentity(array $row): ?string
+    public function headerlessIdentity(array $row): ?string
     {
         $studentId = $row['student_id'] ?? null;
         $lastName = trim((string) ($row['last_name'] ?? ''));
@@ -2539,7 +2540,7 @@ class LawSchoolLedgerController extends Controller
      *
      * @param  array<string, mixed>  $data
      */
-    private function ledgerFingerprint(array $data): string
+    public function ledgerFingerprint(array $data): string
     {
         $parts = [
             $data['student_id'] ?? '',
@@ -2563,7 +2564,7 @@ class LawSchoolLedgerController extends Controller
      * @param  array<string, int>  $studentMap
      * @return array<string, int>
      */
-    private function existingLedgerFingerprints(array $fileIdentities, array $studentMap): array
+    public function existingLedgerFingerprints(array $fileIdentities, array $studentMap): array
     {
         if (empty($fileIdentities)) {
             return [];
@@ -2614,8 +2615,8 @@ class LawSchoolLedgerController extends Controller
                 '', // last_name
                 '', // first_name
                 '', // course
-                $record->academicTerm?->school_year ?? '',
-                $record->academicTerm?->semester ?? '',
+                $record->academicTerm->school_year,
+                $record->academicTerm->semester,
                 (string) $record->amount,
                 (string) $record->transaction_date,
             ]);

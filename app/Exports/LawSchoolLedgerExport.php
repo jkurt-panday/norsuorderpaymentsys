@@ -52,9 +52,9 @@ class LawSchoolLedgerExport implements FromQuery, ShouldAutoSize, WithHeadings, 
 
     public function map($row): array
     {
-        $studentNumber = $row->lawStudent?->student_number ?? '';
-        $lastName = $row->lawStudent?->last_name ?? '';
-        $firstName = $row->lawStudent?->first_name ?? '';
+        $studentNumber = $row->lawStudent->student_number ?? '';
+        $lastName = $row->lawStudent->last_name ?? '';
+        $firstName = $row->lawStudent->first_name ?? '';
         $middleInitial = $row->lawStudent?->middle_name ? substr($row->lawStudent->middle_name, 0, 1) : '';
         $remark = $this->resolveRemark($row);
 
@@ -64,9 +64,9 @@ class LawSchoolLedgerExport implements FromQuery, ShouldAutoSize, WithHeadings, 
             $lastName,
             $firstName,
             $middleInitial,
-            $row->lawCourse?->course_code ?? '',
-            $row->lawAcademicTerm?->school_year ?? '',
-            $row->lawAcademicTerm?->semester ?? '',
+            $row->lawCourse->course_code ?? '',
+            $row->lawAcademicTerm->school_year ?? '',
+            $row->lawAcademicTerm->semester ?? '',
             (float) ($row->units ?? 0),
             $row->transaction_date?->format('Y-m-d') ?? '',
             $row->reference_number ?? '',
