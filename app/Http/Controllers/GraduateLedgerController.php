@@ -1844,7 +1844,7 @@ class GraduateLedgerController extends Controller
             'units' => $units,
             'transaction_date' => $this->normalizeDate($row[6] ?? null),
             'reference_number' => trim((string) ($row[7] ?? '')),
-            'particulars' => trim((string) ($row[8] ?? '')),
+            'particulars' => trim((string) ($row[8] ?? '')) ?: '—',
             'rate' => $cleanedRate,
             'entry_type' => $classification['entry_type'],
             'amount' => $cleanedAmount,
