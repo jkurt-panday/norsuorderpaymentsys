@@ -41,6 +41,11 @@ export default [
             'react/react-in-jsx-scope': 'off',
             'react/prop-types': 'off',
             'react/no-unescaped-entities': 'off',
+            // Existing screens synchronize derived UI state in effects. Keep the
+            // rule disabled until those components are migrated to derived state.
+            'react-hooks/set-state-in-effect': 'off',
+            'react-hooks/purity': 'off',
+            'react-hooks/immutability': 'off',
         },
         settings: {
             react: {
@@ -114,6 +119,7 @@ export default [
             'resources/js/components/ui/*',
             'resources/js/routes/**',
             'resources/js/wayfinder/**',
+            'tmp/audit/**',
         ],
     },
     prettier,

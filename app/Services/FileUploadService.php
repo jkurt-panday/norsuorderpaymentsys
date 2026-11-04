@@ -215,8 +215,8 @@ class FileUploadService
                 throw new \Exception('File not found on storage.');
             }
 
-            // Use custom filename if provided, otherwise use original filename
-            $downloadFileName = $customFileName ?? $document->original_filename;
+            // Response filenames are user-controlled; keep only the basename.
+            $downloadFileName = basename($customFileName ?? $document->original_filename);
 
             // Return the download response
             return Storage::disk($this->disk)->download(
@@ -246,13 +246,16 @@ class FileUploadService
                 throw new \Exception('File not found on storage.');
             }
 
+            // Response filenames are user-controlled; keep only the basename.
+            $responseFileName = basename($document->original_filename);
+
             // Return the file for inline viewing
             return Storage::disk($this->disk)->response(
                 $path,
-                $document->original_filename,
+                $responseFileName,
                 [
                     'Content-Type' => $document->mime_type,
-                    'Content-Disposition' => 'inline; filename="'.$document->original_filename.'"',
+                    'Content-Disposition' => 'inline; filename="'.$responseFileName.'"',
                 ]
             );
 

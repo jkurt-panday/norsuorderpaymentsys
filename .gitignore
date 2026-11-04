@@ -45,3 +45,4 @@ UACS CODE ACCTG.xlsx
 .env
 .vite.config.ts
 *.md
+.docker-compose.yml

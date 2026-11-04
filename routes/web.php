@@ -38,7 +38,7 @@ Route::name('public.')->prefix('public')->group(function () {
     Route::get('/success/{formInput:reference_number}/download', [FormInputController::class, 'downloadReceipt'])->name('download');
 
     Route::get('/assessmentform', [AssessmentFormController::class, 'create'])->name('assessmentform');
-    Route::post('/assessmentform', [AssessmentFormController::class, 'store']);
+    Route::post('/assessmentform', [AssessmentFormController::class, 'store'])->middleware('throttle:20,1');
 
     Route::get('/assessment_complete/{assessmentForm:reference_number}', [AssessmentFormController::class, 'complete'])->name('complete');
     Route::get('/assessment_complete/{assessmentForm:reference_number}/print', [AssessmentFormController::class, 'print'])->name('print_req');

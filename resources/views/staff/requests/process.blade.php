@@ -83,7 +83,7 @@
                         <select name="status" class="form-select @error('status') is-invalid @enderror" required>
                             <option value="">Select Status</option>
                             <option value="pending" {{ old('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                            <option value="approved" {{ old('status') == 'approved' ? 'selected' : '' }}>Approved</option>
+                            <option value="processed" {{ old('status') == 'processed' ? 'selected' : '' }}>Processed</option>
                             <option value="cancelled" {{ old('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                         </select>
                         @error('status')

@@ -235,6 +235,7 @@ export default function EditTransaction({
     const handleNavigateBack = () => {
         if (isDirty) {
             setShowDiscardDialog(true);
+
             return;
         }
 

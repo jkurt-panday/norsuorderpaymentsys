@@ -18,6 +18,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useConfirm } from '@/components/confirm-dialog';
 import { Card, CardContent } from '@/components/ui/card';
+import { CardTitle } from '@/components/ui/card';
 import {
     Popover,
     PopoverContent,
@@ -31,7 +32,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { CardTitle } from '@/components/ui/card';
 
 // ============ TYPE DEFINITIONS ============
 export interface PaginationLink {

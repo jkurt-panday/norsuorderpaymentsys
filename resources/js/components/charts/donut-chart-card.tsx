@@ -35,7 +35,6 @@ export function DonutChartCard({
     title,
     description,
     data,
-    centerLabel = 'Total',
     className,
     size = 'max-h-[250px]',
     showLegend = true,
@@ -44,10 +43,6 @@ export function DonutChartCard({
 }: DonutChartCardProps) {
     const { chartData, config } = useMemo(
         () => buildCategoryChartData(data),
-        [data],
-    );
-    const total = useMemo(
-        () => data.reduce((sum, d) => sum + d.value, 0),
         [data],
     );
 

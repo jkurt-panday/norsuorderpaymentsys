@@ -73,7 +73,7 @@ export default function AddCollegeOfficeModal({
             onCreated(created);
             setName('');
             onOpenChange(false);
-        } catch (e) {
+        } catch {
             setError('Something went wrong. Please try again.');
         } finally {
             setProcessing(false);

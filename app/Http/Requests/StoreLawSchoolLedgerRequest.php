@@ -22,14 +22,14 @@ class StoreLawSchoolLedgerRequest extends FormRequest
                 ?: ($this->input('tuition_per_unit_or_misc') ?: '0.00'),
             'rate' => $this->input('rate') ?: ($this->input('tuition_per_unit_or_fee_per_semester') ?: ($this->input('tuition_per_unit_or_misc') ?: '0.00')),
             'reference_number' => $this->input('reference_number') ?? $this->input('reference_jev_or_number') ?? $this->input('reference_or_jev_number'),
-            'input_by' => $this->filled('input_by') ? $this->input('input_by') : ($this->user()?->name ?? $this->user()?->id),
+            'input_by' => $this->filled('input_by') ? $this->input('input_by') : ($this->user()->name ?? $this->user()->id),
         ]);
 
         if ($this->has('items') && is_array($this->input('items'))) {
             $items = array_map(function (array $item): array {
                 $item['tuition_per_unit_or_fee_per_semester'] = ($item['tuition_per_unit_or_fee_per_semester'] ?? null)
                     ?: (($item['tuition_per_unit_or_misc'] ?? null) ?: '0.00');
-                $item['rate'] = ($item['rate'] ?? null) ?: (($item['tuition_per_unit_or_fee_per_semester'] ?? null) ?: '0.00');
+                $item['rate'] = $item['rate'] ?? '0.00';
                 $item['reference_jev_or_number'] = $item['reference_jev_or_number'] ?? $item['reference_or_jev_number'] ?? null;
                 $item['reference_number'] = $item['reference_number'] ?? $item['reference_jev_or_number'] ?? null;
                 $item['status'] = $item['status'] ?? $this->input('status', 'Pending');

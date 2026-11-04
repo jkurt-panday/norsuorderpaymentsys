@@ -69,6 +69,7 @@ class LedgerMatchingService
             ->get(['id', 'student_number', 'last_name', 'first_name', 'middle_name'])
             ->map(fn (Student $student): array => $this->graduateCandidate($student));
 
+        /** @var Collection<int, Candidate> $students */
         $match = $this->resolveCandidate($students, $assessment, $manualSelection);
         $selected = $match['selected'];
         $records = $selected
@@ -113,6 +114,7 @@ class LedgerMatchingService
             ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
             ->values();
 
+        /** @var Collection<int, Candidate> $students */
         $match = $this->resolveCandidate($students, $assessment, $manualSelection);
         $selected = $match['selected'];
         $records = $selected ? ($groupedRecords->get($selected['key']) ?? collect()) : collect();

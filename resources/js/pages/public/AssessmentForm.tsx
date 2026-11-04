@@ -248,12 +248,12 @@ export default function AssessmentForm({ courses }: Props) {
                                                     </FieldError>
                                                 )}
                                                 {data.contact_num.length > 0 && !isValidContact && (
-                                                        <FieldError id="assess-contact_num-error" className="mt-1">
-                                                            Contact number must
-                                                            contain exactly 11
-                                                            digits.
-                                                        </FieldError>
-                                                    )}
+                                                    <FieldError id="assess-contact_num-error" className="mt-1">
+                                                        Contact number must
+                                                        contain exactly 11
+                                                        digits.
+                                                    </FieldError>
+                                                )}
                                             </Field>
                                         </div>
                                     </div>
@@ -393,10 +393,10 @@ export default function AssessmentForm({ courses }: Props) {
                                                 }}
                                             />
                                             {errors.student_id && (
-                                                    <FieldError id="assess-student_id-error" className="mt-1">
-                                                        {errors.student_id}
-                                                    </FieldError>
-                                                )}
+                                                <FieldError id="assess-student_id-error" className="mt-1">
+                                                    {errors.student_id}
+                                                </FieldError>
+                                            )}
                                         </Field>
                                         {/* courses */}
                                         <Field>
@@ -428,8 +428,8 @@ export default function AssessmentForm({ courses }: Props) {
                                                         'course_id',
                                                         selected
                                                             ? String(
-                                                                  selected.id,
-                                                              )
+                                                                selected.id,
+                                                            )
                                                             : '',
                                                     );
                                                 }}
@@ -463,10 +463,10 @@ export default function AssessmentForm({ courses }: Props) {
                                                 </ComboboxContent>
                                             </Combobox>
                                             {errors.course_id && (
-                                                    <FieldError id="assess-course_id-error" className="mt-1">
-                                                        {errors.course_id}
-                                                    </FieldError>
-                                                )}
+                                                <FieldError id="assess-course_id-error" className="mt-1">
+                                                    {errors.course_id}
+                                                </FieldError>
+                                            )}
                                         </Field>
                                     </div>
                                     <div className="space-y-4">
@@ -488,17 +488,17 @@ export default function AssessmentForm({ courses }: Props) {
                                                 value={data.address}
                                                 onChange={(e) =>
                                                     setData(
-                                                        'address',                                                        
+                                                        'address',
                                                         e.target.value,
-                                                        
+
                                                     )
                                                 }
                                             />
                                             {errors.address && (
-                                                    <FieldError id="assess-address-error" className="mt-1">
-                                                        {errors.address}
-                                                    </FieldError>
-                                                )}
+                                                <FieldError id="assess-address-error" className="mt-1">
+                                                    {errors.address}
+                                                </FieldError>
+                                            )}
                                         </Field>
                                     </div>
                                 </div>
@@ -589,10 +589,10 @@ export default function AssessmentForm({ courses }: Props) {
                                 </RadioGroup>
                                 {/* Validation Error Display */}
                                 {errors.enrolled_under && (
-                                                    <FieldError id="assess-enrolled_under-error" className="mt-1">
-                                                        {errors.enrolled_under}
-                                                    </FieldError>
-                                                )}
+                                    <FieldError id="assess-enrolled_under-error" className="mt-1">
+                                        {errors.enrolled_under}
+                                    </FieldError>
+                                )}
 
                                 {/* semester */}
                                 <FieldLabel
@@ -702,10 +702,10 @@ export default function AssessmentForm({ courses }: Props) {
 
                                 {/* Validation Error Display */}
                                 {errors.sy_last_attended && (
-                                                    <FieldError id="assess-sy_last_attended-error" className="mt-1">
-                                                        {errors.sy_last_attended}
-                                                    </FieldError>
-                                                )}
+                                    <FieldError id="assess-sy_last_attended-error" className="mt-1">
+                                        {errors.sy_last_attended}
+                                    </FieldError>
+                                )}
                                 {/* end of the card*/}
                             </CardContent>
 

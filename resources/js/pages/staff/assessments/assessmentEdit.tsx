@@ -183,7 +183,7 @@ export default function AssessmentEdit({
     assessment,
     ledgerStatement,
 }: AssessmentEditProps) {
-    const { auth, flash } = usePage().props as {
+    const { flash } = usePage().props as {
         auth?: { user?: { role?: string } };
         flash?: {
             success?: string;

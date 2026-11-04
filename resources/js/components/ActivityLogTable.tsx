@@ -261,6 +261,7 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
 
     useEffect(() => {
         start();
+
         return () => stop();
     }, [start, stop]);
 
@@ -527,8 +528,10 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                                 });
                                 setSortKey('created_at');
                                 setSortDir(v === 'Oldest' ? 'asc' : 'desc');
+
                                 return;
                             }
+
                             handleActionChange(v);
                         }}
                     >

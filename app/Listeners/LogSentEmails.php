@@ -37,36 +37,18 @@ class LogSentEmails
         }
 
         $actor = null;
-
-        if (! $actor) {
-            $cached = Cache::get('email_actor:'.md5($recipientEmails.'|'.$subject));
-            if ($cached) {
-                $actor = User::find($cached['id']);
-                if (! $actor) {
-                    $actor = (object) [
-                        'id' => $cached['id'],
-                        'name' => $cached['name'],
-                        'role' => $cached['role'],
-                    ];
-                }
-                app()->instance('email.actor', $actor);
-            }
+        $cached = Cache::get('email_actor:'.md5($recipientEmails.'|'.$subject));
+        if (is_array($cached) && isset($cached['id'])) {
+            $actor = User::query()->whereKey($cached['id'])->first();
         }
 
-        if ($actor && method_exists($actor, 'getAuthIdentifier') && $actor->getAuthIdentifier() === null && Auth::guard('web')->check()) {
-            $actor = Auth::guard('web')->user();
-        } elseif (is_array($actor)) {
-            $found = User::find($actor['id'] ?? null);
-            $actor = $found ?: (object) $actor;
-        } elseif (is_object($actor) && ! method_exists($actor, 'getAuthIdentifier') && isset($actor->id)) {
-            $found = User::find($actor->id);
-            if ($found) {
-                $actor = $found;
-            }
+        if ($actor === null && Auth::guard('web')->check()) {
+            $authenticated = Auth::guard('web')->user();
+            $actor = $authenticated instanceof User ? $authenticated : null;
         }
 
         // If job likely already created the log, don't create another (prevents system)
-        if (! $actor || (method_exists($actor, 'getAuthIdentifier') && ! $actor->getAuthIdentifier())) {
+        if (! $actor || ! $actor->getAuthIdentifier()) {
             // Check if recent log exists from job
             $recent = ActivityLog::where('description', 'like', "%{$recipientEmails}%")
                 ->where('description', 'like', '%'.str_replace('"', '', $subject).'%')
@@ -77,10 +59,14 @@ class LogSentEmails
             }
         }
 
+        $actorId = $actor instanceof User ? $actor->getAuthIdentifier() : null;
+        $actorName = $actor instanceof User ? $actor->name : null;
+        $actorRole = $actor instanceof User ? $actor->role : null;
+
         ActivityLog::create([
-            'actor_id' => $actor?->getAuthIdentifier(),
-            'actor_name' => $actor?->name ?? ($actor?->id ? null : null),
-            'actor_role' => $actor?->role ?? null,
+            'actor_id' => $actorId,
+            'actor_name' => $actorName,
+            'actor_role' => $actorRole,
             'action' => 'email.sent',
             'target_id' => null,
             'subject_type' => null,

@@ -60,16 +60,19 @@ class LawSchoolLedger extends Model
         return $this->belongsTo(AcademicTerm::class);
     }
 
+    /** @return BelongsTo<Student, $this> */
     public function lawStudent(): BelongsTo
     {
         return $this->student();
     }
 
+    /** @return BelongsTo<Course, $this> */
     public function lawCourse(): BelongsTo
     {
         return $this->course();
     }
 
+    /** @return BelongsTo<AcademicTerm, $this> */
     public function lawAcademicTerm(): BelongsTo
     {
         return $this->academicTerm();

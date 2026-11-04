@@ -20,7 +20,6 @@ import {
   CheckSquare,
   Square,
   Calendar as CalendarIcon,
-  Upload,
   Download,
     MoreHorizontal,
     Copy,
@@ -55,13 +54,6 @@ import {
     CardFooter,
 } from '@/components/ui/card';
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-
-import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -69,6 +61,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
 import { Input } from '@/components/ui/input';
 import {
     Pagination,
@@ -478,7 +477,7 @@ export default function Index({
                 const data = (await res.json()) as typeof allRecipients;
                 setAllRecipients(data);
                 // Do not auto-select recipients; user must choose explicitly.
-            } catch (e) {
+            } catch {
                 flashToast('error', 'Failed to load recipients.');
             } finally {
                 setIsLoadingRecipients(false);
@@ -486,7 +485,7 @@ export default function Index({
         };
 
         fetchRecipients();
-    }, [isEmailModalOpen]);
+    }, [isEmailModalOpen, filterState]);
 
     const handleOpenEmailModal = () => {
         setEmailSubject('');
@@ -735,7 +734,9 @@ export default function Index({
     };
 
     const copyImportReportToClipboard = () => {
-        if (!importReport?.errors) return;
+        if (!importReport?.errors) {
+return;
+}
 
         const text = importReport.errors
             .map((e: any) => `Row ${e.row}: ${e.student ?? 'Unknown'} - ${e.reason}`)
@@ -743,36 +744,6 @@ export default function Index({
         
         navigator.clipboard.writeText(text).then(() => {
             flashToast('success', 'Error report copied to clipboard');
-        });
-    };
-
-    const handleCopyImportReport = () => {
-        if (!importReport) return;
-
-        const lines = [
-            `Graduate Ledger Import Report`,
-            `Imported: ${importReport.imported}`,
-            `Skipped with issues: ${importReport.skipped}`,
-            `Duplicates skipped: ${importReport.duplicates}`,
-            ``,
-            `Rows with issues:`,
-        ];
-
-        for (const err of importReport.errors) {
-            lines.push(
-                `  Row ${err.row}: ${err.student ?? '(no name)'} — ${err.reason}`,
-            );
-        }
-
-        if (importReport.truncated) {
-            lines.push(
-                `  ...and ${importReport.total_errors - importReport.errors.length} more issues`,
-            );
-        }
-
-        navigator.clipboard.writeText(lines.join('\n')).then(() => {
-            flashToast('success', 'Import report copied to clipboard.');
-            setIsImportReportOpen(false);
         });
     };
 
@@ -1723,9 +1694,11 @@ export default function Index({
                                                     }
                                                     onClick={() => {
                                                         const studentId = Number(r.studentId);
+
                                                         if (!Number.isFinite(studentId) || studentId <= 0) {
                                                             return;
                                                         }
+
                                                         setDrawerSelection({
                                                             studentId,
                                                             transactionId: r.id,
@@ -1738,11 +1711,14 @@ export default function Index({
                                                         ) {
                                                             return;
                                                         }
+
                                                         event.preventDefault();
                                                         const studentId = Number(r.studentId);
+
                                                         if (!Number.isFinite(studentId) || studentId <= 0) {
                                                             return;
                                                         }
+
                                                         setDrawerSelection({
                                                             studentId,
                                                             transactionId: r.id,
@@ -2205,7 +2181,7 @@ export default function Index({
                                                         }}
                                                         className={`cursor-pointer font-medium ${
                                                             link.active
-                                                                ? '!bg-primary font-bold !text-primary-foreground shadow-sm hover:!bg-primary/90'
+                                                                ? 'bg-primary! font-bold text-primary-foreground! shadow-sm hover:bg-primary/90!'
                                                                 : 'text-foreground hover:bg-muted'
                                                         }`}
                                                     >
@@ -3030,7 +3006,7 @@ export default function Index({
                                         examPeriod,
                                         examDeadline,
                                     )}
-                                    className="h-[28rem] w-[500px] bg-card"
+                                    className="h-112 w-125 bg-card"
                                 />
                             </div>
                         </div>

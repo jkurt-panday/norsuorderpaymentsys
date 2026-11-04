@@ -7,6 +7,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property string|null $middle_name
+ * @property string $first_name
+ * @property string $last_name
+ */
 class LawStudent extends Model
 {
     /** @use HasFactory<Factory<LawStudent>> */
