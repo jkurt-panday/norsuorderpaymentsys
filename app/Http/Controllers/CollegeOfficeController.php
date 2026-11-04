@@ -6,9 +6,11 @@ namespace App\Http\Controllers;
 
 use App\Models\CollegeOffice;
 use Inertia\Response;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
-use Inertia\Inertia;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Inertia\Inertia;
 
 class CollegeOfficeController extends Controller
 {
@@ -23,12 +25,22 @@ class CollegeOfficeController extends Controller
     // ? handles the "+" modal submission
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:college_offices,name'],
-        ]);
+        try {
+            $validated = $request->validate([
+                'name' => ['required', 'string', 'max:255', 'unique:college_offices,name'],
+            ]);
 
-        $collegeOffice = CollegeOffice::create($validated);
+            $collegeOffice = CollegeOffice::create($validated);
 
-        return response()->json($collegeOffice, 201);
+            return response()->json($collegeOffice, 201);
+        } catch (QueryException $exception) {
+            Log::error('Failed to create college or office.', [
+                'message' => $exception->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Unable to create the college or office at this time.',
+            ], 500);
+        }
     }
 }
