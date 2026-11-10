@@ -625,4 +625,86 @@ class LawSchoolLedgerTest extends TestCase
             ->where('reference_number', 'HONOR-CUM-'.$assessment->id)
             ->count());
     }
+
+    public function test_cohort_entry_creates_law_transactions_for_multiple_students_with_latin_honor(): void
+    {
+        $user = User::factory()->staff()->create();
+        $course = Course::create([
+            'course_code' => 'JD-COHORT',
+            'course_desc' => 'Juris Doctor',
+            'course_college' => 'School of Law',
+        ]);
+        $term = AcademicTerm::create([
+            'school_year' => '2026-2027',
+            'semester' => 'First Semester',
+        ]);
+
+        $student1 = Student::create([
+            'student_number' => 'LAW-COHORT-1',
+            'last_name' => 'LawStudent1',
+            'first_name' => 'First',
+        ]);
+        $student2 = Student::create([
+            'student_number' => 'LAW-COHORT-2',
+            'last_name' => 'LawStudent2',
+            'first_name' => 'Second',
+        ]);
+
+        $response = $this->actingAs($user)->post('/law-ledger/cohort-store', [
+            'course_id' => $course->id,
+            'academic_term_id' => $term->id,
+            'entry_type' => 'ar',
+            'transaction_date' => '2026-09-01',
+            'particulars' => 'Tuition',
+            'reference_number' => 'LAW-COHORT-01',
+            'cohort_rows' => [
+                [
+                    'student_id' => $student1->id,
+                    'units' => 18,
+                    'rate' => '500.00',
+                    'amount' => '9000.00',
+                    'latin_honor' => 'SUMMA',
+                    'discount_amount' => '9000.00',
+                    'remarks' => 'Summa Scholar',
+                ],
+                [
+                    'student_id' => $student2->id,
+                    'units' => 15,
+                    'rate' => '500.00',
+                    'amount' => '7500.00',
+                    'latin_honor' => null,
+                    'discount_amount' => null,
+                    'remarks' => 'Regular student',
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect('/law-ledger');
+        $response->assertSessionHas('success');
+
+        // Student 1: AR + Adjustment twin
+        $this->assertDatabaseHas('law_school_ledgers', [
+            'student_id' => $student1->id,
+            'course_id' => $course->id,
+            'entry_type' => 'ar',
+            'amount' => '9000.00',
+            'latin_honor' => 'SUMMA',
+        ]);
+        $this->assertDatabaseHas('law_school_ledgers', [
+            'student_id' => $student1->id,
+            'course_id' => $course->id,
+            'entry_type' => 'adjustment',
+            'amount' => '9000.00',
+            'latin_honor' => 'SUMMA',
+        ]);
+
+        // Student 2: AR only
+        $this->assertDatabaseHas('law_school_ledgers', [
+            'student_id' => $student2->id,
+            'course_id' => $course->id,
+            'entry_type' => 'ar',
+            'amount' => '7500.00',
+            'latin_honor' => null,
+        ]);
+    }
 }

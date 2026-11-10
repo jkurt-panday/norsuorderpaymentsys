@@ -84,6 +84,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/send-emails', [GraduateLedgerController::class, 'sendBulkEmail'])->name('send-emails');
         Route::get('/students/{student}/balance', [GraduateLedgerController::class, 'studentBalance'])->name('students.balance');
         Route::get('/add', [GraduateLedgerController::class, 'create'])->name('create');
+        Route::post('/cohort-store', [GraduateLedgerController::class, 'cohortStore'])->name('cohort-store');
         Route::post('/', [GraduateLedgerController::class, 'store'])->name('store');
         Route::post('/import', [GraduateLedgerController::class, 'import'])->name('import');
         Route::post('/{id}/apply-membership', [GraduateLedgerController::class, 'applyMembership'])->name('apply-membership');
@@ -105,6 +106,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/students/{id}', [LawSchoolLedgerController::class, 'destroyStudent'])->name('students.destroy');
         Route::get('/add', [LawSchoolLedgerController::class, 'create'])->name('create');
         Route::get('/new-transaction', [LawSchoolLedgerController::class, 'create']);
+        Route::post('/cohort-store', [LawSchoolLedgerController::class, 'cohortStore'])->name('cohort-store');
         Route::post('/', [LawSchoolLedgerController::class, 'store'])->name('store');
         Route::post('/import', [LawSchoolLedgerController::class, 'import'])->name('import');
         Route::post('/{id}/apply-honor', [LawSchoolLedgerController::class, 'applyLatinHonor'])->name('apply-honor');

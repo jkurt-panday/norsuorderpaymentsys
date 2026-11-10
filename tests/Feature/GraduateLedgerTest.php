@@ -702,6 +702,76 @@ class GraduateLedgerTest extends TestCase
         $this->assertSame('Outstanding', $mapT2[14]);
     }
 
+    public function test_cohort_entry_creates_transactions_for_multiple_students_with_scholarships(): void
+    {
+        $user = User::factory()->staff()->create();
+        $course = $this->graduateCourse('MSIT', 'MS in Information Technology');
+        $term = AcademicTerm::create([
+            'school_year' => '2026-2027',
+            'semester' => 'First Semester',
+        ]);
+
+        $student1 = Student::create(['last_name' => 'Alpha', 'first_name' => 'One']);
+        $student2 = Student::create(['last_name' => 'Beta', 'first_name' => 'Two']);
+
+        $response = $this->actingAs($user)->post('/graduate-ledger/cohort-store', [
+            'course_id' => $course->id,
+            'academic_term_id' => $term->id,
+            'entry_type' => 'ar',
+            'transaction_date' => '2026-09-01',
+            'particulars' => 'Tuition',
+            'reference_number' => 'COHORT-01',
+            'cohort_rows' => [
+                [
+                    'student_id' => $student1->id,
+                    'units' => 9,
+                    'rate' => '500.00',
+                    'amount' => '4500.00',
+                    'membership' => 'NAPU',
+                    'discount_amount' => '4500.00',
+                    'remarks' => 'Full Scholar',
+                ],
+                [
+                    'student_id' => $student2->id,
+                    'units' => 6,
+                    'rate' => '500.00',
+                    'amount' => '3000.00',
+                    'membership' => null,
+                    'discount_amount' => null,
+                    'remarks' => 'Regular',
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect('/graduate-ledger');
+        $response->assertSessionHas('success');
+
+        // Check student 1 AR + adjustment twin
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'student_id' => $student1->id,
+            'course_id' => $course->id,
+            'entry_type' => 'ar',
+            'amount' => '4500.00',
+            'membership' => 'NAPU',
+        ]);
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'student_id' => $student1->id,
+            'course_id' => $course->id,
+            'entry_type' => 'adjustment',
+            'amount' => '4500.00',
+            'membership' => 'NAPU',
+        ]);
+
+        // Check student 2 AR only
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'student_id' => $student2->id,
+            'course_id' => $course->id,
+            'entry_type' => 'ar',
+            'amount' => '3000.00',
+            'membership' => null,
+        ]);
+    }
+
     private function graduateCourse(string $code, ?string $description = null): Course
     {
         return Course::create([

@@ -44,8 +44,14 @@ class StoreGraduateLedgerRequest extends FormRequest
      */
     public function rules(): array
     {
+        $isCohort = $this->has('cohort_rows') && is_array($this->input('cohort_rows'));
+
         return [
-            'student_id' => ['nullable', 'required_without:new_student', 'exists:students,id'],
+            'student_id' => [
+                'nullable',
+                Rule::requiredIf(fn () => ! $isCohort && ! $this->filled('new_student')),
+                'exists:students,id',
+            ],
             'new_student' => ['nullable', 'array'],
             'new_student.student_number' => [
                 'nullable',
@@ -79,7 +85,7 @@ class StoreGraduateLedgerRequest extends FormRequest
             'rate' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
             'amount' => [
                 'nullable',
-                Rule::requiredIf(fn () => ! is_array($this->input('items')) && $this->input('entry_type') !== 'ar'),
+                Rule::requiredIf(fn () => ! is_array($this->input('items')) && ! $isCohort && $this->input('entry_type') !== 'ar'),
                 'numeric',
                 'decimal:0,2',
                 Rule::when($this->input('entry_type') === 'ar', ['min:0'], ['min:0.01']),
@@ -109,6 +115,16 @@ class StoreGraduateLedgerRequest extends FormRequest
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
             'items.*.remarks' => ['nullable', 'string', 'max:255'],
             'items.*.membership' => ['nullable', Rule::in(['NAPU', 'NORSUFFA'])],
+
+            // ── Cohort Entry Rules ──────────────────────────────────────────────
+            'cohort_rows' => ['nullable', 'array', 'min:1', 'max:500'],
+            'cohort_rows.*.student_id' => ['required_with:cohort_rows', 'integer', 'exists:students,id'],
+            'cohort_rows.*.units' => ['nullable', 'numeric', 'min:0'],
+            'cohort_rows.*.rate' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
+            'cohort_rows.*.amount' => ['required_with:cohort_rows', 'numeric', 'gt:0', 'max:99999999.99'],
+            'cohort_rows.*.membership' => ['nullable', Rule::in(['NAPU', 'NORSUFFA', ''])],
+            'cohort_rows.*.discount_amount' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'cohort_rows.*.remarks' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -123,6 +139,9 @@ class StoreGraduateLedgerRequest extends FormRequest
             'items.min' => 'Please add at least one transaction line.',
             'items.*.amount.min' => 'Line #:position must have an amount greater than zero.',
             'items.*.amount.required' => 'Line #:position must have an amount greater than zero.',
+            'cohort_rows.required' => 'Please select at least one student for cohort entry.',
+            'cohort_rows.min' => 'Please select at least one student for cohort entry.',
+            'cohort_rows.*.amount.gt' => 'Student row #:position must have an amount greater than zero.',
         ];
     }
 

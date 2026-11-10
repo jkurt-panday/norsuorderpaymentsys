@@ -13,6 +13,7 @@ import {
     Trash2,
     Layers,
     User,
+    Users,
 } from 'lucide-react';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
@@ -30,6 +31,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import GraduateCohortEntry from '@/pages/graduate-ledger/components/CohortEntry';
 import { flashToast } from '@/utils/flashToast';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -306,7 +308,8 @@ export default function AddTransaction({
     selectedStudentId = null,
     defaultEntryType = 'ar',
 }: Props) {
-    const [isBatchMode, setIsBatchMode] = useState(false);
+    const [entryMode, setEntryMode] = useState<'single' | 'batch' | 'cohort'>('single');
+    const isBatchMode = entryMode === 'batch';
     const [showNewStudent, setShowNewStudent] = useState(false);
     const [balancePreview, setBalancePreview] = useState<StudentBalancePreview | null>(null);
     const [loadingBalance, setLoadingBalance] = useState(false);
@@ -641,13 +644,13 @@ return;
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
-                    {/* Single vs Batch Switch */}
+                    {/* Single vs Batch vs Cohort Switch */}
                     <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1 shadow-xs">
                         <button
                             type="button"
-                            onClick={() => setIsBatchMode(false)}
+                            onClick={() => setEntryMode('single')}
                             className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                                !isBatchMode
+                                entryMode === 'single'
                                     ? 'bg-primary text-primary-foreground shadow-xs'
                                     : 'text-muted-foreground hover:text-foreground'
                             }`}
@@ -656,14 +659,25 @@ return;
                         </button>
                         <button
                             type="button"
-                            onClick={() => setIsBatchMode(true)}
+                            onClick={() => setEntryMode('batch')}
                             className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                                isBatchMode
+                                entryMode === 'batch'
                                     ? 'bg-primary text-primary-foreground shadow-xs'
                                     : 'text-muted-foreground hover:text-foreground'
                             }`}
                         >
-                            <Layers className="h-3.5 w-3.5" /> Batch / Multi-Line
+                            <Layers className="h-3.5 w-3.5" /> Batch Line Items
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setEntryMode('cohort')}
+                            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                entryMode === 'cohort'
+                                    ? 'bg-primary text-primary-foreground shadow-xs'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            <Users className="h-3.5 w-3.5" /> Multi-Student Entry
                         </button>
                     </div>
 
@@ -678,7 +692,15 @@ return;
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            {entryMode === 'cohort' ? (
+                <GraduateCohortEntry
+                    students={students}
+                    courses={courses}
+                    academicTerms={academicTerms}
+                    authUserName={authUserName}
+                />
+            ) : (
+                <form onSubmit={handleSubmit} className="space-y-6">
                 {/* ── 1. Student Selection & Balance Overview Card ─────── */}
                 <Card className="border-border bg-card">
                     <CardHeader className="border-b border-border/50 bg-muted/30 pb-3">
@@ -1444,6 +1466,7 @@ return;
                     </Button>
                 </div>
             </form>
+            )}
         </div>
     );
 }

@@ -36,6 +36,11 @@ SYSTEM_WORKFLOW_PRESENTATION.md
 /.impeccable
 /plan
 /scratch
+/tmp
+/utils
+build.log
+chisel.php
+chisel-paths.php
 .supa
 .env.supa
 Agents.md
@@ -46,3 +51,4 @@ UACS CODE ACCTG.xlsx
 .vite.config.ts
 *.md
 .docker-compose.yml
+/manual
