@@ -1,0 +1,20 @@
+# ==============================================================================
+# Trivy Vulnerability Suppression List (.trivyignore)
+# ==============================================================================
+# Syntax:
+#   <Vulnerability-ID>
+#
+# Examples:
+#   CVE-2023-12345
+#   GHSA-xxxx-xxxx-xxxx
+#
+# Suppression Guidelines:
+# 1. Always document the vulnerability identifier, date added, and reason/justification.
+# 2. Prefer fixing, patching, or upgrading packages over ignoring vulnerabilities.
+# 3. If a vulnerability is unfixed upstream and non-exploitable in the application runtime,
+#    state the mitigated vector and expiration date for review.
+#
+# Example suppression with comment:
+# # Ignored on 2026-11-10: Vulnerability only impacts unused CLI tool, runtime unaffected.
+# # Review by: 2026-12-31
+# # CVE-2023-99999

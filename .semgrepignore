@@ -1,0 +1,27 @@
+# ==============================================================================
+# Semgrep Ignore Rules (.semgrepignore)
+# ==============================================================================
+
+# Dependency and package directories
+vendor/
+node_modules/
+
+# Compiled and generated frontend assets
+public/build/
+public/hot
+
+# Framework storage, cache and SSR directories
+storage/
+bootstrap/cache/
+bootstrap/ssr/
+
+# User manuals, documentation and planning specifications
+manual/
+plan/
+
+# Version control and development environments
+.git/
+.github/
+tmp/
+*.sqlite
+*.sqlite3

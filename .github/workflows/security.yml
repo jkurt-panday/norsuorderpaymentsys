@@ -1,0 +1,337 @@
+name: Security Pipeline
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    - cron: '0 2 * * 1' # Weekly scan every Monday at 02:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # Job 1: Semgrep Static Application Security Testing (SAST)
+  # ----------------------------------------------------------------------------
+  semgrep:
+    name: Semgrep SAST
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep Security Scan
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/src" -w /src semgrep/semgrep:latest semgrep scan \
+            --config "p/php" \
+            --config "p/javascript" \
+            --config "p/typescript" \
+            --config "p/react" \
+            --config "p/owasp-top-ten" \
+            --config "p/security-audit" \
+            --sarif --output semgrep.sarif || true
+
+      - name: Verify Semgrep SARIF Output
+        id: check_semgrep_sarif
+        run: |
+          if [ -s "semgrep.sarif" ]; then
+            echo "sarif_ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "sarif_ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload Semgrep SARIF to GitHub Code Scanning
+        if: steps.check_semgrep_sarif.outputs.sarif_ready == 'true'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+        continue-on-error: true
+
+  # ----------------------------------------------------------------------------
+  # Job 2: ESLint Frontend SAST
+  # ----------------------------------------------------------------------------
+  eslint-sast:
+    name: ESLint Frontend SAST
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.9.1
+
+      - name: Install dependencies & SARIF formatter
+        run: |
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm add -D @microsoft/eslint-formatter-sarif
+
+      - name: Run ESLint Security Linting
+        run: |
+          npx eslint resources/ --format @microsoft/eslint-formatter-sarif --output-file eslint-results.sarif || true
+
+      - name: Verify ESLint SARIF Output
+        id: check_eslint_sarif
+        run: |
+          if [ -s "eslint-results.sarif" ]; then
+            echo "sarif_ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "sarif_ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload ESLint SARIF to GitHub Code Scanning
+        if: steps.check_eslint_sarif.outputs.sarif_ready == 'true'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: eslint-results.sarif
+        continue-on-error: true
+
+  # ----------------------------------------------------------------------------
+  # Job 3: Bandit Python SAST
+  # ----------------------------------------------------------------------------
+  bandit:
+    name: Bandit Python SAST
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Detect Python files and execute Bandit
+        id: check_py
+        run: |
+          PY_FILES=$(find . -name "*.py" -not -path "*/vendor/*" -not -path "*/node_modules/*" -not -path "*/.venv/*")
+          if [ -z "$PY_FILES" ]; then
+            echo "No Python files found in repository. Skipping Bandit scan."
+            echo "py_found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "py_found=true" >> "$GITHUB_OUTPUT"
+          echo "Python files detected:"
+          echo "$PY_FILES"
+          pip install "bandit[sarif]"
+          bandit -r . -f sarif -o bandit-results.sarif || true
+
+      - name: Upload Bandit SARIF to GitHub Code Scanning
+        if: steps.check_py.outputs.py_found == 'true'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: bandit-results.sarif
+        continue-on-error: true
+
+  # ----------------------------------------------------------------------------
+  # Job 4: TruffleHog Secrets SAST
+  # ----------------------------------------------------------------------------
+  trufflehog:
+    name: TruffleHog Secret Scanning
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository (deep history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run TruffleHog Verified Secrets Scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
+
+  # ----------------------------------------------------------------------------
+  # Job 5: SBOM Generation & CVE Scanning
+  # ----------------------------------------------------------------------------
+  sbom-scan:
+    name: SBOM Generation & CVE Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate CycloneDX SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: ./
+          format: cyclonedx-json
+          output-file: cyclonedx.sbom.json
+
+      - name: Generate SPDX SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: ./
+          format: spdx-json
+          output-file: spdx.sbom.json
+
+      - name: Scan CycloneDX SBOM with Grype
+        uses: anchore/scan-action@v6
+        id: grype_scan
+        with:
+          sbom: cyclonedx.sbom.json
+          output-format: sarif
+          severity-cutoff: high
+          fail-build: false
+
+      - name: Upload Grype SARIF to GitHub Code Scanning
+        if: always() && steps.grype_scan.outputs.sarif != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.grype_scan.outputs.sarif }}
+        continue-on-error: true
+
+      - name: Upload SBOM Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-packages
+          path: |
+            cyclonedx.sbom.json
+            spdx.sbom.json
+
+  # ----------------------------------------------------------------------------
+  # Job 6: Trivy Container Image Scan
+  # ----------------------------------------------------------------------------
+  trivy-image:
+    name: Trivy Container Image Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Application Docker Image
+        run: |
+          docker build -t norsuopsys:ci -f Dockerfile .
+
+      - name: Run Trivy Security Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'norsuopsys:ci'
+          format: 'sarif'
+          output: 'trivy-image-results.sarif'
+          severity: 'HIGH,CRITICAL'
+          ignore-unfixed: true
+          trivyignores: '.trivyignore'
+
+      - name: Verify Trivy SARIF Output
+        id: check_trivy_sarif
+        run: |
+          if [ -s "trivy-image-results.sarif" ]; then
+            echo "sarif_ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "sarif_ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload Trivy SARIF to GitHub Code Scanning
+        if: steps.check_trivy_sarif.outputs.sarif_ready == 'true'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image-results.sarif
+        continue-on-error: true
+
+  # ----------------------------------------------------------------------------
+  # Job 7: Dynamic Application Security Testing (OWASP ZAP DAST)
+  # ----------------------------------------------------------------------------
+  zap-dast:
+    name: OWASP ZAP DAST
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP Runtime
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, sqlite3, bcmath, fileinfo, gd
+          coverage: none
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.9.1
+
+      - name: Install Composer Dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Install Frontend Dependencies & Build Assets
+        run: |
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm run build
+
+      - name: Prepare Laravel Environment & Database
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force
+          touch database/database.sqlite
+          php artisan migrate --force
+
+      - name: Start Laravel Application Server
+        run: |
+          php artisan serve --host=0.0.0.0 --port=8000 &
+          sleep 2
+
+      - name: Wait for Application Health
+        run: |
+          for i in {1..30}; do
+            if curl -s -f http://127.0.0.1:8000/up > /dev/null 2>&1 || curl -s -f http://127.0.0.1:8000 > /dev/null 2>&1; then
+              echo "Laravel application is online and ready for scanning!"
+              break
+            fi
+            echo "Waiting for app to start (attempt $i/30)..."
+            sleep 1
+          done
+
+      - name: Run OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: 'http://localhost:8000'
+          rules_file_name: '.zap/rules.tsv'
+          allow_issue_writing: false
+          artifact_name: 'zap_report'
+        continue-on-error: true
+
+      - name: Upload ZAP HTML Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-baseline-report
+          path: |
+            zap_report.html
+            report_html.html
+          if-no-files-found: ignore

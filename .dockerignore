@@ -1,0 +1,65 @@
+# ==============================================================================
+# Docker Build Ignore (.dockerignore)
+# ==============================================================================
+
+# Version control and CI workflows
+.git
+.gitignore
+.gitattributes
+.github
+
+# Local dependencies
+node_modules
+vendor
+
+# Local build artifacts and hot-reload flag
+public/hot
+public/build
+
+# Storage runtime and framework logs
+storage/*.key
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/logs/*
+
+# Local SQLite databases
+database/*.sqlite
+database/*.sqlite-shm
+database/*.sqlite-wal
+database/*.sqlite-journal
+
+# Automated tests and temporary files
+tests
+.phpunit.cache
+tmp
+
+# Manuals and planning documentation
+manual
+plan
+
+# Environment configurations and secret keys
+.env
+.env.*
+!.env.example
+
+# IDE and editor settings
+.editorconfig
+.vscode
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Security scanner configs not needed in image
+.trivyignore
+.semgrepignore
+.zap
+Dockerfile
+docker-compose.yml
+README.md
+HANDOFF.md
+AGENTS.md
+DESIGN.md
