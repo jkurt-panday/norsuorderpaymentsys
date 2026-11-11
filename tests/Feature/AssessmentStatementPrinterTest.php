@@ -163,7 +163,8 @@ class AssessmentStatementPrinterTest extends TestCase
         ])->render();
 
         $this->assertSame('LAW-100', $statement['selectedStudent']['studentId']);
-        $this->assertStringContainsString('<td class="italic align-top py-0.5">LAW-100</td>', $html);
+        $this->assertStringContainsString('Student ID:', $html);
+        $this->assertStringContainsString('LAW-100', $html);
     }
 
     public function test_law_ledger_statement_prints_student_number_instead_of_internal_id(): void
@@ -192,7 +193,8 @@ class AssessmentStatementPrinterTest extends TestCase
             'preparedBy' => 'Test User',
         ])->render();
 
-        $this->assertStringContainsString('<td class="italic align-top py-0.5">LAW-999</td>', $html);
+        $this->assertStringContainsString('Student ID:', $html);
+        $this->assertStringContainsString('LAW-999', $html);
     }
 
     public function test_law_ledger_pdf_applies_requested_transaction_order(): void

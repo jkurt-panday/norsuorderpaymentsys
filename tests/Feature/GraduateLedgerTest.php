@@ -486,7 +486,7 @@ class GraduateLedgerTest extends TestCase
         $this->assertSame('', $blank->inputByDisplay());
 
         $export = new GraduateLedgerExport(GraduateLedger::query());
-        $this->assertSame('ABC', $export->map($imported->load(['student', 'course', 'academicTerm', 'inputByUser']))[13]);
+        $this->assertSame('ABC', $export->map($imported->load(['student', 'course', 'academicTerm', 'inputByUser']))[15]);
 
         $this->actingAs($user)->get('/graduate-ledger')
             ->assertOk()
@@ -518,6 +518,7 @@ class GraduateLedgerTest extends TestCase
             'entry_type' => 'ar',
             'transaction_date' => '2026-08-01',
             'reference_number' => 'AR-UNPAID-1',
+            'particulars' => 'Tuition',
             'amount' => 5000.00,
             'status' => 'posted',
         ]);
@@ -533,6 +534,7 @@ class GraduateLedgerTest extends TestCase
             'entry_type' => 'ar',
             'transaction_date' => '2026-01-01',
             'reference_number' => 'AR-SETTLED-TERM',
+            'particulars' => 'Tuition',
             'amount' => 1000.00,
             'status' => 'posted',
         ]);
@@ -543,6 +545,7 @@ class GraduateLedgerTest extends TestCase
             'entry_type' => 'payment',
             'transaction_date' => '2026-01-02',
             'reference_number' => 'PAY-SETTLED-TERM',
+            'particulars' => 'Payment',
             'amount' => 1000.00,
             'status' => 'posted',
         ]);
@@ -553,6 +556,7 @@ class GraduateLedgerTest extends TestCase
             'entry_type' => 'payment',
             'transaction_date' => '2026-08-02',
             'reference_number' => 'PAY-UNPAID-1',
+            'particulars' => 'Payment',
             'amount' => 2000.00,
             'status' => 'posted',
         ]);
@@ -570,6 +574,7 @@ class GraduateLedgerTest extends TestCase
             'entry_type' => 'ar',
             'transaction_date' => '2026-08-01',
             'reference_number' => 'AR-PAID-1',
+            'particulars' => 'Tuition',
             'amount' => 3000.00,
             'status' => 'posted',
         ]);
@@ -580,6 +585,7 @@ class GraduateLedgerTest extends TestCase
             'entry_type' => 'payment',
             'transaction_date' => '2026-08-02',
             'reference_number' => 'PAY-PAID-1',
+            'particulars' => 'Payment',
             'amount' => 3000.00,
             'status' => 'posted',
         ]);
@@ -632,6 +638,7 @@ class GraduateLedgerTest extends TestCase
             'entry_type' => 'ar',
             'transaction_date' => '2025-08-10',
             'reference_number' => 'T1-AR',
+            'particulars' => 'Tuition',
             'amount' => 4000.00,
             'status' => 'posted',
         ]);
@@ -642,6 +649,7 @@ class GraduateLedgerTest extends TestCase
             'entry_type' => 'payment',
             'transaction_date' => '2025-08-15',
             'reference_number' => 'T1-PAY',
+            'particulars' => 'Payment',
             'amount' => 4000.00,
             'status' => 'posted',
         ]);
@@ -654,6 +662,7 @@ class GraduateLedgerTest extends TestCase
             'entry_type' => 'ar',
             'transaction_date' => '2026-01-10',
             'reference_number' => 'T2-AR',
+            'particulars' => 'Tuition',
             'amount' => 5000.00,
             'status' => 'posted',
         ]);
@@ -664,6 +673,7 @@ class GraduateLedgerTest extends TestCase
             'entry_type' => 'payment',
             'transaction_date' => '2026-01-15',
             'reference_number' => 'T2-PAY',
+            'particulars' => 'Payment',
             'amount' => 2000.00,
             'status' => 'posted',
         ]);
@@ -688,8 +698,78 @@ class GraduateLedgerTest extends TestCase
         $mapT1 = $export->map($term1Ar->load(['student', 'course', 'academicTerm', 'inputByUser']));
         $mapT2 = $export->map($term2Ar->load(['student', 'course', 'academicTerm', 'inputByUser']));
 
-        $this->assertSame('Settled', $mapT1[12]);
-        $this->assertSame('Outstanding', $mapT2[12]);
+        $this->assertSame('Settled', $mapT1[14]);
+        $this->assertSame('Outstanding', $mapT2[14]);
+    }
+
+    public function test_cohort_entry_creates_transactions_for_multiple_students_with_scholarships(): void
+    {
+        $user = User::factory()->staff()->create();
+        $course = $this->graduateCourse('MSIT', 'MS in Information Technology');
+        $term = AcademicTerm::create([
+            'school_year' => '2026-2027',
+            'semester' => 'First Semester',
+        ]);
+
+        $student1 = Student::create(['last_name' => 'Alpha', 'first_name' => 'One']);
+        $student2 = Student::create(['last_name' => 'Beta', 'first_name' => 'Two']);
+
+        $response = $this->actingAs($user)->post('/graduate-ledger/cohort-store', [
+            'course_id' => $course->id,
+            'academic_term_id' => $term->id,
+            'entry_type' => 'ar',
+            'transaction_date' => '2026-09-01',
+            'particulars' => 'Tuition',
+            'reference_number' => 'COHORT-01',
+            'cohort_rows' => [
+                [
+                    'student_id' => $student1->id,
+                    'units' => 9,
+                    'rate' => '500.00',
+                    'amount' => '4500.00',
+                    'membership' => 'NAPU',
+                    'discount_amount' => '4500.00',
+                    'remarks' => 'Full Scholar',
+                ],
+                [
+                    'student_id' => $student2->id,
+                    'units' => 6,
+                    'rate' => '500.00',
+                    'amount' => '3000.00',
+                    'membership' => null,
+                    'discount_amount' => null,
+                    'remarks' => 'Regular',
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect('/graduate-ledger');
+        $response->assertSessionHas('success');
+
+        // Check student 1 AR + adjustment twin
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'student_id' => $student1->id,
+            'course_id' => $course->id,
+            'entry_type' => 'ar',
+            'amount' => '4500.00',
+            'membership' => 'NAPU',
+        ]);
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'student_id' => $student1->id,
+            'course_id' => $course->id,
+            'entry_type' => 'adjustment',
+            'amount' => '4500.00',
+            'membership' => 'NAPU',
+        ]);
+
+        // Check student 2 AR only
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'student_id' => $student2->id,
+            'course_id' => $course->id,
+            'entry_type' => 'ar',
+            'amount' => '3000.00',
+            'membership' => null,
+        ]);
     }
 
     private function graduateCourse(string $code, ?string $description = null): Course

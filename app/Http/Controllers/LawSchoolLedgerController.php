@@ -282,6 +282,93 @@ class LawSchoolLedgerController extends Controller
     }
 
     /**
+     * Stores a cohort transaction: applies a single template transaction to many students.
+     */
+    public function cohortStore(StoreLawSchoolLedgerRequest $request): RedirectResponse
+    {
+        $data = $request->validated();
+        $cohortRows = $data['cohort_rows'] ?? [];
+
+        if (empty($cohortRows) || ! is_array($cohortRows)) {
+            return back()->withErrors(['cohort_rows' => 'Please select at least one student for cohort entry.']);
+        }
+
+        $academicTermId = $this->resolveAcademicTermId($data);
+        $courseId = $data['course_id'];
+        $entryType = $data['entry_type'] ?? 'ar';
+        $transactionDate = $data['transaction_date'];
+        $referenceNumber = $data['reference_number'] ?? null;
+        $particulars = $data['particulars'] ?? 'Tuition';
+        $status = $data['status'] ?? 'Active';
+        $attribution = $this->resolveInputBy($data['input_by'] ?? null);
+
+        $created = 0;
+        $scholarships = 0;
+
+        DB::transaction(function () use (
+            $cohortRows,
+            $courseId,
+            $academicTermId,
+            $entryType,
+            $transactionDate,
+            $referenceNumber,
+            $particulars,
+            $status,
+            $attribution,
+            &$created,
+            &$scholarships
+        ): void {
+            foreach ($cohortRows as $row) {
+                $studentId = (int) $row['student_id'];
+                $units = $row['units'] ?? null;
+                $rate = $row['rate'] ?? '0.00';
+                $amount = $row['amount'];
+                $remarks = $row['remarks'] ?? null;
+                $latinHonor = filled($row['latin_honor'] ?? null) ? (string) $row['latin_honor'] : null;
+                $discountAmount = $row['discount_amount'] ?? null;
+
+                $rowData = [
+                    'course_id' => $courseId,
+                    'entry_type' => $entryType,
+                    'units' => $units,
+                    'transaction_date' => $transactionDate,
+                    'reference_number' => $referenceNumber,
+                    'particulars' => $particulars,
+                    'rate' => $rate,
+                    'amount' => $amount,
+                    'remarks' => $remarks,
+                    'status' => $status,
+                    'latin_honor' => $latinHonor,
+                    'discount_amount' => $discountAmount,
+                ];
+
+                $record = $this->createLawLedgerRecord($rowData, $studentId, $academicTermId, $attribution);
+                $created++;
+
+                if ($entryType === 'ar' && filled($latinHonor)) {
+                    $this->applyLatinHonorToRecord($record, $latinHonor, $discountAmount);
+                    $scholarships++;
+                }
+            }
+        });
+
+        $message = sprintf(
+            'Cohort entry posted: %d %s transaction%s created across %d student%s.',
+            $created,
+            strtoupper($entryType),
+            $created === 1 ? '' : 's',
+            $created,
+            $created === 1 ? '' : 's',
+        );
+
+        if ($scholarships > 0) {
+            $message .= sprintf(' (%d scholarship adjustment%s applied)', $scholarships, $scholarships === 1 ? '' : 's');
+        }
+
+        return redirect()->route('law-ledger.index')->with('success', $message);
+    }
+
+    /**
      * Resolves the selected or inline-created student for a manual store request.
      *
      * @param  array<string, mixed>  $data

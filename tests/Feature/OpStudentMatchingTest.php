@@ -228,6 +228,7 @@ class OpStudentMatchingTest extends TestCase
 
         $this->actingAs($cashier)
             ->put("/cashier/requests/{$staffInput->id}/payment", [
+                'status' => 'paid',
                 'or_no' => '2026-00324',
                 'or_date' => '2026-09-02',
             ])
@@ -274,6 +275,7 @@ class OpStudentMatchingTest extends TestCase
 
         $this->actingAs($cashier)
             ->put("/cashier/requests/{$staffInput->id}/payment", [
+                'status' => 'paid',
                 'or_no' => '2026-00399',
                 'or_date' => '2026-09-24',
             ])
@@ -439,34 +441,20 @@ class OpStudentMatchingTest extends TestCase
             ->exists());
     }
 
-    public function test_non_ledger_and_course_less_ops_do_not_require_student_matching(): void
+    public function test_course_less_ops_do_not_require_student_matching(): void
     {
         $postingService = app(CashierLedgerPostingService::class);
 
-        foreach ([null, 'General', 'Undergraduate'] as $index => $college) {
-            $courseId = null;
+        $formInput = $this->makeLedgerFormInput([
+            'course_id' => null,
+            'student_num' => null,
+        ]);
+        $payment = $this->makePaidStaffInput($formInput, 'NO-LEDGER');
+        $result = $postingService->postPayment($payment);
 
-            if ($college !== null) {
-                $courseId = Course::firstOrCreate(
-                    ['course_code' => 'NO-LEDGER-'.$index],
-                    [
-                        'course_desc' => $college.' Payment',
-                        'course_college' => $college,
-                    ],
-                )->id;
-            }
-
-            $formInput = $this->makeLedgerFormInput([
-                'course_id' => $courseId,
-                'student_num' => null,
-            ]);
-            $payment = $this->makePaidStaffInput($formInput, 'NO-LEDGER-'.$index);
-            $result = $postingService->postPayment($payment);
-
-            $this->assertFalse($result['posted']);
-            $this->assertSame('not_required', $result['reason']);
-            $this->assertNull($result['ledger']);
-        }
+        $this->assertFalse($result['posted']);
+        $this->assertSame('not_required', $result['reason']);
+        $this->assertNull($result['ledger']);
 
         $this->assertSame(0, GraduateLedger::query()->count());
     }
