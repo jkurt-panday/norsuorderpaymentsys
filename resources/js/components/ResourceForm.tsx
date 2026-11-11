@@ -82,10 +82,9 @@ export default function ResourceForm({
         e.preventDefault();
 
         const options = {
-            // No toast.success here on purpose. The backend already flashes a
-            // specific success message on redirect (e.g. "Membership created
-            // successfully."), and the destination index page listens for it.
-            // Showing a generic toast here too would duplicate that message.
+            onSuccess: () => {
+                toast.success(resolvedSubmitLabel === 'Create' ? 'Created successfully.' : 'Updated successfully.');
+            },
             onError: () => {
                 toast.error('Please check the form for errors.');
             },

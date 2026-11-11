@@ -5,45 +5,40 @@ import type { FieldDef } from '@/components/ResourceForm';
 
 const fields: FieldDef[] = [
     {
-        name: 'classification',
-        label: 'Classification',
-        placeholder: 'Enter the classification',
-    },
-    {
-        name: 'sub_class',
-        label: 'Sub-Class',
-        placeholder: 'Enter the sub-class',
-    },
-    {
-        name: 'group',
-        label: 'Group',
-        placeholder: 'Enter the group',
-    },
-    {
-        name: 'object_code',
-        label: 'Object Code',
-        placeholder: 'Enter the object code',
-    },
-    {
-        name: 'sub_object_code',
-        label: 'Sub-Object Code',
-        placeholder: 'Enter the sub-object code',
-    },
-    {
-        name: 'uacs',
-        label: 'UACS',
+        name: 'norsu_object_code',
+        label: 'NORSU Object Code',
         required: true,
-        placeholder: 'Enter the UACS code',
+        placeholder: 'Enter 12-digit NORSU object code',
     },
     {
-        name: 'status',
-        label: 'Status',
+        name: 'norsu_sub_object_code',
+        label: 'NORSU Sub-Object Code',
         required: true,
-        placeholder: 'Select status',
-        options: [
-            { label: 'Active', value: 'Active' },
-            { label: 'Inactive', value: 'Inactive' },
-        ],
+        placeholder: 'Enter 2-digit sub-object code',
+    },
+    {
+        name: 'uacs_object_code',
+        label: 'UACS Object Code',
+        required: true,
+        placeholder: 'Enter 10-digit UACS object code',
+    },
+    {
+        name: 'uacs_sub_object_code',
+        label: 'UACS Sub-Object Code',
+        required: true,
+        placeholder: 'Enter 2-digit sub-object code',
+    },
+    {
+        name: 'rca_code',
+        label: 'RCA Code',
+        required: true,
+        placeholder: 'Enter 8-digit RCA code',
+    },
+    {
+        name: 'account_title',
+        label: 'Account Title',
+        required: true,
+        placeholder: 'Enter account title',
     },
 ];
 
@@ -54,13 +49,12 @@ export default function CreateUacs() {
             backHref={index()}
             fields={fields}
             initialData={{
-                classification: '',
-                sub_class: '',
-                group: '',
-                object_code: '',
-                sub_object_code: '',
-                uacs: '',
-                status: 'Active',
+                norsu_object_code: '',
+                norsu_sub_object_code: '',
+                uacs_object_code: '',
+                uacs_sub_object_code: '',
+                rca_code: '',
+                account_title: '',
             }}
             submitUrl={store().url}
             method="post"
