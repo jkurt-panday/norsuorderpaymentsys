@@ -25,6 +25,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
@@ -710,30 +711,51 @@ class GraduateLedgerController extends Controller
                 ->with('error', 'Could not open the uploaded CSV file.');
         }
 
-        fgetcsv($handle); // skip header
+        $firstRow = fgetcsv($handle);
+        $headerRow = $firstRow ? array_map(fn ($h) => Str::slug((string) $h, '_'), $firstRow) : [];
+        $columnMap = $this->resolveColumnMap($headerRow);
 
         $distinctStudents = [];
         $distinctCourses = [];
         $distinctTerms = [];
         $fileIdentities = [];
 
-        while (($row = fgetcsv($handle)) !== false) {
-            $name = trim(str_replace(['−', '–', '—'], '-', (string) ($row[0] ?? '')));
-            if ($name !== '' && ! in_array(strtolower($name), ['student name', 'student', 'ff', 'name'])) {
-                $distinctStudents[$name] = true;
+        $getPass1 = function (array $r, string $key, int $legacyIdx) use ($columnMap): mixed {
+            if ($columnMap !== null) {
+                return isset($columnMap[$key]) ? ($r[$columnMap[$key]] ?? null) : null;
             }
-            $code = trim((string) ($row[1] ?? ''));
+
+            return $r[$legacyIdx] ?? null;
+        };
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $name = trim(str_replace(['−', '–', '—'], '-', (string) ($getPass1($row, 'name', 0) ?? '')));
+            $studentNumber = $columnMap !== null ? $this->normalizeImportedStudentNumber($getPass1($row, 'student_number', -1)) : null;
+            $email = $columnMap !== null ? $this->normalizeImportedEmail($getPass1($row, 'email', -1)) : null;
+
+            if ($name !== '' && ! in_array(strtolower($name), ['student name', 'student', 'ff', 'name'])) {
+                $parsed = Student::parseRawName($name);
+                $key = $studentNumber ?? $name;
+                $distinctStudents[$key] = array_merge($parsed, [
+                    'raw_name' => $name,
+                    'student_number' => $studentNumber,
+                    'email' => $email,
+                ]);
+            }
+            $code = trim((string) ($getPass1($row, 'course', 1) ?? ''));
             if ($code !== '') {
                 $distinctCourses[$code] = true;
             }
-            $sy = AcademicTerm::parseSchoolYear(trim((string) ($row[2] ?? '')));
-            $rawSemester = trim((string) ($row[4] ?? '')) ?: trim((string) ($row[3] ?? ''));
+            $sy = AcademicTerm::parseSchoolYear(trim((string) ($getPass1($row, 'school_year', 2) ?? '')));
+            $rawSemE = trim((string) ($getPass1($row, 'semester', 4) ?? ''));
+            $rawSemD = trim((string) ($getPass1($row, 'semester_short', 3) ?? ''));
+            $rawSemester = $rawSemE !== '' ? $rawSemE : $rawSemD;
             $sem = AcademicTerm::normalizeSemester($rawSemester);
             if ($sy !== null && $sem !== null) {
                 $distinctTerms["{$sy}|||{$sem}"] = ['school_year' => $sy, 'semester' => $sem];
             }
 
-            $identity = $this->headerlessIdentity($row);
+            $identity = $this->headerlessIdentity($row, $columnMap);
             if ($identity !== null) {
                 $fileIdentities[$identity] = true;
             }
@@ -759,6 +781,8 @@ class GraduateLedgerController extends Controller
         $insertData = [];
         $rowNumber = 1; // row 1 was the header
 
+        $seenFileFingerprints = [];
+
         while (($row = fgetcsv($handle)) !== false) {
             $rowNumber++;
             $data = $this->mapImportRowNormalized(
@@ -771,6 +795,7 @@ class GraduateLedgerController extends Controller
                 $presetTermId,
                 $rowNumber,
                 $allErrors,
+                $columnMap,
             );
 
             if ($data === null) {
@@ -780,6 +805,13 @@ class GraduateLedgerController extends Controller
             }
 
             $fingerprint = $this->ledgerFingerprint($data);
+            if (isset($seenFileFingerprints[$fingerprint])) {
+                $duplicates++;
+
+                continue;
+            }
+            $seenFileFingerprints[$fingerprint] = true;
+
             if (! empty($existingFingerprints[$fingerprint])) {
                 $existingFingerprints[$fingerprint]--;
                 $duplicates++;
@@ -866,31 +898,38 @@ class GraduateLedgerController extends Controller
                 ->with('success', 'No rows found in the uploaded file.');
         }
 
+        $highestCol = $sheet->getHighestColumn();
+        $highestColIndex = Coordinate::columnIndexFromString($highestCol);
+
+        $headerRow = [];
+        for ($c = 1; $c <= $highestColIndex; $c++) {
+            $colLetter = Coordinate::stringFromColumnIndex($c);
+            $headerRow[] = Str::slug((string) $sheet->getCell($colLetter.'1')->getValue(), '_');
+        }
+        $columnMap = $this->resolveColumnMap($headerRow);
+
         $distinctStudents = [];
         $distinctCourses = [];
         $distinctTerms = [];
         $fileIdentities = [];
 
-        // Pass 1: Collect distinct values (rows 2 to highestRow)
-        for ($r = 2; $r <= $highestRow; $r++) {
-            $name = trim(str_replace(['−', '–', '—'], '-', (string) $sheet->getCell("A{$r}")->getValue()));
-            if ($name !== '' && ! in_array(strtolower($name), ['student name', 'student', 'ff', 'name'])) {
-                $distinctStudents[$name] = true;
-            }
-            $code = trim((string) $sheet->getCell("B{$r}")->getValue());
-            if ($code !== '') {
-                $distinctCourses[$code] = true;
-            }
-            $sy = AcademicTerm::parseSchoolYear(trim((string) $sheet->getCell("C{$r}")->getValue()));
-            // Read Col E (SEMESTER/SUMMER), fallback to Col D (SEMESTER_SHORT)
-            $rawSemE = trim((string) $sheet->getCell("E{$r}")->getValue());
-            $rawSemD = trim((string) $sheet->getCell("D{$r}")->getValue());
-            $sem = AcademicTerm::normalizeSemester($rawSemE !== '' ? $rawSemE : $rawSemD);
-            if ($sy !== null && $sem !== null) {
-                $distinctTerms["{$sy}|||{$sem}"] = ['school_year' => $sy, 'semester' => $sem];
+        $getExcelRow = function (int $r) use ($sheet, $columnMap, $highestColIndex): array {
+            if ($columnMap !== null) {
+                $row = [];
+                for ($c = 1; $c <= $highestColIndex; $c++) {
+                    $colLetter = Coordinate::stringFromColumnIndex($c);
+                    $keyIndex = $c - 1;
+                    if ($keyIndex === ($columnMap['rate'] ?? -999) || $keyIndex === ($columnMap['amount'] ?? -999)) {
+                        $row[$keyIndex] = $this->getCalculatedCellValue($sheet, "{$colLetter}{$r}");
+                    } else {
+                        $row[$keyIndex] = $sheet->getCell("{$colLetter}{$r}")->getValue();
+                    }
+                }
+
+                return $row;
             }
 
-            $rawRow = [
+            return [
                 $sheet->getCell("A{$r}")->getValue(),
                 $sheet->getCell("B{$r}")->getValue(),
                 $sheet->getCell("C{$r}")->getValue(),
@@ -906,7 +945,46 @@ class GraduateLedgerController extends Controller
                 $sheet->getCell("M{$r}")->getValue(),
                 $sheet->getCell("N{$r}")->getValue(),
             ];
-            $identity = $this->headerlessIdentity($rawRow);
+        };
+
+        $getPass1 = function (array $r, string $key, int $legacyIdx) use ($columnMap): mixed {
+            if ($columnMap !== null) {
+                return isset($columnMap[$key]) ? ($r[$columnMap[$key]] ?? null) : null;
+            }
+
+            return $r[$legacyIdx] ?? null;
+        };
+
+        // Pass 1: Collect distinct values (rows 2 to highestRow)
+        for ($r = 2; $r <= $highestRow; $r++) {
+            $rawRow = $getExcelRow($r);
+            $name = trim(str_replace(['−', '–', '—'], '-', (string) ($getPass1($rawRow, 'name', 0) ?? '')));
+            $studentNumber = $columnMap !== null ? $this->normalizeImportedStudentNumber($getPass1($rawRow, 'student_number', -1)) : null;
+            $email = $columnMap !== null ? $this->normalizeImportedEmail($getPass1($rawRow, 'email', -1)) : null;
+
+            if ($name !== '' && ! in_array(strtolower($name), ['student name', 'student', 'ff', 'name'])) {
+                $parsed = Student::parseRawName($name);
+                $key = $studentNumber ?? $name;
+                $distinctStudents[$key] = array_merge($parsed, [
+                    'raw_name' => $name,
+                    'student_number' => $studentNumber,
+                    'email' => $email,
+                ]);
+            }
+            $code = trim((string) ($getPass1($rawRow, 'course', 1) ?? ''));
+            if ($code !== '') {
+                $distinctCourses[$code] = true;
+            }
+            $sy = AcademicTerm::parseSchoolYear(trim((string) ($getPass1($rawRow, 'school_year', 2) ?? '')));
+            $rawSemE = trim((string) ($getPass1($rawRow, 'semester', 4) ?? ''));
+            $rawSemD = trim((string) ($getPass1($rawRow, 'semester_short', 3) ?? ''));
+            $rawSemester = $rawSemE !== '' ? $rawSemE : $rawSemD;
+            $sem = AcademicTerm::normalizeSemester($rawSemester);
+            if ($sy !== null && $sem !== null) {
+                $distinctTerms["{$sy}|||{$sem}"] = ['school_year' => $sy, 'semester' => $sem];
+            }
+
+            $identity = $this->headerlessIdentity($rawRow, $columnMap);
             if ($identity !== null) {
                 $fileIdentities[$identity] = true;
             }
@@ -920,24 +998,11 @@ class GraduateLedgerController extends Controller
 
         $insertData = [];
 
+        $seenFileFingerprints = [];
+
         // Pass 2: Map and chunk-insert rows
         for ($r = 2; $r <= $highestRow; $r++) {
-            $row = [
-                $sheet->getCell("A{$r}")->getValue(),
-                $sheet->getCell("B{$r}")->getValue(),
-                $sheet->getCell("C{$r}")->getValue(),
-                $sheet->getCell("D{$r}")->getValue(),
-                $sheet->getCell("E{$r}")->getValue(),
-                $sheet->getCell("F{$r}")->getValue(),
-                $sheet->getCell("G{$r}")->getValue(),
-                $sheet->getCell("H{$r}")->getValue(),
-                $sheet->getCell("I{$r}")->getValue(),
-                $this->getCalculatedCellValue($sheet, "J{$r}"),
-                $sheet->getCell("K{$r}")->getValue(),
-                $this->getCalculatedCellValue($sheet, "L{$r}"),
-                $sheet->getCell("M{$r}")->getValue(),
-                $sheet->getCell("N{$r}")->getValue(),
-            ];
+            $row = $getExcelRow($r);
 
             $data = $this->mapImportRowNormalized(
                 $row,
@@ -949,6 +1014,7 @@ class GraduateLedgerController extends Controller
                 $presetTermId,
                 $r,
                 $allErrors,
+                $columnMap,
             );
 
             if ($data === null) {
@@ -958,6 +1024,13 @@ class GraduateLedgerController extends Controller
             }
 
             $fingerprint = $this->ledgerFingerprint($data);
+            if (isset($seenFileFingerprints[$fingerprint])) {
+                $duplicates++;
+
+                continue;
+            }
+            $seenFileFingerprints[$fingerprint] = true;
+
             if (! empty($existingFingerprints[$fingerprint])) {
                 $existingFingerprints[$fingerprint]--;
                 $duplicates++;
@@ -1805,23 +1878,33 @@ class GraduateLedgerController extends Controller
      *
      * @param  array<int, mixed>  $row
      */
-    private function headerlessIdentity(array $row): ?string
+    private function headerlessIdentity(array $row, ?array $columnMap = null): ?string
     {
-        $rawName = trim(str_replace(['−', '–', '—'], '-', (string) ($row[0] ?? '')));
+        $get = function (string $key, int $legacyIdx) use ($row, $columnMap): mixed {
+            if ($columnMap !== null) {
+                return isset($columnMap[$key]) ? ($row[$columnMap[$key]] ?? null) : null;
+            }
+
+            return $row[$legacyIdx] ?? null;
+        };
+
+        $rawName = trim(str_replace(['−', '–', '—'], '-', (string) ($get('name', 0) ?? '')));
         if ($rawName === '' || in_array(strtolower($rawName), ['student name', 'student', 'ff', 'name'])) {
             return null;
         }
 
+        $rawStudentNumber = $columnMap !== null ? $this->normalizeImportedStudentNumber($get('student_number', -1)) : null;
+
         $classification = $this->importClassifier->classify(
-            (string) ($row[10] ?? ''),
-            $row[11] ?? null,
+            (string) ($get('entry_type', 10) ?? ''),
+            $get('amount', 11) ?? null,
         );
 
         $parts = [
             'name' => strtolower(preg_replace('/\s+/', ' ', $rawName) ?? ''),
-            'ref' => strtolower(trim((string) ($row[7] ?? ''))),
-            'date' => $this->normalizeImportDateKey($row[6] ?? null),
-            'amount' => number_format($this->cleanAmount((string) ($row[11] ?? '0')), 2, '.', ''),
+            'ref' => strtolower(trim((string) ($get('reference', 7) ?? ''))),
+            'date' => $this->normalizeImportDateKey($get('date', 6) ?? null),
+            'amount' => number_format($this->cleanAmount((string) ($get('amount', 11) ?? '0')), 2, '.', ''),
             'type' => $classification['entry_type'],
             'rawname' => $rawName,
         ];
@@ -1875,7 +1958,7 @@ class GraduateLedgerController extends Controller
         $studentIds = [];
         foreach (array_keys($fileIdentities) as $identity) {
             $segments = explode("\x1F", $identity);
-            if (count($segments) === 6) {
+            if (count($segments) >= 6) {
                 $rawName = $segments[5];
                 if (isset($studentMap[$rawName])) {
                     $studentIds[$studentMap[$rawName]] = true;
@@ -1940,8 +2023,18 @@ class GraduateLedgerController extends Controller
         ?int $presetTermId = null,
         ?int $rowNumber = null,
         array &$allErrors = [],
+        ?array $columnMap = null,
     ): ?array {
-        $rawName = trim(str_replace(['−', '–', '—'], '-', (string) ($row[0] ?? '')));
+        $get = function (string $key, int $legacyIdx) use ($row, $columnMap): mixed {
+            if ($columnMap !== null) {
+                return isset($columnMap[$key]) ? ($row[$columnMap[$key]] ?? null) : null;
+            }
+
+            return $row[$legacyIdx] ?? null;
+        };
+
+        $rawName = trim(str_replace(['−', '–', '—'], '-', (string) ($get('name', 0) ?? '')));
+        $rawStudentNumber = $columnMap !== null ? $this->normalizeImportedStudentNumber($get('student_number', -1)) : null;
 
         // Check if student name is empty or a repeated header label
         if ($rawName === '' || in_array(strtolower($rawName), ['student name', 'student', 'ff', 'name'])) {
@@ -1964,11 +2057,11 @@ class GraduateLedgerController extends Controller
             return null;
         }
 
-        $rawAmount = (string) ($row[11] ?? '0');
-        $rawTuition = (string) ($row[9] ?? '0');
+        $rawAmount = (string) ($get('amount', 11) ?? '0');
+        $rawTuition = (string) ($get('rate', 9) ?? '0');
 
         // ── Course resolution ────────────────────────────────────────────────
-        $rawCode = trim((string) ($row[1] ?? ''));
+        $rawCode = trim((string) ($get('course', 1) ?? ''));
         $normalizedRaw = $rawCode !== '' ? Course::normalizeCode($rawCode) : '';
         // courseMap is keyed by normalized raw → id (see buildImportLookupMaps)
         $courseId = $normalizedRaw !== '' ? ($courseMap[$normalizedRaw] ?? null) : null;
@@ -1992,12 +2085,10 @@ class GraduateLedgerController extends Controller
         }
 
         // ── Term resolution ──────────────────────────────────────────────────
-        // Col E (index 4) = SEMESTER/SUMMER — the labeled, visible column.
-        // Fall back to Col D (index 3 = SEMESTER_SHORT) when Col E is blank.
-        $rawSY = trim((string) ($row[2] ?? ''));
+        $rawSY = trim((string) ($get('school_year', 2) ?? ''));
         $sy = AcademicTerm::parseSchoolYear($rawSY);
-        $rawSemE = trim((string) ($row[4] ?? ''));
-        $rawSemD = trim((string) ($row[3] ?? ''));
+        $rawSemE = trim((string) ($get('semester', 4) ?? ''));
+        $rawSemD = trim((string) ($get('semester_short', 3) ?? ''));
         $rawSem = $rawSemE !== '' ? $rawSemE : $rawSemD;
         $sem = AcademicTerm::normalizeSemester($rawSem);
         $academicTermId = ($sy !== null && $sem !== null)
@@ -2022,7 +2113,8 @@ class GraduateLedgerController extends Controller
         // ── Amount validation ────────────────────────────────────────────────
         $cleanedAmount = $this->cleanAmount($rawAmount);
         $cleanedRate = $this->cleanAmount($rawTuition);
-        $units = is_numeric($row[5] ?? null) ? (float) $row[5] : null;
+        $rawUnits = $get('units', 5);
+        $units = is_numeric($rawUnits) ? (float) $rawUnits : null;
 
         // If amount is 0 and there are units/tuition rate that should have computed an amount
         if ($cleanedAmount <= 0 && ($units > 0 && $cleanedRate > 0)) {
@@ -2037,16 +2129,18 @@ class GraduateLedgerController extends Controller
             return null;
         }
 
+        $rawType = (string) ($get('entry_type', 10) ?? '');
         $classification = $this->importClassifier->classify(
-            (string) ($row[10] ?? ''),
-            $row[11] ?? null,
+            $rawType,
+            $get('amount', 11) ?? null,
         );
 
         if ($classification['warning'] !== null) {
             $warnings[$classification['warning']]++;
         }
 
-        $studentId = $studentMap[$rawName] ?? null;
+        $studentId = ($rawStudentNumber !== null ? ($studentMap['num:'.$rawStudentNumber] ?? null) : null)
+            ?? ($studentMap[$rawName] ?? null);
 
         if ($studentId === null) {
             if ($rowNumber !== null) {
@@ -2065,13 +2159,13 @@ class GraduateLedgerController extends Controller
             'course_id' => $courseId,
             'academic_term_id' => $academicTermId,
             'units' => $units,
-            'transaction_date' => $this->normalizeDate($row[6] ?? null),
-            'reference_number' => trim((string) ($row[7] ?? '')),
-            'particulars' => trim((string) ($row[8] ?? '')) ?: '—',
+            'transaction_date' => $this->normalizeDate($get('date', 6) ?? null),
+            'reference_number' => trim((string) ($get('reference', 7) ?? '')),
+            'particulars' => trim((string) ($get('particulars', 8) ?? '')) ?: '—',
             'rate' => $cleanedRate,
             'entry_type' => $classification['entry_type'],
             'amount' => $cleanedAmount,
-            'remarks' => $this->cleanRemarks($row[12] ?? null),
+            'remarks' => $this->cleanRemarks($get('remarks', 12) ?? null),
             'status' => 'posted',
             'input_by' => auth()->id(),
         ];
@@ -2114,6 +2208,102 @@ class GraduateLedgerController extends Controller
     // ─── Small utilities ──────────────────────────────────────────────────────
 
     /** @return WarningCounts */
+    /**
+     * @param  array<int, string>  $headerRow
+     * @return array<string, int>|null
+     */
+    private function resolveColumnMap(array $headerRow): ?array
+    {
+        $map = [];
+
+        $studentNumberIdx = $this->headerIndex($headerRow, ['student_id_number', 'student_number', 'student_no', 'student_id_no', 'student_id']);
+        if ($studentNumberIdx !== null) {
+            $map['student_number'] = $studentNumberIdx - 1;
+        }
+
+        $nameIdx = $this->headerIndex($headerRow, ['full_name', 'student_name', 'name', 'student', 'name_last_name_first_name_m_i', 'name_last_name_first_name_mi']);
+        if ($nameIdx !== null) {
+            $map['name'] = $nameIdx - 1;
+        }
+
+        $emailIdx = $this->headerIndex($headerRow, ['email', 'email_address', 'student_email']);
+        if ($emailIdx !== null) {
+            $map['email'] = $emailIdx - 1;
+        }
+
+        $courseIdx = $this->headerIndex($headerRow, ['course', 'program']);
+        if ($courseIdx !== null) {
+            $map['course'] = $courseIdx - 1;
+        }
+
+        $syIdx = $this->headerIndex($headerRow, ['school_year', 'academic_year', 'sy']);
+        if ($syIdx !== null) {
+            $map['school_year'] = $syIdx - 1;
+        }
+
+        $semIdx = $this->headerIndex($headerRow, ['semester', 'term', 'semester_or_summer', 'semester_summer']);
+        if ($semIdx !== null) {
+            $map['semester'] = $semIdx - 1;
+        }
+
+        $semShortIdx = $this->headerIndex($headerRow, ['semester_short']);
+        if ($semShortIdx !== null) {
+            $map['semester_short'] = $semShortIdx - 1;
+        }
+
+        $unitsIdx = $this->headerIndex($headerRow, ['units']);
+        if ($unitsIdx !== null) {
+            $map['units'] = $unitsIdx - 1;
+        }
+
+        $dateIdx = $this->headerIndex($headerRow, ['transaction_date', 'date']);
+        if ($dateIdx !== null) {
+            $map['date'] = $dateIdx - 1;
+        }
+
+        $refIdx = $this->headerIndex($headerRow, ['reference_number', 'reference_or_jev_number', 'reference_jev_or_number', 'reference_jev_o_r_number', 'jev_no', 'or_no', 'ref_no']);
+        if ($refIdx !== null) {
+            $map['reference'] = $refIdx - 1;
+        }
+
+        $partIdx = $this->headerIndex($headerRow, ['particulars']);
+        if ($partIdx !== null) {
+            $map['particulars'] = $partIdx - 1;
+        }
+
+        $rateIdx = $this->headerIndex($headerRow, ['tuition_rate', 'tuition_per_unit_or_misc', 'tuition_per_unit_or_fee_per_semester', 'rate']);
+        if ($rateIdx !== null) {
+            $map['rate'] = $rateIdx - 1;
+        }
+
+        $typeIdx = $this->headerIndex($headerRow, ['ar_or_payment', 'ar_payment', 'type']);
+        if ($typeIdx !== null) {
+            $map['entry_type'] = $typeIdx - 1;
+        }
+
+        $amtIdx = $this->headerIndex($headerRow, ['amount']);
+        if ($amtIdx !== null) {
+            $map['amount'] = $amtIdx - 1;
+        }
+
+        $remIdx = $this->headerIndex($headerRow, ['remarks']);
+        if ($remIdx !== null) {
+            $map['remarks'] = $remIdx - 1;
+        }
+
+        $inpIdx = $this->headerIndex($headerRow, ['input_by', 'encoded_by', 'prepared_by']);
+        if ($inpIdx !== null) {
+            $map['input_by'] = $inpIdx - 1;
+        }
+
+        // If neither name nor amount could be identified by header, assume unrecognized / absent header row
+        if (! isset($map['name']) && ! isset($map['amount'])) {
+            return null;
+        }
+
+        return $map;
+    }
+
     private function normalizeImportedEmail(mixed $value): ?string
     {
         if ($value === null || $value === '') {

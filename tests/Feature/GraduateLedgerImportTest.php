@@ -52,6 +52,10 @@ class GraduateLedgerImportTest extends TestCase
             'school_year' => '2025-2026',
             'semester' => 'Second Semester',
         ]);
+        AcademicTerm::firstOrCreate([
+            'school_year' => '2026-2027',
+            'semester' => 'First Semester',
+        ]);
     }
 
     public function test_user_can_import_excel_transactions_into_the_ledger(): void
@@ -1034,5 +1038,86 @@ class GraduateLedgerImportTest extends TestCase
         $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-FIL-2', 'course_id' => $eddFilCourse->id]);
         $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-PHM-1', 'course_id' => $phdMathCourse->id]);
         $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-PHM-2', 'course_id' => $phdMathCourse->id]);
+    }
+
+    public function test_import_with_student_number_and_email_saves_and_backfills_without_overwriting(): void
+    {
+        $user = User::factory()->staff()->create();
+
+        // 1. Existing student with missing email and missing student number
+        $existing = Student::create([
+            'last_name' => 'Penduko',
+            'first_name' => 'Pedro',
+            'middle_name' => 'A',
+            'email' => null,
+            'student_number' => null,
+        ]);
+
+        // 2. Existing student with populated fields that must NOT be overwritten
+        $keepExisting = Student::create([
+            'student_number' => '2026-99999',
+            'last_name' => 'Silang',
+            'first_name' => 'Gabriela',
+            'middle_name' => 'B',
+            'email' => 'keep.mine@example.com',
+        ]);
+
+        $header = 'student_number,student_name,email,course,school_year,semester_short,semester,units,transaction_date,reference_or_jev_number,particulars,tuition_per_unit_or_misc,ar_payment,amount,remarks,input_by';
+        $csv = implode("\n", [
+            $header,
+            // Backfill Pedro by name match
+            '2026-11111,"Penduko, Pedro A.",pedro.grad@example.com,MS-MATH,2025-2026,1st Sem.,First Semester,9,2026-07-22,REF-BACKFILL-1,Tuition,150.00,AR,1350.00,Backfilled,Admin',
+            // Gabriela matched by student number, attempt overwrite email
+            '2026-99999,"Silang, Gabriela B.",overwrite.grad@example.com,MS-MATH,2025-2026,1st Sem.,First Semester,9,2026-07-22,REF-BACKFILL-2,Tuition,150.00,AR,1350.00,AttemptOverwrite,Admin',
+            // New student with invalid email
+            '2026-22222,"Rizal, Jose P.",bad-email,MS-MATH,2025-2026,1st Sem.,First Semester,9,2026-07-22,REF-BACKFILL-3,Tuition,150.00,AR,1350.00,InvalidEmail,Admin',
+        ]);
+
+        $response = $this->actingAs($user)->post('/graduate-ledger/import', [
+            'file' => UploadedFile::fake()->createWithContent('grad_backfill.csv', $csv),
+        ]);
+
+        $response->assertRedirect('/graduate-ledger');
+
+        // Check Pedro: backfilled student number and email
+        $existing->refresh();
+        $this->assertSame('2026-11111', $existing->student_number);
+        $this->assertSame('pedro.grad@example.com', $existing->email);
+
+        // Check Gabriela: preserved original email
+        $keepExisting->refresh();
+        $this->assertSame('keep.mine@example.com', $keepExisting->email);
+
+        // Check Jose: created, but email is null
+        $jose = Student::where('student_number', '2026-22222')->first();
+        $this->assertNotNull($jose);
+        $this->assertNull($jose->email);
+    }
+
+    public function test_template_file_can_be_imported_successfully(): void
+    {
+        $user = User::factory()->staff()->create();
+        $templatePath = base_path('plan/graduate_ledger_import_template.xlsx');
+
+        $this->assertFileExists($templatePath);
+
+        $response = $this->actingAs($user)->post('/graduate-ledger/import', [
+            'file' => new UploadedFile($templatePath, 'graduate_ledger_import_template.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ]);
+
+        $response->assertRedirect('/graduate-ledger');
+
+        // Check sample row from template: 2026-0001, DELA CRUZ, JUAN A., juan.delacruz@norsu.edu.ph
+        $student = Student::where('student_number', '2026-0001')->first();
+        $this->assertNotNull($student);
+        $this->assertSame('DELA CRUZ', $student->last_name);
+        $this->assertSame('JUAN', $student->first_name);
+        $this->assertSame('juan.delacruz@norsu.edu.ph', $student->email);
+
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'student_id' => $student->id,
+            'entry_type' => 'ar',
+            'amount' => '8100.00',
+        ]);
     }
 }

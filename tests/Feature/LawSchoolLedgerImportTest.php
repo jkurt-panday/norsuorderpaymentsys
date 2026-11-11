@@ -410,4 +410,176 @@ class LawSchoolLedgerImportTest extends TestCase
 
         unlink($file);
     }
+
+    public function test_import_with_email_column_saves_email_and_backfills_without_overwriting(): void
+    {
+        $user = User::factory()->staff()->create();
+
+        // 1. Existing student with no email - should be backfilled
+        $existingWithoutEmail = Student::create([
+            'student_number' => '2026-00010',
+            'last_name' => 'PENDUKO',
+            'first_name' => 'PEDRO',
+            'email' => null,
+        ]);
+
+        // 2. Existing student with populated email - should NOT be overwritten
+        $existingWithEmail = Student::create([
+            'student_number' => '2026-00020',
+            'last_name' => 'SILANG',
+            'first_name' => 'GABRIELA',
+            'email' => 'keep.mine@example.com',
+        ]);
+
+        $file = tempnam(sys_get_temp_dir(), 'law-ledger-email').'.csv';
+        $handle = fopen($file, 'w');
+        fputcsv($handle, [
+            'STUDENT ID NUMBER',
+            'NAME (Last Name, First Name, M.I.)',
+            'EMAIL',
+            'COURSE',
+            'SCHOOL YEAR',
+            'SEMESTER/ SUMMER',
+            'UNITS',
+            'TRANSACTION DATE',
+            'Reference JEV / O.R. NUMBER',
+            'PARTICULARS',
+            'TUITION per UNIT/ Reg. and Miscellaneous per semester',
+            'AR/PAYMENT',
+            'AMOUNT',
+            'REMARKS',
+            'STATUS',
+            'INPUT BY:',
+        ]);
+        // Row 1: Backfill Pedro
+        fputcsv($handle, [
+            '2026-00010',
+            'PENDUKO, PEDRO A.',
+            'pedro.backfilled@example.com',
+            'JD',
+            '2025-2026',
+            '1st Sem',
+            10,
+            '2025-07-30',
+            null,
+            'Tuition',
+            950,
+            'AR',
+            9500,
+            null,
+            null,
+            'JVT',
+        ]);
+        // Row 2: Keep Gabriela's email, do not overwrite with new email
+        fputcsv($handle, [
+            '2026-00020',
+            'SILANG, GABRIELA B.',
+            'overwrite.attempt@example.com',
+            'JD',
+            '2025-2026',
+            '1st Sem',
+            10,
+            '2025-07-30',
+            null,
+            'Tuition',
+            950,
+            'AR',
+            9500,
+            null,
+            null,
+            'JVT',
+        ]);
+        // Row 3: New student with valid email
+        fputcsv($handle, [
+            '2026-00030',
+            'BONIFACIO, ANDRES C.',
+            'andres@example.com',
+            'JD',
+            '2025-2026',
+            '1st Sem',
+            10,
+            '2025-07-30',
+            null,
+            'Tuition',
+            950,
+            'AR',
+            9500,
+            null,
+            null,
+            'JVT',
+        ]);
+        // Row 4: New student with invalid email
+        fputcsv($handle, [
+            '2026-00040',
+            'RIZAL, JOSE P.',
+            'invalid-email-format',
+            'JD',
+            '2025-2026',
+            '1st Sem',
+            10,
+            '2025-07-30',
+            null,
+            'Tuition',
+            950,
+            'AR',
+            9500,
+            null,
+            null,
+            'JVT',
+        ]);
+        fclose($handle);
+
+        $response = $this->actingAs($user)->post('/law-ledger/import', [
+            'file' => new UploadedFile($file, 'import.csv', 'text/csv', null, true),
+        ]);
+
+        $response->assertRedirect('/law-ledger');
+
+        // Verify Pedro got backfilled
+        $existingWithoutEmail->refresh();
+        $this->assertSame('pedro.backfilled@example.com', $existingWithoutEmail->email);
+
+        // Verify Gabriela was NOT overwritten
+        $existingWithEmail->refresh();
+        $this->assertSame('keep.mine@example.com', $existingWithEmail->email);
+
+        // Verify Andres was created with email
+        $andres = Student::where('last_name', 'BONIFACIO')->first();
+        $this->assertNotNull($andres);
+        $this->assertSame('andres@example.com', $andres->email);
+
+        // Verify Jose was created with null email due to invalid format
+        $jose = Student::where('last_name', 'RIZAL')->first();
+        $this->assertNotNull($jose);
+        $this->assertNull($jose->email);
+
+        unlink($file);
+    }
+
+    public function test_template_file_can_be_imported_successfully(): void
+    {
+        $user = User::factory()->staff()->create();
+        $templatePath = base_path('plan/law_ledger_import_template.xlsx');
+
+        $this->assertFileExists($templatePath);
+
+        $response = $this->actingAs($user)->post('/law-ledger/import', [
+            'file' => new UploadedFile($templatePath, 'law_ledger_import_template.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ]);
+
+        $response->assertRedirect('/law-ledger');
+
+        // Check sample row from template: 2026-0002, DELA CRUZ, JUAN, juan.law@norsu.edu.ph
+        $student = Student::where('student_number', '2026-0002')->first();
+        $this->assertNotNull($student);
+        $this->assertSame('DELA CRUZ', $student->last_name);
+        $this->assertSame('JUAN', $student->first_name);
+        $this->assertSame('juan.law@norsu.edu.ph', $student->email);
+
+        $this->assertDatabaseHas('law_school_ledgers', [
+            'student_id' => $student->id,
+            'entry_type' => 'ar',
+            'amount' => '8100.00',
+        ]);
+    }
 }
