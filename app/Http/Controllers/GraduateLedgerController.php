@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
@@ -1587,38 +1588,174 @@ class GraduateLedgerController extends Controller
         array $distinctTerms,
         CarbonInterface $now
     ): array {
-        // 1. Bulk resolve students (2 queries total instead of N+1)
-        $studentsByName = Student::query()->get(['id', 'last_name', 'first_name', 'middle_name'])
-            ->mapWithKeys(fn (Student $student): array => [
-                $this->studentImportKey($student->last_name, $student->first_name, $student->middle_name) => (int) $student->id,
-            ])->all();
+        // 1. Bulk resolve students
+        $existingStudents = Student::query()->get(['id', 'student_number', 'email', 'last_name', 'first_name', 'middle_name']);
+        $studentsByName = [];
+        $studentsByNumber = [];
+        $existingEmails = [];
+        $existingStudentNumbers = [];
+
+        foreach ($existingStudents as $student) {
+            $id = (int) $student->id;
+            $existingEmails[$id] = $student->email;
+            $existingStudentNumbers[$id] = $student->student_number;
+
+            if ($student->student_number !== null && $student->student_number !== '') {
+                $studentsByNumber[$student->student_number] = $id;
+            }
+
+            $kFull = $this->studentImportKey($student->last_name, $student->first_name, $student->middle_name);
+            $studentsByName[$kFull] = $id;
+
+            if ($student->middle_name) {
+                $kInitial = $this->studentImportKey($student->last_name, $student->first_name, substr($student->middle_name, 0, 1));
+                $studentsByName[$kInitial] = $id;
+            }
+
+            $kNoMid = $this->studentImportKey($student->last_name, $student->first_name, null);
+            if (! isset($studentsByName[$kNoMid])) {
+                $studentsByName[$kNoMid] = $id;
+            }
+        }
+
         $studentMap = [];
         $newStudents = [];
-        foreach (array_keys($distinctStudents) as $rawName) {
-            $parsed = Student::parseRawName($rawName);
-            $identityKey = $this->studentImportKey($parsed['last_name'], $parsed['first_name'], $parsed['middle_name']);
-            if (isset($studentsByName[$identityKey])) {
-                $studentMap[$rawName] = $studentsByName[$identityKey];
+        $studentNumberUpdates = [];
+        $emailUpdates = [];
+
+        foreach ($distinctStudents as $key => $studentInfo) {
+            if (is_array($studentInfo)) {
+                $rawName = (string) ($studentInfo['raw_name'] ?? $key);
+                $studentNumber = $studentInfo['student_number'] ?? null;
+                $email = $studentInfo['email'] ?? null;
+                $parsed = [
+                    'last_name' => (string) ($studentInfo['last_name'] ?? ''),
+                    'first_name' => (string) ($studentInfo['first_name'] ?? ''),
+                    'middle_name' => $studentInfo['middle_name'] ?? null,
+                ];
+            } else {
+                $rawName = (string) $key;
+                $studentNumber = null;
+                $email = null;
+                $parsed = Student::parseRawName($rawName);
+            }
+
+            $kFull = $this->studentImportKey($parsed['last_name'], $parsed['first_name'], $parsed['middle_name']);
+            $kInitial = $parsed['middle_name'] ? $this->studentImportKey($parsed['last_name'], $parsed['first_name'], substr($parsed['middle_name'], 0, 1)) : $kFull;
+            $kNoMid = $this->studentImportKey($parsed['last_name'], $parsed['first_name'], null);
+
+            $matchedId = ($studentNumber !== null ? ($studentsByNumber[$studentNumber] ?? null) : null)
+                ?? $studentsByName[$kFull]
+                ?? $studentsByName[$kInitial]
+                ?? $studentsByName[$kNoMid]
+                ?? null;
+
+            if ($matchedId !== null) {
+                $studentMap[$rawName] = $matchedId;
+                if ($studentNumber !== null && $studentNumber !== '') {
+                    $studentMap['num:'.$studentNumber] = $matchedId;
+                }
+
+                if ($studentNumber !== null && blank($existingStudentNumbers[$matchedId] ?? null) && ! isset($studentNumberUpdates[$matchedId])) {
+                    $studentNumberUpdates[$matchedId] = $studentNumber;
+                    $studentsByNumber[$studentNumber] = $matchedId;
+                    $existingStudentNumbers[$matchedId] = $studentNumber;
+                }
+
+                if ($email !== null && blank($existingEmails[$matchedId] ?? null) && ! isset($emailUpdates[$matchedId])) {
+                    $emailUpdates[$matchedId] = $email;
+                    $existingEmails[$matchedId] = $email;
+                }
             } else {
                 $newStudents[] = array_merge($parsed, [
+                    'student_number' => $studentNumber,
+                    'email' => $email,
+                    'raw_name' => $rawName,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);
             }
         }
+
+        foreach ($studentNumberUpdates as $id => $sNum) {
+            Student::query()
+                ->whereKey($id)
+                ->where(function ($q) {
+                    $q->whereNull('student_number')->orWhere('student_number', '');
+                })
+                ->update(['student_number' => $sNum, 'updated_at' => $now]);
+        }
+
+        foreach ($emailUpdates as $id => $eMail) {
+            Student::query()
+                ->whereKey($id)
+                ->where(function ($q) {
+                    $q->whereNull('email')->orWhere('email', '');
+                })
+                ->update(['email' => $eMail, 'updated_at' => $now]);
+        }
+
         if (! empty($newStudents)) {
-            foreach (array_chunk($newStudents, 500) as $chunk) {
+            $insertRows = array_map(function ($row) {
+                unset($row['raw_name']);
+
+                return $row;
+            }, $newStudents);
+
+            foreach (array_chunk($insertRows, 500) as $chunk) {
                 Student::insert($chunk);
             }
-            $studentsByName = Student::query()->get(['id', 'last_name', 'first_name', 'middle_name'])
-                ->mapWithKeys(fn (Student $student): array => [
-                    $this->studentImportKey($student->last_name, $student->first_name, $student->middle_name) => (int) $student->id,
-                ])->all();
-            foreach (array_keys($distinctStudents) as $rawName) {
-                $parsed = Student::parseRawName($rawName);
-                $identityKey = $this->studentImportKey($parsed['last_name'], $parsed['first_name'], $parsed['middle_name']);
-                if (isset($studentsByName[$identityKey])) {
-                    $studentMap[$rawName] = $studentsByName[$identityKey];
+
+            $existingStudents = Student::query()->get(['id', 'student_number', 'email', 'last_name', 'first_name', 'middle_name']);
+            $studentsByName = [];
+            $studentsByNumber = [];
+            foreach ($existingStudents as $student) {
+                $id = (int) $student->id;
+                if ($student->student_number !== null && $student->student_number !== '') {
+                    $studentsByNumber[$student->student_number] = $id;
+                }
+                $kFull = $this->studentImportKey($student->last_name, $student->first_name, $student->middle_name);
+                $studentsByName[$kFull] = $id;
+                if ($student->middle_name) {
+                    $kInitial = $this->studentImportKey($student->last_name, $student->first_name, substr($student->middle_name, 0, 1));
+                    $studentsByName[$kInitial] = $id;
+                }
+                $kNoMid = $this->studentImportKey($student->last_name, $student->first_name, null);
+                if (! isset($studentsByName[$kNoMid])) {
+                    $studentsByName[$kNoMid] = $id;
+                }
+            }
+
+            foreach ($distinctStudents as $key => $studentInfo) {
+                if (is_array($studentInfo)) {
+                    $rawName = (string) ($studentInfo['raw_name'] ?? $key);
+                    $studentNumber = $studentInfo['student_number'] ?? null;
+                    $parsed = [
+                        'last_name' => (string) ($studentInfo['last_name'] ?? ''),
+                        'first_name' => (string) ($studentInfo['first_name'] ?? ''),
+                        'middle_name' => $studentInfo['middle_name'] ?? null,
+                    ];
+                } else {
+                    $rawName = (string) $key;
+                    $studentNumber = null;
+                    $parsed = Student::parseRawName($rawName);
+                }
+
+                $kFull = $this->studentImportKey($parsed['last_name'], $parsed['first_name'], $parsed['middle_name']);
+                $kInitial = $parsed['middle_name'] ? $this->studentImportKey($parsed['last_name'], $parsed['first_name'], substr($parsed['middle_name'], 0, 1)) : $kFull;
+                $kNoMid = $this->studentImportKey($parsed['last_name'], $parsed['first_name'], null);
+
+                $matchedId = ($studentNumber !== null ? ($studentsByNumber[$studentNumber] ?? null) : null)
+                    ?? $studentsByName[$kFull]
+                    ?? $studentsByName[$kInitial]
+                    ?? $studentsByName[$kNoMid]
+                    ?? null;
+
+                if ($matchedId !== null) {
+                    $studentMap[$rawName] = $matchedId;
+                    if ($studentNumber !== null && $studentNumber !== '') {
+                        $studentMap['num:'.$studentNumber] = $matchedId;
+                    }
                 }
             }
         }
@@ -1977,6 +2114,68 @@ class GraduateLedgerController extends Controller
     // ─── Small utilities ──────────────────────────────────────────────────────
 
     /** @return WarningCounts */
+    private function normalizeImportedEmail(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $email = trim((string) $value);
+        if ($email === '' || str_starts_with($email, '=')) {
+            return null;
+        }
+
+        $validated = filter_var($email, FILTER_VALIDATE_EMAIL);
+
+        return is_string($validated) && $validated !== '' ? $validated : null;
+    }
+
+    private function normalizeImportedStudentNumber(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $studentNumber = trim((string) $value);
+        if ($studentNumber === '') {
+            return null;
+        }
+
+        if (str_starts_with($studentNumber, '=')) {
+            return null;
+        }
+
+        if (preg_match('/^\d+\.0+$/', $studentNumber) === 1) {
+            $studentNumber = preg_replace('/\.0+$/', '', $studentNumber) ?: '';
+        }
+
+        if ($studentNumber === '' || strlen($studentNumber) > 50) {
+            return null;
+        }
+
+        if (preg_match('/\d/', $studentNumber) !== 1) {
+            return null;
+        }
+
+        return $studentNumber;
+    }
+
+    /**
+     * @param  array<int, string>  $headerRow
+     * @param  array<int, string>  $candidates
+     */
+    private function headerIndex(array $headerRow, array $candidates): ?int
+    {
+        foreach ($candidates as $candidate) {
+            $idx = array_search($candidate, $headerRow, true);
+            if ($idx !== false) {
+                return $idx + 1;
+            }
+        }
+
+        return null;
+    }
+
     private function emptyImportWarnings(): array
     {
         return [

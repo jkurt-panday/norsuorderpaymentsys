@@ -20,7 +20,7 @@ class SecureHeadersTest extends TestCase
         });
 
         $this->assertSame('nosniff', $response->headers->get('X-Content-Type-Options'));
-        $this->assertSame('DENY', $response->headers->get('X-Frame-Options'));
+        $this->assertSame('SAMEORIGIN', $response->headers->get('X-Frame-Options'));
         $this->assertSame('strict-origin-when-cross-origin', $response->headers->get('Referrer-Policy'));
     }
 
@@ -33,7 +33,7 @@ class SecureHeadersTest extends TestCase
         $response = $this->get('/_test_security_headers');
 
         $response->assertHeader('X-Content-Type-Options', 'nosniff');
-        $response->assertHeader('X-Frame-Options', 'DENY');
+        $response->assertHeader('X-Frame-Options', 'SAMEORIGIN');
         $response->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     }
 }

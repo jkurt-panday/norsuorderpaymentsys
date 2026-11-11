@@ -99,21 +99,19 @@ class OpOrNumberCorrectionTest extends TestCase
         $this->assertSame('2026-001', $staffInput->fresh()->or_no);
     }
 
-    public function test_cashier_and_client_cannot_use_the_staff_or_correction_route(): void
+    public function test_cashier_cannot_use_the_staff_or_correction_route(): void
     {
-        foreach (['cashier', 'client'] as $role) {
-            $user = User::factory()->create(['role' => $role]);
-            $staffInput = $this->makeStaffInput(['or_no' => '2026-001', 'or_date' => '2026-09-01']);
+        $user = User::factory()->cashier()->create();
+        $staffInput = $this->makeStaffInput(['or_no' => '2026-001', 'or_date' => '2026-09-01']);
 
-            $this->actingAs($user)
-                ->put("/staff/requests/{$staffInput->id}/or", [
-                    'or_no' => '2026-8888',
-                    'or_date' => '2026-09-05',
-                ])
-                ->assertRedirect();
+        $this->actingAs($user)
+            ->put("/staff/requests/{$staffInput->id}/or", [
+                'or_no' => '2026-8888',
+                'or_date' => '2026-09-05',
+            ])
+            ->assertRedirect();
 
-            $this->assertSame('2026-001', $staffInput->fresh()->or_no);
-        }
+        $this->assertSame('2026-001', $staffInput->fresh()->or_no);
     }
 
     private function makeStaffInput(array $attributes = []): StaffInput

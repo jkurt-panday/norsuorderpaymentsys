@@ -55,11 +55,6 @@ class FortifyServiceProvider extends ServiceProvider
                         return redirect('/cashier/requests');
                     }
 
-                    if ($user?->role === 'client') {
-                        session()->flash('success', 'Welcome back, ' . $user->name . '!');
-                        return redirect('/client/dashboard');
-                    }
-
                     abort(403, 'Invalid user role.');
                 }
             };
@@ -152,7 +147,6 @@ class FortifyServiceProvider extends ServiceProvider
             'admin' => redirect('/admin/dashboard'),
             'staff' => redirect('/staff/staffdashboard'),
             'cashier' => redirect('/cashier/requests'),
-            'client' => redirect('/client/dashboard'),
             default => redirect('/'),
         };
     }

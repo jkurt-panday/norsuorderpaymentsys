@@ -35,7 +35,7 @@ class MasterDataCrudTest extends TestCase
         foreach ($resources as [$index, $create]) {
             $this->actingAs($staff)->get(route($index))->assertOk();
             $this->actingAs($staff)->get(route($create))->assertOk();
-            $this->actingAs(User::factory()->client()->create())->get(route($index))->assertRedirect();
+            $this->actingAs(User::factory()->cashier()->create())->get(route($index))->assertRedirect();
         }
     }
 

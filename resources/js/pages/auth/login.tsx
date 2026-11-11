@@ -66,8 +66,6 @@ export default function Login({
             window.location.assign('/staff/staffdashboard');
         } else if (role === 'cashier') {
             window.location.assign('/cashier/requests');
-        } else if (role === 'client') {
-            window.location.assign('/client/dashboard');
         } else {
             window.location.assign('/dashboard');
         }

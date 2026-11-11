@@ -23,7 +23,7 @@ class CashierRoleBoundaryTest extends TestCase
 
         $this->assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
 
-        foreach (['admin', 'staff', 'client'] as $role) {
+        foreach (['admin', 'staff'] as $role) {
             try {
                 $this->runMiddleware(new EnsureUserIsCashier, $this->userWithRole($role));
                 $this->fail("The cashier middleware allowed the [{$role}] role.");
@@ -44,13 +44,11 @@ class CashierRoleBoundaryTest extends TestCase
             $this->assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
         }
 
-        foreach (['cashier', 'client'] as $role) {
-            try {
-                $this->runMiddleware(new EnsureUserIsStaff, $this->userWithRole($role));
-                $this->fail("The staff middleware allowed the [{$role}] role.");
-            } catch (HttpException $exception) {
-                $this->assertSame(Response::HTTP_FORBIDDEN, $exception->getStatusCode());
-            }
+        try {
+            $this->runMiddleware(new EnsureUserIsStaff, $this->userWithRole('cashier'));
+            $this->fail("The staff middleware allowed the [cashier] role.");
+        } catch (HttpException $exception) {
+            $this->assertSame(Response::HTTP_FORBIDDEN, $exception->getStatusCode());
         }
     }
 

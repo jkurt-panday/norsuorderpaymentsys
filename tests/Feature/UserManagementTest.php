@@ -16,21 +16,21 @@ class UserManagementTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         User::factory()->create(['name' => 'Zed Staff', 'email' => 'zed@example.com', 'role' => 'staff']);
-        User::factory()->create(['name' => 'Ana Client', 'email' => 'ana@example.com', 'role' => 'client']);
+        User::factory()->create(['name' => 'Ana Cashier', 'email' => 'ana@example.com', 'role' => 'cashier']);
 
-        $this->actingAs($admin)->get('/admin/users?search=Ana&role=client&sort=name&direction=asc')
+        $this->actingAs($admin)->get('/admin/users?search=Ana&role=cashier&sort=name&direction=asc')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('admin/UserManagement')
                 ->where('userFilters.search', 'Ana')
-                ->where('userFilters.role', 'client')
+                ->where('userFilters.role', 'cashier')
                 ->has('users.data', 1)
                 ->where('users.data.0.email', 'ana@example.com'));
     }
 
     public function test_non_admin_cannot_manage_users(): void
     {
-        foreach (['staff', 'cashier', 'client'] as $role) {
+        foreach (['staff', 'cashier'] as $role) {
             $user = User::factory()->create(['role' => $role]);
             $this->actingAs($user)->get('/admin/users')->assertRedirect();
         }
@@ -69,12 +69,12 @@ class UserManagementTest extends TestCase
         $user = User::factory()->staff()->create(['password' => Hash::make('old-password')]);
 
         $this->actingAs($admin)->put("/admin/users/{$user->id}", [
-            'name' => 'Updated User', 'email' => 'updated@example.com', 'password' => 'NewPassword1!', 'role' => 'client',
+            'name' => 'Updated User', 'email' => 'updated@example.com', 'password' => 'NewPassword1!', 'role' => 'cashier',
         ])->assertRedirect();
 
         $user->refresh();
         $this->assertSame('Updated User', $user->name);
-        $this->assertSame('client', $user->role);
+        $this->assertSame('cashier', $user->role);
         $this->assertTrue(Hash::check('NewPassword1!', $user->password));
     }
 
@@ -119,6 +119,20 @@ class UserManagementTest extends TestCase
         $this->actingAs($admin)->put("/admin/users/{$admin->id}/toggle")
             ->assertSessionHas('error', 'You cannot change the status of your own account.');
         $this->assertNotSoftDeleted('users', ['id' => $admin->id]);
+    }
+
+    public function test_admin_dashboard_shows_user_counts(): void
+    {
+        $admin = User::factory()->admin()->create();
+        User::factory()->staff()->count(2)->create();
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('admin/Dashboard')
+                ->where('stats.staffCount', 2)
+                ->where('stats.adminCount', 1)
+                ->missing('stats.clientCount'));
     }
 
     public function test_user_deletion_is_soft_delete_and_deleted_user_can_be_updated(): void

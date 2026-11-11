@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "6751c224845aacf5218f48897d29ca83",
+    "content-hash": "445d632d7fcda0e5742ab59049e8f072",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -5844,16 +5844,16 @@
         },
         {
             "name": "spatie/browsershot",
-            "version": "5.4.2",
+            "version": "5.5.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/spatie/browsershot.git",
-                "reference": "6e5f1d0a09663532f11c7c4b2695d6378d1f1d1c"
+                "reference": "eba71ab7f4aba23d9321d653ccd19d4e94432516"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/spatie/browsershot/zipball/6e5f1d0a09663532f11c7c4b2695d6378d1f1d1c",
-                "reference": "6e5f1d0a09663532f11c7c4b2695d6378d1f1d1c",
+                "url": "https://api.github.com/repos/spatie/browsershot/zipball/eba71ab7f4aba23d9321d653ccd19d4e94432516",
+                "reference": "eba71ab7f4aba23d9321d653ccd19d4e94432516",
                 "shasum": ""
             },
             "require": {
@@ -5900,7 +5900,7 @@
                 "webpage"
             ],
             "support": {
-                "source": "https://github.com/spatie/browsershot/tree/5.4.2"
+                "source": "https://github.com/spatie/browsershot/tree/5.5.0"
             },
             "funding": [
                 {
@@ -5908,7 +5908,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-26T11:44:40+00:00"
+            "time": "2026-11-06T09:42:13+00:00"
         },
         {
             "name": "spatie/laravel-package-tools",

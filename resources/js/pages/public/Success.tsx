@@ -504,11 +504,10 @@ export default function Success({
                                         const homeHref =
                                             role === 'admin'
                                                 ? '/admin/dashboard'
-                                                : role === 'staff' ||
-                                                    role === 'cashier'
-                                                  ? '/staff/staffdashboard'
-                                                  : role === 'client'
-                                                    ? '/client/dashboard'
+                                                : role === 'cashier'
+                                                  ? '/cashier/requests'
+                                                  : role === 'staff'
+                                                    ? '/staff/staffdashboard'
                                                     : null;
 
                                         if (!homeHref) {

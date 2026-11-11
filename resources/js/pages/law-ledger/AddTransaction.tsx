@@ -631,6 +631,13 @@ export default function AddTransaction({
 
             post(storeLawLedger.url(), {
                 preserveScroll: true,
+                onError: (errs) => {
+                    const firstError = Object.values(errs)[0];
+                    flashToast(
+                        'error',
+                        firstError || 'Failed to save transaction. Please check the fields.',
+                    );
+                },
             });
 
             return;
@@ -657,6 +664,13 @@ export default function AddTransaction({
 
         post(storeLawLedger.url(), {
             preserveScroll: true,
+            onError: (errs) => {
+                const firstError = Object.values(errs)[0];
+                flashToast(
+                    'error',
+                    firstError || 'Failed to save transaction. Please check the fields.',
+                );
+            },
         });
     };
 
@@ -848,7 +862,21 @@ export default function AddTransaction({
                                             })
                                         }
                                         placeholder="DELA CRUZ"
+                                        className={
+                                            (errors as any)[
+                                                'new_student.last_name'
+                                            ]
+                                                ? 'border-red-400'
+                                                : ''
+                                        }
                                         required
+                                    />
+                                    <FieldError
+                                        message={
+                                            (errors as any)[
+                                                'new_student.last_name'
+                                            ]
+                                        }
                                     />
                                 </div>
                                 <div>
@@ -864,7 +892,21 @@ export default function AddTransaction({
                                             })
                                         }
                                         placeholder="JUAN"
+                                        className={
+                                            (errors as any)[
+                                                'new_student.first_name'
+                                            ]
+                                                ? 'border-red-400'
+                                                : ''
+                                        }
                                         required
+                                    />
+                                    <FieldError
+                                        message={
+                                            (errors as any)[
+                                                'new_student.first_name'
+                                            ]
+                                        }
                                     />
                                 </div>
                                 <div>
@@ -1051,7 +1093,7 @@ export default function AddTransaction({
                                             event.target.value,
                                         )
                                     }
-                                    className={selectClass}
+                                    className={`${selectClass} ${(errors as any).semester ? 'border-red-400' : ''}`}
                                 >
                                     {semesterOptions.map((option) => (
                                         <option
@@ -1062,6 +1104,9 @@ export default function AddTransaction({
                                         </option>
                                     ))}
                                 </select>
+                                <FieldError
+                                    message={(errors as any).semester}
+                                />
                             </div>
 
                             <div>
@@ -1159,7 +1204,10 @@ export default function AddTransaction({
                                         setData('particulars', event.target.value)
                                     }
                                     placeholder="e.g. Tuition, Registration, Miscellaneous"
-                                    className="mb-2"
+                                    className={`mb-2 ${(errors as any).particulars ? 'border-red-400' : ''}`}
+                                />
+                                <FieldError
+                                    message={(errors as any).particulars}
                                 />
                                 <div className="flex flex-wrap items-center gap-1.5 text-xs">
                                     <span className="text-[11px] text-muted-foreground">
@@ -1205,6 +1253,20 @@ export default function AddTransaction({
                                         data.entry_type === 'payment'
                                             ? 'e.g. OR #1234567'
                                             : 'e.g. JEV #2026-001'
+                                    }
+                                    className={
+                                        (errors as any).reference_or_jev_number ||
+                                        (errors as any).reference_number ||
+                                        (errors as any).reference_jev_or_number
+                                            ? 'border-red-400'
+                                            : ''
+                                    }
+                                />
+                                <FieldError
+                                    message={
+                                        (errors as any).reference_or_jev_number ||
+                                        (errors as any).reference_number ||
+                                        (errors as any).reference_jev_or_number
                                     }
                                 />
                             </div>
@@ -1464,6 +1526,7 @@ export default function AddTransaction({
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-4 pt-4">
+                            <FieldError message={(errors as any).items} />
                             <div className="space-y-3">
                                 {batchItems.map((item, index) => {
                                     const units = Number(item.units || 0);
@@ -1478,11 +1541,18 @@ export default function AddTransaction({
                                         lineTotal,
                                         item.latin_honor,
                                     );
+                                    const hasItemError = Object.keys(errors).some(
+                                        (k) => k.startsWith(`items.${index}.`),
+                                    );
 
                                     return (
                                         <div
                                             key={item.id}
-                                            className="relative rounded-lg border border-border bg-muted/20 p-3 shadow-2xs"
+                                            className={`relative rounded-lg border p-3 shadow-2xs ${
+                                                hasItemError
+                                                    ? 'border-red-400 bg-red-50/30 dark:bg-red-950/20'
+                                                    : 'border-border bg-muted/20'
+                                            }`}
                                         >
                                             <div className="mb-2 flex items-center justify-between">
                                                 <span className="text-xs font-bold text-foreground">
@@ -1598,7 +1668,32 @@ export default function AddTransaction({
                                                             )
                                                         }
                                                         placeholder="OR/JEV"
-                                                        className="h-8 text-xs"
+                                                        className={`h-8 text-xs ${
+                                                            (errors as any)[
+                                                                `items.${index}.reference_or_jev_number`
+                                                            ] ||
+                                                            (errors as any)[
+                                                                `items.${index}.reference_number`
+                                                            ] ||
+                                                            (errors as any)[
+                                                                `items.${index}.reference_jev_or_number`
+                                                            ]
+                                                                ? 'border-red-400'
+                                                                : ''
+                                                        }`}
+                                                    />
+                                                    <FieldError
+                                                        message={
+                                                            (errors as any)[
+                                                                `items.${index}.reference_or_jev_number`
+                                                            ] ||
+                                                            (errors as any)[
+                                                                `items.${index}.reference_number`
+                                                            ] ||
+                                                            (errors as any)[
+                                                                `items.${index}.reference_jev_or_number`
+                                                            ]
+                                                        }
                                                     />
                                                 </div>
 
@@ -1628,7 +1723,13 @@ export default function AddTransaction({
                                                                         )
                                                                     }
                                                                     placeholder="U"
-                                                                    className="h-8 w-12 text-xs"
+                                                                    className={`h-8 w-12 text-xs ${
+                                                                        (errors as any)[
+                                                                            `items.${index}.units`
+                                                                        ]
+                                                                            ? 'border-red-400'
+                                                                            : ''
+                                                                    }`}
                                                                 />
                                                                 <Input
                                                                     type="number"
@@ -1651,9 +1752,37 @@ export default function AddTransaction({
                                                                         )
                                                                     }
                                                                     placeholder="Rate"
-                                                                    className="h-8 flex-1 text-xs"
+                                                                    className={`h-8 flex-1 text-xs ${
+                                                                        (errors as any)[
+                                                                            `items.${index}.tuition_per_unit_or_misc`
+                                                                        ] ||
+                                                                        (errors as any)[
+                                                                            `items.${index}.tuition_per_unit_or_fee_per_semester`
+                                                                        ] ||
+                                                                        (errors as any)[
+                                                                            `items.${index}.rate`
+                                                                        ]
+                                                                            ? 'border-red-400'
+                                                                            : ''
+                                                                    }`}
                                                                 />
                                                             </div>
+                                                            <FieldError
+                                                                message={
+                                                                    (errors as any)[
+                                                                        `items.${index}.units`
+                                                                    ] ||
+                                                                    (errors as any)[
+                                                                        `items.${index}.tuition_per_unit_or_misc`
+                                                                    ] ||
+                                                                    (errors as any)[
+                                                                        `items.${index}.tuition_per_unit_or_fee_per_semester`
+                                                                    ] ||
+                                                                    (errors as any)[
+                                                                        `items.${index}.rate`
+                                                                    ]
+                                                                }
+                                                            />
                                                         </div>
 
                                                         <div className="sm:col-span-1">
@@ -1694,7 +1823,20 @@ export default function AddTransaction({
                                                                           )
                                                                         : '0.00'
                                                                 }
-                                                                className="h-8 text-xs font-bold text-blue-900"
+                                                                className={`h-8 text-xs font-bold text-blue-900 ${
+                                                                    (errors as any)[
+                                                                        `items.${index}.amount`
+                                                                    ]
+                                                                        ? 'border-red-400'
+                                                                        : ''
+                                                                }`}
+                                                            />
+                                                            <FieldError
+                                                                message={
+                                                                    (errors as any)[
+                                                                        `items.${index}.amount`
+                                                                    ]
+                                                                }
                                                             />
                                                         </div>
                                                     </>
@@ -1719,7 +1861,20 @@ export default function AddTransaction({
                                                                 )
                                                             }
                                                             placeholder="0.00"
-                                                            className="h-8 text-xs font-bold text-emerald-900"
+                                                            className={`h-8 text-xs font-bold text-emerald-900 ${
+                                                                (errors as any)[
+                                                                    `items.${index}.amount`
+                                                                ]
+                                                                    ? 'border-red-400'
+                                                                    : ''
+                                                            }`}
+                                                        />
+                                                        <FieldError
+                                                            message={
+                                                                (errors as any)[
+                                                                    `items.${index}.amount`
+                                                                ]
+                                                            }
                                                         />
                                                     </div>
                                                 )}

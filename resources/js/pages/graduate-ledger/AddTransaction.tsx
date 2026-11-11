@@ -602,6 +602,13 @@ return;
 
             post(storeGraduateLedger.url(), {
                 preserveScroll: true,
+                onError: (errs) => {
+                    const firstError = Object.values(errs)[0];
+                    flashToast(
+                        'error',
+                        firstError || 'Failed to save transaction. Please check the fields.',
+                    );
+                },
             });
 
             return;
@@ -622,6 +629,13 @@ return;
 
         post(storeGraduateLedger.url(), {
             preserveScroll: true,
+            onError: (errs) => {
+                const firstError = Object.values(errs)[0];
+                flashToast(
+                    'error',
+                    firstError || 'Failed to save transaction. Please check the fields.',
+                );
+            },
         });
     };
 
@@ -799,8 +813,14 @@ return;
                                             })
                                         }
                                         placeholder="DELA CRUZ"
+                                        className={
+                                            (errors as any)['new_student.last_name']
+                                                ? 'border-red-400'
+                                                : ''
+                                        }
                                         required
                                     />
+                                    <FieldError message={(errors as any)['new_student.last_name']} />
                                 </div>
                                 <div>
                                     <label className="text-xs font-medium text-muted-foreground">
@@ -815,8 +835,14 @@ return;
                                             })
                                         }
                                         placeholder="JUAN"
+                                        className={
+                                            (errors as any)['new_student.first_name']
+                                                ? 'border-red-400'
+                                                : ''
+                                        }
                                         required
                                     />
+                                    <FieldError message={(errors as any)['new_student.first_name']} />
                                 </div>
                                 <div>
                                     <label className="text-xs font-medium text-muted-foreground">
@@ -940,7 +966,7 @@ return;
                                 <select
                                     value={data.semester}
                                     onChange={(e) => syncTerm(data.school_year, e.target.value)}
-                                    className={selectClass}
+                                    className={`${selectClass} ${(errors as any).semester ? 'border-red-400' : ''}`}
                                 >
                                     {semesterOptions.map((opt) => (
                                         <option key={opt.value} value={opt.value}>
@@ -948,6 +974,7 @@ return;
                                         </option>
                                     ))}
                                 </select>
+                                <FieldError message={(errors as any).semester} />
                             </div>
 
                             <div>
@@ -1025,8 +1052,9 @@ return;
                                     value={data.particulars}
                                     onChange={(e) => setData('particulars', e.target.value)}
                                     placeholder="e.g. Tuition, Registration, Miscellaneous"
-                                    className="mb-2"
+                                    className={`mb-2 ${(errors as any).particulars ? 'border-red-400' : ''}`}
                                 />
+                                <FieldError message={(errors as any).particulars} />
                                 <div className="flex flex-wrap items-center gap-1.5 text-xs">
                                     <span className="text-[11px] text-muted-foreground">Presets:</span>
                                     {particularPresets[data.entry_type].map((preset) => (
@@ -1058,6 +1086,18 @@ return;
                                         data.entry_type === 'payment'
                                             ? 'e.g. OR #1234567'
                                             : 'e.g. JEV #2026-001'
+                                    }
+                                    className={
+                                        (errors as any).reference_or_jev_number ||
+                                        (errors as any).reference_number
+                                            ? 'border-red-400'
+                                            : ''
+                                    }
+                                />
+                                <FieldError
+                                    message={
+                                        (errors as any).reference_or_jev_number ||
+                                        (errors as any).reference_number
                                     }
                                 />
                             </div>
@@ -1245,16 +1285,24 @@ return;
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-4 pt-4">
+                            <FieldError message={(errors as any).items} />
                             <div className="space-y-3">
                                 {batchItems.map((item, index) => {
                                     const u = Number(item.units || 0);
                                     const r = Number(item.tuition_per_unit_or_misc || 0);
                                     const lineTotal = item.amount !== '' ? Number(item.amount || 0) : (u * r);
+                                    const hasItemError = Object.keys(errors).some((k) =>
+                                        k.startsWith(`items.${index}.`),
+                                    );
 
                                     return (
                                         <div
                                             key={item.id}
-                                            className="relative rounded-lg border border-border bg-muted/20 p-3 shadow-2xs"
+                                            className={`relative rounded-lg border p-3 shadow-2xs ${
+                                                hasItemError
+                                                    ? 'border-red-400 bg-red-50/30 dark:bg-red-950/20'
+                                                    : 'border-border bg-muted/20'
+                                            }`}
                                         >
                                             <div className="mb-2 flex items-center justify-between">
                                                 <span className="text-xs font-bold text-foreground">
@@ -1317,7 +1365,18 @@ return;
                                                         value={item.reference_or_jev_number}
                                                         onChange={(e) => updateBatchRow(item.id, { reference_or_jev_number: e.target.value })}
                                                         placeholder="OR/JEV"
-                                                        className="h-8 text-xs"
+                                                        className={`h-8 text-xs ${
+                                                            (errors as any)[`items.${index}.reference_or_jev_number`] ||
+                                                            (errors as any)[`items.${index}.reference_number`]
+                                                                ? 'border-red-400'
+                                                                : ''
+                                                        }`}
+                                                    />
+                                                    <FieldError
+                                                        message={
+                                                            (errors as any)[`items.${index}.reference_or_jev_number`] ||
+                                                            (errors as any)[`items.${index}.reference_number`]
+                                                        }
                                                     />
                                                 </div>
 
@@ -1333,7 +1392,11 @@ return;
                                                                     value={item.units}
                                                                     onChange={(e) => updateBatchRow(item.id, { units: e.target.value })}
                                                                     placeholder="U"
-                                                                    className="h-8 w-12 text-xs"
+                                                                    className={`h-8 w-12 text-xs ${
+                                                                        (errors as any)[`items.${index}.units`]
+                                                                            ? 'border-red-400'
+                                                                            : ''
+                                                                    }`}
                                                                 />
                                                                 <Input
                                                                     type="number"
@@ -1342,9 +1405,21 @@ return;
                                                                     value={item.tuition_per_unit_or_misc}
                                                                     onChange={(e) => updateBatchRow(item.id, { tuition_per_unit_or_misc: e.target.value })}
                                                                     placeholder="Rate"
-                                                                    className="h-8 flex-1 text-xs"
+                                                                    className={`h-8 flex-1 text-xs ${
+                                                                        (errors as any)[`items.${index}.tuition_per_unit_or_misc`] ||
+                                                                        (errors as any)[`items.${index}.rate`]
+                                                                            ? 'border-red-400'
+                                                                            : ''
+                                                                    }`}
                                                                 />
                                                             </div>
+                                                            <FieldError
+                                                                message={
+                                                                    (errors as any)[`items.${index}.units`] ||
+                                                                    (errors as any)[`items.${index}.tuition_per_unit_or_misc`] ||
+                                                                    (errors as any)[`items.${index}.rate`]
+                                                                }
+                                                            />
                                                         </div>
 
                                                         <div className="sm:col-span-1">
@@ -1356,8 +1431,13 @@ return;
                                                                 value={item.amount !== '' ? item.amount : (lineTotal > 0 ? lineTotal.toFixed(2) : '')}
                                                                 onChange={(e) => updateBatchRow(item.id, { amount: e.target.value })}
                                                                 placeholder={lineTotal > 0 ? lineTotal.toFixed(2) : '0.00'}
-                                                                className="h-8 text-xs font-bold text-blue-900"
+                                                                className={`h-8 text-xs font-bold text-blue-900 ${
+                                                                    (errors as any)[`items.${index}.amount`]
+                                                                        ? 'border-red-400'
+                                                                        : ''
+                                                                }`}
                                                             />
+                                                            <FieldError message={(errors as any)[`items.${index}.amount`]} />
                                                         </div>
                                                     </>
                                                 ) : (
@@ -1370,8 +1450,13 @@ return;
                                                             value={item.amount}
                                                             onChange={(e) => updateBatchRow(item.id, { amount: e.target.value })}
                                                             placeholder="0.00"
-                                                            className="h-8 text-xs font-bold text-emerald-900"
+                                                            className={`h-8 text-xs font-bold text-emerald-900 ${
+                                                                (errors as any)[`items.${index}.amount`]
+                                                                    ? 'border-red-400'
+                                                                    : ''
+                                                            }`}
                                                         />
+                                                        <FieldError message={(errors as any)[`items.${index}.amount`]} />
                                                     </div>
                                                 )}
                                             </div>

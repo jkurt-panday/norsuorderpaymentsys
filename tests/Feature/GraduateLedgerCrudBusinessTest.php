@@ -24,13 +24,13 @@ class GraduateLedgerCrudBusinessTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->component('graduate-ledger/Index'));
     }
 
-    public function test_guest_and_client_cannot_modify_ledger_entries(): void
+    public function test_guest_and_cashier_cannot_modify_ledger_entries(): void
     {
         $record = $this->record();
         $payload = $this->payload($record);
 
         $this->post(route('graduate-ledger.store'), $payload)->assertRedirect(route('login'));
-        $this->actingAs(User::factory()->client()->create())
+        $this->actingAs(User::factory()->cashier()->create())
             ->post(route('graduate-ledger.store'), $payload)->assertRedirect();
         $this->assertDatabaseCount('graduate_ledgers', 1);
     }

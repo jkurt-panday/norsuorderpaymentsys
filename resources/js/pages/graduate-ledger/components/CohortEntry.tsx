@@ -7,13 +7,10 @@ import {
     Search,
     X,
     Trash2,
-    Sparkles,
     CheckSquare,
     Square,
-    AlertCircle,
-    Check,
 } from 'lucide-react';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { cohortStore } from '@/actions/App/Http/Controllers/GraduateLedgerController';
 import { Button } from '@/components/ui/button';
 import {
@@ -74,7 +71,7 @@ interface Props {
     students: CohortStudentOption[];
     courses: CohortCourseOption[];
     academicTerms: CohortAcademicTermOption[];
-    authUserName: string;
+    authUserName?: string;
 }
 
 function formatStudentLabel(s: CohortStudentOption): string {
@@ -100,7 +97,6 @@ export default function GraduateCohortEntry({
     students,
     courses,
     academicTerms,
-    authUserName,
 }: Props) {
     // ── Template State ──
     const [courseId, setCourseId] = useState<string>(
@@ -147,6 +143,7 @@ export default function GraduateCohortEntry({
     function handleTermChange(termId: string) {
         setAcademicTermId(termId);
         const match = academicTerms.find((t) => String(t.id) === String(termId));
+
         if (match) {
             setSchoolYear(match.school_year);
             setSemester(match.semester);
@@ -156,6 +153,7 @@ export default function GraduateCohortEntry({
     function handleTypeChange(nextType: CohortEntryType) {
         setEntryType(nextType);
         setParticulars(particularPresets[nextType][0] ?? 'Tuition');
+
         if (nextType !== 'ar') {
             setMembership('');
         }
@@ -168,14 +166,17 @@ export default function GraduateCohortEntry({
         if (filterCourseOnly && courseId) {
             pool = pool.filter((s) => {
                 const sCourse = s.last_course_id ?? s.course_id;
+
                 return sCourse ? String(sCourse) === String(courseId) : true;
             });
         }
 
         const query = studentSearch.toLowerCase().trim();
+
         if (query) {
             pool = pool.filter((s) => {
                 const label = formatStudentLabel(s).toLowerCase();
+
                 return label.includes(query);
             });
         }
@@ -248,11 +249,13 @@ export default function GraduateCohortEntry({
     function toggleStudent(id: number) {
         setSelectedStudentIds((prev) => {
             const next = new Set(prev);
+
             if (next.has(id)) {
                 next.delete(id);
             } else {
                 next.add(id);
             }
+
             return next;
         });
     }
@@ -261,6 +264,7 @@ export default function GraduateCohortEntry({
         setSelectedStudentIds((prev) => {
             const next = new Set(prev);
             filteredAvailableStudents.forEach((s) => next.add(Number(s.id)));
+
             return next;
         });
     }
@@ -274,11 +278,13 @@ export default function GraduateCohortEntry({
         setSelectedStudentIds((prev) => {
             const next = new Set(prev);
             next.delete(id);
+
             return next;
         });
         setRowOverrides((prev) => {
             const next = new Map(prev);
             next.delete(id);
+
             return next;
         });
     }
@@ -288,6 +294,7 @@ export default function GraduateCohortEntry({
             const next = new Map(prev);
             const current = next.get(id) || {};
             next.set(id, { ...current, ...patch });
+
             return next;
         });
     }
@@ -299,19 +306,23 @@ export default function GraduateCohortEntry({
 
         if (!courseId) {
             flashToast('error', 'Please select a course.');
+
             return;
         }
 
         if (cohortRows.length === 0) {
             flashToast('error', 'Please select at least one student.');
+
             return;
         }
 
         // Validate each row has an amount > 0
         const zeroRowIndex = cohortRows.findIndex((r) => !r.amount || Number(r.amount) <= 0);
+
         if (zeroRowIndex !== -1) {
             const row = cohortRows[zeroRowIndex];
             flashToast('error', `${row.student_name} has an invalid amount (must be > 0).`);
+
             return;
         }
 
@@ -343,7 +354,11 @@ export default function GraduateCohortEntry({
             onError: (errs) => {
                 setErrors(errs);
                 setIsSubmitting(false);
-                flashToast('error', 'Failed to post entries. Please review the errors.');
+                const firstError = Object.values(errs)[0];
+                flashToast(
+                    'error',
+                    firstError || 'Failed to post entries. Please review the errors.',
+                );
             },
             onFinish: () => {
                 setIsSubmitting(false);
@@ -383,6 +398,7 @@ export default function GraduateCohortEntry({
                             {entryTypeOptions.map((opt) => {
                                 const Icon = opt.icon;
                                 const isSelected = entryType === opt.value;
+
                                 return (
                                     <button
                                         key={opt.value}
@@ -437,7 +453,11 @@ export default function GraduateCohortEntry({
                                 <select
                                     value={academicTermId}
                                     onChange={(e) => handleTermChange(e.target.value)}
-                                    className={selectClass}
+                                    className={`${selectClass} ${
+                                        errors.academic_term_id || errors.school_year || errors.semester
+                                            ? 'border-destructive'
+                                            : ''
+                                    }`}
                                 >
                                     {academicTerms.map((t) => (
                                         <option key={t.id} value={t.id}>
@@ -451,17 +471,25 @@ export default function GraduateCohortEntry({
                                         placeholder="2025-2026"
                                         value={schoolYear}
                                         onChange={(e) => setSchoolYear(e.target.value)}
+                                        className={errors.school_year ? 'border-destructive' : ''}
                                     />
                                     <select
                                         value={semester}
                                         onChange={(e) => setSemester(e.target.value)}
-                                        className={selectClass}
+                                        className={`${selectClass} ${
+                                            errors.semester ? 'border-destructive' : ''
+                                        }`}
                                     >
                                         {semesterOptions.map((s) => (
                                             <option key={s.value} value={s.value}>{s.label}</option>
                                         ))}
                                     </select>
                                 </div>
+                            )}
+                            {(errors.academic_term_id || errors.school_year || errors.semester) && (
+                                <p className="mt-1 text-xs text-destructive">
+                                    {errors.academic_term_id || errors.school_year || errors.semester}
+                                </p>
                             )}
                         </div>
                     </div>
@@ -477,8 +505,12 @@ export default function GraduateCohortEntry({
                                     value={particulars}
                                     onChange={(e) => setParticulars(e.target.value)}
                                     placeholder="e.g. Tuition"
+                                    className={errors.particulars ? 'border-destructive' : ''}
                                     required
                                 />
+                                {errors.particulars && (
+                                    <p className="mt-1 text-xs text-destructive">{errors.particulars}</p>
+                                )}
                                 <div className="flex flex-wrap gap-1">
                                     {particularPresets[entryType].map((preset) => (
                                         <button
@@ -502,8 +534,12 @@ export default function GraduateCohortEntry({
                                 type="date"
                                 value={transactionDate}
                                 onChange={(e) => setTransactionDate(e.target.value)}
+                                className={errors.transaction_date ? 'border-destructive' : ''}
                                 required
                             />
+                            {errors.transaction_date && (
+                                <p className="mt-1 text-xs text-destructive">{errors.transaction_date}</p>
+                            )}
                         </div>
 
                         <div>
@@ -514,7 +550,17 @@ export default function GraduateCohortEntry({
                                 value={referenceNumber}
                                 onChange={(e) => setReferenceNumber(e.target.value)}
                                 placeholder="e.g. OR-2026-001"
+                                className={
+                                    errors.reference_number || (errors as any).reference_or_jev_number
+                                        ? 'border-destructive'
+                                        : ''
+                                }
                             />
+                            {(errors.reference_number || (errors as any).reference_or_jev_number) && (
+                                <p className="mt-1 text-xs text-destructive">
+                                    {errors.reference_number || (errors as any).reference_or_jev_number}
+                                </p>
+                            )}
                         </div>
                     </div>
 
@@ -637,6 +683,11 @@ export default function GraduateCohortEntry({
                             <CardDescription className="text-xs">
                                 Check the students who should receive this transaction.
                             </CardDescription>
+                            {errors.cohort_rows && (
+                                <p className="mt-1 text-xs font-semibold text-destructive">
+                                    {errors.cohort_rows}
+                                </p>
+                            )}
                         </div>
                         <div className="flex items-center gap-2">
                             <Button
@@ -708,6 +759,7 @@ export default function GraduateCohortEntry({
                                 {filteredAvailableStudents.map((s) => {
                                     const sId = Number(s.id);
                                     const isSelected = selectedStudentIds.has(sId);
+
                                     return (
                                         <button
                                             key={s.id}
@@ -771,107 +823,144 @@ export default function GraduateCohortEntry({
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/60">
-                                    {cohortRows.map((row, idx) => (
-                                        <tr key={row.student_id} className="hover:bg-muted/30">
-                                            <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
-                                            <td className="px-3 py-2 font-medium text-foreground">
-                                                <div className="max-w-[200px] truncate" title={row.student_name}>
-                                                    {row.student_name}
-                                                </div>
-                                            </td>
-                                            {isAR && (
-                                                <td className="px-3 py-2">
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        value={row.units}
-                                                        onChange={(e) => {
-                                                            const u = Number(e.target.value || 0);
-                                                            const r = row.rate;
-                                                            updateRowOverride(row.student_id, {
-                                                                units: u,
-                                                                amount: u * r,
-                                                            });
-                                                        }}
-                                                        className="w-16 rounded border border-input bg-background px-2 py-1 text-xs"
-                                                    />
+                                    {cohortRows.map((row, idx) => {
+                                        const rowHasError = Object.keys(errors).some((k) =>
+                                            k.startsWith(`cohort_rows.${idx}.`),
+                                        );
+                                        const amountError = errors[`cohort_rows.${idx}.amount`];
+                                        const unitsError = errors[`cohort_rows.${idx}.units`];
+                                        const rateError = errors[`cohort_rows.${idx}.rate`];
+
+                                        return (
+                                            <tr
+                                                key={row.student_id}
+                                                className={`hover:bg-muted/30 ${
+                                                    rowHasError
+                                                        ? 'border-l-4 border-l-red-500 bg-red-50/40 dark:bg-red-950/20'
+                                                        : ''
+                                                }`}
+                                            >
+                                                <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
+                                                <td className="px-3 py-2 font-medium text-foreground">
+                                                    <div className="max-w-[200px] truncate" title={row.student_name}>
+                                                        {row.student_name}
+                                                    </div>
                                                 </td>
-                                            )}
-                                            {isAR && (
-                                                <td className="px-3 py-2">
+                                                {isAR && (
+                                                    <td className="px-3 py-2">
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={row.units}
+                                                            onChange={(e) => {
+                                                                const u = Number(e.target.value || 0);
+                                                                const r = row.rate;
+                                                                updateRowOverride(row.student_id, {
+                                                                    units: u,
+                                                                    amount: u * r,
+                                                                });
+                                                            }}
+                                                            className={`w-16 rounded border bg-background px-2 py-1 text-xs ${
+                                                                unitsError ? 'border-red-500' : 'border-input'
+                                                            }`}
+                                                        />
+                                                        {unitsError && (
+                                                            <p className="mt-0.5 text-[10px] text-red-500">
+                                                                {unitsError}
+                                                            </p>
+                                                        )}
+                                                    </td>
+                                                )}
+                                                {isAR && (
+                                                    <td className="px-3 py-2">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            min="0"
+                                                            value={row.rate}
+                                                            onChange={(e) => {
+                                                                const r = Number(e.target.value || 0);
+                                                                const u = row.units;
+                                                                updateRowOverride(row.student_id, {
+                                                                    rate: r,
+                                                                    amount: u * r,
+                                                                });
+                                                            }}
+                                                            className={`w-20 rounded border bg-background px-2 py-1 text-xs ${
+                                                                rateError ? 'border-red-500' : 'border-input'
+                                                            }`}
+                                                        />
+                                                        {rateError && (
+                                                            <p className="mt-0.5 text-[10px] text-red-500">
+                                                                {rateError}
+                                                            </p>
+                                                        )}
+                                                    </td>
+                                                )}
+                                                <td className="px-3 py-2 font-semibold">
                                                     <input
                                                         type="number"
                                                         step="0.01"
-                                                        min="0"
-                                                        value={row.rate}
-                                                        onChange={(e) => {
-                                                            const r = Number(e.target.value || 0);
-                                                            const u = row.units;
-                                                            updateRowOverride(row.student_id, {
-                                                                rate: r,
-                                                                amount: u * r,
-                                                            });
-                                                        }}
-                                                        className="w-20 rounded border border-input bg-background px-2 py-1 text-xs"
-                                                    />
-                                                </td>
-                                            )}
-                                            <td className="px-3 py-2 font-semibold">
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    min="0.01"
-                                                    value={row.amount}
-                                                    onChange={(e) =>
-                                                        updateRowOverride(row.student_id, {
-                                                            amount: Number(e.target.value || 0),
-                                                        })
-                                                    }
-                                                    className="w-24 rounded border border-input bg-background px-2 py-1 text-xs font-semibold"
-                                                />
-                                            </td>
-                                            {isAR && (
-                                                <td className="px-3 py-2">
-                                                    <select
-                                                        value={row.membership || ''}
+                                                        min="0.01"
+                                                        value={row.amount}
                                                         onChange={(e) =>
                                                             updateRowOverride(row.student_id, {
-                                                                membership: e.target.value as 'NAPU' | 'NORSUFFA' | '',
+                                                                amount: Number(e.target.value || 0),
                                                             })
                                                         }
-                                                        className="rounded border border-input bg-background px-2 py-1 text-xs"
-                                                    >
-                                                        <option value="">None</option>
-                                                        <option value="NAPU">NAPU</option>
-                                                        <option value="NORSUFFA">NORSUFFA</option>
-                                                    </select>
+                                                        className={`w-24 rounded border bg-background px-2 py-1 text-xs font-semibold ${
+                                                            amountError ? 'border-red-500' : 'border-input'
+                                                        }`}
+                                                    />
+                                                    {amountError && (
+                                                        <p className="mt-0.5 text-[10px] text-red-500">
+                                                            {amountError}
+                                                        </p>
+                                                    )}
                                                 </td>
-                                            )}
-                                            <td className="px-3 py-2">
-                                                <input
-                                                    type="text"
-                                                    value={row.remarks || ''}
-                                                    onChange={(e) =>
-                                                        updateRowOverride(row.student_id, {
-                                                            remarks: e.target.value,
-                                                        })
-                                                    }
-                                                    placeholder="Remarks"
-                                                    className="w-28 rounded border border-input bg-background px-2 py-1 text-xs"
-                                                />
-                                            </td>
-                                            <td className="px-3 py-2 text-center">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeStudent(row.student_id)}
-                                                    className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                                                    title="Remove student"
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                {isAR && (
+                                                    <td className="px-3 py-2">
+                                                        <select
+                                                            value={row.membership || ''}
+                                                            onChange={(e) =>
+                                                                updateRowOverride(row.student_id, {
+                                                                    membership: e.target.value as 'NAPU' | 'NORSUFFA' | '',
+                                                                })
+                                                            }
+                                                            className="rounded border border-input bg-background px-2 py-1 text-xs"
+                                                        >
+                                                            <option value="">None</option>
+                                                            <option value="NAPU">NAPU</option>
+                                                            <option value="NORSUFFA">NORSUFFA</option>
+                                                        </select>
+                                                    </td>
+                                                )}
+                                                <td className="px-3 py-2">
+                                                    <input
+                                                        type="text"
+                                                        value={row.remarks || ''}
+                                                        onChange={(e) =>
+                                                            updateRowOverride(row.student_id, {
+                                                                remarks: e.target.value,
+                                                            })
+                                                        }
+                                                        placeholder="Remarks"
+                                                        className="w-28 rounded border border-input bg-background px-2 py-1 text-xs"
+                                                    />
+                                                </td>
+                                                <td className="px-3 py-2 text-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeStudent(row.student_id)}
+                                                        className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                                        title="Remove student"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>

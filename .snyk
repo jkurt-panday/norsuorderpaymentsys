@@ -1,0 +1,15 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.1
+# ignores vulnerabilities until expiry date; change duration by modifying expiry date
+ignore:
+  SNYK-PHP-SPATIEBROWSERSHOT-1037064:
+    - '*':
+        reason: No user-controlled URL/HTML reaches Browsershot
+        expires: 2026-12-10T07:11:30.552Z
+        created: 2026-11-10T07:11:30.554Z
+  SNYK-PHP-SPATIEBROWSERSHOT-8548015:
+    - '*':
+        reason: No user-controlled URL/HTML reaches Browsershot
+        expires: 2026-12-10T07:11:45.979Z
+        created: 2026-11-10T07:11:45.983Z
+patch: {}

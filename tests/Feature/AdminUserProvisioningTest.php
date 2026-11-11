@@ -48,6 +48,17 @@ class AdminUserProvisioningTest extends TestCase
             ->assertSessionHasErrors('role');
     }
 
+    public function test_client_role_is_rejected(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->from(route('dashboard'))
+            ->post(route('admin.users.store'), [...$this->validPayload(), 'role' => 'client'])
+            ->assertRedirect(route('dashboard'))
+            ->assertSessionHasErrors('role');
+    }
+
     /** @return array<string, string> */
     private function validPayload(): array
     {

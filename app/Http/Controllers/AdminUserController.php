@@ -23,7 +23,6 @@ class AdminUserController extends Controller
     {
         $staffCount = User::where('role', 'staff')->count();
         $adminCount = User::where('role', 'admin')->count();
-        $clientCount = User::where('role', 'client')->count();
 
         $recentActivity = ActivityLog::latest()
             ->take(10)
@@ -43,7 +42,6 @@ class AdminUserController extends Controller
             'stats' => [
                 'staffCount' => $staffCount,
                 'adminCount' => $adminCount,
-                'clientCount' => $clientCount,
             ],
             'recentActivity' => $recentActivity,
         ]);
@@ -71,7 +69,7 @@ class AdminUserController extends Controller
             });
         }
 
-        if ($role !== '' && in_array($role, ['admin', 'staff', 'client'], true)) {
+        if ($role !== '' && in_array($role, ['admin', 'staff', 'cashier'], true)) {
             $query->where('role', $role);
         }
 

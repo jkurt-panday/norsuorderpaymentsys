@@ -672,10 +672,12 @@ class LawSchoolLedgerController extends Controller
             $firstName = trim((string) Arr::get($rowData, 'first_name', ''));
             $middleInitial = trim((string) (Arr::get($rowData, 'middle_initial') ?? Arr::get($rowData, 'middle_name') ?? ''));
             $studentNumber = $this->extractImportStudentNumber($rowData);
+            $email = $this->extractImportEmail($rowData);
 
             if ($lastName !== '' || $firstName !== '') {
                 $parsed = [
                     'student_number' => $studentNumber,
+                    'email' => $email,
                     'last_name' => $lastName,
                     'first_name' => $firstName,
                     'middle_name' => $middleInitial !== '' ? rtrim($middleInitial, '.') : null,
@@ -691,6 +693,7 @@ class LawSchoolLedgerController extends Controller
                 if ($rawName !== '' && ! in_array(strtolower($rawName), ['name (last name, first name, m.i.)', 'student name', 'student', 'name', 'last name', 'first name'])) {
                     $parsed = LawStudent::parseRawName($rawName);
                     $parsed['student_number'] = $studentNumber;
+                    $parsed['email'] = $email;
                 } else {
                     $parsed = null;
                 }
@@ -804,6 +807,7 @@ class LawSchoolLedgerController extends Controller
         $syIdx = $this->headerIndex($headerRow, ['school_year', 'academic_year', 'sy']);
         $semIdx = $this->headerIndex($headerRow, ['semester_or_summer', 'semester_summer', 'semester', 'term']);
         $studentNumberIdx = $this->headerIndex($headerRow, ['student_id_number', 'student_number', 'student_no', 'student_id_no', 'student_id']);
+        $emailIdx = $this->headerIndex($headerRow, ['email', 'email_address', 'student_email']);
         $lastIdx = $this->headerIndex($headerRow, ['last_name']);
         $firstIdx = $this->headerIndex($headerRow, ['first_name']);
         $miIdx = $this->headerIndex($headerRow, ['middle_initial', 'middle_name']);
@@ -833,10 +837,14 @@ class LawSchoolLedgerController extends Controller
             $studentNumber = $studentNumberIdx
                 ? $this->normalizeImportedStudentNumber($this->spreadsheetCellValue($sheet->getCell(Coordinate::stringFromColumnIndex($studentNumberIdx).$r)))
                 : null;
+            $email = $emailIdx
+                ? $this->normalizeImportedEmail($this->spreadsheetCellValue($sheet->getCell(Coordinate::stringFromColumnIndex($emailIdx).$r)))
+                : null;
 
             if ($last !== '' || $first !== '') {
                 $parsed = [
                     'student_number' => $studentNumber,
+                    'email' => $email,
                     'last_name' => $last,
                     'first_name' => $first,
                     'middle_name' => $mi !== '' ? rtrim($mi, '.') : null,
@@ -846,6 +854,7 @@ class LawSchoolLedgerController extends Controller
                 if ($rawName !== '' && ! in_array(strtolower($rawName), ['name (last name, first name, m.i.)', 'student name', 'student', 'name', 'last name', 'first name'])) {
                     $parsed = LawStudent::parseRawName($rawName);
                     $parsed['student_number'] = $studentNumber;
+                    $parsed['email'] = $email;
                 } else {
                     $parsed = null;
                 }
@@ -1041,18 +1050,22 @@ class LawSchoolLedgerController extends Controller
         }
 
         // Students
-        $existingStudents = LawStudent::get(['id', 'student_number', 'last_name', 'first_name', 'middle_name']);
+        $existingStudents = LawStudent::get(['id', 'student_number', 'email', 'last_name', 'first_name', 'middle_name']);
         $studentMap = [];
         $studentsByName = [];
         $studentsByNumber = [];
+        $existingEmails = [];
         foreach ($existingStudents as $s) {
             $this->indexImportStudent($s, $studentsByName, $studentsByNumber);
+            $existingEmails[(int) $s->id] = $s->email;
         }
 
         $newStudents = [];
         $studentNumberUpdates = [];
+        $emailUpdates = [];
         foreach ($distinctStudents as $parsed) {
             $studentNumber = $parsed['student_number'] ?? null;
+            $email = $parsed['email'] ?? null;
             $kFull = $this->studentImportKey($parsed['last_name'], $parsed['first_name'], $parsed['middle_name']);
             $kInitial = $parsed['middle_name'] ? $this->studentImportKey($parsed['last_name'], $parsed['first_name'], substr($parsed['middle_name'], 0, 1)) : $kFull;
             $kNoMid = $this->studentImportKey($parsed['last_name'], $parsed['first_name'], null);
@@ -1075,9 +1088,15 @@ class LawSchoolLedgerController extends Controller
                     $studentNumberUpdates[$matchedId] = $studentNumber;
                     $studentsByNumber[$studentNumber] = $matchedId;
                 }
+
+                if ($email !== null && blank($existingEmails[$matchedId] ?? null) && ! isset($emailUpdates[$matchedId])) {
+                    $emailUpdates[$matchedId] = $email;
+                    $existingEmails[$matchedId] = $email;
+                }
             } else {
                 $newStudents[] = [
                     'student_number' => $studentNumber,
+                    'email' => $email,
                     'last_name' => $parsed['last_name'],
                     'first_name' => $parsed['first_name'],
                     'middle_name' => $parsed['middle_name'] ?: null,
@@ -1094,11 +1113,20 @@ class LawSchoolLedgerController extends Controller
                 ->update(['student_number' => $studentNumber, 'updated_at' => $now]);
         }
 
+        foreach ($emailUpdates as $id => $emailToBackfill) {
+            LawStudent::query()
+                ->whereKey($id)
+                ->where(function ($query) {
+                    $query->whereNull('email')->orWhere('email', '');
+                })
+                ->update(['email' => $emailToBackfill, 'updated_at' => $now]);
+        }
+
         if (! empty($newStudents)) {
             foreach (array_chunk($newStudents, 500) as $chunk) {
                 LawStudent::insert($chunk);
             }
-            $existingStudents = LawStudent::get(['id', 'student_number', 'last_name', 'first_name', 'middle_name']);
+            $existingStudents = LawStudent::get(['id', 'student_number', 'email', 'last_name', 'first_name', 'middle_name']);
             $studentsByName = [];
             $studentsByNumber = [];
             foreach ($existingStudents as $s) {
@@ -1719,6 +1747,32 @@ class LawSchoolLedgerController extends Controller
         }
 
         return $studentNumber;
+    }
+
+    private function normalizeImportedEmail(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $email = trim((string) $value);
+        if ($email === '' || str_starts_with($email, '=')) {
+            return null;
+        }
+
+        $validated = filter_var($email, FILTER_VALIDATE_EMAIL);
+
+        return is_string($validated) && $validated !== '' ? $validated : null;
+    }
+
+    /** @param array<string, mixed> $rowData */
+    private function extractImportEmail(array $rowData): ?string
+    {
+        return $this->normalizeImportedEmail(
+            Arr::get($rowData, 'email')
+            ?? Arr::get($rowData, 'email_address')
+            ?? Arr::get($rowData, 'student_email')
+        );
     }
 
     private function spreadsheetCellValue(Cell $cell): mixed

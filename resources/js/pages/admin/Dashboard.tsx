@@ -1,5 +1,5 @@
 import { Head, usePage } from '@inertiajs/react';
-import { Users, Shield, User } from 'lucide-react';
+import { Users, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -8,7 +8,6 @@ interface AdminDashboardProps {
     stats: {
         staffCount: number;
         adminCount: number;
-        clientCount: number;
     };
     recentActivity: Array<{
         id: number;
@@ -24,7 +23,7 @@ interface AdminDashboardProps {
 
 export default function AdminDashboardPage() {
     const {
-        stats = { staffCount: 0, adminCount: 0, clientCount: 0 },
+        stats = { staffCount: 0, adminCount: 0 },
         recentActivity = [],
     } = usePage<AdminDashboardProps>().props;
 
@@ -56,7 +55,6 @@ export default function AdminDashboardPage() {
                 return 'bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 dark:border dark:border-purple-800/40';
             case 'cashier':
                 return 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:border dark:border-amber-800/40';
-            case 'client':
             default:
                 return 'bg-slate-100 text-slate-800 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40';
         }
@@ -77,7 +75,7 @@ export default function AdminDashboardPage() {
                     </div>
 
                     {/* Stats Cards */}
-                    <div className="mb-8 grid gap-6 md:grid-cols-3">
+                    <div className="mb-8 grid gap-6 md:grid-cols-2">
                         <Card className="border-border bg-card shadow-sm transition-shadow hover:shadow-md">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -108,23 +106,6 @@ export default function AdminDashboardPage() {
                                 </div>
                                 <p className="text-xs text-muted-foreground">
                                     System administrators
-                                </p>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="border-border bg-card shadow-sm transition-shadow hover:shadow-md">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">
-                                    Client Users
-                                </CardTitle>
-                                <User className="h-6 w-6 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-3xl font-bold text-foreground">
-                                    {stats.clientCount}
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    Registered clients
                                 </p>
                             </CardContent>
                         </Card>

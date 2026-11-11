@@ -53,7 +53,7 @@ import {
 } from '@/routes/admin/users';
 import { store as storeAdminUser } from '@/routes/admin/users';
 
-type UserRole = 'admin' | 'staff' | 'cashier' | 'client';
+type UserRole = 'admin' | 'staff' | 'cashier';
 
 interface User {
     id: number;
@@ -95,14 +95,12 @@ const ROLE_BADGE_CLASSES: Record<string, string> = {
     staff: 'bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 dark:border dark:border-purple-800/40',
     cashier:
         'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:border dark:border-amber-800/40',
-    client: 'bg-slate-100 text-slate-800 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40',
 };
 
 const ROLE_OPTIONS = [
     { value: 'admin', label: 'Admin' },
     { value: 'staff', label: 'Staff' },
     { value: 'cashier', label: 'Cashier' },
-    { value: 'client', label: 'Client' },
 ];
 
 function formatDateTime(value?: string | null) {

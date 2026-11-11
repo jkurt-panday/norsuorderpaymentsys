@@ -50,7 +50,7 @@ export function AppSidebarHeader({
                 </span>
             )}
             <ThemeToggle
-                className={`${userName ? 'ml-auto sm:ml-3' : 'ml-auto'} text-white hover:bg-white/15 hover:text-white dark:text-sidebar-foreground dark:hover:bg-sidebar-accent dark:hover:text-sidebar-foreground`}
+                className={userName ? 'ml-auto sm:ml-3' : 'ml-auto'}
             />
         </div>
     );

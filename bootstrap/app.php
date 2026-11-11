@@ -52,7 +52,7 @@ return Application::configure(basePath: dirname(__DIR__))
                     'admin' => 'admin.dashboard',
                     'staff' => 'staff.dashboard',
                     'cashier' => 'cashier.requests.index',
-                    default => 'client.dashboard',
+                    default => 'staff.dashboard',
                 };
 
                 return redirect()->route($targetRoute)

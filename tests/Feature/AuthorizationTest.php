@@ -44,7 +44,7 @@ class AuthorizationTest extends TestCase
             $this->assertContains('admin', $route->gatherMiddleware());
         }
 
-        foreach (['staff', 'cashier', 'client'] as $role) {
+        foreach (['staff', 'cashier'] as $role) {
             $response = $this->actingAs(User::factory()->create(['role' => $role]))
                 ->get(route('admin.dashboard'));
 
@@ -53,7 +53,7 @@ class AuthorizationTest extends TestCase
         }
     }
 
-    public function test_staff_areas_allow_staff_and_admin_but_not_cashier_or_client(): void
+    public function test_staff_areas_allow_staff_and_admin_but_not_cashier(): void
     {
         foreach (['staff.dashboard', 'graduate-ledger.index', 'law-ledger.index', 'staff.uacs.index', 'staff.memberships.index', 'staff.bank-accounts.index', 'staff.payment-options.index', 'staff.authorized-officials.index'] as $name) {
             $route = app('router')->getRoutes()->getByName($name);
@@ -61,13 +61,11 @@ class AuthorizationTest extends TestCase
             $this->assertContains('staff', $route->gatherMiddleware());
         }
 
-        foreach (['cashier', 'client'] as $role) {
-            $response = $this->actingAs(User::factory()->create(['role' => $role]))
-                ->get(route('graduate-ledger.index'));
+        $response = $this->actingAs(User::factory()->create(['role' => 'cashier']))
+            ->get(route('graduate-ledger.index'));
 
-            $response->assertRedirect();
-            $this->assertNotSame(route('graduate-ledger.index'), $response->headers->get('Location'));
-        }
+        $response->assertRedirect();
+        $this->assertNotSame(route('graduate-ledger.index'), $response->headers->get('Location'));
     }
 
     public function test_cashier_area_is_cashier_only(): void
@@ -76,23 +74,13 @@ class AuthorizationTest extends TestCase
         $this->assertInstanceOf(Route::class, $route);
         $this->assertContains('cashier', $route->gatherMiddleware());
 
-        foreach (['admin', 'staff', 'client'] as $role) {
+        foreach (['admin', 'staff'] as $role) {
             $response = $this->actingAs(User::factory()->create(['role' => $role]))
                 ->get(route('cashier.requests.index'));
 
             $response->assertRedirect();
             $this->assertNotSame(route('cashier.requests.index'), $response->headers->get('Location'));
         }
-    }
-
-    public function test_client_can_only_access_the_client_dashboard(): void
-    {
-        $client = User::factory()->create(['role' => 'client']);
-
-        $this->actingAs($client)->get(route('client.dashboard'))->assertOk();
-        $this->actingAs($client)->get(route('staff.dashboard'))->assertRedirect();
-        $this->actingAs($client)->get(route('cashier.requests.index'))->assertRedirect();
-        $this->actingAs($client)->get(route('admin.dashboard'))->assertRedirect();
     }
 
     public function test_mutating_routes_carry_role_middleware_against_crafted_requests(): void

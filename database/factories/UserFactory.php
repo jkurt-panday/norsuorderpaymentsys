@@ -56,13 +56,6 @@ class UserFactory extends Factory
         ]);
     }
 
-    public function client(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'role' => UserRole::Client->value,
-        ]);
-    }
-
     /**
      * Indicate that the model's email address should be unverified.
      */

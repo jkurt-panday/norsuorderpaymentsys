@@ -68,11 +68,6 @@ const cashierNavItems: SidebarItem[] = [
     { title: 'Requests', href: '/cashier/requests', icon: FileText },
 ];
 
-const clientNavItems: SidebarItem[] = [
-    { title: 'My Dashboard', href: '/client/dashboard', icon: Home },
-    { title: 'Submit Payment Request', href: '/public/opform', icon: FileText },
-];
-
 const staffCollapsibleItems = [
     {
         title: 'Order of Payment',
@@ -117,7 +112,6 @@ const navigationHrefs = [
     ...adminNavItems.map((item) => item.href),
     ...staffNavItems.map((item) => item.href),
     ...cashierNavItems.map((item) => item.href),
-    ...clientNavItems.map((item) => item.href),
     ...staffCollapsibleItems.flatMap((item) =>
         item.items.map((subItem) => subItem.href),
     ),
@@ -156,14 +150,11 @@ export function AppSidebar() {
     const role = props?.auth?.user?.role;
     const isAdmin = role === 'admin';
     const isCashier = role === 'cashier';
-    const isClient = role === 'client';
     const portalLabel = isAdmin
         ? 'Admin Portal'
         : isCashier
           ? 'Cashier Portal'
-          : isClient
-            ? 'Client Portal'
-            : 'Staff Portal';
+          : 'Staff Portal';
 
     const currentPath = url.split('?')[0].replace(/\/$/, '') || '/';
     const activeHref = navigationHrefs
@@ -271,35 +262,11 @@ export function AppSidebar() {
 
             <SidebarContent className="mt-2 px-2">
                 <SidebarMenu>
-                    {isClient ? (
-                        clientNavItems.map((item, index) => (
-                            <SidebarMenuItem key={index}>
-                                <SidebarMenuButton
-                                    render={
-                                        <Link
-                                            href={item.href}
-                                            className={`my-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[15px] transition-colors duration-200 ${
-                                                isActive(item.href)
-                                                    ? 'bg-white font-medium text-primary shadow-sm dark:bg-sky-400/20 dark:text-sky-300 dark:shadow-none'
-                                                    : 'text-white hover:bg-white/10 hover:text-white dark:text-sidebar-foreground/80 dark:hover:bg-sidebar-accent dark:hover:text-sidebar-foreground'
-                                            }`}
-                                        />
-                                    }
-                                >
-                                    <item.icon className="mr-2 h-4 w-4 shrink-0" />
-                                    <span className="text-[1rem]">
-                                        {item.title}
-                                    </span>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        ))
-                    ) : (
+                    {isAdmin && (
                         <>
-                            {isAdmin && (
-                                <>
-                                    <div className="mb-2 px-2 py-1 text-xl font-semibold tracking-wider text-white/90 uppercase dark:text-sidebar-foreground/70">
-                                        Admin
-                                    </div>
+                            <div className="mb-2 px-2 py-1 text-xl font-semibold tracking-wider text-white/90 uppercase dark:text-sidebar-foreground/70">
+                                Admin
+                            </div>
                                     {adminNavItems.map((item, index) => (
                                         <SidebarMenuItem key={index}>
                                             <SidebarMenuButton
@@ -418,8 +385,6 @@ export function AppSidebar() {
                                         </Collapsible>
                                     </SidebarMenuItem>
                                 ))}
-                        </>
-                    )}
                 </SidebarMenu>
             </SidebarContent>
 

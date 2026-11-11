@@ -173,7 +173,7 @@ class FormInputController extends Controller
         $dashboardUrl = $user ? match ($user->role) {
             'admin' => '/admin/dashboard',
             'staff' => '/staff/staffdashboard',
-            'client' => '/client/dashboard',
+            'cashier' => '/cashier/requests',
             default => null,
         } : null;
 
@@ -195,17 +195,7 @@ class FormInputController extends Controller
      */
     public function printReceipt(FormInput $formInput, Request $request): PdfBuilder|HttpResponse
     {
-        // The session flag only exists right after submission (the
-        // success-page flow). Clients printing later from their
-        // dashboard are matched by email instead — form_inputs has
-        // no user_id, so email is the ownership link.
-        $user = $request->user();
-        $isOwningClient = $user
-            && $user->role === 'client'
-            && $formInput->email === $user->email;
-
-        if (session('success_reference_number') !== $formInput->reference_number
-            && ! $isOwningClient) {
+        if (session('success_reference_number') !== $formInput->reference_number) {
             abort(404);
         }
 

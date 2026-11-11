@@ -6,7 +6,6 @@ use App\Http\Controllers\AssessmentFormController;
 use App\Http\Controllers\AuthorizedOfficialController;
 use App\Http\Controllers\BankAccountInfoController;
 use App\Http\Controllers\CashierRequestController;
-use App\Http\Controllers\Client\ClientController;
 use App\Http\Controllers\CollegeOfficeController;
 use App\Http\Controllers\CoursesController;
 use App\Http\Controllers\FormInputController;
@@ -62,15 +61,9 @@ Route::middleware('auth')->group(function () {
         return match ($request->user()?->role) {
             'admin' => redirect()->route('admin.dashboard'),
             'cashier' => redirect()->route('cashier.requests.index'),
-            'client' => redirect()->route('client.dashboard'),
             default => redirect()->route('staff.dashboard'),
         };
     })->name('dashboard');
-
-    // ── Client Portal Routes ─────────────────────────────────────────────────
-    Route::prefix('client')->name('client.')->group(function () {
-        Route::get('/dashboard', [ClientController::class, 'dashboard'])->name('dashboard');
-    });
 
     // Order of Payment
     Route::get('/order-of-payment', fn () => inertia('order-of-payment/Index'))->name('order-of-payment.index');

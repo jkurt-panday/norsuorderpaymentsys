@@ -23,7 +23,6 @@ import {
   Download,
     MoreHorizontal,
     Copy,
-    Printer,
 } from 'lucide-react';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import StudentBalanceDrawer from './StudentBalanceDrawer';
@@ -1036,15 +1035,6 @@ return;
                     </div>
 
                     <div className="flex flex-wrap items-center justify-end gap-2">
-                        <Button
-                            variant="outline"
-                            className="h-9 border-input text-foreground hover:bg-muted"
-                            onClick={() => router.get('/graduate-ledger/print-select')}
-                        >
-                            <Printer className="mr-1.5 h-4 w-4" />
-                            Print Statement
-                        </Button>
-
                         <Button
                             className="h-9 bg-primary text-primary-foreground hover:bg-primary/90"
                             onClick={handleOpenEmailModal}

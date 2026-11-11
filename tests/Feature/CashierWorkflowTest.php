@@ -43,7 +43,7 @@ class CashierWorkflowTest extends TestCase
 
     public function test_non_cashier_cannot_access_cashier_routes(): void
     {
-        foreach (['admin', 'staff', 'client'] as $role) {
+        foreach (['admin', 'staff'] as $role) {
             $this->actingAs(User::factory()->create(['role' => $role]))
                 ->get(route('cashier.requests.index'))
                 ->assertRedirect();

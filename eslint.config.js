@@ -120,6 +120,7 @@ export default [
             'resources/js/routes/**',
             'resources/js/wayfinder/**',
             'tmp/audit/**',
+            '.opencode/**',
         ],
     },
     prettier,
