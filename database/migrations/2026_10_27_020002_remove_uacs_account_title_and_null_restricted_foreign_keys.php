@@ -19,13 +19,13 @@ return new class extends Migration
         $this->changeForeignKey('staff_inputs', 'fundcluster_id', 'bankaccount_infos');
         $this->changeForeignKey('staff_inputs', 'uacs_id', 'uacs');
 
-        $this->changeForeignKey('graduate_ledgers', 'student_id', 'students', 'new_graduate_ledgers_student_id_foreign');
-        $this->changeForeignKey('graduate_ledgers', 'academic_term_id', 'academic_terms', 'new_graduate_ledgers_academic_term_id_foreign');
-        $this->changeForeignKey('graduate_ledgers', 'course_id', 'courses', 'new_graduate_ledgers_course_id_foreign');
+        $this->changeForeignKey('graduate_ledgers', 'student_id', 'students');
+        $this->changeForeignKey('graduate_ledgers', 'academic_term_id', 'academic_terms');
+        $this->changeForeignKey('graduate_ledgers', 'course_id', 'courses');
 
-        $this->changeForeignKey('law_school_ledgers', 'student_id', 'students', 'new_law_school_ledgers_student_id_foreign');
-        $this->changeForeignKey('law_school_ledgers', 'academic_term_id', 'academic_terms', 'new_law_school_ledgers_academic_term_id_foreign');
-        $this->changeForeignKey('law_school_ledgers', 'course_id', 'courses', 'new_law_school_ledgers_course_id_foreign');
+        $this->changeForeignKey('law_school_ledgers', 'student_id', 'students');
+        $this->changeForeignKey('law_school_ledgers', 'academic_term_id', 'academic_terms');
+        $this->changeForeignKey('law_school_ledgers', 'course_id', 'courses');
     }
 
     private function changeForeignKey(

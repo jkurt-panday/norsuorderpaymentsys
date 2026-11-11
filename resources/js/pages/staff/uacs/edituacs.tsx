@@ -5,13 +5,12 @@ import type { FieldDef } from '@/components/ResourceForm';
 
 interface UacsRecord {
     id: number;
-    classification: string | null;
-    sub_class: string | null;
-    group: string | null;
-    object_code: string | null;
-    sub_object_code: string | null;
-    uacs: string | null;
-    status: string | null;
+    norsu_object_code: string | null;
+    norsu_sub_object_code: string | null;
+    uacs_object_code: string | null;
+    uacs_sub_object_code: string | null;
+    rca_code: string | null;
+    account_title: string | null;
 }
 
 interface EditUacsProps {
@@ -20,45 +19,52 @@ interface EditUacsProps {
 
 const fields: FieldDef[] = [
     {
-        name: 'classification',
-        label: 'Classification',
-        placeholder: 'Enter the classification',
-    },
-    {
-        name: 'sub_class',
-        label: 'Sub-Class',
-        placeholder: 'Enter the sub-class',
-    },
-    {
-        name: 'group',
-        label: 'Group',
-        placeholder: 'Enter the group',
-    },
-    {
-        name: 'object_code',
-        label: 'Object Code',
-        placeholder: 'Enter the object code',
-    },
-    {
-        name: 'sub_object_code',
-        label: 'Sub-Object Code',
-        placeholder: 'Enter the sub-object code',
-    },
-    {
-        name: 'uacs',
-        label: 'UACS',
+        name: 'norsu_object_code',
+        label: 'NORSU Object Code',
         required: true,
-        placeholder: 'Enter the UACS code',
+        placeholder: 'Enter 12-digit NORSU object code',
+        maxLength: 12,
+        numericOnly: true,
     },
     {
-        name: 'status',
-        label: 'Status',
+        name: 'norsu_sub_object_code',
+        label: 'NORSU Sub-Object Code',
         required: true,
-        placeholder: 'Select status',
-        options: [
-            { label: 'Active', value: 'Active' },
-            { label: 'Inactive', value: 'Inactive' },
-        ],
+        placeholder: 'Enter 2-digit NORSU sub-object code',
+        maxLength: 2,
+        numericOnly: true,
+    },
+    {
+        name: 'uacs_object_code',
+        label: 'UACS Object Code',
+        required: true,
+        placeholder: 'Enter 10-digit UACS object code',
+        maxLength: 10,
+        numericOnly: true,
+    },
+    {
+        name: 'uacs_sub_object_code',
+        label: 'UACS Sub-Object Code',
+        required: true,
+        placeholder: 'Enter 2-digit UACS sub-object code',
+        maxLength: 2,
+        numericOnly: true,
+    },
+    {
+        name: 'rca_code',
+        label: 'RCA Code',
+        required: true,
+        placeholder: 'Enter 8-digit RCA code',
+        maxLength: 8,
+        numericOnly: true,
+    },
+    {
+        name: 'account_title',
+        label: 'Account Title',
+        required: true,
+        placeholder: 'Enter account title',
+        maxLength: 500,
+        colSpan: 'full',
     },
 ];
 
@@ -69,16 +75,16 @@ export default function EditUacs({ uacs }: EditUacsProps) {
             backHref={index()}
             fields={fields}
             initialData={{
-                classification: uacs.classification ?? '',
-                sub_class: uacs.sub_class ?? '',
-                group: uacs.group ?? '',
-                object_code: uacs.object_code ?? '',
-                sub_object_code: uacs.sub_object_code ?? '',
-                uacs: uacs.uacs ?? '',
-                status: uacs.status ?? 'Active',
+                norsu_object_code: uacs.norsu_object_code ?? '',
+                norsu_sub_object_code: uacs.norsu_sub_object_code ?? '',
+                uacs_object_code: uacs.uacs_object_code ?? '',
+                uacs_sub_object_code: uacs.uacs_sub_object_code ?? '',
+                rca_code: uacs.rca_code ?? '',
+                account_title: uacs.account_title ?? '',
             }}
             submitUrl={update(uacs.id).url}
             method="put"
         />
     );
 }
+

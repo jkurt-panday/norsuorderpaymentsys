@@ -36,6 +36,12 @@ export interface FieldDef {
     colSpan?: 'half' | 'full';
     /** Placeholder text shown inside the input */
     placeholder?: string;
+    /** Maximum number of characters allowed */
+    maxLength?: number;
+    /** Pattern restriction, e.g. digits only or regex pattern attribute */
+    pattern?: string;
+    /** Whether input should only allow numeric digits [0-9] */
+    numericOnly?: boolean;
 }
 
 export interface ResourceFormProps {
@@ -184,11 +190,23 @@ export default function ResourceForm({
                                             type={field.type ?? 'text'}
                                             name={field.name}
                                             value={data[field.name] ?? ''}
-                                            onChange={(e) =>
-                                                setData(field.name, e.target.value)
-                                            }
+                                            onChange={(e) => {
+                                                let val = e.target.value;
+                                                if (field.numericOnly) {
+                                                    val = val.replace(/\D/g, '');
+                                                }
+                                                if (
+                                                    field.maxLength !== undefined &&
+                                                    val.length > field.maxLength
+                                                ) {
+                                                    val = val.slice(0, field.maxLength);
+                                                }
+                                                setData(field.name, val);
+                                            }}
                                             required={field.required}
                                             placeholder={field.placeholder}
+                                            maxLength={field.maxLength}
+                                            pattern={field.pattern}
                                             className={cn(
                                                 'rounded-xl px-4 py-3 text-base',
                                                 errors[field.name] &&
