@@ -18,7 +18,7 @@ class PublicAssessmentFormTest extends TestCase
         $course = $this->course('BSIT');
         $placeholder = $this->course('UNASSIGNED');
 
-        $this->get(route('public.assessmentform'))
+        $this->get(route('public.assessmentform.create'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('public/AssessmentForm')
@@ -35,7 +35,7 @@ class PublicAssessmentFormTest extends TestCase
     {
         $this->course('BSIT');
 
-        $this->get(route('public.assessmentform'))
+        $this->get(route('public.assessmentform.create'))
             ->assertInertia(fn (Assert $page) => $page
                 ->missing('academicTerms')
                 ->missing('colleges')

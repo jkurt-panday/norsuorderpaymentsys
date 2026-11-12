@@ -26,8 +26,10 @@ use Illuminate\Support\Facades\Route;
 Route::name('public.')->prefix('public')->group(function () {
     // Route::get('/submit', [FormInputController::class, 'create'])->name('submit');
     // Route::post('/submit', [FormInputController::class, 'store'])->name('submit.store');
-    Route::get('/opform', [FormInputController::class, 'create']);
-    Route::post('/opform', [FormInputController::class, 'store'])->middleware('throttle:20,1');
+    Route::get('/opform', [FormInputController::class, 'create'])->name('opform.create');
+    Route::post('/opform', [FormInputController::class, 'store'])
+        ->middleware('throttle:20,1')
+        ->name('opform.store');
 
     Route::post('/college-offices', [CollegeOfficeController::class, 'store'])
         ->name('college-offices.store');
@@ -36,16 +38,17 @@ Route::name('public.')->prefix('public')->group(function () {
     Route::get('/success/{formInput:reference_number}/print', [FormInputController::class, 'printReceipt'])->name('print');
     Route::get('/success/{formInput:reference_number}/download', [FormInputController::class, 'downloadReceipt'])->name('download');
 
-    Route::get('/assessmentform', [AssessmentFormController::class, 'create'])->name('assessmentform');
-    Route::post('/assessmentform', [AssessmentFormController::class, 'store'])->middleware('throttle:20,1');
+    Route::get('/assessmentform', [AssessmentFormController::class, 'create'])->name('assessmentform.create');
+    Route::post('/assessmentform', [AssessmentFormController::class, 'store'])
+        ->middleware('throttle:20,1')
+        ->name('assessmentform.store');
 
     Route::get('/assessment_complete/{assessmentForm:reference_number}', [AssessmentFormController::class, 'complete'])->name('complete');
     Route::get('/assessment_complete/{assessmentForm:reference_number}/print', [AssessmentFormController::class, 'print'])->name('print_req');
     Route::get('/assessment_complete/{assessmentForm:reference_number}/download', [AssessmentFormController::class, 'downloadReceipt'])->name('download_req');
 });
 
-// Root redirect → public submission form
-Route::redirect('/', '/login')->name('home');
+Route::inertia('/', 'welcome')->name('home');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────────────────────
