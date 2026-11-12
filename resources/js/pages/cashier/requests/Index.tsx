@@ -237,7 +237,6 @@ const CashierRequestsIndex: React.FC<Props> = ({ requests, filters }) => {
                 columns={columns}
                 resource={requests}
                 resourceKey="requests"
-                pollInterval={15000}
                 renderActions={renderActions}
                 actionsWidth="56px"
                 emptyIcon={Inbox}

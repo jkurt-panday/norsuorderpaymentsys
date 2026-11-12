@@ -111,10 +111,14 @@ class FortifyServiceProvider extends ServiceProvider
                 return $redirect;
             }
 
+            $defaults = Password::defaults();
+
             return Inertia::render('auth/reset-password', [
                 'email' => $request->email,
                 'token' => $request->route('token'),
-                'passwordRules' => Password::defaults()->toPasswordRulesString(),
+                'passwordRules' => $defaults instanceof Password && method_exists($defaults, 'toPasswordRulesString')
+                    ? $defaults->toPasswordRulesString()
+                    : '',
             ]);
         });
 

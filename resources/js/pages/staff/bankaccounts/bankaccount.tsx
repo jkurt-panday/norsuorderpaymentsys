@@ -108,7 +108,6 @@ flashToast('error', flash.error);
             columns={columns}
             resource={bankAccounts}
             resourceKey="bankAccounts"
-            pollInterval={300000}
             editHref={(row) => edit(row.id)}
             deleteUrl={(id) => destroy(id).url}
             emptyIcon={Landmark}

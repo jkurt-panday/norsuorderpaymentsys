@@ -90,6 +90,7 @@ class GraduateLedgerImportTest extends TestCase
             'reference_number' => 'OR-001',
             'amount' => '1350.00',
             'input_by' => $user->id,
+            'imported_input_by' => 'Admin',
         ]);
 
         unlink($file);
@@ -152,15 +153,18 @@ class GraduateLedgerImportTest extends TestCase
         $this->assertSame(1, Student::query()->where('last_name', 'Abugan')->count());
     }
 
-    public function test_csv_import_uses_authenticated_user_and_ignores_spreadsheet_input_by_values(): void
+    public function test_csv_import_uses_authenticated_user_and_normalizes_spreadsheet_input_by_attribution(): void
     {
         $user = User::factory()->staff()->create();
         $header = 'student_name,course,school_year,semester_short,semester,units,transaction_date,reference_or_jev_number,particulars,tuition_per_unit_or_misc,ar_payment,amount,remarks,input_by';
+        $overlength = str_repeat('X', 260);
         $csv = implode("\n", [
             $header,
             '"Initials, Student",MS-MATH,2025-2026,1st Sem.,First Semester,,2026-07-22,CSV-INITIALS,Tuition,0,AR,100,, MBC ',
             '"Blank, Student",MS-MATH,2025-2026,1st Sem.,First Semester,,2026-07-22,CSV-BLANK,Tuition,0,AR,100,,',
             '"Numeric, Student",MS-MATH,2025-2026,1st Sem.,First Semester,,2026-07-22,CSV-NUMERIC,Tuition,0,AR,100,,123',
+            '"Formula, Student",MS-MATH,2025-2026,1st Sem.,First Semester,,2026-07-22,CSV-FORMULA,Tuition,0,AR,100,,=BAD_FORMULA()',
+            '"Long, Student",MS-MATH,2025-2026,1st Sem.,First Semester,,2026-07-22,CSV-LONG,Tuition,0,AR,100,,"'.$overlength.'"',
         ]);
 
         $response = $this->actingAs($user)->post('/graduate-ledger/import', [
@@ -171,14 +175,27 @@ class GraduateLedgerImportTest extends TestCase
         $this->assertDatabaseHas('graduate_ledgers', [
             'reference_number' => 'CSV-INITIALS',
             'input_by' => $user->id,
+            'imported_input_by' => 'MBC',
         ]);
         $this->assertDatabaseHas('graduate_ledgers', [
             'reference_number' => 'CSV-BLANK',
             'input_by' => $user->id,
+            'imported_input_by' => null,
         ]);
         $this->assertDatabaseHas('graduate_ledgers', [
             'reference_number' => 'CSV-NUMERIC',
             'input_by' => $user->id,
+            'imported_input_by' => '123',
+        ]);
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'reference_number' => 'CSV-FORMULA',
+            'input_by' => $user->id,
+            'imported_input_by' => null,
+        ]);
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'reference_number' => 'CSV-LONG',
+            'input_by' => $user->id,
+            'imported_input_by' => null,
         ]);
     }
 
@@ -1107,17 +1124,273 @@ class GraduateLedgerImportTest extends TestCase
 
         $response->assertRedirect('/graduate-ledger');
 
-        // Check sample row from template: 2026-0001, DELA CRUZ, JUAN A., juan.delacruz@norsu.edu.ph
+        // Check sample row from template: 2026-0001, DELA CRUZ, JUAN, A, juan.delacruz@norsu.edu.ph
         $student = Student::where('student_number', '2026-0001')->first();
         $this->assertNotNull($student);
         $this->assertSame('DELA CRUZ', $student->last_name);
         $this->assertSame('JUAN', $student->first_name);
+        $this->assertSame('A', $student->middle_name);
         $this->assertSame('juan.delacruz@norsu.edu.ph', $student->email);
 
         $this->assertDatabaseHas('graduate_ledgers', [
             'student_id' => $student->id,
             'entry_type' => 'ar',
             'amount' => '8100.00',
+            'input_by' => $user->id,
+            'imported_input_by' => 'Staff Name',
+        ]);
+    }
+
+    public function test_split_headers_import_correctly(): void
+    {
+        $user = User::factory()->staff()->create();
+
+        $file = tempnam(sys_get_temp_dir(), 'ledger-split').'.xlsx';
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->fromArray([
+            ['student_id_number', 'last_name', 'first_name', 'middle_name', 'email', 'course', 'school_year', 'semester', 'units', 'transaction_date', 'reference_number', 'particulars', 'tuition_rate', 'ar_or_payment', 'amount', 'remarks'],
+            ['2026-0003', 'BONDOC', 'JAMES', 'B', 'james.bondoc@norsu.edu.ph', 'MBA', '2026-2027', 'First Semester', 18, '2026-08-01', 'OR-SPLIT-1', 'Tuition Fee', '450.00', 'AR', '8100.00', 'Enrolled'],
+        ], null, 'A1');
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($file);
+
+        $response = $this->actingAs($user)->post('/graduate-ledger/import', [
+            'file' => new UploadedFile($file, 'split.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ]);
+
+        $response->assertRedirect('/graduate-ledger');
+
+        $student = Student::where('student_number', '2026-0003')->first();
+        $this->assertNotNull($student);
+        $this->assertSame('BONDOC', $student->last_name);
+        $this->assertSame('JAMES', $student->first_name);
+        $this->assertSame('B', $student->middle_name);
+        $this->assertSame('james.bondoc@norsu.edu.ph', $student->email);
+
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'student_id' => $student->id,
+            'reference_number' => 'OR-SPLIT-1',
+            'amount' => '8100.00',
+            'entry_type' => 'ar',
+            'input_by' => $user->id,
+            'imported_input_by' => null,
+        ]);
+
+        unlink($file);
+    }
+
+    public function test_split_header_aliases_import_correctly(): void
+    {
+        $user = User::factory()->staff()->create();
+
+        $header = 'student_no,surname,given_name,middle_initial,email_address,program,academic_year,semester,units,date,ref_no,particulars,rate,type,amount,remarks';
+        $csv = implode("\n", [
+            $header,
+            '2026-0004,DEL MUNDO,CLARA,M,clara@norsu.edu.ph,MBA,2026-2027,First Semester,18,2026-08-01,OR-ALIAS-1,Tuition Fee,450.00,Payment,5000.00,Paid',
+        ]);
+
+        $response = $this->actingAs($user)->post('/graduate-ledger/import', [
+            'file' => UploadedFile::fake()->createWithContent('aliases.csv', $csv),
+        ]);
+
+        $response->assertRedirect('/graduate-ledger');
+
+        $student = Student::where('student_number', '2026-0004')->first();
+        $this->assertNotNull($student);
+        $this->assertSame('DEL MUNDO', $student->last_name);
+        $this->assertSame('CLARA', $student->first_name);
+        $this->assertSame('M', $student->middle_name);
+        $this->assertSame('clara@norsu.edu.ph', $student->email);
+
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'student_id' => $student->id,
+            'reference_number' => 'OR-ALIAS-1',
+            'amount' => '5000.00',
+            'entry_type' => 'payment',
+        ]);
+    }
+
+    public function test_split_and_full_name_coexist_uses_split_when_populated_and_falls_back_to_full_name_when_blank(): void
+    {
+        $user = User::factory()->staff()->create();
+
+        $header = 'last_name,first_name,middle_name,full_name,course,school_year,semester,amount,reference_number';
+        $csv = implode("\n", [
+            $header,
+            'Santos,Maria,C,"Ignored Full Name",MBA,2026-2027,First Semester,2500.00,REF-COEXIST-1',
+            ',,,"Mercado, Andres D.",MBA,2026-2027,First Semester,3500.00,REF-COEXIST-2',
+        ]);
+
+        $response = $this->actingAs($user)->post('/graduate-ledger/import', [
+            'file' => UploadedFile::fake()->createWithContent('coexist.csv', $csv),
+        ]);
+
+        $response->assertRedirect('/graduate-ledger');
+
+        // Split name row
+        $santos = Student::where('last_name', 'Santos')->first();
+        $this->assertNotNull($santos);
+        $this->assertSame('Maria', $santos->first_name);
+        $this->assertSame('C', $santos->middle_name);
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'student_id' => $santos->id,
+            'reference_number' => 'REF-COEXIST-1',
+        ]);
+
+        // Ignored full name should not exist
+        $this->assertNull(Student::where('last_name', 'Ignored Full Name')->first());
+        $this->assertNull(Student::where('last_name', 'Ignored')->first());
+
+        // Fallback row
+        $mercado = Student::where('last_name', 'Mercado')->first();
+        $this->assertNotNull($mercado);
+        $this->assertSame('Andres', $mercado->first_name);
+        $this->assertSame('D', $mercado->middle_name);
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'student_id' => $mercado->id,
+            'reference_number' => 'REF-COEXIST-2',
+        ]);
+    }
+
+    public function test_missing_student_name_reports_error_when_no_usable_name(): void
+    {
+        $user = User::factory()->staff()->create();
+
+        $header = 'last_name,first_name,middle_name,full_name,course,school_year,semester,amount,reference_number';
+        $csv = implode("\n", [
+            $header,
+            ',,,,MBA,2026-2027,First Semester,1000.00,REF-NONAME',
+        ]);
+
+        $response = $this->actingAs($user)->post('/graduate-ledger/import', [
+            'file' => UploadedFile::fake()->createWithContent('missing_name.csv', $csv),
+        ]);
+
+        $response->assertRedirect('/graduate-ledger');
+
+        $report = session('import_report');
+        $this->assertNotNull($report);
+        $this->assertSame(1, $report['skipped']);
+        $this->assertCount(1, $report['errors']);
+        $this->assertSame(2, $report['errors'][0]['row']);
+        $this->assertNull($report['errors'][0]['student']);
+        $this->assertSame('Missing student name', $report['errors'][0]['reason']);
+    }
+
+    public function test_full_name_only_imports_remain_compatible(): void
+    {
+        $user = User::factory()->staff()->create();
+
+        $header = 'full_name,course,school_year,semester,amount,reference_number';
+        $csv = implode("\n", [
+            $header,
+            '"Luna, Antonio N.",MBA,2026-2027,First Semester,4000.00,REF-FULLNAME-1',
+        ]);
+
+        $response = $this->actingAs($user)->post('/graduate-ledger/import', [
+            'file' => UploadedFile::fake()->createWithContent('full_name.csv', $csv),
+        ]);
+
+        $response->assertRedirect('/graduate-ledger');
+
+        $luna = Student::where('last_name', 'Luna')->first();
+        $this->assertNotNull($luna);
+        $this->assertSame('Antonio', $luna->first_name);
+        $this->assertSame('N', $luna->middle_name);
+
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'student_id' => $luna->id,
+            'reference_number' => 'REF-FULLNAME-1',
+            'amount' => '4000.00',
+        ]);
+    }
+
+    public function test_legacy_positional_workbook_remains_compatible(): void
+    {
+        $user = User::factory()->staff()->create();
+
+        $file = tempnam(sys_get_temp_dir(), 'ledger-positional').'.xlsx';
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        // Unrecognized headers so resolveColumnMap returns null
+        $sheet->fromArray([
+            ['HeaderA', 'HeaderB', 'HeaderC', 'HeaderD', 'HeaderE', 'HeaderF', 'HeaderG', 'HeaderH', 'HeaderI', 'HeaderJ', 'HeaderK', 'HeaderL', 'HeaderM', 'HeaderN'],
+            ['Mabini, Apolinario P.', 'MBA', '2026-2027', '1st Sem.', 'First Semester', 9, '2026-08-01', 'REF-LEGACY-1', 'Tuition Fee', '450.00', 'AR', '4050.00', 'Legacy', 'Encoder'],
+        ], null, 'A1');
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($file);
+
+        $response = $this->actingAs($user)->post('/graduate-ledger/import', [
+            'file' => new UploadedFile($file, 'positional.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ]);
+
+        $response->assertRedirect('/graduate-ledger');
+
+        $mabini = Student::where('last_name', 'Mabini')->first();
+        $this->assertNotNull($mabini);
+        $this->assertSame('Apolinario', $mabini->first_name);
+        $this->assertSame('P', $mabini->middle_name);
+
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'student_id' => $mabini->id,
+            'reference_number' => 'REF-LEGACY-1',
+            'amount' => '4050.00',
+            'entry_type' => 'ar',
+            'input_by' => $user->id,
+            'imported_input_by' => 'Encoder',
+        ]);
+
+        unlink($file);
+    }
+
+    public function test_input_by_header_aliases_are_recognized_for_attribution(): void
+    {
+        $user = User::factory()->staff()->create();
+
+        // 1. input_by_ (e.g. "Input By:")
+        $csv1 = implode("\n", [
+            'student_name,course,school_year,semester,amount,reference_number,Input By:',
+            '"Alias One, S",MBA,2026-2027,First Semester,1000.00,REF-ALIAS-INP1,Staff Alice',
+        ]);
+        $this->actingAs($user)->post('/graduate-ledger/import', [
+            'file' => UploadedFile::fake()->createWithContent('alias1.csv', $csv1),
+        ])->assertRedirect('/graduate-ledger');
+
+        // 2. encoded_by
+        $csv2 = implode("\n", [
+            'student_name,course,school_year,semester,amount,reference_number,encoded_by',
+            '"Alias Two, S",MBA,2026-2027,First Semester,1000.00,REF-ALIAS-INP2,Staff Bob',
+        ]);
+        $this->actingAs($user)->post('/graduate-ledger/import', [
+            'file' => UploadedFile::fake()->createWithContent('alias2.csv', $csv2),
+        ])->assertRedirect('/graduate-ledger');
+
+        // 3. prepared_by
+        $csv3 = implode("\n", [
+            'student_name,course,school_year,semester,amount,reference_number,prepared_by',
+            '"Alias Three, S",MBA,2026-2027,First Semester,1000.00,REF-ALIAS-INP3,Staff Charlie',
+        ]);
+        $this->actingAs($user)->post('/graduate-ledger/import', [
+            'file' => UploadedFile::fake()->createWithContent('alias3.csv', $csv3),
+        ])->assertRedirect('/graduate-ledger');
+
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'reference_number' => 'REF-ALIAS-INP1',
+            'input_by' => $user->id,
+            'imported_input_by' => 'Staff Alice',
+        ]);
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'reference_number' => 'REF-ALIAS-INP2',
+            'input_by' => $user->id,
+            'imported_input_by' => 'Staff Bob',
+        ]);
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'reference_number' => 'REF-ALIAS-INP3',
+            'input_by' => $user->id,
+            'imported_input_by' => 'Staff Charlie',
         ]);
     }
 }

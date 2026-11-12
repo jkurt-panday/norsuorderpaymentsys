@@ -1,4 +1,4 @@
-import { Head, Link, router, usePoll } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import type { InertiaLinkProps } from '@inertiajs/react';
 import {
     Plus,
@@ -32,6 +32,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useReloadCooldown } from '@/hooks/use-reload-cooldown';
 
 // ============ TYPE DEFINITIONS ============
 export interface PaginationLink {
@@ -80,7 +81,6 @@ export interface ResourceTableProps<T extends { id: number }> {
     deleteConfirmMessage?: string;
     actionsWidth?: string;
     filters?: React.ReactNode;
-    pollInterval?: number;
     highlightDuration?: number;
     searchPlaceholder?: string;
     searchValue?: string;
@@ -115,7 +115,6 @@ export default function ResourceTable<T extends { id: number }>({
     deleteConfirmMessage = 'Are you sure you want to delete this record?',
     actionsWidth = '140px',
     filters,
-    pollInterval,
     highlightDuration = 2000,
     searchPlaceholder = 'Search...',
     searchValue,
@@ -124,6 +123,15 @@ export default function ResourceTable<T extends { id: number }>({
     sortOptions,
 }: ResourceTableProps<T>) {
     const confirm = useConfirm();
+
+    const {
+        reload: handleTableReload,
+        isReloading: isTableReloading,
+        cooldown: reloadCooldown,
+        canReload,
+    } = useReloadCooldown({
+        only: resourceKey ? [resourceKey] : undefined,
+    });
 
     const safeResource: PaginatedData<T> = useMemo(() => {
         if (Array.isArray(resource)) {
@@ -268,36 +276,7 @@ export default function ResourceTable<T extends { id: number }>({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [safeResource.data]);
 
-    const { start, stop } = usePoll(
-        pollInterval ?? 300000,
-        {
-            only: resourceKey ? [resourceKey] : undefined,
-        },
-        { autoStart: false },
-    );
-
-    useEffect(() => {
-        if (!pollInterval) {
-            return;
-        }
-
-        if (process.env.NODE_ENV !== 'production' && !resourceKey) {
-            console.warn(
-                "[ResourceTable] pollInterval is set without resourceKey — polling will reload the entire page payload instead of just this table's data.",
-            );
-        }
-
-        start();
-
-        return () => stop();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pollInterval, resourceKey]);
-
     const handleDeleteClick = async (id: number) => {
-        if (pollInterval) {
-            stop();
-        }
-
         const ok = await confirm({
             title: 'Confirm Delete',
             description: deleteConfirmMessage,
@@ -306,10 +285,6 @@ export default function ResourceTable<T extends { id: number }>({
         });
 
         if (!ok) {
-            if (pollInterval) {
-                start();
-            }
-
             return;
         }
 
@@ -317,11 +292,6 @@ export default function ResourceTable<T extends { id: number }>({
             preserveScroll: true,
             onError: () => {
                 toast.error('Something went wrong while deleting.');
-            },
-            onFinish: () => {
-                if (pollInterval) {
-                    start();
-                }
             },
         });
     };
@@ -343,10 +313,6 @@ export default function ResourceTable<T extends { id: number }>({
 
         url.searchParams.delete('page');
 
-        if (pollInterval) {
-            stop();
-        }
-
         router.get(
             url.pathname + url.search,
             {},
@@ -359,10 +325,6 @@ export default function ResourceTable<T extends { id: number }>({
                 onStart: () => setIsNavigating(true),
                 onFinish: () => {
                     setIsNavigating(false);
-
-                    if (pollInterval) {
-                        start();
-                    }
                 },
             },
         );
@@ -494,20 +456,11 @@ export default function ResourceTable<T extends { id: number }>({
             url.searchParams.delete('page');
         }
 
-        if (pollInterval) {
-            stop();
-        }
-
         router.get(
             url.pathname + url.search,
             {},
             {
                 preserveScroll: true,
-                onFinish: () => {
-                    if (pollInterval) {
-                        start();
-                    }
-                },
             },
         );
     };
@@ -639,12 +592,36 @@ export default function ResourceTable<T extends { id: number }>({
                         )}
                         <button
                             type="button"
+                            onClick={handleTableReload}
+                            disabled={!canReload}
+                            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            aria-label="Reload table"
+                            title={
+                                reloadCooldown > 0
+                                    ? `Wait ${reloadCooldown}s to reload`
+                                    : 'Reload table'
+                            }
+                        >
+                            <RefreshCw
+                                className={`h-4 w-4 ${isTableReloading ? 'animate-spin' : ''}`}
+                            />
+                            <span className="hidden text-xs sm:inline">
+                                {isTableReloading
+                                    ? 'Reloading...'
+                                    : reloadCooldown > 0
+                                      ? `Reload (${reloadCooldown}s)`
+                                      : 'Reload'}
+                            </span>
+                        </button>
+                        <button
+                            type="button"
                             onClick={handleReloadAndReset}
                             disabled={isResetting}
                             className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                            aria-label="Reload and reset table"
-                            title="Reload and reset table"
+                            aria-label="Reset table"
+                            title="Reset table"
                         >
+                            <span className="sr-only">Reset table</span>
                             <RefreshCw
                                 className={`h-4 w-4 ${isResetting ? 'animate-spin' : ''}`}
                             />

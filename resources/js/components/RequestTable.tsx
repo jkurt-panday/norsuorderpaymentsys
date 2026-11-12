@@ -1,4 +1,4 @@
-import { router, usePoll } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import {
     Search,
     Filter,
@@ -8,6 +8,7 @@ import {
     ArrowUp,
     ArrowDown,
     ListFilter,
+    RefreshCw,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import * as React from 'react';
@@ -37,6 +38,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useReloadCooldown } from '@/hooks/use-reload-cooldown';
 import { cn } from '@/lib/utils';
 
 interface PaginationLink {
@@ -128,7 +130,6 @@ interface RequestTableProps<T> {
     onDateToChange: (value: string) => void;
     onFilterSubmit: (e: React.SyntheticEvent) => void;
     onFilterReset: () => void;
-    pollInterval?: number;
     resourceKey?: string;
     highlightDuration?: number;
     /** Optional React node rendered beside the total in the table header. */
@@ -171,11 +172,19 @@ export default function RequestTable<T extends { id: number | string }>({
     onDateToChange,
     onFilterSubmit,
     onFilterReset,
-    pollInterval,
     resourceKey,
     highlightDuration = 2000,
     customToolbar,
 }: RequestTableProps<T>) {
+    const {
+        reload: handleTableReload,
+        isReloading: isTableReloading,
+        cooldown: reloadCooldown,
+        canReload,
+    } = useReloadCooldown({
+        only: resourceKey ? [resourceKey] : ['requests'],
+    });
+
     const rows = resource.data;
     const showPagination = rows.length > 0;
 
@@ -257,31 +266,6 @@ export default function RequestTable<T extends { id: number | string }>({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [rows]);
 
-    const { start, stop } = usePoll(
-        pollInterval ?? 300000,
-        {
-            only: resourceKey ? [resourceKey] : undefined,
-        },
-        { autoStart: false },
-    );
-
-    React.useEffect(() => {
-        if (!pollInterval) {
-            return;
-        }
-
-        if (process.env.NODE_ENV !== 'production' && !resourceKey) {
-            console.warn(
-                "[RequestTable] pollInterval is set without resourceKey — polling will reload the entire page payload instead of just this table's data.",
-            );
-        }
-
-        start();
-
-        return () => stop();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pollInterval, resourceKey]);
-
     // ---- Page-jump dropdown -----------------------------------------------
     // Now scoped via `only`/`preserveState` (same as sort below) so it only
     // re-fetches this table's data instead of the whole page, and shows the
@@ -298,8 +282,6 @@ export default function RequestTable<T extends { id: number | string }>({
             url.searchParams.delete('page');
         }
 
-        stop(); // pause polling so a stale in-flight poll can't overwrite this navigation
-
         router.get(
             url.pathname + url.search,
             {},
@@ -312,7 +294,6 @@ export default function RequestTable<T extends { id: number | string }>({
                 onStart: () => setIsNavigating(true),
                 onFinish: () => {
                     setIsNavigating(false);
-                    start(); // resume polling now that we're settled on the new page
                 },
             },
         );
@@ -347,8 +328,6 @@ export default function RequestTable<T extends { id: number | string }>({
 
         url.searchParams.delete('page');
 
-        stop();
-
         router.get(
             url.pathname + url.search,
             {},
@@ -361,7 +340,6 @@ export default function RequestTable<T extends { id: number | string }>({
                 onStart: () => setIsNavigating(true),
                 onFinish: () => {
                     setIsNavigating(false);
-                    start();
                 },
             },
         );
@@ -553,6 +531,29 @@ export default function RequestTable<T extends { id: number | string }>({
                                     onClick={onFilterReset}
                                 >
                                     Reset
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="h-10 gap-1.5 rounded-lg"
+                                    onClick={handleTableReload}
+                                    disabled={!canReload}
+                                    title={
+                                        reloadCooldown > 0
+                                            ? `Wait ${reloadCooldown}s to reload`
+                                            : 'Reload table data'
+                                    }
+                                >
+                                    <RefreshCw
+                                        className={`h-4 w-4 ${isTableReloading ? 'animate-spin' : ''}`}
+                                    />
+                                    <span>
+                                        {isTableReloading
+                                            ? 'Reloading...'
+                                            : reloadCooldown > 0
+                                              ? `Reload (${reloadCooldown}s)`
+                                              : 'Reload'}
+                                    </span>
                                 </Button>
                             </div>
                         </div>

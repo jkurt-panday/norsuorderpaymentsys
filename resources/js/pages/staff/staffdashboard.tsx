@@ -1,4 +1,5 @@
-﻿import { Head, usePage, usePoll } from '@inertiajs/react';
+﻿import { Head, usePage } from '@inertiajs/react';
+import { RefreshCw } from 'lucide-react';
 import React from 'react';
 import {
     StatCard,
@@ -7,7 +8,9 @@ import {
     getDayLabel,
 } from '@/components/Reusable';
 import type { ActivityLogItem } from '@/components/Reusable';
+import { Button } from '@/components/ui/button';
 import { CardTitle } from '@/components/ui/card';
+import { useReloadCooldown } from '@/hooks/use-reload-cooldown';
 
 interface RecentRequest {
     id: number;
@@ -76,11 +79,12 @@ const formatDate = (value?: string | null) => {
 };
 
 export default function Dashboard() {
-    // Polls the server every minute and re-fetches this page's props,
-    // re-rendering automatically with fresh data — no full page reload,
-    // no manual refresh needed. `only` limits the refetch to just the
-    // data this dashboard needs, instead of every shared prop.
-    usePoll(60000, {
+    const {
+        reload: handleDashboardReload,
+        isReloading: isDashboardReloading,
+        cooldown: reloadCooldown,
+        canReload,
+    } = useReloadCooldown({
         only: [
             'totalRequests',
             'pendingRequests',
@@ -140,7 +144,31 @@ export default function Dashboard() {
                             Staff dashboard overview for requests and activity.
                         </p>
                     </div>
-                    <div className="text-right text-sm text-muted-foreground md:text-base">
+                    <div className="flex flex-wrap items-center gap-4 text-right text-sm text-muted-foreground md:text-base">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={handleDashboardReload}
+                            disabled={!canReload}
+                            title={
+                                reloadCooldown > 0
+                                    ? `Wait ${reloadCooldown}s to reload`
+                                    : 'Reload dashboard'
+                            }
+                        >
+                            <RefreshCw
+                                className={`h-4 w-4 ${isDashboardReloading ? 'animate-spin' : ''}`}
+                            />
+                            <span>
+                                {isDashboardReloading
+                                    ? 'Reloading...'
+                                    : reloadCooldown > 0
+                                      ? `Reload (${reloadCooldown}s)`
+                                      : 'Reload'}
+                            </span>
+                        </Button>
                         <p>
                             Total Requests:{' '}
                             <span className="font-semibold text-foreground">

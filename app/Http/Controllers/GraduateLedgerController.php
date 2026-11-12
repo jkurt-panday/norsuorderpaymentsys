@@ -729,18 +729,19 @@ class GraduateLedgerController extends Controller
         };
 
         while (($row = fgetcsv($handle)) !== false) {
-            $name = trim(str_replace(['−', '–', '—'], '-', (string) ($getPass1($row, 'name', 0) ?? '')));
-            $studentNumber = $columnMap !== null ? $this->normalizeImportedStudentNumber($getPass1($row, 'student_number', -1)) : null;
-            $email = $columnMap !== null ? $this->normalizeImportedEmail($getPass1($row, 'email', -1)) : null;
-
-            if ($name !== '' && ! in_array(strtolower($name), ['student name', 'student', 'ff', 'name'])) {
-                $parsed = Student::parseRawName($name);
-                $key = $studentNumber ?? $name;
-                $distinctStudents[$key] = array_merge($parsed, [
-                    'raw_name' => $name,
-                    'student_number' => $studentNumber,
-                    'email' => $email,
-                ]);
+            $studentInfo = $this->extractStudentIdentity($row, $columnMap);
+            if ($studentInfo !== null) {
+                $key = $studentInfo['student_number'] ?? $studentInfo['raw_name'];
+                if (! isset($distinctStudents[$key])) {
+                    $distinctStudents[$key] = $studentInfo;
+                } else {
+                    if (blank($distinctStudents[$key]['student_number']) && filled($studentInfo['student_number'])) {
+                        $distinctStudents[$key]['student_number'] = $studentInfo['student_number'];
+                    }
+                    if (blank($distinctStudents[$key]['email']) && filled($studentInfo['email'])) {
+                        $distinctStudents[$key]['email'] = $studentInfo['email'];
+                    }
+                }
             }
             $code = trim((string) ($getPass1($row, 'course', 1) ?? ''));
             if ($code !== '') {
@@ -958,18 +959,19 @@ class GraduateLedgerController extends Controller
         // Pass 1: Collect distinct values (rows 2 to highestRow)
         for ($r = 2; $r <= $highestRow; $r++) {
             $rawRow = $getExcelRow($r);
-            $name = trim(str_replace(['−', '–', '—'], '-', (string) ($getPass1($rawRow, 'name', 0) ?? '')));
-            $studentNumber = $columnMap !== null ? $this->normalizeImportedStudentNumber($getPass1($rawRow, 'student_number', -1)) : null;
-            $email = $columnMap !== null ? $this->normalizeImportedEmail($getPass1($rawRow, 'email', -1)) : null;
-
-            if ($name !== '' && ! in_array(strtolower($name), ['student name', 'student', 'ff', 'name'])) {
-                $parsed = Student::parseRawName($name);
-                $key = $studentNumber ?? $name;
-                $distinctStudents[$key] = array_merge($parsed, [
-                    'raw_name' => $name,
-                    'student_number' => $studentNumber,
-                    'email' => $email,
-                ]);
+            $studentInfo = $this->extractStudentIdentity($rawRow, $columnMap);
+            if ($studentInfo !== null) {
+                $key = $studentInfo['student_number'] ?? $studentInfo['raw_name'];
+                if (! isset($distinctStudents[$key])) {
+                    $distinctStudents[$key] = $studentInfo;
+                } else {
+                    if (blank($distinctStudents[$key]['student_number']) && filled($studentInfo['student_number'])) {
+                        $distinctStudents[$key]['student_number'] = $studentInfo['student_number'];
+                    }
+                    if (blank($distinctStudents[$key]['email']) && filled($studentInfo['email'])) {
+                        $distinctStudents[$key]['email'] = $studentInfo['email'];
+                    }
+                }
             }
             $code = trim((string) ($getPass1($rawRow, 'course', 1) ?? ''));
             if ($code !== '') {
@@ -1880,6 +1882,14 @@ class GraduateLedgerController extends Controller
      */
     private function headerlessIdentity(array $row, ?array $columnMap = null): ?string
     {
+        $studentInfo = $this->extractStudentIdentity($row, $columnMap);
+        if ($studentInfo === null) {
+            return null;
+        }
+
+        $rawName = $studentInfo['raw_name'];
+        $rawStudentNumber = $studentInfo['student_number'];
+
         $get = function (string $key, int $legacyIdx) use ($row, $columnMap): mixed {
             if ($columnMap !== null) {
                 return isset($columnMap[$key]) ? ($row[$columnMap[$key]] ?? null) : null;
@@ -1887,13 +1897,6 @@ class GraduateLedgerController extends Controller
 
             return $row[$legacyIdx] ?? null;
         };
-
-        $rawName = trim(str_replace(['−', '–', '—'], '-', (string) ($get('name', 0) ?? '')));
-        if ($rawName === '' || in_array(strtolower($rawName), ['student name', 'student', 'ff', 'name'])) {
-            return null;
-        }
-
-        $rawStudentNumber = $columnMap !== null ? $this->normalizeImportedStudentNumber($get('student_number', -1)) : null;
 
         $classification = $this->importClassifier->classify(
             (string) ($get('entry_type', 10) ?? ''),
@@ -1907,6 +1910,7 @@ class GraduateLedgerController extends Controller
             'amount' => number_format($this->cleanAmount((string) ($get('amount', 11) ?? '0')), 2, '.', ''),
             'type' => $classification['entry_type'],
             'rawname' => $rawName,
+            'rawstudentnumber' => $rawStudentNumber ?? '',
         ];
 
         // \x1F (unit separator) — names may contain '|', this cannot appear in real data.
@@ -1962,6 +1966,9 @@ class GraduateLedgerController extends Controller
                 $rawName = $segments[5];
                 if (isset($studentMap[$rawName])) {
                     $studentIds[$studentMap[$rawName]] = true;
+                }
+                if (isset($segments[6]) && $segments[6] !== '' && isset($studentMap['num:'.$segments[6]])) {
+                    $studentIds[$studentMap['num:'.$segments[6]]] = true;
                 }
             }
         }
@@ -2025,19 +2032,8 @@ class GraduateLedgerController extends Controller
         array &$allErrors = [],
         ?array $columnMap = null,
     ): ?array {
-        $get = function (string $key, int $legacyIdx) use ($row, $columnMap): mixed {
-            if ($columnMap !== null) {
-                return isset($columnMap[$key]) ? ($row[$columnMap[$key]] ?? null) : null;
-            }
-
-            return $row[$legacyIdx] ?? null;
-        };
-
-        $rawName = trim(str_replace(['−', '–', '—'], '-', (string) ($get('name', 0) ?? '')));
-        $rawStudentNumber = $columnMap !== null ? $this->normalizeImportedStudentNumber($get('student_number', -1)) : null;
-
-        // Check if student name is empty or a repeated header label
-        if ($rawName === '' || in_array(strtolower($rawName), ['student name', 'student', 'ff', 'name'])) {
+        $studentInfo = $this->extractStudentIdentity($row, $columnMap);
+        if ($studentInfo === null) {
             // Check if entire row is blank
             $hasAnyData = false;
             foreach ($row as $cell) {
@@ -2056,6 +2052,17 @@ class GraduateLedgerController extends Controller
 
             return null;
         }
+
+        $rawName = $studentInfo['raw_name'];
+        $rawStudentNumber = $studentInfo['student_number'];
+
+        $get = function (string $key, int $legacyIdx) use ($row, $columnMap): mixed {
+            if ($columnMap !== null) {
+                return isset($columnMap[$key]) ? ($row[$columnMap[$key]] ?? null) : null;
+            }
+
+            return $row[$legacyIdx] ?? null;
+        };
 
         $rawAmount = (string) ($get('amount', 11) ?? '0');
         $rawTuition = (string) ($get('rate', 9) ?? '0');
@@ -2168,6 +2175,7 @@ class GraduateLedgerController extends Controller
             'remarks' => $this->cleanRemarks($get('remarks', 12) ?? null),
             'status' => 'posted',
             'input_by' => auth()->id(),
+            'imported_input_by' => $this->normalizeImportedInputBy($get('input_by', 13)),
         ];
     }
 
@@ -2219,6 +2227,21 @@ class GraduateLedgerController extends Controller
         $studentNumberIdx = $this->headerIndex($headerRow, ['student_id_number', 'student_number', 'student_no', 'student_id_no', 'student_id']);
         if ($studentNumberIdx !== null) {
             $map['student_number'] = $studentNumberIdx - 1;
+        }
+
+        $lastIdx = $this->headerIndex($headerRow, ['last_name', 'lastname', 'surname']);
+        if ($lastIdx !== null) {
+            $map['last_name'] = $lastIdx - 1;
+        }
+
+        $firstIdx = $this->headerIndex($headerRow, ['first_name', 'firstname', 'given_name']);
+        if ($firstIdx !== null) {
+            $map['first_name'] = $firstIdx - 1;
+        }
+
+        $middleIdx = $this->headerIndex($headerRow, ['middle_name', 'middlename', 'middle_initial', 'mi', 'm_i']);
+        if ($middleIdx !== null) {
+            $map['middle_name'] = $middleIdx - 1;
         }
 
         $nameIdx = $this->headerIndex($headerRow, ['full_name', 'student_name', 'name', 'student', 'name_last_name_first_name_m_i', 'name_last_name_first_name_mi']);
@@ -2291,17 +2314,120 @@ class GraduateLedgerController extends Controller
             $map['remarks'] = $remIdx - 1;
         }
 
-        $inpIdx = $this->headerIndex($headerRow, ['input_by', 'encoded_by', 'prepared_by']);
+        $inpIdx = $this->headerIndex($headerRow, ['input_by', 'input_by_', 'encoded_by', 'prepared_by']);
         if ($inpIdx !== null) {
             $map['input_by'] = $inpIdx - 1;
         }
 
         // If neither name nor amount could be identified by header, assume unrecognized / absent header row
-        if (! isset($map['name']) && ! isset($map['amount'])) {
+        if (! isset($map['name']) && ! isset($map['last_name']) && ! isset($map['first_name']) && ! isset($map['amount'])) {
             return null;
         }
 
         return $map;
+    }
+
+    /**
+     * @param  array<int, mixed>  $row
+     * @param  array<string, int>|null  $columnMap
+     * @return array{
+     *     raw_name: string,
+     *     student_number: ?string,
+     *     email: ?string,
+     *     last_name: string,
+     *     first_name: string,
+     *     middle_name: ?string,
+     * }|null
+     */
+    private function extractStudentIdentity(array $row, ?array $columnMap = null): ?array
+    {
+        if ($columnMap === null) {
+            $rawFullName = trim(str_replace(['−', '–', '—'], '-', (string) ($row[0] ?? '')));
+            if ($rawFullName === '' || in_array(strtolower($rawFullName), ['student name', 'student', 'ff', 'name'])) {
+                return null;
+            }
+
+            $parsed = Student::parseRawName($rawFullName);
+
+            return array_merge($parsed, [
+                'raw_name' => $rawFullName,
+                'student_number' => null,
+                'email' => null,
+            ]);
+        }
+
+        $studentNumber = isset($columnMap['student_number'])
+            ? $this->normalizeImportedStudentNumber($row[$columnMap['student_number']] ?? null)
+            : null;
+
+        $email = isset($columnMap['email'])
+            ? $this->normalizeImportedEmail($row[$columnMap['email']] ?? null)
+            : null;
+
+        $rawLast = isset($columnMap['last_name'])
+            ? trim((string) ($row[$columnMap['last_name']] ?? ''))
+            : '';
+        $rawFirst = isset($columnMap['first_name'])
+            ? trim((string) ($row[$columnMap['first_name']] ?? ''))
+            : '';
+        $rawMiddle = isset($columnMap['middle_name'])
+            ? trim((string) ($row[$columnMap['middle_name']] ?? ''))
+            : '';
+
+        $rawFullName = isset($columnMap['name'])
+            ? trim(str_replace(['−', '–', '—'], '-', (string) ($row[$columnMap['name']] ?? '')))
+            : '';
+
+        // If split and full-name coexist, use split names when either last or first cell is populated;
+        // if both split cells blank, fall back to full_name for that row.
+        if ($rawLast !== '' || $rawFirst !== '') {
+            $isHeader = in_array(strtolower($rawLast), ['last name', 'lastname', 'surname', 'last_name', 'name', 'student name'])
+                && in_array(strtolower($rawFirst), ['', 'first name', 'firstname', 'given name', 'first_name']);
+
+            if ($isHeader) {
+                return null;
+            }
+
+            $lastName = $rawLast;
+            $firstName = $rawFirst;
+            $middleName = $rawMiddle !== '' ? rtrim($rawMiddle, '.') : null;
+
+            $nameParts = array_filter([$lastName, $firstName], fn ($v) => $v !== '');
+            $rawName = implode(', ', $nameParts);
+            if ($middleName) {
+                $rawName .= ' '.$middleName;
+            }
+            $rawName = trim($rawName);
+
+            if ($rawName === '') {
+                return null;
+            }
+
+            return [
+                'raw_name' => $rawName,
+                'student_number' => $studentNumber,
+                'email' => $email,
+                'last_name' => $lastName,
+                'first_name' => $firstName,
+                'middle_name' => $middleName,
+            ];
+        }
+
+        if ($rawFullName !== '') {
+            if (in_array(strtolower($rawFullName), ['student name', 'student', 'ff', 'name', 'full name', 'last name', 'first name'])) {
+                return null;
+            }
+
+            $parsed = Student::parseRawName($rawFullName);
+
+            return array_merge($parsed, [
+                'raw_name' => $rawFullName,
+                'student_number' => $studentNumber,
+                'email' => $email,
+            ]);
+        }
+
+        return null;
     }
 
     private function normalizeImportedEmail(mixed $value): ?string
@@ -2348,6 +2474,21 @@ class GraduateLedgerController extends Controller
         }
 
         return $studentNumber;
+    }
+
+    private function normalizeImportedInputBy(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $inputBy = Str::squish(trim((string) $value));
+
+        if ($inputBy === '' || str_starts_with($inputBy, '=') || strlen($inputBy) > 255) {
+            return null;
+        }
+
+        return $inputBy;
     }
 
     /**

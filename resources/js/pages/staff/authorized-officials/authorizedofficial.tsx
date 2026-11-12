@@ -125,7 +125,6 @@ export default function AuthorizedOfficialIndex({
             columns={columns}
             resource={authorizedOfficials}
             resourceKey="authorizedOfficials"
-            pollInterval={300000}
             editHref={(row) => edit(row.id)}
             deleteUrl={(id) => destroy(id).url}
             emptyIcon={Users}

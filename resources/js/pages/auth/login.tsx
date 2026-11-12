@@ -1,4 +1,4 @@
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -22,9 +22,11 @@ const sharedInputClass =
 
 export default function Login({
     status,
+    canResetPassword,
     deactivated_account = false,
 }: {
     status?: string;
+    canResetPassword?: boolean;
     deactivated_account?: boolean;
 }) {
     const { auth } = usePage<{ auth: { user: { role: string } | null } }>()
@@ -179,6 +181,14 @@ export default function Login({
                         />
                         Keep me signed in
                     </label>
+                    {canResetPassword !== false && (
+                        <Link
+                            href="/forgot-password"
+                            className="text-sm font-medium text-[#0B5CAD] hover:underline dark:text-[#5AA9F5]"
+                        >
+                            Forgot password?
+                        </Link>
+                    )}
                 </div>
 
                 <button

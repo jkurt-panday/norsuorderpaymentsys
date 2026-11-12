@@ -1,4 +1,4 @@
-import { router, usePoll } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import {
     Search,
     Plus,
@@ -14,7 +14,7 @@ import {
     ChevronRight,
     RotateCcw,
 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { DateRangeFilter } from '@/components/data-table/date-range-picker';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -42,6 +42,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useReloadCooldown } from '@/hooks/use-reload-cooldown';
 
 export interface ActivityLogChange {
     field: string;
@@ -250,20 +251,14 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
     const [isNavigating, setIsNavigating] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
 
-    // Keep the feed live: silently refetch only the activity_log data every
-    // 5 seconds. This is a background Inertia visit (no full page reload) and
-    // preserves the current search/sort/page URL, so filters stay intact.
-    const { start, stop } = usePoll(
-        60000,
-        { only: ['activityLogs'] },
-        { autoStart: false },
-    );
-
-    useEffect(() => {
-        start();
-
-        return () => stop();
-    }, [start, stop]);
+    const {
+        reload: handleTableReload,
+        isReloading: isTableReloading,
+        cooldown: reloadCooldown,
+        canReload,
+    } = useReloadCooldown({
+        only: ['activityLogs'],
+    });
 
     const currentPage = logs?.meta?.current_page ?? logs?.current_page ?? 1;
     const lastPage = logs?.meta?.last_page ?? logs?.last_page ?? 1;
@@ -289,8 +284,6 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
 
         url.searchParams.delete('page');
 
-        stop();
-
         router.get(
             url.pathname + url.search,
             {},
@@ -303,7 +296,6 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                 onStart: () => setIsNavigating(true),
                 onFinish: () => {
                     setIsNavigating(false);
-                    start();
                 },
             },
         );
@@ -579,6 +571,31 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                     >
                         <Search className="mr-1.5 h-3.5 w-3.5" />
                         Search
+                    </Button>
+
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-9 gap-1.5 text-xs"
+                        onClick={handleTableReload}
+                        disabled={!canReload}
+                        title={
+                            reloadCooldown > 0
+                                ? `Wait ${reloadCooldown}s to reload`
+                                : 'Reload table data'
+                        }
+                    >
+                        <RefreshCw
+                            className={`h-3.5 w-3.5 ${isTableReloading ? 'animate-spin' : ''}`}
+                        />
+                        <span>
+                            {isTableReloading
+                                ? 'Reloading...'
+                                : reloadCooldown > 0
+                                  ? `Reload (${reloadCooldown}s)`
+                                  : 'Reload'}
+                        </span>
                     </Button>
 
                     <Button

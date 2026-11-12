@@ -302,8 +302,6 @@ const ManageRequests: React.FC = () => {
     const MAX_POLLING_DURATION = 10 * 60 * 1000; // 10 minutes
     // Used only while the Email Progress dialog remains open.
     const EMAIL_PROGRESS_POLLING_INTERVAL = 15 * 1000; // 15 seconds
-    // Operational queue: staff need to see new requests promptly.
-    const TABLE_POLLING_INTERVAL = 15 * 1000; // 15 seconds
 
     // Close popover when clicking outside
     useEffect(() => {
@@ -864,7 +862,6 @@ const ManageRequests: React.FC = () => {
                 columns={columns}
                 resource={formInputs}
                 resourceKey="formInputs"
-                pollInterval={TABLE_POLLING_INTERVAL}
                 renderActions={renderActions}
                 actionsWidth="60px"
                 emptyIcon={Inbox}
