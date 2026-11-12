@@ -26,11 +26,8 @@ use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
-use Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoTransportFactory;
-use Symfony\Component\Mailer\Transport\Dsn;
 use Throwable;
 
 class AppServiceProvider extends ServiceProvider
@@ -71,16 +68,6 @@ class AppServiceProvider extends ServiceProvider
         ] as $observedModel) {
             $observedModel::observe(ActivityLogObserver::class);
         }
-
-        Mail::extend('brevo', function () {
-            return (new BrevoTransportFactory)->create(
-                new Dsn(
-                    'brevo+api',
-                    'default',
-                    config('services.brevo.key')
-                )
-            );
-        });
 
         Event::listen(MessageSent::class, LogSentEmails::class);
         Event::listen(NotificationSent::class, LogSentNotifications::class);
