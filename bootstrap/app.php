@@ -4,13 +4,16 @@ use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsCashier;
 use App\Http\Middleware\EnsureUserIsStaff;
 use App\Http\Middleware\HandleAppearance;
-use App\Http\Middleware\HandleInertiaRequests; // 🌟 1. Make sure to import your admin middleware
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SecureHeaders;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -34,6 +37,12 @@ return Application::configure(basePath: dirname(__DIR__))
             SecureHeaders::class,
         ]);
 
+        // Sanctum stateful SPA authentication for all api/* routes.
+        // The XSRF-TOKEN cookie is read and X-XSRF-TOKEN header is validated here.
+        $middleware->api(prepend: [
+            EnsureFrontendRequestsAreStateful::class,
+        ]);
+
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
             'cashier' => EnsureUserIsCashier::class,
@@ -41,8 +50,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // ── web 403: redirect to role dashboard ──────────────────────────────
         $exceptions->render(function (HttpException $e, Request $request) {
-            if ($e->getStatusCode() === 403 && ! $request->expectsJson()) {
+            if ($e->getStatusCode() === 403 && ! $request->is('api/*') && ! $request->expectsJson()) {
                 $user = $request->user();
                 if (! $user) {
                     return redirect()->route('login')->with('error', 'Please log in to access this page.');
@@ -57,6 +67,22 @@ return Application::configure(basePath: dirname(__DIR__))
 
                 return redirect()->route($targetRoute)
                     ->with('error', "You don't have permission to access that section.");
+            }
+        });
+
+        // ── api/* : always return a JSON envelope, never a redirect ──────────
+        $exceptions->render(function (AuthenticationException $e, Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json(['message' => 'Unauthenticated.'], 401);
+            }
+        });
+
+        $exceptions->render(function (ValidationException $e, Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                    'errors'  => $e->errors(),
+                ], 422);
             }
         });
 
