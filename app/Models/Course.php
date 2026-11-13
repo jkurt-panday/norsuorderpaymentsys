@@ -13,6 +13,10 @@ class Course extends Model
     /** @use HasFactory<Factory<Course>> */
     use HasFactory;
 
+    public const GRADUATE_FALLBACK_CODE = 'UNASSIGNED_GRAD';
+
+    public const LAW_FALLBACK_CODE = 'UNASSIGNED_LAW';
+
     /**
      * Placeholder/fallback course codes that should not be displayed
      * in public submission dropdowns (e.g. Order of Payment / Assessment forms).
@@ -21,6 +25,8 @@ class Course extends Model
      */
     public const PLACEHOLDER_CODES = [
         'UNASSIGNED',
+        self::GRADUATE_FALLBACK_CODE,
+        self::LAW_FALLBACK_CODE,
         'UNDECIDED',
         'N/A',
         'NONE',
@@ -214,14 +220,14 @@ class Course extends Model
             'EDD TM' => 'EdD. Technology Management',
 
             // Placeholder / Unassigned aliases
-            'UNASSIGNED' => 'UNASSIGNED',
-            'UN ASSIGNED' => 'UNASSIGNED',
-            'UNDECIDED' => 'UNASSIGNED',
-            'NOT ASSIGNED' => 'UNASSIGNED',
-            'NO COURSE' => 'UNASSIGNED',
-            'NA' => 'UNASSIGNED',
-            'N A' => 'UNASSIGNED',
-            'NONE' => 'UNASSIGNED',
+            'UNASSIGNED' => self::GRADUATE_FALLBACK_CODE,
+            'UN ASSIGNED' => self::GRADUATE_FALLBACK_CODE,
+            'UNDECIDED' => self::GRADUATE_FALLBACK_CODE,
+            'NOT ASSIGNED' => self::GRADUATE_FALLBACK_CODE,
+            'NO COURSE' => self::GRADUATE_FALLBACK_CODE,
+            'NA' => self::GRADUATE_FALLBACK_CODE,
+            'N A' => self::GRADUATE_FALLBACK_CODE,
+            'NONE' => self::GRADUATE_FALLBACK_CODE,
 
             // Legacy spellings from the normalized graduate-course workbook.
             'ED D' => 'EdD. Educational Management',
@@ -325,7 +331,7 @@ class Course extends Model
             'MPM HRM' => 'Master in Public Management major in Human Resource Management',
             'MPM LGA' => 'Master in Public Management major in Local Governance and Administration',
             'MPM' => 'Master in Public Management',
-            'UNASSIGNED' => 'Unassigned / Pending Course Assignment',
+            self::GRADUATE_FALLBACK_CODE => 'Unassigned / Pending Graduate Course Assignment',
         ];
     }
 

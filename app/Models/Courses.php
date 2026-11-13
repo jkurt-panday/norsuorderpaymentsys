@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Courses extends Model
 {
-    /** @use HasFactory<\Illuminate\Database\Eloquent\Factories\Factory<Courses>> */
+    /** @use HasFactory<Factory<Courses>> */
     use HasFactory;
 
     /**
@@ -19,6 +20,8 @@ class Courses extends Model
      */
     public const PLACEHOLDER_CODES = [
         'UNASSIGNED',
+        Course::GRADUATE_FALLBACK_CODE,
+        Course::LAW_FALLBACK_CODE,
         'UNDECIDED',
         'N/A',
         'NONE',

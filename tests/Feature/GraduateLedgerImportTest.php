@@ -96,6 +96,34 @@ class GraduateLedgerImportTest extends TestCase
         unlink($file);
     }
 
+    public function test_import_recognizes_the_legacy_ff_student_name_header(): void
+    {
+        $user = User::factory()->staff()->create();
+
+        $file = tempnam(sys_get_temp_dir(), 'ledger-ff-header').'.xlsx';
+        $spreadsheet = new Spreadsheet;
+        $spreadsheet->getActiveSheet()->fromArray([
+            ['FF', 'COURSE', 'SCHOOL YEAR', null, "SEMESTER/\nSUMMER", 'UNITS', 'TRANSACTION DATE', 'Reference JEV / O.R. NUMBER', 'PARTICULARS', 'TUITION per UNIT/ Reg. and Miscellaneous per semester', 'AR/PAYMENT', 'AMOUNT', 'REMARKS', 'INPUT BY:'],
+            ['Ababon, Lahlaine A.', 'MAMT', '2015-2016', '2nd Sem.', 'Second Semester', 9, 42685, null, 'Tuition', 150, 'AR', 1350, 'Settled', 'MBC'],
+        ], null, 'A1');
+
+        (new Xlsx($spreadsheet))->save($file);
+
+        $response = $this->actingAs($user)->post('/graduate-ledger/import', [
+            'file' => new UploadedFile($file, 'graduate-ledger.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ]);
+
+        $response->assertRedirect('/graduate-ledger');
+        $response->assertSessionHas('success', fn (string $message): bool => str_contains($message, '1 records imported'));
+        $this->assertDatabaseHas('graduate_ledgers', [
+            'entry_type' => 'ar',
+            'amount' => '1350.00',
+            'imported_input_by' => 'MBC',
+        ]);
+
+        unlink($file);
+    }
+
     public function test_import_normalizes_middle_names_to_initials_without_splitting_double_first_names(): void
     {
         $user = User::factory()->staff()->create();
@@ -228,13 +256,8 @@ class GraduateLedgerImportTest extends TestCase
             'file' => new UploadedFile($file, 'import-rules.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
         ]);
 
-        $response
-            ->assertRedirect('/graduate-ledger')
-            ->assertSessionHas('success', function (string $message): bool {
-                return str_contains($message, '1 negative amount(s) with a blank or unknown type')
-                    && str_contains($message, '1 negative amount(s) labeled AR')
-                    && str_contains($message, '1 positive amount(s) labeled PAYMENT');
-            });
+        // Law-style: no warnings in flash, just success
+        $response->assertRedirect('/graduate-ledger')->assertSessionHas('success');
 
         $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => '70000', 'entry_type' => 'payment', 'amount' => '100.00']);
         $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'NEG-AR', 'entry_type' => 'ar', 'amount' => '200.00']);
@@ -245,22 +268,9 @@ class GraduateLedgerImportTest extends TestCase
         unlink($file);
     }
 
-    public function test_import_normalizes_course_spelling_variants_to_canonical_course_without_creating_new_courses(): void
+    public function test_import_preserves_course_spelling_variants_as_separate_courses(): void
     {
         $user = User::factory()->staff()->create();
-        Course::firstOrCreate(
-            ['course_code' => 'MA Psychology'],
-            ['course_desc' => 'Master of Arts in Psychology', 'course_college' => 'Graduate School'],
-        );
-        Course::firstOrCreate(
-            ['course_code' => 'MASPED'],
-            ['course_desc' => 'Master of Arts in Special Education', 'course_college' => 'Graduate School'],
-        );
-        Course::firstOrCreate(
-            ['course_code' => 'UNASSIGNED', 'course_college' => 'Graduate School'],
-            ['course_desc' => 'Unassigned / Pending Course Assignment'],
-        );
-        $initialCourseCount = Course::count();
 
         $header = 'student_name,course,school_year,semester_short,semester,units,transaction_date,reference_or_jev_number,particulars,tuition_per_unit_or_misc,ar_payment,amount,remarks,input_by';
         $csv = implode("\n", [
@@ -280,28 +290,15 @@ class GraduateLedgerImportTest extends TestCase
 
         $response->assertRedirect('/graduate-ledger');
 
-        // Every supplied variant must resolve without creating another course.
-        $this->assertSame($initialCourseCount, Course::count());
-
-        $mathCourse = Course::where('course_code', 'MS MATH')->firstOrFail();
-        $maMathCourse = Course::where('course_code', 'MA Mathematics')->firstOrFail();
-        $msitCourse = Course::where('course_code', 'MSIT')->firstOrFail();
-        $psychologyCourse = Course::where('course_code', 'MA Psychology')->firstOrFail();
-        $specialEducationCourse = Course::where('course_code', 'MASPED')->firstOrFail();
-
-        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-VAR-1', 'course_id' => $mathCourse->id]);
-        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-VAR-2', 'course_id' => $mathCourse->id]);
-        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-VAR-3', 'course_id' => $mathCourse->id]);
-        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-VAR-4', 'course_id' => $msitCourse->id]);
-        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-VAR-5', 'course_id' => $psychologyCourse->id]);
-        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-VAR-6', 'course_id' => $specialEducationCourse->id]);
-        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-VAR-7', 'course_id' => $maMathCourse->id]);
+        foreach (['MS-MATH', 'M.S. - Math', 'MSMATH', 'MS IT', 'MAPYSCH', 'MASPEED', 'MAMT'] as $code) {
+            $course = Course::where('course_code', $code)->sole();
+            $this->assertDatabaseHas('graduate_ledgers', ['course_id' => $course->id]);
+        }
     }
 
     public function test_import_skips_unrecognized_course_when_no_preset_is_supplied(): void
     {
         $user = User::factory()->staff()->create();
-        $initialCourseCount = Course::count();
 
         $header = 'student_name,course,school_year,semester_short,semester,units,transaction_date,reference_or_jev_number,particulars,tuition_per_unit_or_misc,ar_payment,amount,remarks,input_by';
         $csv = implode("\n", [
@@ -313,24 +310,16 @@ class GraduateLedgerImportTest extends TestCase
             'file' => UploadedFile::fake()->createWithContent('skip.csv', $csv),
         ]);
 
-        $response->assertRedirect('/graduate-ledger');
-
-        $this->assertSame($initialCourseCount, Course::count());
-        $this->assertDatabaseMissing('courses', ['course_code' => 'MS NURSING']);
-        $this->assertDatabaseMissing('graduate_ledgers', ['reference_number' => 'REF-SKIP-1']);
-
-        $report = session('import_report');
-        $this->assertNotNull($report);
-        $this->assertSame(1, $report['skipped']);
-        $this->assertStringContainsString('Unrecognized course', $report['errors'][0]['reason']);
+        // Law-style: unrecognized course is auto-created; row is imported with it
+        $response->assertRedirect('/graduate-ledger')->assertSessionHas('success');
+        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-SKIP-1']);
     }
 
-    public function test_import_auto_creates_canonical_course_code_not_yet_in_master_list(): void
+    public function test_import_auto_creates_raw_course_code_not_yet_in_master_list(): void
     {
         $user = User::factory()->staff()->create();
 
-        // 'PhD. Mathematics' is a known canonical code but NOT seeded in setUp
-        $this->assertDatabaseMissing('courses', ['course_code' => 'PhD. Mathematics']);
+        $this->assertDatabaseMissing('courses', ['course_code' => 'PHD-MATH']);
 
         $header = 'student_name,course,school_year,semester_short,semester,units,transaction_date,reference_or_jev_number,particulars,tuition_per_unit_or_misc,ar_payment,amount,remarks,input_by';
         $csv = implode("\n", [
@@ -344,14 +333,58 @@ class GraduateLedgerImportTest extends TestCase
 
         $response->assertRedirect('/graduate-ledger');
 
-        // Recognized canonical code is now NOT auto-created
-        $this->assertDatabaseMissing('courses', [
-            'course_code' => 'PhD. Mathematics',
+        $this->assertDatabaseHas('courses', [
+            'course_code' => 'PHD-MATH',
         ]);
-
-        $this->assertDatabaseMissing('graduate_ledgers', [
+        $this->assertDatabaseHas('graduate_ledgers', [
             'reference_number' => 'REF-CANON-NEW',
         ]);
+    }
+
+    public function test_import_creates_separate_courses_for_spelling_variants(): void
+    {
+        $user = User::factory()->staff()->create();
+
+        $header = 'student_name,course,school_year,semester_short,semester,units,transaction_date,reference_or_jev_number,particulars,tuition_per_unit_or_misc,ar_payment,amount,remarks,input_by';
+        $csv = implode("\n", [
+            $header,
+            '"English Student One, A",MA ENG,2025-2026,1st Sem.,First Semester,,2026-07-22,REF-ENG-1,Tuition,0,AR,100,,',
+            '"English Student Two, B",MAENG,2025-2026,1st Sem.,First Semester,,2026-07-22,REF-ENG-2,Tuition,0,AR,100,,',
+            '"English Student Three, C",MA-ENG,2025-2026,1st Sem.,First Semester,,2026-07-22,REF-ENG-3,Tuition,0,AR,100,,',
+        ]);
+
+        $response = $this->actingAs($user)->post('/graduate-ledger/import', [
+            'file' => UploadedFile::fake()->createWithContent('english-aliases.csv', $csv),
+        ]);
+
+        $response->assertRedirect('/graduate-ledger')->assertSessionHas('success');
+
+        foreach (['MA ENG' => 'REF-ENG-1', 'MAENG' => 'REF-ENG-2', 'MA-ENG' => 'REF-ENG-3'] as $code => $reference) {
+            $course = Course::where('course_code', $code)->sole();
+            $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => $reference, 'course_id' => $course->id]);
+        }
+    }
+
+    public function test_import_merges_case_only_course_variants_required_by_mysql_unique_index(): void
+    {
+        $user = User::factory()->staff()->create();
+
+        $header = 'student_name,course,school_year,semester_short,semester,units,transaction_date,reference_or_jev_number,particulars,tuition_per_unit_or_misc,ar_payment,amount,remarks,input_by';
+        $csv = implode("\n", [
+            $header,
+            '"Doctoral Student One, A",Ph.D.,2025-2026,1st Sem.,First Semester,,2026-07-22,REF-PHD-CASE-1,Tuition,0,AR,100,,',
+            '"Doctoral Student Two, B",PH.D.,2025-2026,1st Sem.,First Semester,,2026-07-22,REF-PHD-CASE-2,Tuition,0,AR,100,,',
+        ]);
+
+        $response = $this->actingAs($user)->post('/graduate-ledger/import', [
+            'file' => UploadedFile::fake()->createWithContent('case-variants.csv', $csv),
+        ]);
+
+        $response->assertRedirect('/graduate-ledger')->assertSessionHas('success');
+
+        $course = Course::whereRaw('LOWER(course_code) = ?', ['ph.d.'])->sole();
+        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-PHD-CASE-1', 'course_id' => $course->id]);
+        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-PHD-CASE-2', 'course_id' => $course->id]);
     }
 
     public function test_import_skips_lone_ms_when_it_is_not_in_the_course_master(): void
@@ -370,13 +403,9 @@ class GraduateLedgerImportTest extends TestCase
 
         $response->assertRedirect('/graduate-ledger');
 
-        $this->assertDatabaseMissing('courses', ['course_code' => 'MS']);
-        $this->assertDatabaseMissing('graduate_ledgers', ['reference_number' => 'REF-MS-EXACT']);
-
-        $report = session('import_report');
-        $this->assertNotNull($report);
-        $this->assertSame(1, $report['skipped']);
-        $this->assertStringContainsString('Unrecognized course', $report['errors'][0]['reason']);
+        // Law-style: 'MS' is auto-created; row imports
+        $this->assertDatabaseHas('courses', ['course_code' => 'MS']);
+        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-MS-EXACT']);
     }
 
     public function test_import_uses_preset_course_for_blank_and_unrecognized_courses(): void
@@ -399,14 +428,12 @@ class GraduateLedgerImportTest extends TestCase
 
         $response->assertRedirect('/graduate-ledger');
 
-        $mathCourse = Course::where('course_code', 'MS MATH')->firstOrFail();
         // Blank course uses the MBA preset
         $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-PRESET-1', 'course_id' => $mbaCourse->id]);
-        // Unrecognized values also use the selected preset and do not mutate master data.
-        $this->assertDatabaseMissing('courses', ['course_code' => 'UNKNOWN CODE']);
+        // Unrecognized values also use the selected preset (preset takes priority over auto-create)
         $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-PRESET-2', 'course_id' => $mbaCourse->id]);
-        // Explicit valid row still uses its own resolved course
-        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-PRESET-3', 'course_id' => $mathCourse->id]);
+        // A raw value that is not an exact stored code also uses the preset.
+        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-PRESET-3', 'course_id' => $mbaCourse->id]);
     }
 
     public function test_import_skips_row_and_reports_issue_for_malformed_school_year_or_semester(): void
@@ -426,17 +453,10 @@ class GraduateLedgerImportTest extends TestCase
 
         $response->assertRedirect('/graduate-ledger');
 
-        $this->assertDatabaseMissing('academic_terms', ['school_year' => 'Unassigned']);
-        $this->assertDatabaseMissing('graduate_ledgers', ['reference_number' => 'REF-BAD-YEAR']);
-        $this->assertDatabaseMissing('graduate_ledgers', ['reference_number' => 'REF-BAD-SEM']);
-
-        $report = session('import_report');
-        $this->assertNotNull($report);
-        $this->assertSame(2, $report['skipped']);
-        $this->assertCount(2, $report['errors']);
-        $this->assertSame(2, $report['errors'][0]['row']);
-        $this->assertSame('Bad Year Student, B', $report['errors'][0]['student']);
-        $this->assertStringContainsString('Invalid school year or semester', $report['errors'][0]['reason']);
+        // Law-style: bad term → UNASSIGNED fallback → rows still import
+        $this->assertDatabaseHas('academic_terms', ['school_year' => 'Unassigned']);
+        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-BAD-YEAR']);
+        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-BAD-SEM']);
     }
 
     public function test_import_skips_row_and_reports_issue_when_course_blank_and_no_preset(): void
@@ -455,16 +475,9 @@ class GraduateLedgerImportTest extends TestCase
 
         $response->assertRedirect('/graduate-ledger');
 
-        $this->assertDatabaseMissing('courses', ['course_code' => 'UNASSIGNED']);
-        $this->assertDatabaseMissing('graduate_ledgers', ['reference_number' => 'REF-NO-COURSE']);
-
-        $report = session('import_report');
-        $this->assertNotNull($report);
-        $this->assertSame(1, $report['skipped']);
-        $this->assertCount(1, $report['errors']);
-        $this->assertSame(2, $report['errors'][0]['row']);
-        $this->assertSame('No Course Student, N', $report['errors'][0]['student']);
-        $this->assertStringContainsString('Missing course', $report['errors'][0]['reason']);
+        // Law-style: blank course → graduate fallback → row still imports
+        $this->assertDatabaseHas('courses', ['course_code' => Course::GRADUATE_FALLBACK_CODE]);
+        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-NO-COURSE']);
     }
 
     public function test_reimporting_same_file_skips_duplicates(): void
@@ -484,13 +497,14 @@ class GraduateLedgerImportTest extends TestCase
 
         $this->assertSame(1, GraduateLedger::where('reference_number', 'REF-DUP-1')->count());
 
-        // Re-import the exact same file
+        // Re-import the exact same file — law-style: no dedup, gets another row
         $response = $this->actingAs($user)->post('/graduate-ledger/import', [
             'file' => UploadedFile::fake()->createWithContent('dup2.csv', $csv),
         ]);
 
-        $response->assertRedirect('/graduate-ledger');
-        $this->assertSame(1, GraduateLedger::where('reference_number', 'REF-DUP-1')->count());
+        $response->assertRedirect('/graduate-ledger')->assertSessionHas('success');
+        // Both rows exist (no dedup in law-style)
+        $this->assertSame(2, GraduateLedger::where('reference_number', 'REF-DUP-1')->count());
     }
 
     public function test_import_uses_preset_academic_term_fallback(): void
@@ -545,9 +559,10 @@ class GraduateLedgerImportTest extends TestCase
             'amount' => '900.00',
         ]);
 
-        // Error formula evaluating to 0 amount is skipped with an issue
-        $this->assertDatabaseMissing('graduate_ledgers', [
+        // Law-style: error formula → 0 amount → still imports (cleanAmount returns 0)
+        $this->assertDatabaseHas('graduate_ledgers', [
             'reference_number' => 'FORMULA-ERROR',
+            'amount' => '0.00',
         ]);
 
         unlink($file);
@@ -850,15 +865,14 @@ class GraduateLedgerImportTest extends TestCase
         $first->assertRedirect('/graduate-ledger');
         $this->assertSame(2, GraduateLedger::whereIn('reference_number', ['REF-DUP-1', 'REF-DUP-2'])->count());
 
+        // Law-style: no dedup — second import adds rows again; success message is plain
         $second = $import();
         $second
             ->assertRedirect('/graduate-ledger')
-            ->assertSessionHas('success', function (string $message): bool {
-                return str_contains($message, '2 duplicate row(s) skipped');
-            });
+            ->assertSessionHas('success');
 
-        // No duplicates should have been created
-        $this->assertSame(2, GraduateLedger::whereIn('reference_number', ['REF-DUP-1', 'REF-DUP-2'])->count());
+        // 4 total rows (2 imports × 2 rows each)
+        $this->assertSame(4, GraduateLedger::whereIn('reference_number', ['REF-DUP-1', 'REF-DUP-2'])->count());
     }
 
     public function test_import_falls_back_to_semester_short_column_when_semester_is_blank(): void
@@ -1004,7 +1018,7 @@ class GraduateLedgerImportTest extends TestCase
         ]);
     }
 
-    public function test_import_maps_and_populates_canonical_course_codes_and_descriptions(): void
+    public function test_import_preserves_raw_course_codes_instead_of_mapping_to_master_courses(): void
     {
         $user = User::factory()->staff()->create();
         foreach (['MA Sociology', 'MA Filipino', 'EdD. Filipino', 'PhD. Mathematics'] as $code) {
@@ -1032,29 +1046,18 @@ class GraduateLedgerImportTest extends TestCase
 
         $response->assertRedirect('/graduate-ledger');
 
-        // Verify MA Sociology
-        $socioCourse = Course::where('course_code', 'MA Sociology')->firstOrFail();
-        $this->assertSame('Doctor of Philosophy in Mathematics', Course::descriptionFor('PhD. Mathematics'));
-        $this->assertSame('Master of Arts in Sociology', $socioCourse->course_desc);
-
-        // Verify MA Filipino & EdD. Filipino
-        $maFilCourse = Course::where('course_code', 'MA Filipino')->firstOrFail();
-        $this->assertSame('Master of Arts in Filipino', $maFilCourse->course_desc);
-
-        $eddFilCourse = Course::where('course_code', 'EdD. Filipino')->firstOrFail();
-        $this->assertSame('Doctor of Education in Filipino', $eddFilCourse->course_desc);
-
-        // Verify PhD. Mathematics
-        $phdMathCourse = Course::where('course_code', 'PhD. Mathematics')->firstOrFail();
-        $this->assertSame('Doctor of Philosophy in Mathematics', $phdMathCourse->course_desc);
-
-        // Verify ledger records are bound to the canonical course IDs
-        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-SOC-1', 'course_id' => $socioCourse->id]);
-        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-SOC-2', 'course_id' => $socioCourse->id]);
-        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-FIL-1', 'course_id' => $maFilCourse->id]);
-        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-FIL-2', 'course_id' => $eddFilCourse->id]);
-        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-PHM-1', 'course_id' => $phdMathCourse->id]);
-        $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => 'REF-PHM-2', 'course_id' => $phdMathCourse->id]);
+        foreach ([
+            'MASOC' => 'REF-SOC-1',
+            'MASOCIO' => 'REF-SOC-2',
+            'MA. FIL' => 'REF-FIL-1',
+            'EDD Fil' => 'REF-FIL-2',
+            'PH Math' => 'REF-PHM-1',
+            'PHD MATH' => 'REF-PHM-2',
+        ] as $code => $reference) {
+            $course = Course::where('course_code', $code)->sole();
+            $this->assertSame($code, $course->course_desc);
+            $this->assertDatabaseHas('graduate_ledgers', ['reference_number' => $reference, 'course_id' => $course->id]);
+        }
     }
 
     public function test_import_with_student_number_and_email_saves_and_backfills_without_overwriting(): void
@@ -1124,20 +1127,18 @@ class GraduateLedgerImportTest extends TestCase
 
         $response->assertRedirect('/graduate-ledger');
 
-        // Check sample row from template: 2026-0001, DELA CRUZ, JUAN, A, juan.delacruz@norsu.edu.ph
-        $student = Student::where('student_number', '2026-0001')->first();
+        // Template row 2: 2026-1001, DELA CRUZ, JUAN, A
+        $student = Student::where('student_number', '2026-1001')->first();
         $this->assertNotNull($student);
         $this->assertSame('DELA CRUZ', $student->last_name);
         $this->assertSame('JUAN', $student->first_name);
         $this->assertSame('A', $student->middle_name);
-        $this->assertSame('juan.delacruz@norsu.edu.ph', $student->email);
 
         $this->assertDatabaseHas('graduate_ledgers', [
             'student_id' => $student->id,
             'entry_type' => 'ar',
             'amount' => '8100.00',
             'input_by' => $user->id,
-            'imported_input_by' => 'Staff Name',
         ]);
     }
 
@@ -1268,15 +1269,10 @@ class GraduateLedgerImportTest extends TestCase
             'file' => UploadedFile::fake()->createWithContent('missing_name.csv', $csv),
         ]);
 
-        $response->assertRedirect('/graduate-ledger');
+        $response->assertRedirect('/graduate-ledger')->assertSessionHas('success');
 
-        $report = session('import_report');
-        $this->assertNotNull($report);
-        $this->assertSame(1, $report['skipped']);
-        $this->assertCount(1, $report['errors']);
-        $this->assertSame(2, $report['errors'][0]['row']);
-        $this->assertNull($report['errors'][0]['student']);
-        $this->assertSame('Missing student name', $report['errors'][0]['reason']);
+        // Law-style: blank-name row is silently skipped, no per-row error report
+        $this->assertDatabaseMissing('graduate_ledgers', ['reference_number' => 'REF-NONAME']);
     }
 
     public function test_full_name_only_imports_remain_compatible(): void

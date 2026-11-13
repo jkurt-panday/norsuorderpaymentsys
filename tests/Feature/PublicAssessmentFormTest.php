@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AssessmentForm;
+use App\Models\Course;
 use App\Models\Courses;
 use App\Services\ReferenceNumberService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -16,7 +17,8 @@ class PublicAssessmentFormTest extends TestCase
     public function test_assessment_form_page_loads_with_public_courses_only(): void
     {
         $course = $this->course('BSIT');
-        $placeholder = $this->course('UNASSIGNED');
+        $graduatePlaceholder = $this->course(Course::GRADUATE_FALLBACK_CODE);
+        $lawPlaceholder = $this->course(Course::LAW_FALLBACK_CODE);
 
         $this->get(route('public.assessmentform.create'))
             ->assertOk()
@@ -28,7 +30,8 @@ class PublicAssessmentFormTest extends TestCase
                 ->missing('users')
                 ->missing('database'));
 
-        $this->assertNotSame($course->id, $placeholder->id);
+        $this->assertNotSame($course->id, $graduatePlaceholder->id);
+        $this->assertNotSame($course->id, $lawPlaceholder->id);
     }
 
     public function test_assessment_form_does_not_expose_academic_terms_or_college_options_until_the_backend_provides_them(): void

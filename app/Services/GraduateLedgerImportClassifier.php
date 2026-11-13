@@ -2,76 +2,86 @@
 
 namespace App\Services;
 
+/**
+ * Classifier for Graduate Ledger import rows.
+ * Mirrors the Law ledger classifier: returns only entry_type, no warnings.
+ * Broader aliases for payment and adjustment match real-world Excel data.
+ */
 final class GraduateLedgerImportClassifier
 {
-    public const WARNING_NEGATIVE_BLANK_TYPE = 'negative_blank_type';
-
-    public const WARNING_NEGATIVE_LABELED_AR = 'negative_labeled_ar';
-
-    public const WARNING_PAYMENT_MISSING_PARENTHESES = 'payment_missing_parentheses';
-
     /**
-     * @return array{
-     *     entry_type: 'ar'|'payment'|'adjustment',
-     *     warning: 'negative_blank_type'|'negative_labeled_ar'|'payment_missing_parentheses'|null
-     * }
+     * @return array{entry_type: 'ar'|'payment'|'adjustment'}
      */
     public function classify(?string $rawType, mixed $rawAmount): array
     {
         $type = strtoupper(trim($rawType ?? ''));
-        $amount = $this->normalizeAmountText($rawAmount);
-        $hasParentheses = str_contains($amount, '(') && str_contains($amount, ')');
-        $isNegative = $this->isNegative($rawAmount);
+        $amount = $this->parseAmount($rawAmount);
 
-        if ($type === 'ADJUSTMENT' || $type === 'ADJ' || str_contains($type, 'ADJUST')) {
-            return ['entry_type' => 'adjustment', 'warning' => null];
+        if ($this->isAdjustment($type)) {
+            return ['entry_type' => 'adjustment'];
         }
 
-        if ($type === 'AR') {
-            return [
-                'entry_type' => 'ar',
-                'warning' => $hasParentheses || $isNegative
-                    ? self::WARNING_NEGATIVE_LABELED_AR
-                    : null,
-            ];
+        if ($this->isAR($type)) {
+            return ['entry_type' => 'ar'];
         }
 
-        if ($hasParentheses || $isNegative) {
-            $warning = $type === '' || ! $this->isPaymentType($type)
-                ? self::WARNING_NEGATIVE_BLANK_TYPE
-                : null;
-
-            return ['entry_type' => 'payment', 'warning' => $warning];
+        if ($this->isPayment($type)) {
+            return ['entry_type' => 'payment'];
         }
 
-        if ($this->isPaymentType($type)) {
-            return [
-                'entry_type' => 'payment',
-                'warning' => self::WARNING_PAYMENT_MISSING_PARENTHESES,
-            ];
+        // Blank / unknown — infer from sign
+        if ($type === '' || $type === 'N/A' || $type === 'NA') {
+            return ['entry_type' => $amount < 0 ? 'payment' : 'ar'];
         }
 
-        return ['entry_type' => 'ar', 'warning' => null];
+        return ['entry_type' => $amount < 0 ? 'payment' : 'ar'];
     }
 
-    private function isPaymentType(string $type): bool
+    private function isAdjustment(string $type): bool
     {
-        return in_array($type, ['PAYMENT', 'P', 'PAYMENR', 'SETTLED'], true);
+        return in_array($type, [
+            'ADJ', 'ADJUSTMENT', 'ADJUSTMENTS',
+            'CREDIT MEMO', 'DEBIT MEMO', 'MEMO',
+        ], true);
     }
 
-    private function isNegative(mixed $rawAmount): bool
+    private function isAR(string $type): bool
     {
-        if (is_int($rawAmount) || is_float($rawAmount)) {
-            return $rawAmount < 0;
+        return in_array($type, [
+            'AR', 'A/R', 'ASSESSMENT', 'ASSESSMENTS',
+            'CHARGE', 'CHARGES', 'BILLING', 'BILL',
+            'TUITION', 'FEE', 'FEES',
+        ], true);
+    }
+
+    private function isPayment(string $type): bool
+    {
+        return in_array($type, [
+            'PAYMENT', 'PAYMENTS', 'PAY', 'P', 'PMT', 'PAYMENR',
+            'SETTLED', 'RECEIPT', 'RECEIPTS', 'OR',
+            'CASH', 'CHECK', 'CHEQUE', 'ONLINE', 'BANK',
+        ], true);
+    }
+
+    private function parseAmount(mixed $value): float
+    {
+        if (is_int($value) || is_float($value)) {
+            return (float) $value;
         }
 
-        $amount = $this->normalizeAmountText($rawAmount);
+        if (! is_string($value)) {
+            return 0.0;
+        }
 
-        return preg_match('/^[^\d]*-\s*\d/', $amount) === 1;
-    }
+        $cleaned = trim(str_replace(['−', '–', '—'], '-', $value));
 
-    private function normalizeAmountText(mixed $rawAmount): string
-    {
-        return trim(str_replace(['−', '–', '—'], '-', (string) ($rawAmount ?? '')));
+        // Parentheses = negative (accounting format)
+        if (preg_match('/^\(([0-9,]+\.?[0-9]*)\)$/', $cleaned, $m)) {
+            return -1 * (float) str_replace(',', '', $m[1]);
+        }
+
+        $cleaned = preg_replace('/[^\d.\-]/', '', $cleaned);
+
+        return (float) $cleaned;
     }
 }

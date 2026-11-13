@@ -952,7 +952,7 @@ class LawSchoolLedgerController extends Controller
     /**
      * Bulk-resolves lookup maps for courses, academic terms, and students.
      * Avoids N+1 INSERTs by chunking new rows at 500 per insert.
-     * Creates guaranteed fallback records (UNASSIGNED course and term) so imports never fail.
+     * Creates guaranteed fallback course and term records so imports never fail.
      *
      * @param  array<string, true>  $distinctCourses
      * @param  array<string, array{school_year:string, semester:string}>  $distinctTerms
@@ -965,20 +965,20 @@ class LawSchoolLedgerController extends Controller
         array $distinctStudents,
         CarbonInterface $now,
     ): array {
-        // Courses - ensure UNASSIGNED exists as fallback
+        // Courses - ensure the Law fallback exists
         $courseMap = LawCourse::query()
             ->where('course_college', 'School of Law')
             ->pluck('id', 'course_code')
             ->all();
 
-        // Create UNASSIGNED fallback course if it doesn't exist
+        // Create the Law fallback course if it doesn't exist
         $unassignedCourse = LawCourse::firstOrCreate(
             [
-                'course_code' => 'UNASSIGNED',
-                'course_college' => 'School of Law',
+                'course_code' => LawCourse::LAW_FALLBACK_CODE,
             ],
             [
-                'course_desc' => 'Unassigned / Pending Course Assignment',
+                'course_college' => 'School of Law',
+                'course_desc' => 'Unassigned / Pending Law Course Assignment',
                 'created_at' => $now,
                 'updated_at' => $now,
             ]
@@ -987,6 +987,12 @@ class LawSchoolLedgerController extends Controller
 
         $newCourses = [];
         foreach (array_keys($distinctCourses) as $code) {
+            if (in_array(strtoupper($code), ['UNASSIGNED', 'UN ASSIGNED', 'UNDECIDED', 'NOT ASSIGNED', 'NO COURSE', 'N/A', 'NA', 'N A', 'NONE'], true)) {
+                $courseMap[$code] = (int) $unassignedCourse->id;
+
+                continue;
+            }
+
             if (! isset($courseMap[$code])) {
                 $newCourses[] = [
                     'course_code' => $code,
@@ -1006,6 +1012,11 @@ class LawSchoolLedgerController extends Controller
                 ->pluck('id', 'course_code')
                 ->all();
             $courseMap['__DEFAULT__'] = (int) $unassignedCourse->id;
+            foreach (array_keys($distinctCourses) as $code) {
+                if (in_array(strtoupper($code), ['UNASSIGNED', 'UN ASSIGNED', 'UNDECIDED', 'NOT ASSIGNED', 'NO COURSE', 'N/A', 'NA', 'N A', 'NONE'], true)) {
+                    $courseMap[$code] = (int) $unassignedCourse->id;
+                }
+            }
         }
 
         // Academic terms - ensure fallback exists
@@ -2016,7 +2027,7 @@ class LawSchoolLedgerController extends Controller
     }
 
     /**
-     * @param array<string, float> $termBalances
+     * @param  array<string, float>  $termBalances
      * @return array<string, mixed>
      */
     private function transformRecord(LawSchoolLedger $r, array $termBalances = []): array
@@ -2499,7 +2510,7 @@ class LawSchoolLedgerController extends Controller
             // variants like " DROP" and "DROP" collapse into a single "DROP" option.
             'statuses' => $this->deduplicatedOptions('status'),
             'types' => array_values(LawSchoolLedger::query()->distinct()->pluck('entry_type')
-                 ->map(fn (string $type): string => $this->entryTypeToLabel($type))->values()->all()),
+                ->map(fn (string $type): string => $this->entryTypeToLabel($type))->values()->all()),
         ];
     }
 
@@ -2520,7 +2531,7 @@ class LawSchoolLedgerController extends Controller
 
         if ($column === 'ar_or_payment') {
             return array_values(LawSchoolLedger::query()->distinct()->pluck('entry_type')
-                 ->map(fn (string $type): string => $this->entryTypeToLabel($type))->values()->all());
+                ->map(fn (string $type): string => $this->entryTypeToLabel($type))->values()->all());
         }
 
         $select = 'status as value, UPPER(TRIM(status)) as option_key, COUNT(*) as option_count';

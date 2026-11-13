@@ -1,26 +1,26 @@
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import {
-  Search,
-  DollarSign,
-  GraduationCap,
-  Wallet,
-  AlertTriangle,
-  PlusCircle,
-  Pencil,
-  Trash2,
-  XCircle,
-  Filter,
-  Loader2,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  Columns3,
-  Mail,
-  CheckSquare,
-  Square,
-  Calendar as CalendarIcon,
-  Download,
+    Search,
+    DollarSign,
+    GraduationCap,
+    Wallet,
+    AlertTriangle,
+    PlusCircle,
+    Pencil,
+    Trash2,
+    XCircle,
+    Filter,
+    Loader2,
+    CheckCircle2,
+    ChevronLeft,
+    ChevronRight,
+    ChevronDown,
+    Columns3,
+    Mail,
+    CheckSquare,
+    Square,
+    Calendar as CalendarIcon,
+    Download,
     MoreHorizontal,
     Copy,
 } from 'lucide-react';
@@ -28,6 +28,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import StudentBalanceDrawer from './StudentBalanceDrawer';
 import {
     emailRecipients,
+    importMethod,
     sendBulkEmail,
 } from '@/actions/App/Http/Controllers/GraduateLedgerController';
 import {
@@ -242,8 +243,6 @@ interface IndexProps {
         semesters: string[];
         types?: string[];
     };
-    courses?: { id: number; code: string }[];
-    academicTerms?: { id: number; school_year: string; semester: string }[];
     flash?: {
         success?: string;
         error?: string;
@@ -299,20 +298,8 @@ export default function Index({
     filters,
     stats,
     filterOptions,
-    courses = [],
-    academicTerms = [],
 }: IndexProps) {
     const rows: LedgerRecord[] = records?.data ?? [];
-    const importForm = useForm<{
-        file: File | null;
-        preset_course_id: string;
-        preset_academic_term_id: string;
-    }>({
-        file: null,
-        preset_course_id: '',
-        preset_academic_term_id: '',
-    });
-    const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<{
         id: string | number;
         name: string;
@@ -591,7 +578,8 @@ export default function Index({
 
     useEffect(() => {
         if (tableScrollRef.current) {
-            tableScrollRef.current.scrollLeft = tableScrollRef.current.scrollWidth;
+            tableScrollRef.current.scrollLeft =
+                tableScrollRef.current.scrollWidth;
         }
     }, []);
 
@@ -691,8 +679,8 @@ export default function Index({
         });
     };
 
-    const handleImport = () => {
-        if (!importForm.data.file || isImporting) {
+    const handleImportFile = (file: File | null, inputEl: HTMLInputElement) => {
+        if (!file || isImporting) {
             return;
         }
 
@@ -710,37 +698,49 @@ export default function Index({
             });
         }, 250);
 
-        importForm.post('/graduate-ledger/import', {
-            forceFormData: true,
-            preserveScroll: true,
-            onSuccess: () => {
-                clearInterval(interval);
-                setImportProgress(100);
-                setTimeout(() => {
+        router.post(
+            importMethod.url(),
+            { file },
+            {
+                forceFormData: true,
+                preserveScroll: true,
+                onSuccess: () => {
+                    clearInterval(interval);
+                    setImportProgress(100);
+                    setTimeout(() => {
+                        setIsImporting(false);
+                        setImportSuccess(true);
+                        inputEl.value = '';
+                        setTimeout(() => setImportSuccess(false), 4000);
+                    }, 300);
+                },
+                onError: (errors) => {
+                    clearInterval(interval);
                     setIsImporting(false);
-                    setImportSuccess(true);
-                    setIsImportDialogOpen(false);
-                    importForm.reset();
-                    setTimeout(() => setImportSuccess(false), 4000);
-                }, 300);
+                    setImportProgress(0);
+                    inputEl.value = '';
+                    flashToast(
+                        'error',
+                        errors.file ??
+                            'The workbook could not be imported. Please try again.',
+                    );
+                },
             },
-            onError: () => {
-                clearInterval(interval);
-                setIsImporting(false);
-                setImportProgress(0);
-            },
-        });
+        );
     };
 
     const copyImportReportToClipboard = () => {
         if (!importReport?.errors) {
-return;
-}
+            return;
+        }
 
         const text = importReport.errors
-            .map((e: any) => `Row ${e.row}: ${e.student ?? 'Unknown'} - ${e.reason}`)
+            .map(
+                (e: any) =>
+                    `Row ${e.row}: ${e.student ?? 'Unknown'} - ${e.reason}`,
+            )
             .join('\n');
-        
+
         navigator.clipboard.writeText(text).then(() => {
             flashToast('success', 'Error report copied to clipboard');
         });
@@ -1024,7 +1024,7 @@ return;
                 <div className="flex flex-col gap-4 border-b border-border pb-5 md:flex-row md:items-center md:justify-between">
                     <div>
                         <div className="flex items-center gap-2">
-                            <CardTitle className="bg-primary font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
+                            <CardTitle className="bg-primary bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                                 Graduate School Ledger
                             </CardTitle>
                         </div>
@@ -1042,12 +1042,20 @@ return;
                             <Mail className="mr-1.5 h-4 w-4" />
                             Send Email
                         </Button>
-                        <Button
-                            variant="outline"
-                            disabled={isImporting}
-                            className={`border-input text-foreground hover:bg-muted ${isImporting ? 'cursor-not-allowed opacity-60' : ''}`}
-                            onClick={() => setIsImportDialogOpen(true)}
+                        <label
+                            className={`inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors ${isImporting ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-muted'}`}
                         >
+                            <input
+                                type="file"
+                                accept=".csv,.xlsx,.xls"
+                                disabled={isImporting}
+                                className="hidden"
+                                onChange={(event) => {
+                                    const file =
+                                        event.target.files?.[0] ?? null;
+                                    handleImportFile(file, event.target);
+                                }}
+                            />
                             {isImporting ? (
                                 <>
                                     <Loader2 className="mr-1.5 h-4 w-4 animate-spin text-primary" />
@@ -1056,7 +1064,7 @@ return;
                             ) : (
                                 'Import Excel/CSV'
                             )}
-                        </Button>
+                        </label>
 
                         <Button
                             variant="outline"
@@ -1389,13 +1397,17 @@ return;
                                             className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
                                         >
                                             <option value="">All Types</option>
-                                            {(filterOptions?.types ?? ['AR', 'Payment', 'Adjustment']).map(
-                                                (t) => (
-                                                    <option key={t} value={t}>
-                                                        {t}
-                                                    </option>
-                                                ),
-                                            )}
+                                            {(
+                                                filterOptions?.types ?? [
+                                                    'AR',
+                                                    'Payment',
+                                                    'Adjustment',
+                                                ]
+                                            ).map((t) => (
+                                                <option key={t} value={t}>
+                                                    {t}
+                                                </option>
+                                            ))}
                                         </select>
 
                                         <select
@@ -1676,16 +1688,26 @@ return;
                                                 <tr
                                                     key={r.id}
                                                     role="button"
-                                                    tabIndex={r.studentId ? 0 : undefined}
+                                                    tabIndex={
+                                                        r.studentId
+                                                            ? 0
+                                                            : undefined
+                                                    }
                                                     aria-label={
                                                         r.studentId
                                                             ? `View ${r.name}'s balance and transaction history`
                                                             : undefined
                                                     }
                                                     onClick={() => {
-                                                        const studentId = Number(r.studentId);
+                                                        const studentId =
+                                                            Number(r.studentId);
 
-                                                        if (!Number.isFinite(studentId) || studentId <= 0) {
+                                                        if (
+                                                            !Number.isFinite(
+                                                                studentId,
+                                                            ) ||
+                                                            studentId <= 0
+                                                        ) {
                                                             return;
                                                         }
 
@@ -1696,16 +1718,23 @@ return;
                                                     }}
                                                     onKeyDown={(event) => {
                                                         if (
-                                                            event.key !== 'Enter' &&
+                                                            event.key !==
+                                                                'Enter' &&
                                                             event.key !== ' '
                                                         ) {
                                                             return;
                                                         }
 
                                                         event.preventDefault();
-                                                        const studentId = Number(r.studentId);
+                                                        const studentId =
+                                                            Number(r.studentId);
 
-                                                        if (!Number.isFinite(studentId) || studentId <= 0) {
+                                                        if (
+                                                            !Number.isFinite(
+                                                                studentId,
+                                                            ) ||
+                                                            studentId <= 0
+                                                        ) {
                                                             return;
                                                         }
 
@@ -1718,7 +1747,9 @@ return;
                                                 >
                                                     {visibleColumns.studentNumber && (
                                                         <td className="py-2 pr-4 pl-2 whitespace-nowrap text-muted-foreground">
-                                                            {r.studentNumber || r.studentId || '—'}
+                                                            {r.studentNumber ||
+                                                                r.studentId ||
+                                                                '—'}
                                                         </td>
                                                     )}
                                                     <td className="py-2 pr-4 font-medium whitespace-nowrap text-foreground">
@@ -1829,11 +1860,18 @@ return;
                                                     <td className="py-2 pr-4 text-right">
                                                         <div className="flex flex-col items-end">
                                                             <span className="font-medium text-foreground">
-                                                                {currency(r.amount)}
+                                                                {currency(
+                                                                    r.amount,
+                                                                )}
                                                             </span>
-                                                            {(r.discountAmount ?? 0) > 0 ? (
+                                                            {(r.discountAmount ??
+                                                                0) > 0 ? (
                                                                 <span className="text-xs text-emerald-600 dark:text-emerald-400">
-                                                                    (Discount: -{currency(r.discountAmount!)})
+                                                                    (Discount: -
+                                                                    {currency(
+                                                                        r.discountAmount!,
+                                                                    )}
+                                                                    )
                                                                 </span>
                                                             ) : null}
                                                         </div>
@@ -1928,7 +1966,9 @@ return;
                                         ? 'Showing 0 of 0'
                                         : `Showing ${currentPage} of ${lastPage}`}
                                 </div>
-                                <span className="text-muted-foreground/60">|</span>
+                                <span className="text-muted-foreground/60">
+                                    |
+                                </span>
                                 <div>
                                     <span className="font-semibold text-foreground">
                                         {totalRecordCount}
@@ -1974,7 +2014,8 @@ return;
                                                     type="button"
                                                     className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                                                 >
-                                                    Page {currentPage} of {lastPage}
+                                                    Page {currentPage} of{' '}
+                                                    {lastPage}
                                                 </button>
                                             }
                                         />
@@ -2188,198 +2229,9 @@ return;
                 </Card>
             </div>
 
-            {/* Import preset dialog */}
-            {isImportDialogOpen && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-xs p-4"
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="import-dialog-title"
-                >
-                    <div className="w-full max-w-lg rounded-xl border border-border bg-card p-6 text-card-foreground shadow-2xl">
-                        <div className="mb-5 flex items-start justify-between gap-4">
-                            <div>
-                                <h2
-                                    id="import-dialog-title"
-                                    className="text-lg font-bold text-foreground"
-                                >
-                                    Import Graduate Ledger
-                                </h2>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    The importer uses each row&apos;s course and
-                                    academic term first. Optional presets are
-                                    used only when a row is blank or cannot be
-                                    recognized.
-                                </p>
-                            </div>
-                            <button
-                                type="button"
-                                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                                onClick={() => {
-                                    if (!isImporting) {
-                                        setIsImportDialogOpen(false);
-                                        importForm.clearErrors();
-                                    }
-                                }}
-                                aria-label="Close import dialog"
-                            >
-                                <XCircle className="h-5 w-5" />
-                            </button>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div>
-                                <label
-                                    htmlFor="ledger-import-file"
-                                    className="mb-1.5 block text-sm font-semibold text-foreground"
-                                >
-                                    Spreadsheet file{' '}
-                                    <span className="text-destructive">*</span>
-                                </label>
-                                <Input
-                                    id="ledger-import-file"
-                                    type="file"
-                                    accept=".csv,.xlsx,.xls"
-                                    disabled={isImporting}
-                                    className="border-input"
-                                    onChange={(event) =>
-                                        importForm.setData(
-                                            'file',
-                                            event.target.files?.[0] ?? null,
-                                        )
-                                    }
-                                />
-                                {importForm.errors.file && (
-                                    <p className="mt-1 text-xs text-destructive">
-                                        {importForm.errors.file}
-                                    </p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label
-                                    htmlFor="preset-course"
-                                    className="mb-1.5 block text-sm font-semibold text-foreground"
-                                >
-                                    Fallback course{' '}
-                                    <span className="font-normal text-muted-foreground">
-                                        (optional)
-                                    </span>
-                                </label>
-                                <select
-                                    id="preset-course"
-                                    value={importForm.data.preset_course_id}
-                                    disabled={isImporting}
-                                    onChange={(event) =>
-                                        importForm.setData(
-                                            'preset_course_id',
-                                            event.target.value,
-                                        )
-                                    }
-                                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
-                                >
-                                    <option value="">
-                                        No fallback — skip unmatched courses
-                                    </option>
-                                    {courses.map((item) => (
-                                        <option key={item.id} value={item.id}>
-                                            {item.code}
-                                        </option>
-                                    ))}
-                                </select>
-                                {importForm.errors.preset_course_id && (
-                                    <p className="mt-1 text-xs text-destructive">
-                                        {importForm.errors.preset_course_id}
-                                    </p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label
-                                    htmlFor="preset-term"
-                                    className="mb-1.5 block text-sm font-semibold text-foreground"
-                                >
-                                    Fallback academic term{' '}
-                                    <span className="font-normal text-muted-foreground">
-                                        (optional)
-                                    </span>
-                                </label>
-                                <select
-                                    id="preset-term"
-                                    value={
-                                        importForm.data.preset_academic_term_id
-                                    }
-                                    disabled={isImporting}
-                                    onChange={(event) =>
-                                        importForm.setData(
-                                            'preset_academic_term_id',
-                                            event.target.value,
-                                        )
-                                    }
-                                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
-                                >
-                                    <option value="">
-                                        No fallback — skip unmatched terms
-                                    </option>
-                                    {academicTerms.map((term) => (
-                                        <option key={term.id} value={term.id}>
-                                            {term.school_year} — {term.semester}
-                                        </option>
-                                    ))}
-                                </select>
-                                {importForm.errors.preset_academic_term_id && (
-                                    <p className="mt-1 text-xs text-destructive">
-                                        {
-                                            importForm.errors
-                                                .preset_academic_term_id
-                                        }
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
-                                Course spellings such as{' '}
-                                <strong className="text-foreground">MS-MATH</strong>,{' '}
-                                <strong className="text-foreground">MS Math</strong>, and{' '}
-                                <strong className="text-foreground">M.S. Math</strong> are normalized before
-                                matching. Importing will not create new course
-                                or academic-term master records.
-                            </div>
-                        </div>
-
-                        <div className="mt-6 flex justify-end gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                disabled={isImporting}
-                                className="border-input text-foreground"
-                                onClick={() => {
-                                    setIsImportDialogOpen(false);
-                                    importForm.reset();
-                                    importForm.clearErrors();
-                                }}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="button"
-                                disabled={!importForm.data.file || isImporting}
-                                className="bg-primary text-primary-foreground hover:bg-primary/90"
-                                onClick={handleImport}
-                            >
-                                {isImporting && (
-                                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                                )}
-                                {isImporting ? 'Importing...' : 'Start Import'}
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* Floating Bottom-Right Import Progress Bar & Toast */}
             {(isImporting || importSuccess) && (
-                <div className="fixed inset-x-4 bottom-4 z-50 flex flex-col gap-2.5 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-xl transition-all duration-300 sm:inset-x-auto sm:right-6 sm:bottom-6 sm:min-w-[320px] max-w-[calc(100vw-2rem)]">
+                <div className="fixed inset-x-4 bottom-4 z-50 flex max-w-[calc(100vw-2rem)] flex-col gap-2.5 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-xl transition-all duration-300 sm:inset-x-auto sm:right-6 sm:bottom-6 sm:min-w-[320px]">
                     {isImporting ? (
                         <>
                             <div className="flex items-center gap-3">
@@ -2586,13 +2438,20 @@ return;
                                             </div>
                                         ) : (
                                             <div>
-                                                <label
-                                                    className="flex cursor-pointer items-center gap-3 border-b border-border p-2 hover:bg-muted/50 dark:hover:bg-muted/30"
-                                                >
+                                                <label className="flex cursor-pointer items-center gap-3 border-b border-border p-2 hover:bg-muted/50 dark:hover:bg-muted/30">
                                                     <input
                                                         type="checkbox"
                                                         className="sr-only"
-                                                        checked={visibleRecipients.length > 0 && visibleRecipients.every((r) => selectedIds.has(r.id))}
+                                                        checked={
+                                                            visibleRecipients.length >
+                                                                0 &&
+                                                            visibleRecipients.every(
+                                                                (r) =>
+                                                                    selectedIds.has(
+                                                                        r.id,
+                                                                    ),
+                                                            )
+                                                        }
                                                         onChange={() => {
                                                             setSelectedIds(
                                                                 (prev) => {
@@ -2603,21 +2462,27 @@ return;
 
                                                                     if (
                                                                         visibleRecipients.every(
-                                                                            (r) =>
+                                                                            (
+                                                                                r,
+                                                                            ) =>
                                                                                 next.has(
                                                                                     r.id,
                                                                                 ),
                                                                         )
                                                                     ) {
                                                                         visibleRecipients.forEach(
-                                                                            (r) =>
+                                                                            (
+                                                                                r,
+                                                                            ) =>
                                                                                 next.delete(
                                                                                     r.id,
                                                                                 ),
                                                                         );
                                                                     } else {
                                                                         visibleRecipients.forEach(
-                                                                            (r) =>
+                                                                            (
+                                                                                r,
+                                                                            ) =>
                                                                                 next.add(
                                                                                     r.id,
                                                                                 ),
@@ -2629,7 +2494,10 @@ return;
                                                             );
                                                         }}
                                                     />
-                                                    <div className="flex h-4 w-4 items-center justify-center" aria-hidden="true">
+                                                    <div
+                                                        className="flex h-4 w-4 items-center justify-center"
+                                                        aria-hidden="true"
+                                                    >
                                                         {visibleRecipients.every(
                                                             (r) =>
                                                                 selectedIds.has(
@@ -2658,10 +2526,19 @@ return;
                                                             <input
                                                                 type="checkbox"
                                                                 className="sr-only"
-                                                                checked={selectedIds.has(row.id)}
-                                                                onChange={() => toggleSelectId(row.id)}
+                                                                checked={selectedIds.has(
+                                                                    row.id,
+                                                                )}
+                                                                onChange={() =>
+                                                                    toggleSelectId(
+                                                                        row.id,
+                                                                    )
+                                                                }
                                                             />
-                                                            <div className="flex h-4 w-4 items-center justify-center" aria-hidden="true">
+                                                            <div
+                                                                className="flex h-4 w-4 items-center justify-center"
+                                                                aria-hidden="true"
+                                                            >
                                                                 {selectedIds.has(
                                                                     row.id,
                                                                 ) ? (
@@ -2796,14 +2673,19 @@ return;
                                                             <input
                                                                 type="checkbox"
                                                                 className="sr-only"
-                                                                checked={isSelected}
+                                                                checked={
+                                                                    isSelected
+                                                                }
                                                                 onChange={() =>
                                                                     toggleSelectId(
                                                                         row.id,
                                                                     )
                                                                 }
                                                             />
-                                                            <div className="flex h-4 w-4 items-center justify-center" aria-hidden="true">
+                                                            <div
+                                                                className="flex h-4 w-4 items-center justify-center"
+                                                                aria-hidden="true"
+                                                            >
                                                                 {isSelected ? (
                                                                     <CheckSquare className="h-4 w-4 text-emerald-600" />
                                                                 ) : (
@@ -3301,9 +3183,12 @@ return;
             </AlertDialog>
             {/* Import Results Dialog */}
             {isImportReportOpen && (
-                <Dialog open={isImportReportOpen} onOpenChange={setIsImportReportOpen}>
-                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto rounded-xl border border-border bg-card p-6 text-card-foreground shadow-xl">
-                        <DialogHeader className="flex flex-col sm:flex-row items-center gap-3">
+                <Dialog
+                    open={isImportReportOpen}
+                    onOpenChange={setIsImportReportOpen}
+                >
+                    <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto rounded-xl border border-border bg-card p-6 text-card-foreground shadow-xl">
+                        <DialogHeader className="flex flex-col items-center gap-3 sm:flex-row">
                             <DialogTitle className="text-xl font-bold text-foreground">
                                 Import Results
                             </DialogTitle>
@@ -3313,50 +3198,83 @@ return;
                         </DialogDescription>
 
                         {/* Summary Metrics */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                        <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
                             <div className="rounded-lg bg-primary/10 p-4">
-                                <div className="text-2xl font-bold text-primary">{importReport.imported}</div>
-                                <div className="text-sm text-muted-foreground">Imported</div>
+                                <div className="text-2xl font-bold text-primary">
+                                    {importReport.imported}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                    Imported
+                                </div>
                             </div>
                             <div className="rounded-lg bg-slate-100 p-4">
-                                <div className="text-2xl font-bold text-slate-800">{importReport.duplicates}</div>
-                                <div className="text-sm text-muted-foreground">Duplicates skipped</div>
+                                <div className="text-2xl font-bold text-slate-800">
+                                    {importReport.duplicates}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                    Duplicates skipped
+                                </div>
                             </div>
                             <div className="rounded-lg bg-amber-100 p-4">
-                                <div className="text-2xl font-bold text-amber-800">{importReport.skipped}</div>
-                                <div className="text-sm text-muted-foreground">Skipped with issues</div>
+                                <div className="text-2xl font-bold text-amber-800">
+                                    {importReport.skipped}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                    Skipped with issues
+                                </div>
                             </div>
                         </div>
 
                         {/* Error Details Table */}
                         {importReport.errors.length > 0 && (
-                            <div className="overflow-x-auto rounded-lg border border-border bg-muted/50 p-4 mb-6">
-                                <div className="flex justify-between items-center mb-3">
+                            <div className="mb-6 overflow-x-auto rounded-lg border border-border bg-muted/50 p-4">
+                                <div className="mb-3 flex items-center justify-between">
                                     <p className="text-sm font-medium text-foreground">
-                                        Rows with issues ({importReport.errors.length})
+                                        Rows with issues (
+                                        {importReport.errors.length})
                                     </p>
                                     {importReport.truncated && (
                                         <span className="text-xs text-amber-600">
-                                            +{importReport.total_errors - importReport.errors.length} more
+                                            +
+                                            {importReport.total_errors -
+                                                importReport.errors.length}{' '}
+                                            more
                                         </span>
                                     )}
                                 </div>
                                 <table className="w-full rounded-md bg-card text-sm">
                                     <thead>
                                         <tr className="border-b border-border">
-                                            <th className="p-2 text-left text-muted-foreground">Row</th>
-                                            <th className="p-2 text-left text-muted-foreground">Student</th>
-                                            <th className="p-2 text-left text-muted-foreground">Reason</th>
+                                            <th className="p-2 text-left text-muted-foreground">
+                                                Row
+                                            </th>
+                                            <th className="p-2 text-left text-muted-foreground">
+                                                Student
+                                            </th>
+                                            <th className="p-2 text-left text-muted-foreground">
+                                                Reason
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {importReport.errors.map((err: any, idx: number) => (
-                                            <tr key={idx} className="border-b border-border/50 hover:bg-muted/50">
-                                                <td className="p-2">{err.row}</td>
-                                                <td className="p-2 truncate">{err.student ?? '—'}</td>
-                                                <td className="p-2 truncate text-amber-600">{err.reason}</td>
-                                            </tr>
-                                        ))}
+                                        {importReport.errors.map(
+                                            (err: any, idx: number) => (
+                                                <tr
+                                                    key={idx}
+                                                    className="border-b border-border/50 hover:bg-muted/50"
+                                                >
+                                                    <td className="p-2">
+                                                        {err.row}
+                                                    </td>
+                                                    <td className="truncate p-2">
+                                                        {err.student ?? '—'}
+                                                    </td>
+                                                    <td className="truncate p-2 text-amber-600">
+                                                        {err.reason}
+                                                    </td>
+                                                </tr>
+                                            ),
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -3364,17 +3282,21 @@ return;
 
                         {/* Copy to Clipboard Button */}
                         {importReport.errors.length > 0 && (
-                            <div className="flex gap-2 mb-6">
+                            <div className="mb-6 flex gap-2">
                                 <Button
                                     variant="outline"
                                     onClick={copyImportReportToClipboard}
                                     className="flex-1"
                                 >
-                                    <Copy className="mr-1 h-4 w-4" /> Copy Issues to Clipboard
+                                    <Copy className="mr-1 h-4 w-4" /> Copy
+                                    Issues to Clipboard
                                 </Button>
                                 {importReport.truncated && (
                                     <span className="text-xs text-amber-600">
-                                        (...and {importReport.total_errors - importReport.errors.length} more)
+                                        (...and{' '}
+                                        {importReport.total_errors -
+                                            importReport.errors.length}{' '}
+                                        more)
                                     </span>
                                 )}
                             </div>
@@ -3393,7 +3315,10 @@ return;
                 </Dialog>
             )}
             {/* Import Results Dialog */}
-            <Dialog open={isImportReportOpen} onOpenChange={setIsImportReportOpen}>
+            <Dialog
+                open={isImportReportOpen}
+                onOpenChange={setIsImportReportOpen}
+            >
                 <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>Import Summary</DialogTitle>
@@ -3404,24 +3329,42 @@ return;
 
                     <div className="grid grid-cols-3 gap-4">
                         <div className="rounded-lg border bg-card p-4 text-center">
-                            <div className="text-2xl font-bold text-emerald-600">{importReport?.imported ?? 0}</div>
-                            <div className="text-xs text-muted-foreground">Imported</div>
+                            <div className="text-2xl font-bold text-emerald-600">
+                                {importReport?.imported ?? 0}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                                Imported
+                            </div>
                         </div>
                         <div className="rounded-lg border bg-card p-4 text-center">
-                            <div className="text-2xl font-bold text-slate-600">{importReport?.duplicates ?? 0}</div>
-                            <div className="text-xs text-muted-foreground">Duplicates</div>
+                            <div className="text-2xl font-bold text-slate-600">
+                                {importReport?.duplicates ?? 0}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                                Duplicates
+                            </div>
                         </div>
                         <div className="rounded-lg border bg-card p-4 text-center">
-                            <div className="text-2xl font-bold text-rose-600">{importReport?.skipped ?? 0}</div>
-                            <div className="text-xs text-muted-foreground">Skipped Issues</div>
+                            <div className="text-2xl font-bold text-rose-600">
+                                {importReport?.skipped ?? 0}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                                Skipped Issues
+                            </div>
                         </div>
                     </div>
 
                     {importReport?.errors && importReport.errors.length > 0 && (
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                                <h3 className="font-semibold text-foreground">Skipped Rows</h3>
-                                <Button size="sm" variant="outline" onClick={copyImportReportToClipboard}>
+                                <h3 className="font-semibold text-foreground">
+                                    Skipped Rows
+                                </h3>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={copyImportReportToClipboard}
+                                >
                                     Copy Errors
                                 </Button>
                             </div>
@@ -3435,29 +3378,39 @@ return;
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border">
-                                        {importReport.errors.map((err: any, i: number) => (
-                                            <tr key={i}>
-                                                <td className="p-2 font-mono">{err.row}</td>
-                                                <td className="p-2">{err.student ?? '-'}</td>
-                                                <td className="p-2 text-rose-700">{err.reason}</td>
-                                            </tr>
-                                        ))}
+                                        {importReport.errors.map(
+                                            (err: any, i: number) => (
+                                                <tr key={i}>
+                                                    <td className="p-2 font-mono">
+                                                        {err.row}
+                                                    </td>
+                                                    <td className="p-2">
+                                                        {err.student ?? '-'}
+                                                    </td>
+                                                    <td className="p-2 text-rose-700">
+                                                        {err.reason}
+                                                    </td>
+                                                </tr>
+                                            ),
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
                             {importReport.truncated && (
                                 <p className="text-xs text-muted-foreground italic">
-                                    Showing first 150 of {importReport.total_errors} errors.
+                                    Showing first 150 of{' '}
+                                    {importReport.total_errors} errors.
                                 </p>
                             )}
                         </div>
                     )}
                     <DialogFooter>
-                        <Button onClick={() => setIsImportReportOpen(false)}>Close</Button>
+                        <Button onClick={() => setIsImportReportOpen(false)}>
+                            Close
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-
         </>
     );
 }

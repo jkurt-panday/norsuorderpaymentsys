@@ -39,11 +39,7 @@ use Spatie\LaravelPdf\PdfBuilder;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
- * @phpstan-type WarningCounts array{
- *     negative_blank_type: int,
- *     negative_labeled_ar: int,
- *     payment_missing_parentheses: int
- * }
+ * @phpstan-type WarningCounts array<string, int>
  * @phpstan-type BalanceSummary array{totalCharges: float, totalPayments: float, outstandingBalance: float}
  */
 class GraduateLedgerController extends Controller
@@ -668,18 +664,16 @@ class GraduateLedgerController extends Controller
         $warnings = $this->emptyImportWarnings();
         $now = now();
 
-        $allErrors = [];
-
         if ($extension === 'csv') {
             $path = $uploadedFile->getRealPath();
             if ($path === false) {
                 return back()->with('error', 'Could not read the uploaded CSV file.');
             }
 
-            return $this->importCsv($path, $imported, $skipped, $warnings, $now, $presetCourseId, $presetTermId, $duplicates, $allErrors);
+            return $this->importCsv($path, $imported, $skipped, $warnings, $now, $presetCourseId, $presetTermId, $duplicates);
         }
 
-        return $this->importExcel($uploadedFile, $imported, $skipped, $warnings, $now, $presetCourseId, $presetTermId, $duplicates, $allErrors);
+        return $this->importExcel($uploadedFile, $imported, $skipped, $warnings, $now, $presetCourseId, $presetTermId, $duplicates);
     }
 
     /**
@@ -690,10 +684,8 @@ class GraduateLedgerController extends Controller
      * @param  WarningCounts  $warnings
      *
      * @param-out WarningCounts $warnings
-     * @param  list<array{row: int, student: string|null, reason: string}> $allErrors
-     * @param-out list<array{row: int, student: string|null, reason: string}> $allErrors
      */
-     private function importCsv(
+    private function importCsv(
         string $path,
         int &$imported,
         int &$skipped,
@@ -702,7 +694,6 @@ class GraduateLedgerController extends Controller
         ?int $presetCourseId = null,
         ?int $presetTermId = null,
         int &$duplicates = 0,
-        array &$allErrors = [],
     ): RedirectResponse {
         // Pass 1: collect distinct values without holding rows in memory
         $handle = fopen($path, 'r');
@@ -718,7 +709,6 @@ class GraduateLedgerController extends Controller
         $distinctStudents = [];
         $distinctCourses = [];
         $distinctTerms = [];
-        $fileIdentities = [];
 
         $getPass1 = function (array $r, string $key, int $legacyIdx) use ($columnMap): mixed {
             if ($columnMap !== null) {
@@ -755,20 +745,11 @@ class GraduateLedgerController extends Controller
             if ($sy !== null && $sem !== null) {
                 $distinctTerms["{$sy}|||{$sem}"] = ['school_year' => $sy, 'semester' => $sem];
             }
-
-            $identity = $this->headerlessIdentity($row, $columnMap);
-            if ($identity !== null) {
-                $fileIdentities[$identity] = true;
-            }
         }
         fclose($handle);
 
         // Resolve lookup maps from the distinct sets
-        [$studentMap, $courseMap, $termMap] = $this->buildImportLookupMaps($distinctStudents, $distinctCourses, $distinctTerms, $now);
-
-        // Build the set of physical transaction fingerprints already in the DB
-        // so a re-import of the same file skips rather than duplicates.
-        $existingFingerprints = $this->existingLedgerFingerprints($fileIdentities, $studentMap);
+        [$studentMap, $courseMap, $termMap] = $this->buildImportLookupMaps($distinctStudents, $distinctCourses, $distinctTerms, $now, $presetCourseId);
 
         // Pass 2: stream rows again, map to insert array, chunk-insert
         $handle = fopen($path, 'r');
@@ -779,83 +760,53 @@ class GraduateLedgerController extends Controller
 
         fgetcsv($handle); // skip header
 
-        $insertData = [];
-        $rowNumber = 1; // row 1 was the header
+        // Pass 2: single transaction wrapping all chunk inserts
+        DB::transaction(function () use (
+            $handle, $studentMap, $courseMap, $termMap, &$warnings,
+            $presetCourseId, $presetTermId, &$skipped, &$imported, $now, $columnMap
+        ): void {
+            $insertData = [];
 
-        $seenFileFingerprints = [];
+            while (($row = fgetcsv($handle)) !== false) {
+                $data = $this->mapImportRowNormalized(
+                    $row,
+                    $studentMap,
+                    $courseMap,
+                    $termMap,
+                    $warnings,
+                    $presetCourseId,
+                    $presetTermId,
+                    $columnMap,
+                );
 
-        while (($row = fgetcsv($handle)) !== false) {
-            $rowNumber++;
-            $data = $this->mapImportRowNormalized(
-                $row,
-                $studentMap,
-                $courseMap,
-                $termMap,
-                $warnings,
-                $presetCourseId,
-                $presetTermId,
-                $rowNumber,
-                $allErrors,
-                $columnMap,
-            );
+                if ($data === null) {
+                    $skipped++;
 
-            if ($data === null) {
-                $skipped++;
+                    continue;
+                }
 
-                continue;
-            }
+                $data['created_at'] = $now;
+                $data['updated_at'] = $now;
+                $insertData[] = $data;
 
-            $fingerprint = $this->ledgerFingerprint($data);
-            if (isset($seenFileFingerprints[$fingerprint])) {
-                $duplicates++;
-
-                continue;
-            }
-            $seenFileFingerprints[$fingerprint] = true;
-
-            if (! empty($existingFingerprints[$fingerprint])) {
-                $existingFingerprints[$fingerprint]--;
-                $duplicates++;
-
-                continue;
-            }
-
-            $data['created_at'] = $now;
-            $data['updated_at'] = $now;
-            $insertData[] = $data;
-
-            if (count($insertData) >= 1000) {
-                DB::transaction(function () use ($insertData) {
+                if (count($insertData) >= 1000) {
                     GraduateLedger::insert($insertData);
-                });
-                $imported += count($insertData);
-                $insertData = [];
+                    $imported += count($insertData);
+                    $insertData = [];
+                }
             }
-        }
 
-        if (! empty($insertData)) {
-            DB::transaction(function () use ($insertData) {
+            if (! empty($insertData)) {
                 GraduateLedger::insert($insertData);
-            });
-            $imported += count($insertData);
-        }
+                $imported += count($insertData);
+            }
+        });
         fclose($handle);
 
         ActivityLog::recordImport(GraduateLedger::class, $imported, 'Graduate Ledger');
 
-        $totalErrors = count($allErrors);
-        $importReport = [
-            'imported' => $imported,
-            'skipped' => $skipped,
-            'duplicates' => $duplicates,
-            'errors' => array_slice($allErrors, 0, 150),
-            'truncated' => $totalErrors > 150,
-            'total_errors' => $totalErrors,
-        ];
-
         return redirect()->route('graduate-ledger.index')
-            ->with('success', $this->importSummary($imported, $skipped, $warnings, $duplicates))
-            ->with('import_report', $importReport);
+            ->with('success', $this->importSummary($imported, $skipped));
     }
 
     /**
@@ -864,10 +815,8 @@ class GraduateLedgerController extends Controller
      * @param  WarningCounts  $warnings
      *
      * @param-out WarningCounts $warnings
-     * @param  list<array{row: int, student: string|null, reason: string}> $allErrors
-     * @param-out list<array{row: int, student: string|null, reason: string}> $allErrors
      */
-     private function importExcel(
+    private function importExcel(
         UploadedFile $uploadedFile,
         int &$imported,
         int &$skipped,
@@ -876,7 +825,6 @@ class GraduateLedgerController extends Controller
         ?int $presetCourseId = null,
         ?int $presetTermId = null,
         int &$duplicates = 0,
-        array &$allErrors = [],
     ): RedirectResponse {
         $path = $uploadedFile->getRealPath();
         if ($path === false) {
@@ -912,7 +860,6 @@ class GraduateLedgerController extends Controller
         $distinctStudents = [];
         $distinctCourses = [];
         $distinctTerms = [];
-        $fileIdentities = [];
 
         $getExcelRow = function (int $r) use ($sheet, $columnMap, $highestColIndex): array {
             if ($columnMap !== null) {
@@ -985,99 +932,63 @@ class GraduateLedgerController extends Controller
             if ($sy !== null && $sem !== null) {
                 $distinctTerms["{$sy}|||{$sem}"] = ['school_year' => $sy, 'semester' => $sem];
             }
-
-            $identity = $this->headerlessIdentity($rawRow, $columnMap);
-            if ($identity !== null) {
-                $fileIdentities[$identity] = true;
-            }
         }
 
         [$studentMap, $courseMap, $termMap] = $this->buildImportLookupMaps(
-            $distinctStudents, $distinctCourses, $distinctTerms, $now
+            $distinctStudents, $distinctCourses, $distinctTerms, $now, $presetCourseId
         );
 
-        $existingFingerprints = $this->existingLedgerFingerprints($fileIdentities, $studentMap);
+        // Pass 2: single transaction wrapping all chunk inserts
+        DB::transaction(function () use (
+            $getExcelRow, $highestRow, $studentMap, $courseMap, $termMap,
+            &$warnings, $presetCourseId, $presetTermId, &$skipped, &$imported, $now, $columnMap
+        ): void {
+            $insertData = [];
 
-        $insertData = [];
+            for ($r = 2; $r <= $highestRow; $r++) {
+                $row = $getExcelRow($r);
 
-        $seenFileFingerprints = [];
+                $data = $this->mapImportRowNormalized(
+                    $row,
+                    $studentMap,
+                    $courseMap,
+                    $termMap,
+                    $warnings,
+                    $presetCourseId,
+                    $presetTermId,
+                    $columnMap,
+                );
 
-        // Pass 2: Map and chunk-insert rows
-        for ($r = 2; $r <= $highestRow; $r++) {
-            $row = $getExcelRow($r);
+                if ($data === null) {
+                    $skipped++;
 
-            $data = $this->mapImportRowNormalized(
-                $row,
-                $studentMap,
-                $courseMap,
-                $termMap,
-                $warnings,
-                $presetCourseId,
-                $presetTermId,
-                $r,
-                $allErrors,
-                $columnMap,
-            );
+                    continue;
+                }
 
-            if ($data === null) {
-                $skipped++;
+                $data['created_at'] = $now;
+                $data['updated_at'] = $now;
+                $insertData[] = $data;
 
-                continue;
-            }
-
-            $fingerprint = $this->ledgerFingerprint($data);
-            if (isset($seenFileFingerprints[$fingerprint])) {
-                $duplicates++;
-
-                continue;
-            }
-            $seenFileFingerprints[$fingerprint] = true;
-
-            if (! empty($existingFingerprints[$fingerprint])) {
-                $existingFingerprints[$fingerprint]--;
-                $duplicates++;
-
-                continue;
-            }
-
-            $data['created_at'] = $now;
-            $data['updated_at'] = $now;
-            $insertData[] = $data;
-
-            if (count($insertData) >= 1000) {
-                DB::transaction(function () use ($insertData) {
+                if (count($insertData) >= 1000) {
                     GraduateLedger::insert($insertData);
-                });
-                $imported += count($insertData);
-                $insertData = [];
+                    $imported += count($insertData);
+                    $insertData = [];
+                }
             }
-        }
 
-        if (! empty($insertData)) {
-            DB::transaction(function () use ($insertData) {
+            if (! empty($insertData)) {
                 GraduateLedger::insert($insertData);
-            });
-            $imported += count($insertData);
-        }
+                $imported += count($insertData);
+            }
+        });
 
         $spreadsheet->disconnectWorksheets();
         unset($spreadsheet);
 
         ActivityLog::recordImport(GraduateLedger::class, $imported, 'Graduate Ledger');
 
-        $totalErrors = count($allErrors);
-        $importReport = [
-            'imported' => $imported,
-            'skipped' => $skipped,
-            'duplicates' => $duplicates,
-            'errors' => array_slice($allErrors, 0, 150),
-            'truncated' => $totalErrors > 150,
-            'total_errors' => $totalErrors,
-        ];
-
         return redirect()->route('graduate-ledger.index')
-            ->with('success', $this->importSummary($imported, $skipped, $warnings, $duplicates))
-            ->with('import_report', $importReport);
+            ->with('success', $this->importSummary($imported, $skipped));
     }
 
     // ─── Print Select / PDF ───────────────────────────────────────────────────
@@ -1456,7 +1367,6 @@ class GraduateLedgerController extends Controller
      * @param  array<string, float>  $termBalances
      * @return array<string, mixed>
      */
-
     private function transformRecord(GraduateLedger $r, array $termBalances = []): array
     {
         $name = $r->student->full_name ?? '';
@@ -1646,13 +1556,11 @@ class GraduateLedgerController extends Controller
 
     /**
      * Pre-build student/course/term lookup maps from pre-collected distinct value arrays.
-     * Accepts the already-collected distinct names/codes/terms to avoid re-iterating raw rows.
+     * Mirrors the Law importer: courses and terms get unassigned fallbacks so imports
+     * never fail on missing codes — only genuinely blank rows are skipped.
+     * When $presetCourseId is provided, unknown courses use the preset instead of auto-creating.
      *
-     * Courses and academic terms are NEVER auto-created here; only students may be inserted
-     * when they do not yet exist in the students table.
-     */
-    /**
-     * @param  array<string, true>  $distinctStudents
+     * @param  array<string, mixed>  $distinctStudents
      * @param  array<string, true>  $distinctCourses  keys are raw trimmed course strings from the file
      * @param  array<string, array{school_year: string, semester: string}>  $distinctTerms
      * @return array{array<string, int>, array<string, int>, array<string, int>}
@@ -1661,7 +1569,8 @@ class GraduateLedgerController extends Controller
         array $distinctStudents,
         array $distinctCourses,
         array $distinctTerms,
-        CarbonInterface $now
+        CarbonInterface $now,
+        ?int $presetCourseId = null,
     ): array {
         // 1. Bulk resolve students
         $existingStudents = Student::query()->get(['id', 'student_number', 'email', 'last_name', 'first_name', 'middle_name']);
@@ -1752,22 +1661,40 @@ class GraduateLedgerController extends Controller
             }
         }
 
-        foreach ($studentNumberUpdates as $id => $sNum) {
-            Student::query()
-                ->whereKey($id)
-                ->where(function ($q) {
-                    $q->whereNull('student_number')->orWhere('student_number', '');
-                })
-                ->update(['student_number' => $sNum, 'updated_at' => $now]);
+        // Bulk-update student_number — one query instead of N
+        if (! empty($studentNumberUpdates)) {
+            $ids = array_keys($studentNumberUpdates);
+            $cases = '';
+            $bindings = [];
+            foreach ($studentNumberUpdates as $id => $sNum) {
+                $cases .= 'WHEN id = ? THEN ? ';
+                $bindings[] = $id;
+                $bindings[] = $sNum;
+            }
+            DB::statement(
+                'UPDATE students SET student_number = CASE '.$cases.' ELSE student_number END, updated_at = ?'
+                .' WHERE id IN ('.implode(',', array_fill(0, count($ids), '?')).')'
+                ." AND (student_number IS NULL OR student_number = '')",
+                array_merge($bindings, [$now, ...$ids])
+            );
         }
 
-        foreach ($emailUpdates as $id => $eMail) {
-            Student::query()
-                ->whereKey($id)
-                ->where(function ($q) {
-                    $q->whereNull('email')->orWhere('email', '');
-                })
-                ->update(['email' => $eMail, 'updated_at' => $now]);
+        // Bulk-update email — one query instead of N
+        if (! empty($emailUpdates)) {
+            $ids = array_keys($emailUpdates);
+            $cases = '';
+            $bindings = [];
+            foreach ($emailUpdates as $id => $eMail) {
+                $cases .= 'WHEN id = ? THEN ? ';
+                $bindings[] = $id;
+                $bindings[] = $eMail;
+            }
+            DB::statement(
+                'UPDATE students SET email = CASE '.$cases.' ELSE email END, updated_at = ?'
+                .' WHERE id IN ('.implode(',', array_fill(0, count($ids), '?')).')'
+                ." AND (email IS NULL OR email = '')",
+                array_merge($bindings, [$now, ...$ids])
+            );
         }
 
         if (! empty($newStudents)) {
@@ -1781,10 +1708,14 @@ class GraduateLedgerController extends Controller
                 Student::insert($chunk);
             }
 
-            $existingStudents = Student::query()->get(['id', 'student_number', 'email', 'last_name', 'first_name', 'middle_name']);
-            $studentsByName = [];
-            $studentsByNumber = [];
-            foreach ($existingStudents as $student) {
+            // Fetch ONLY newly inserted students by last name — merge into existing maps,
+            // no full-table scan.
+            $newLastNames = array_unique(array_column($newStudents, 'last_name'));
+            $freshStudents = Student::query()
+                ->whereIn('last_name', $newLastNames)
+                ->get(['id', 'student_number', 'last_name', 'first_name', 'middle_name']);
+
+            foreach ($freshStudents as $student) {
                 $id = (int) $student->id;
                 if ($student->student_number !== null && $student->student_number !== '') {
                     $studentsByNumber[$student->student_number] = $id;
@@ -1801,24 +1732,15 @@ class GraduateLedgerController extends Controller
                 }
             }
 
-            foreach ($distinctStudents as $key => $studentInfo) {
-                if (is_array($studentInfo)) {
-                    $rawName = (string) ($studentInfo['raw_name'] ?? $key);
-                    $studentNumber = $studentInfo['student_number'] ?? null;
-                    $parsed = [
-                        'last_name' => (string) ($studentInfo['last_name'] ?? ''),
-                        'first_name' => (string) ($studentInfo['first_name'] ?? ''),
-                        'middle_name' => $studentInfo['middle_name'] ?? null,
-                    ];
-                } else {
-                    $rawName = (string) $key;
-                    $studentNumber = null;
-                    $parsed = Student::parseRawName($rawName);
-                }
-
-                $kFull = $this->studentImportKey($parsed['last_name'], $parsed['first_name'], $parsed['middle_name']);
-                $kInitial = $parsed['middle_name'] ? $this->studentImportKey($parsed['last_name'], $parsed['first_name'], substr($parsed['middle_name'], 0, 1)) : $kFull;
-                $kNoMid = $this->studentImportKey($parsed['last_name'], $parsed['first_name'], null);
+            // Populate studentMap for new students only — existing matches already handled above.
+            foreach ($newStudents as $ns) {
+                $rawName = (string) $ns['raw_name'];
+                $studentNumber = $ns['student_number'] ?? null;
+                $kFull = $this->studentImportKey($ns['last_name'], $ns['first_name'], $ns['middle_name'] ?? null);
+                $kInitial = ($ns['middle_name'] ?? null)
+                    ? $this->studentImportKey($ns['last_name'], $ns['first_name'], substr($ns['middle_name'], 0, 1))
+                    : $kFull;
+                $kNoMid = $this->studentImportKey($ns['last_name'], $ns['first_name'], null);
 
                 $matchedId = ($studentNumber !== null ? ($studentsByNumber[$studentNumber] ?? null) : null)
                     ?? $studentsByName[$kFull]
@@ -1835,188 +1757,116 @@ class GraduateLedgerController extends Controller
             }
         }
 
-        // 2. Resolve courses — only match existing master rows.
-        //    Unrecognized courses are NOT auto-created; they will fail row
-        //    resolution and be skipped with a reported reason (unless a preset
-        //    course was selected).
+        // 2. Courses — create graduate fallback; auto-create unrecognized codes only when no preset is given.
         $courseMap = Course::query()
             ->where('course_college', 'Graduate School')
-            ->pluck('id', 'course_code')
-            ->map(fn (mixed $id): int => (int) $id)
+            ->get(['id', 'course_code'])
+            ->mapWithKeys(fn (Course $course): array => [Str::lower(trim($course->course_code)) => (int) $course->id])
             ->all();
 
+        $unassignedCourse = Course::firstOrCreate(
+            ['course_code' => Course::GRADUATE_FALLBACK_CODE],
+            ['course_college' => 'Graduate School', 'course_desc' => 'Unassigned / Pending Graduate Course Assignment', 'created_at' => $now, 'updated_at' => $now]
+        );
+        $courseMap['__DEFAULT__'] = (int) $unassignedCourse->id;
+
         $courseLookup = [];
+        $newCourses = [];
         foreach (array_keys($distinctCourses) as $rawCode) {
-            $normalized = Course::normalizeCode($rawCode);
-            if ($normalized === '') {
+            $code = trim($rawCode);
+            if ($code === '') {
                 continue;
             }
-
-            $canonicalCode = Course::resolveCanonicalCode($rawCode);
-            // Canonical code if recognized, otherwise sanitized raw string
-            $codeToUse = $canonicalCode ?? Course::normalizeCode($rawCode);
-            if (isset($courseMap[$codeToUse])) {
-                $courseLookup[$normalized] = $courseMap[$codeToUse];
+            $lookupKey = Str::lower($code);
+            if (isset($courseMap[$lookupKey])) {
+                $courseLookup[$lookupKey] = $courseMap[$lookupKey];
+            } elseif ($presetCourseId === null) {
+                // MySQL's unique course-code index is case-insensitive, so case-only
+                // variants must share one record. Punctuation and spacing remain raw.
+                $newCourses[$lookupKey] = [
+                    'course_code' => $code,
+                    'course_desc' => $code,
+                    'course_college' => 'Graduate School',
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+        }
+        if (! empty($newCourses)) {
+            foreach (array_chunk(array_values($newCourses), 500) as $chunk) {
+                // Let the database collapse values its case-insensitive unique
+                // index considers equivalent (for example ph.D. and PH.D.).
+                Course::insertOrIgnore($chunk);
+            }
+            $courseMap = Course::query()
+                ->where('course_college', 'Graduate School')
+                ->get(['id', 'course_code'])
+                ->mapWithKeys(fn (Course $course): array => [Str::lower(trim($course->course_code)) => (int) $course->id])
+                ->all();
+            $courseMap['__DEFAULT__'] = (int) $unassignedCourse->id;
+            // Re-build courseLookup with refreshed map
+            $courseLookup = [];
+            foreach (array_keys($distinctCourses) as $rawCode) {
+                $code = trim($rawCode);
+                if ($code === '') {
+                    continue;
+                }
+                $lookupKey = Str::lower($code);
+                if (isset($courseMap[$lookupKey])) {
+                    $courseLookup[$lookupKey] = $courseMap[$lookupKey];
+                }
             }
         }
 
-        // 3. Resolve terms — only match existing master rows.
-        //    Terms that are not seeded yet will fail row resolution and be
-        //    skipped with a reported reason (unless a preset term was selected).
-        $termMap = [];
+        // 3. Terms — create UNASSIGNED fallback; auto-create missing terms.
         $termsInDb = AcademicTerm::get(['id', 'school_year', 'semester'])->toArray();
+        $termMap = [];
         foreach ($termsInDb as $t) {
-            $termMap["{$t['school_year']}|||{$t['semester']}"] = $t['id'];
+            $termMap["{$t['school_year']}|||{$t['semester']}"] = (int) $t['id'];
+        }
+
+        $unassignedTerm = AcademicTerm::firstOrCreate(
+            ['school_year' => 'Unassigned', 'semester' => 'First Semester'],
+            ['created_at' => $now, 'updated_at' => $now]
+        );
+        $termMap['__DEFAULT__'] = (int) $unassignedTerm->id;
+
+        $newTerms = [];
+        foreach ($distinctTerms as $key => $pair) {
+            if (! isset($termMap[$key])) {
+                $newTerms[] = [
+                    'school_year' => $pair['school_year'],
+                    'semester' => $pair['semester'],
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+        }
+        if (! empty($newTerms)) {
+            AcademicTerm::insert($newTerms);
+            $termsInDb = AcademicTerm::get(['id', 'school_year', 'semester'])->toArray();
+            $termMap = [];
+            foreach ($termsInDb as $t) {
+                $termMap["{$t['school_year']}|||{$t['semester']}"] = (int) $t['id'];
+            }
+            $termMap['__DEFAULT__'] = (int) $unassignedTerm->id;
         }
 
         return [$studentMap, $courseLookup, $termMap];
     }
 
     /**
-     * Build a stable file-side identity for a positional row before FK resolution.
-     * The last segment carries the exact raw name so the identity can be resolved
-     * through the same $studentMap used in Pass 2 (guaranteeing consistency).
-     * Rows without a name or amount cannot be deduplicated reliably → return null.
-     *
-     * @param  array<int, mixed>  $row
-     */
-    private function headerlessIdentity(array $row, ?array $columnMap = null): ?string
-    {
-        $studentInfo = $this->extractStudentIdentity($row, $columnMap);
-        if ($studentInfo === null) {
-            return null;
-        }
-
-        $rawName = $studentInfo['raw_name'];
-        $rawStudentNumber = $studentInfo['student_number'];
-
-        $get = function (string $key, int $legacyIdx) use ($row, $columnMap): mixed {
-            if ($columnMap !== null) {
-                return isset($columnMap[$key]) ? ($row[$columnMap[$key]] ?? null) : null;
-            }
-
-            return $row[$legacyIdx] ?? null;
-        };
-
-        $classification = $this->importClassifier->classify(
-            (string) ($get('entry_type', 10) ?? ''),
-            $get('amount', 11) ?? null,
-        );
-
-        $parts = [
-            'name' => strtolower(preg_replace('/\s+/', ' ', $rawName) ?? ''),
-            'ref' => strtolower(trim((string) ($get('reference', 7) ?? ''))),
-            'date' => $this->normalizeImportDateKey($get('date', 6) ?? null),
-            'amount' => number_format($this->cleanAmount((string) ($get('amount', 11) ?? '0')), 2, '.', ''),
-            'type' => $classification['entry_type'],
-            'rawname' => $rawName,
-            'rawstudentnumber' => $rawStudentNumber ?? '',
-        ];
-
-        // \x1F (unit separator) — names may contain '|', this cannot appear in real data.
-        return implode("\x1F", $parts);
-    }
-
-    /**
-     * Fingerprint a fully-mapped ledger insert row (resolved student FK).
-     * Excludes course_id/academic_term_id — those are normalized during import,
-     * so a re-import of the same physical transaction must still match.
-     *
-     * @param  array<string, mixed>  $data
-     */
-    private function ledgerFingerprint(array $data): string
-    {
-        $parts = [
-            'student' => (string) ($data['student_id'] ?? ''),
-            'ref' => strtolower(trim((string) ($data['reference_number'] ?? ''))),
-            'date' => (string) ($data['transaction_date'] ?? ''),
-            'amount' => number_format((float) ($data['amount'] ?? 0), 2, '.', ''),
-            'type' => strtolower(trim((string) ($data['entry_type'] ?? ''))),
-        ];
-
-        return implode('|', $parts);
-    }
-
-    /**
-     * Normalize a transaction-date cell into a stable "Y-m-d" key.
-     */
-    private function normalizeImportDateKey(mixed $value): string
-    {
-        return (string) ($this->normalizeDate($value) ?? '');
-    }
-
-    /**
-     * Query the existing fingerprints in ONE database round-trip so re-imports
-     * can skip rows that are already in the ledger instead of duplicating them.
-     *
-     * @param  array<string, true>  $fileIdentities  file-side identity keys (\x1F separated)
-     * @param  array<string, int>  $studentMap  lookup map resolved in Pass 1
-     * @return array<string, int> fingerprint => remaining duplicate count
-     */
-    private function existingLedgerFingerprints(array $fileIdentities, array $studentMap): array
-    {
-        if ($fileIdentities === []) {
-            return [];
-        }
-
-        $studentIds = [];
-        foreach (array_keys($fileIdentities) as $identity) {
-            $segments = explode("\x1F", $identity);
-            if (count($segments) >= 6) {
-                $rawName = $segments[5];
-                if (isset($studentMap[$rawName])) {
-                    $studentIds[$studentMap[$rawName]] = true;
-                }
-                if (isset($segments[6]) && $segments[6] !== '' && isset($studentMap['num:'.$segments[6]])) {
-                    $studentIds[$studentMap['num:'.$segments[6]]] = true;
-                }
-            }
-        }
-
-        $uniqueStudentIds = array_keys($studentIds);
-        if ($uniqueStudentIds === []) {
-            return [];
-        }
-
-        $counts = [];
-        $records = GraduateLedger::query()
-            ->whereIn('student_id', $uniqueStudentIds)
-            ->get(['student_id', 'reference_number', 'transaction_date', 'amount', 'entry_type']);
-
-        foreach ($records as $r) {
-            $dateStr = '';
-            if ($r->transaction_date instanceof \DateTimeInterface) {
-                $dateStr = $r->transaction_date->format('Y-m-d');
-            } elseif (! empty($r->transaction_date)) {
-                $dateStr = substr((string) $r->transaction_date, 0, 10);
-            }
-
-            $key = implode('|', [
-                (string) $r->student_id,
-                strtolower(trim((string) $r->reference_number)),
-                $dateStr,
-                number_format((float) $r->amount, 2, '.', ''),
-                strtolower(trim((string) $r->entry_type)),
-            ]);
-
-            $counts[$key] = ($counts[$key] ?? 0) + 1;
-        }
-
-        return $counts;
-    }
-
-    /**
      * Maps a positional row to normalized (FK-based) DB columns.
+     * Mirrors Law: uses unassigned fallbacks for course/term; never returns null
+     * for resolvable rows — only genuinely blank rows return null.
      *
      * @param  array<int, mixed>  $row
      * @param  array<string, int>  $studentMap
      * @param  array<string, int>  $courseMap
      * @param  array<string, int>  $termMap
      * @param  WarningCounts  $warnings
-     * @param  list<array{row: int, student: ?string, reason: string}>  $allErrors
      *
      * @param-out WarningCounts $warnings
-     * @param-out list<array{row: int, student: ?string, reason: string}> $allErrors
      *
      * @return array<string, mixed>|null
      */
@@ -2028,28 +1878,10 @@ class GraduateLedgerController extends Controller
         array &$warnings,
         ?int $presetCourseId = null,
         ?int $presetTermId = null,
-        ?int $rowNumber = null,
-        array &$allErrors = [],
         ?array $columnMap = null,
     ): ?array {
         $studentInfo = $this->extractStudentIdentity($row, $columnMap);
         if ($studentInfo === null) {
-            // Check if entire row is blank
-            $hasAnyData = false;
-            foreach ($row as $cell) {
-                if (trim((string) $cell) !== '') {
-                    $hasAnyData = true;
-                    break;
-                }
-            }
-            if ($hasAnyData && $rowNumber !== null) {
-                $allErrors[] = [
-                    'row' => $rowNumber,
-                    'student' => null,
-                    'reason' => 'Missing student name',
-                ];
-            }
-
             return null;
         }
 
@@ -2067,31 +1899,14 @@ class GraduateLedgerController extends Controller
         $rawAmount = (string) ($get('amount', 11) ?? '0');
         $rawTuition = (string) ($get('rate', 9) ?? '0');
 
-        // ── Course resolution ────────────────────────────────────────────────
+        // ── Course resolution — fallback to UNASSIGNED_GRAD ──────────────────
         $rawCode = trim((string) ($get('course', 1) ?? ''));
-        $normalizedRaw = $rawCode !== '' ? Course::normalizeCode($rawCode) : '';
-        // courseMap is keyed by normalized raw → id (see buildImportLookupMaps)
-        $courseId = $normalizedRaw !== '' ? ($courseMap[$normalizedRaw] ?? null) : null;
+        $courseId = $rawCode !== '' ? ($courseMap[Str::lower($rawCode)] ?? null) : null;
         if ($courseId === null) {
-            $courseId = $presetCourseId;
+            $courseId = $presetCourseId ?? ($courseMap['__DEFAULT__'] ?? null);
         }
 
-        if ($courseId === null) {
-            if ($rowNumber !== null) {
-                $reason = $rawCode !== ''
-                    ? "Unrecognized course '{$rawCode}' (select a preset fallback or register the course first)"
-                    : 'Missing course (select a preset fallback or assign a course)';
-                $allErrors[] = [
-                    'row' => $rowNumber,
-                    'student' => $rawName,
-                    'reason' => $reason,
-                ];
-            }
-
-            return null;
-        }
-
-        // ── Term resolution ──────────────────────────────────────────────────
+        // ── Term resolution — fallback to UNASSIGNED ─────────────────────────
         $rawSY = trim((string) ($get('school_year', 2) ?? ''));
         $sy = AcademicTerm::parseSchoolYear($rawSY);
         $rawSemE = trim((string) ($get('semester', 4) ?? ''));
@@ -2102,63 +1917,34 @@ class GraduateLedgerController extends Controller
             ? ($termMap["{$sy}|||{$sem}"] ?? null)
             : null;
         if ($academicTermId === null) {
-            $academicTermId = $presetTermId;
+            $academicTermId = $presetTermId ?? ($termMap['__DEFAULT__'] ?? null);
         }
 
-        if ($academicTermId === null) {
-            if ($rowNumber !== null) {
-                $allErrors[] = [
-                    'row' => $rowNumber,
-                    'student' => $rawName,
-                    'reason' => "Invalid school year or semester ('{$rawSY}' / '{$rawSem}')",
-                ];
-            }
-
-            return null;
-        }
-
-        // ── Amount validation ────────────────────────────────────────────────
+        // ── Amount ───────────────────────────────────────────────────────────
         $cleanedAmount = $this->cleanAmount($rawAmount);
         $cleanedRate = $this->cleanAmount($rawTuition);
         $rawUnits = $get('units', 5);
         $units = is_numeric($rawUnits) ? (float) $rawUnits : null;
 
-        // If amount is 0 and there are units/tuition rate that should have computed an amount
-        if ($cleanedAmount <= 0 && ($units > 0 && $cleanedRate > 0)) {
-            if ($rowNumber !== null) {
-                $allErrors[] = [
-                    'row' => $rowNumber,
-                    'student' => $rawName,
-                    'reason' => 'Invalid or zero transaction amount',
-                ];
-            }
-
-            return null;
-        }
-
+        // ── Classify entry type ───────────────────────────────────────────────
         $rawType = (string) ($get('entry_type', 10) ?? '');
         $classification = $this->importClassifier->classify(
             $rawType,
             $get('amount', 11) ?? null,
         );
 
-        if ($classification['warning'] !== null) {
-            $warnings[$classification['warning']]++;
-        }
-
+        // ── Student lookup ───────────────────────────────────────────────────
         $studentId = ($rawStudentNumber !== null ? ($studentMap['num:'.$rawStudentNumber] ?? null) : null)
             ?? ($studentMap[$rawName] ?? null);
 
         if ($studentId === null) {
-            if ($rowNumber !== null) {
-                $allErrors[] = [
-                    'row' => $rowNumber,
-                    'student' => $rawName,
-                    'reason' => 'Could not resolve student account',
-                ];
-            }
-
+            // Student was not created (entirely blank name parsed) — skip
             return null;
+        }
+
+        $particulars = trim((string) ($get('particulars', 8) ?? ''));
+        if ($particulars === '') {
+            $particulars = 'Tuition';
         }
 
         return [
@@ -2168,10 +1954,10 @@ class GraduateLedgerController extends Controller
             'units' => $units,
             'transaction_date' => $this->normalizeDate($get('date', 6) ?? null),
             'reference_number' => trim((string) ($get('reference', 7) ?? '')),
-            'particulars' => trim((string) ($get('particulars', 8) ?? '')) ?: '—',
+            'particulars' => $particulars,
             'rate' => $cleanedRate,
             'entry_type' => $classification['entry_type'],
-            'amount' => $cleanedAmount,
+            'amount' => abs($cleanedAmount),
             'remarks' => $this->cleanRemarks($get('remarks', 12) ?? null),
             'status' => 'posted',
             'input_by' => auth()->id(),
@@ -2244,7 +2030,7 @@ class GraduateLedgerController extends Controller
             $map['middle_name'] = $middleIdx - 1;
         }
 
-        $nameIdx = $this->headerIndex($headerRow, ['full_name', 'student_name', 'name', 'student', 'name_last_name_first_name_m_i', 'name_last_name_first_name_mi']);
+        $nameIdx = $this->headerIndex($headerRow, ['full_name', 'student_name', 'name', 'student', 'ff', 'name_last_name_first_name_m_i', 'name_last_name_first_name_mi']);
         if ($nameIdx !== null) {
             $map['name'] = $nameIdx - 1;
         }
@@ -2509,40 +2295,12 @@ class GraduateLedgerController extends Controller
 
     private function emptyImportWarnings(): array
     {
-        return [
-            GraduateLedgerImportClassifier::WARNING_NEGATIVE_BLANK_TYPE => 0,
-            GraduateLedgerImportClassifier::WARNING_NEGATIVE_LABELED_AR => 0,
-            GraduateLedgerImportClassifier::WARNING_PAYMENT_MISSING_PARENTHESES => 0,
-        ];
+        return [];
     }
 
-    /** @param  WarningCounts  $warnings */
-    private function importSummary(int $imported, int $skipped, array $warnings, int $duplicates = 0): string
+    private function importSummary(int $imported, int $skipped): string
     {
-        $summary = "Import complete: {$imported} records imported, {$skipped} blank rows skipped.";
-        if ($duplicates > 0) {
-            $summary .= " {$duplicates} duplicate row(s) skipped (already in ledger).";
-        }
-        $details = [];
-
-        if ($warnings[GraduateLedgerImportClassifier::WARNING_NEGATIVE_BLANK_TYPE] > 0) {
-            $details[] = $warnings[GraduateLedgerImportClassifier::WARNING_NEGATIVE_BLANK_TYPE]
-                .' negative amount(s) with a blank or unknown type were imported as payments';
-        }
-
-        if ($warnings[GraduateLedgerImportClassifier::WARNING_NEGATIVE_LABELED_AR] > 0) {
-            $details[] = $warnings[GraduateLedgerImportClassifier::WARNING_NEGATIVE_LABELED_AR]
-                .' negative amount(s) labeled AR were kept as AR; their signs were normalized';
-        }
-
-        if ($warnings[GraduateLedgerImportClassifier::WARNING_PAYMENT_MISSING_PARENTHESES] > 0) {
-            $details[] = $warnings[GraduateLedgerImportClassifier::WARNING_PAYMENT_MISSING_PARENTHESES]
-                .' positive amount(s) labeled PAYMENT were kept as payments; review their Excel formatting';
-        }
-
-        return $details === []
-            ? $summary
-            : $summary.' Warnings: '.implode('; ', $details).'.';
+        return "Import complete: {$imported} records imported, {$skipped} blank rows skipped.";
     }
 
     private function normalizeDate(mixed $value): ?string

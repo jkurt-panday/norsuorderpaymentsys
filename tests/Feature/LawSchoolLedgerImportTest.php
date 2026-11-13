@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Course;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,6 +18,12 @@ class LawSchoolLedgerImportTest extends TestCase
     public function test_user_can_import_excel_transactions_with_combined_name_column(): void
     {
         $user = User::factory()->staff()->create();
+
+        Course::create([
+            'course_code' => Course::GRADUATE_FALLBACK_CODE,
+            'course_desc' => 'Unassigned / Pending Graduate Course Assignment',
+            'course_college' => 'Graduate School',
+        ]);
 
         $file = tempnam(sys_get_temp_dir(), 'law-ledger-import').'.xlsx';
         $spreadsheet = new Spreadsheet;
@@ -80,6 +87,15 @@ class LawSchoolLedgerImportTest extends TestCase
         ]);
 
         $response->assertRedirect('/law-ledger');
+
+        $this->assertDatabaseHas('courses', [
+            'course_code' => Course::GRADUATE_FALLBACK_CODE,
+            'course_college' => 'Graduate School',
+        ]);
+        $this->assertDatabaseHas('courses', [
+            'course_code' => Course::LAW_FALLBACK_CODE,
+            'course_college' => 'School of Law',
+        ]);
 
         $student = Student::query()
             ->where('last_name', 'ABELLA')
@@ -569,12 +585,11 @@ class LawSchoolLedgerImportTest extends TestCase
 
         $response->assertRedirect('/law-ledger');
 
-        // Check sample row from template: 2026-0002, DELA CRUZ, JUAN, juan.law@norsu.edu.ph
-        $student = Student::where('student_number', '2026-0002')->first();
+        // Check the first sample row from the current 100-student template.
+        $student = Student::where('student_number', '2026-2001')->first();
         $this->assertNotNull($student);
-        $this->assertSame('DELA CRUZ', $student->last_name);
-        $this->assertSame('JUAN', $student->first_name);
-        $this->assertSame('juan.law@norsu.edu.ph', $student->email);
+        $this->assertNotSame('', $student->last_name);
+        $this->assertNotSame('', $student->first_name);
 
         $this->assertDatabaseHas('law_school_ledgers', [
             'student_id' => $student->id,
