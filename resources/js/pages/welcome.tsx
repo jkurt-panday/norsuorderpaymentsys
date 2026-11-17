@@ -162,7 +162,7 @@ export default function Welcome() {
                                 <LogIn aria-hidden="true" className="size-4" />
                             )}
                             <span className="hidden sm:inline">
-                                {auth.user ? 'Open dashboard' : 'Staff sign in'}
+                                {auth.user ? 'Open dashboard' : 'Sign in'}
                             </span>
                             <span className="sm:hidden">
                                 {auth.user ? 'Dashboard' : 'Staff'}
@@ -191,7 +191,7 @@ export default function Welcome() {
                                 </h1>
                                 <p className="mt-6 max-w-[62ch] text-lg leading-8 text-blue-100 sm:text-xl">
                                     Submit an Order of Payment or request a
-                                    student assessment online—no office visit
+                                    student assessment online no office visit
                                     needed to get started.
                                 </p>
                             </div>
@@ -296,11 +296,10 @@ export default function Welcome() {
                                             onClick={() =>
                                                 setSelectedProcess(type)
                                             }
-                                            className={`min-h-11 rounded-lg px-3 py-2 text-center text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0d51b5] focus-visible:ring-offset-2 sm:px-6 ${
-                                                selectedProcess === type
-                                                    ? 'bg-[#064b9b] text-white'
-                                                    : 'text-[#294765] hover:bg-white'
-                                            }`}
+                                            className={`min-h-11 rounded-lg px-3 py-2 text-center text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0d51b5] focus-visible:ring-offset-2 sm:px-6 ${selectedProcess === type
+                                                ? 'bg-[#064b9b] text-white'
+                                                : 'text-[#294765] hover:bg-white'
+                                                }`}
                                         >
                                             {processes[type].label}
                                         </button>
@@ -311,11 +310,10 @@ export default function Welcome() {
                             <ol
                                 aria-live="polite"
                                 aria-label={`${process.label} process`}
-                                className={`relative mt-12 grid gap-8 before:absolute before:top-8 before:bottom-8 before:left-8 before:w-px before:bg-[#9fc4ee] sm:mt-14 lg:gap-10 lg:before:top-8 lg:before:right-8 lg:before:bottom-auto lg:before:left-8 lg:before:h-px lg:before:w-auto ${
-                                    selectedProcess === 'assessment'
-                                        ? 'lg:grid-cols-4'
-                                        : 'lg:grid-cols-3'
-                                }`}
+                                className={`relative mt-12 grid gap-8 before:absolute before:top-8 before:bottom-8 before:left-8 before:w-px before:bg-[#9fc4ee] sm:mt-14 lg:gap-10 lg:before:top-8 lg:before:right-8 lg:before:bottom-auto lg:before:left-8 lg:before:h-px lg:before:w-auto ${selectedProcess === 'assessment'
+                                    ? 'lg:grid-cols-4'
+                                    : 'lg:grid-cols-3'
+                                    }`}
                             >
                                 {process.steps.map((step, index) => (
                                     <li
@@ -367,7 +365,7 @@ export default function Welcome() {
                                     <p className="mt-2 leading-7 text-blue-100">
                                         Negros Oriental State University
                                         <br />
-                                        Main Campus
+                                        Main Campus I
                                     </p>
                                 </div>
                             </div>
