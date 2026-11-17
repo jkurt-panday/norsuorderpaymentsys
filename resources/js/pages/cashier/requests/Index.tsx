@@ -100,25 +100,13 @@ const CashierRequestsIndex: React.FC<Props> = ({ requests, filters }) => {
         applyFilters();
     };
 
-    const handleReset = () => {
+const handleReset = () => {
+        // RequestTable handles the query-string wipe + reload itself; this
+        // only clears the local filter state the parent owns.
         setSearch('');
         setStatus('');
         setDateFrom('');
         setDateTo('');
-        router.get(
-            cashier.requests.index.url(),
-            {
-                search: undefined,
-                status: undefined,
-                date_from: undefined,
-                date_to: undefined,
-            },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
-        );
     };
 
     const handlePageChange = (url: string) => {

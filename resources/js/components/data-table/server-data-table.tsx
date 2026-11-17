@@ -8,8 +8,9 @@ import {
     ArrowUp,
     ArrowDown,
     Search,
-    RotateCw,
+    RotateCcw,
     SlidersHorizontal,
+    X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -33,6 +34,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useReloadCooldown } from '@/hooks/use-reload-cooldown';
 
 interface ServerFilters {
     search: string;
@@ -197,7 +199,42 @@ export function ServerDataTable<TData extends RowData>({
         visit({ sort: columnId, direction: nextDirection });
     };
 
-    const resetAll = () => {
+    // Whether any filter is currently applied. The X icon renders when this is
+    // true, so it's available as soon as you start filtering.
+    const hasActiveFilters = Boolean(
+        search.trim() ||
+            dateFrom ||
+            dateTo ||
+            Object.keys(pendingExtra).length > 0 ||
+            filters.sort ||
+            filters.direction !== 'asc',
+    );
+
+    const {
+        reload: handleReset,
+        isReloading: isResetting,
+        cooldown: resetCooldown,
+        canReload: canReset,
+    } = useReloadCooldown({
+        only: [],
+        durationSeconds: 10,
+        perform: (finish) => {
+            setSearch('');
+            setDateFrom(undefined);
+            setDateTo(undefined);
+            setPendingExtra({});
+            router.get(
+                route,
+                {},
+                { preserveState: true, preserveScroll: true, replace: true },
+            );
+            finish();
+        },
+    });
+
+    // Clear filters without the 10s cooldown — the X icon only shows up
+    // when filters are actually applied, so it can't be spammed.
+    const handleClearFilters = () => {
         setSearch('');
         setDateFrom(undefined);
         setDateTo(undefined);
@@ -265,14 +302,43 @@ export function ServerDataTable<TData extends RowData>({
                             <Search className="h-4 w-4" />
                         </Button>
 
+                        {hasActiveFilters && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 gap-1.5 text-xs"
+                                onClick={handleClearFilters}
+                                title="Clear filters"
+                            >
+                                <X className="mr-1.5 h-3.5 w-3.5" />
+                                Clear
+                            </Button>
+                        )}
+
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={resetAll}
-                            title="Reset table"
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-input bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            size="sm"
+                            className="h-9 gap-1.5 text-xs"
+                            onClick={handleReset}
+                            disabled={!canReset}
+                            title={
+                                resetCooldown > 0
+                                    ? `Wait ${resetCooldown}s to reset`
+                                    : 'Reset search, filter and sorting'
+                            }
                         >
-                            <RotateCw className="h-4 w-4" />
+                            <RotateCcw
+                                className={`mr-1.5 h-3.5 w-3.5 ${isResetting ? 'animate-spin' : ''}`}
+                            />
+                            <span>
+                                {resetCooldown > 0
+                                    ? `Reset (${resetCooldown}s)`
+                                    : isResetting
+                                      ? 'Resetting...'
+                                      : 'Reset'}
+                            </span>
                         </Button>
                     </div>
 

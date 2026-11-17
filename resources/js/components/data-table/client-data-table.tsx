@@ -7,8 +7,9 @@ import {
     ArrowUp,
     ArrowDown,
     Search,
-    RotateCw,
+    RotateCcw,
     SlidersHorizontal,
+    X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -39,6 +40,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useReloadCooldown } from '@/hooks/use-reload-cooldown';
 
 const formatColumnLabel = (columnId: string) => {
     const sentence = columnId.replaceAll('_', ' ').toLowerCase();
@@ -142,14 +144,45 @@ export function ClientDataTable<TData extends RowData>({
         pageSize: 10,
     });
 
-    const runSearch = () => setAppliedSearch(searchInput);
+    // Whether any filter is currently applied. The X icon renders when this is
+    // true, so it's available as soon as you start filtering.
+    const hasActiveFilters = Boolean(
+        searchInput.trim() ||
+        appliedSearch ||
+        Object.values(filterValues).some((v) => v && v !== 'all') ||
+        sorting.length > 0,
+    );
 
-    const resetAll = () => {
+    const {
+        reload: handleReset,
+        isReloading: isResetting,
+        cooldown: resetCooldown,
+        canReload: canReset,
+    } = useReloadCooldown({
+        only: [],
+        durationSeconds: 10,
+        perform: (finish) => {
+            // Client-side reset: just clear local state, no server call needed
+            setSearchInput('');
+            setAppliedSearch('');
+            setFilterValues({});
+            setSorting([]);
+            setPagination({ pageIndex: 0, pageSize: 10 });
+            finish();
+        },
+    });
+
+    // Clear filters without the 10s cooldown — the X icon only shows up
+    // when filters are actually applied, so it can't be spammed.
+    const handleClearFilters = () => {
         setSearchInput('');
         setAppliedSearch('');
         setFilterValues({});
         setSorting([]);
+        setPagination({ pageIndex: 0, pageSize: 10 });
     };
+
+    const runSearch = () => setAppliedSearch(searchInput);
 
     const filteredData = useMemo(() => {
         const needle = appliedSearch.toLowerCase();
@@ -170,7 +203,7 @@ export function ClientDataTable<TData extends RowData>({
                     !selectedValue ||
                     selectedValue === 'all' ||
                     String(row[currentFilter.column] ?? '').toLowerCase() ===
-                        selectedValue.toLowerCase()
+                    selectedValue.toLowerCase()
                 );
             });
 
@@ -218,14 +251,45 @@ export function ClientDataTable<TData extends RowData>({
                             >
                                 <Search className="h-4 w-4" />
                             </button>
-                            <button
+
+                            {hasActiveFilters && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-9 gap-1.5 text-xs"
+                                    onClick={handleClearFilters}
+                                    title="Clear filters"
+                                >
+                                    <X className="mr-1.5 h-3.5 w-3.5" />
+                                    Clear
+                                </Button>
+                            )}
+
+                            <Button
                                 type="button"
-                                onClick={resetAll}
-                                title="Reset table"
-                                className="flex h-10 w-10 items-center justify-center rounded-xl border border-input bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                variant="outline"
+                                size="sm"
+                                className="h-9 gap-1.5 text-xs"
+                                onClick={handleReset}
+                                disabled={!canReset}
+                                title={
+                                    resetCooldown > 0
+                                        ? `Wait ${resetCooldown}s to reset`
+                                        : 'Reset search, filter and sorting'
+                                }
                             >
-                                <RotateCw className="h-4 w-4" />
-                            </button>
+                                <RotateCcw
+                                    className={`mr-1.5 h-3.5 w-3.5 ${isResetting ? 'animate-spin' : ''}`}
+                                />
+                                <span>
+                                    {resetCooldown > 0
+                                        ? `Reset (${resetCooldown}s)`
+                                        : isResetting
+                                            ? 'Resetting...'
+                                            : 'Reset'}
+                                </span>
+                            </Button>
                         </>
                     )}
                     <DropdownMenu>
@@ -354,7 +418,7 @@ export function ClientDataTable<TData extends RowData>({
                                                         onClick={() =>
                                                             header.column.toggleSorting(
                                                                 sortDir ===
-                                                                    'asc',
+                                                                'asc',
                                                             )
                                                         }
                                                         className="inline-flex items-center gap-1.5 hover:text-foreground"
@@ -365,7 +429,7 @@ export function ClientDataTable<TData extends RowData>({
                                                         {sortDir === 'asc' ? (
                                                             <ArrowUp className="h-3.5 w-3.5" />
                                                         ) : sortDir ===
-                                                          'desc' ? (
+                                                            'desc' ? (
                                                             <ArrowDown className="h-3.5 w-3.5" />
                                                         ) : (
                                                             <ArrowUpDown className="h-3.5 w-3.5 opacity-40" />

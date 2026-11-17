@@ -1,12 +1,9 @@
 import { Head } from '@inertiajs/react';
-import { RefreshCw } from 'lucide-react';
 import { AssessmentFilters } from './assessment-filters';
 import { columns } from './columns';
 import type { AssessmentType } from './columns';
 import { ServerDataTable } from '@/components/data-table/server-data-table';
-import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
-import { useReloadCooldown } from '@/hooks/use-reload-cooldown';
 
 type AssessmentProps = {
     assessments: {
@@ -42,15 +39,6 @@ export default function AssessmentIndex({
     filters,
     filterOptions,
 }: AssessmentProps) {
-    const {
-        reload: handleAssessmentReload,
-        isReloading: isAssessmentReloading,
-        cooldown: reloadCooldown,
-        canReload,
-    } = useReloadCooldown({
-        only: ['assessments'],
-    });
-
     return (
         <>
             <div className="mx-auto min-h-screen w-full max-w-7xl min-w-0 space-y-4 bg-page-background p-3 sm:p-6">
@@ -60,30 +48,6 @@ export default function AssessmentIndex({
                         <CardTitle className="bg-[#3399FF] font-['Poppins'] bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                             Assessments
                         </CardTitle>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="gap-1.5"
-                            onClick={handleAssessmentReload}
-                            disabled={!canReload}
-                            title={
-                                reloadCooldown > 0
-                                    ? `Wait ${reloadCooldown}s to reload`
-                                    : 'Reload assessments'
-                            }
-                        >
-                            <RefreshCw
-                                className={`h-4 w-4 ${isAssessmentReloading ? 'animate-spin' : ''}`}
-                            />
-                            <span>
-                                {isAssessmentReloading
-                                    ? 'Reloading...'
-                                    : reloadCooldown > 0
-                                      ? `Reload (${reloadCooldown}s)`
-                                      : 'Reload'}
-                            </span>
-                        </Button>
                     </CardHeader>
                 </Card>
 

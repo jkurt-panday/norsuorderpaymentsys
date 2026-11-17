@@ -135,7 +135,7 @@ export default function Dashboard() {
         <div className="min-h-screen bg-page-background px-4 py-8">
             <Head title="Dashboard" />
             <div className="mx-auto max-w-7xl">
-                <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-border bg-card p-6 shadow-sm md:flex-row md:items-center md:justify-between">
+                <div className="mb-6 flex flex-col gap-4 rounded-3xl border border-border bg-card p-5 shadow-sm md:flex-row md:items-center md:justify-between">
                     <div>
                         <CardTitle className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
                             Dashboard
@@ -179,7 +179,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Stat cards */}
-                <div className="grid gap-5 md:grid-cols-6">
+                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
                     <StatCard
                         label="Total Requests"
                         value={totalRequests}
