@@ -1,4 +1,5 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { ArrowLeft } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -97,6 +98,14 @@ export default function Login({
     return (
         <AuthSplitLayout>
             <Head title="Order of Payment System – Sign in" />
+
+            <Link
+                href="/"
+                className="absolute top-4 left-4 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                aria-label="Back to landing page"
+            >
+                <ArrowLeft className="h-5 w-5" />
+            </Link>
 
             <h2 className="font-heading text-[30px] leading-tight font-bold text-[#0F1E33] dark:text-[#E6EEF8]">
                 Sign in

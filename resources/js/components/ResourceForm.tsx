@@ -191,15 +191,18 @@ export default function ResourceForm({
                                             value={data[field.name] ?? ''}
                                             onChange={(e) => {
                                                 let val = e.target.value;
+
                                                 if (field.numericOnly) {
                                                     val = val.replace(/\D/g, '');
                                                 }
+
                                                 if (
                                                     field.maxLength !== undefined &&
                                                     val.length > field.maxLength
                                                 ) {
                                                     val = val.slice(0, field.maxLength);
                                                 }
+
                                                 setData(field.name, val);
                                             }}
                                             required={field.required}
