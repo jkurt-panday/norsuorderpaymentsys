@@ -1,8 +1,16 @@
 <?php
 
+use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\AssessmentController;
+use App\Http\Controllers\Api\LedgerController;
+use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CashierRequestController;
 use App\Http\Controllers\Api\PublicAssessmentFormController;
 use App\Http\Controllers\Api\PublicOpFormController;
+use App\Http\Controllers\Api\SupportingDocumentController;
+use App\Http\Controllers\Api\MasterDataController;
+use App\Http\Controllers\CollegeOfficeController;
 use App\Http\Controllers\Api\StaffRequestController;
 use Illuminate\Support\Facades\Route;
 
@@ -70,7 +78,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             ->name('assessmentform.download');
 
         // ── Public: College offices ───────────────────────────────────────────
-        Route::post('/college-offices', fn () => response()->json(['message' => 'Not implemented.'], 501))
+        Route::post('/college-offices', [CollegeOfficeController::class, 'store'])
             ->middleware('throttle:public-form')
             ->name('college-offices.store');
     });
@@ -104,158 +112,81 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
         // ── Cashier requests ──────────────────────────────────────────────────
         Route::prefix('cashier/requests')->name('cashier.requests.')->middleware('cashier')->group(function () {
-            Route::get('/', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('index');
-            Route::get('/{staffInput}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('show');
-            Route::put('/{staffInput}/payment', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('payment.update');
+            Route::get('/', [CashierRequestController::class, 'index'])->name('index');
+            Route::get('/{staffInput}', [CashierRequestController::class, 'show'])->name('show');
+            Route::put('/{staffInput}/payment', [CashierRequestController::class, 'updatePayment'])->name('payment.update');
         });
 
         // ── Supporting documents ──────────────────────────────────────────────
         Route::prefix('documents')->name('documents.')->middleware('staff')->group(function () {
-            Route::get('/', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('index');
-            Route::post('/', fn () => response()->json(['message' => 'Not implemented.'], 501))
+            Route::get('/', [SupportingDocumentController::class, 'index'])->name('index');
+            Route::post('/', [SupportingDocumentController::class, 'store'])
                 ->middleware('throttle:upload')
                 ->name('store');
-            Route::get('/{supportingDocument}/view', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('view');
-            Route::get('/{supportingDocument}/download', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('download');
-            Route::delete('/{supportingDocument}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('destroy');
+            Route::get('/{supportingDocument}/view', [SupportingDocumentController::class, 'view'])->name('view');
+            Route::get('/{supportingDocument}/download', [SupportingDocumentController::class, 'download'])->name('download');
+            Route::delete('/{supportingDocument}', [SupportingDocumentController::class, 'destroy'])->name('destroy');
         });
 
         // ── Admin ─────────────────────────────────────────────────────────────
         Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
-            Route::get('/dashboard', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('dashboard');
-            Route::get('/activity-log', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('activity-log');
-            Route::get('/users', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('users.index');
-            Route::post('/users', fn () => response()->json(['message' => 'Not implemented.'], 501))
+            Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+            Route::get('/activity-log', [AdminController::class, 'activityLog'])->name('activity-log');
+            Route::get('/users', [AdminController::class, 'index'])->name('users.index');
+            Route::post('/users', [AdminController::class, 'store'])
                 ->middleware('throttle:10,1')
                 ->name('users.store');
-            Route::put('/users/{id}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('users.update');
-            Route::put('/users/{id}/toggle', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('users.toggle');
-            Route::delete('/users/{id}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('users.destroy');
+            Route::put('/users/{id}', [AdminController::class, 'update'])->name('users.update');
+            Route::put('/users/{id}/toggle', [AdminController::class, 'toggle'])->name('users.toggle');
+            Route::delete('/users/{id}', [AdminController::class, 'destroy'])->name('users.destroy');
         });
 
         // ── Master data ───────────────────────────────────────────────────────
         Route::middleware('staff')->group(function () {
-            // Memberships
-            Route::get('/memberships', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('memberships.index');
-            Route::post('/memberships', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('memberships.store');
-            Route::put('/memberships/{membership}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('memberships.update');
-            Route::delete('/memberships/{membership}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('memberships.destroy');
-
-            // Payment options
-            Route::get('/payment-options', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('payment-options.index');
-            Route::post('/payment-options', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('payment-options.store');
-            Route::put('/payment-options/{paymentOption}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('payment-options.update');
-            Route::delete('/payment-options/{paymentOption}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('payment-options.destroy');
-
-            // Bank accounts
-            Route::get('/bank-accounts', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('bank-accounts.index');
-            Route::post('/bank-accounts', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('bank-accounts.store');
-            Route::put('/bank-accounts/{bankAccount}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('bank-accounts.update');
-            Route::delete('/bank-accounts/{bankAccount}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('bank-accounts.destroy');
-
-            // UACS
-            Route::get('/uacs', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('uacs.index');
-            Route::post('/uacs', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('uacs.store');
-            Route::put('/uacs/{uacs}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('uacs.update');
-            Route::delete('/uacs/{uacs}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('uacs.destroy');
-            Route::get('/uacs/export', fn () => response()->json(['message' => 'Not implemented.'], 501))
-                ->middleware('throttle:export')
-                ->name('uacs.export');
-            Route::post('/uacs/import', fn () => response()->json(['message' => 'Not implemented.'], 501))
-                ->middleware('throttle:import')
-                ->name('uacs.import');
-
-            // Authorized officials
-            Route::get('/authorized-officials', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('authorized-officials.index');
-            Route::post('/authorized-officials', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('authorized-officials.store');
-            Route::put('/authorized-officials/{authorizedOfficial}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('authorized-officials.update');
-            Route::delete('/authorized-officials/{authorizedOfficial}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('authorized-officials.destroy');
-            Route::put('/authorized-officials/{authorizedOfficial}/set-active', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('authorized-officials.set-active');
-
-            // Courses
-            Route::get('/courses', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('courses.index');
-            Route::post('/courses', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('courses.store');
-            Route::put('/courses/{course}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('courses.update');
-            Route::delete('/courses/{course}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('courses.destroy');
-
-            // Academic terms
-            Route::get('/academic-terms', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('academic-terms.index');
-            Route::post('/academic-terms', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('academic-terms.store');
-            Route::put('/academic-terms/{academicTerm}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('academic-terms.update');
-            Route::delete('/academic-terms/{academicTerm}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('academic-terms.destroy');
+            foreach (['memberships', 'payment-options', 'bank-accounts', 'uacs', 'authorized-officials', 'courses', 'academic-terms', 'college-offices'] as $resource) {
+                Route::get('/'.$resource, [MasterDataController::class, 'index'])->defaults('resource', $resource)->name($resource.'.index');
+                Route::post('/'.$resource, [MasterDataController::class, 'store'])->defaults('resource', $resource)->name($resource.'.store');
+                Route::put('/'.$resource.'/{id}', [MasterDataController::class, 'update'])->defaults('resource', $resource)->name($resource.'.update');
+                Route::delete('/'.$resource.'/{id}', [MasterDataController::class, 'destroy'])->defaults('resource', $resource)->name($resource.'.destroy');
+            }
+            Route::put('/authorized-officials/{id}/set-active', [MasterDataController::class, 'setActive'])->name('authorized-officials.set-active');
+            Route::get('/uacs/export', [MasterDataController::class, 'exportUacs'])->middleware('throttle:export')->name('uacs.export');
+            Route::post('/uacs/import', [MasterDataController::class, 'importUacs'])->middleware('throttle:import')->name('uacs.import');
         });
 
         // ── Graduate ledger ───────────────────────────────────────────────────
-        Route::prefix('graduate-ledger')->name('graduate-ledger.')->middleware('staff')->group(function () {
-            Route::get('/', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('index');
-            Route::post('/', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('store');
-            Route::get('/{id}/edit', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('edit');
-            Route::put('/{id}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('update');
-            Route::delete('/{id}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('destroy');
-            Route::post('/cohort-store', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('cohort-store');
-            Route::post('/{id}/apply-membership', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('apply-membership');
-            Route::get('/students/{student}/balance', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('students.balance');
-            Route::post('/import', fn () => response()->json(['message' => 'Not implemented.'], 501))
-                ->middleware('throttle:import')
-                ->name('import');
-            Route::get('/export', fn () => response()->json(['message' => 'Not implemented.'], 501))
-                ->middleware('throttle:export')
-                ->name('export');
-            Route::get('/pdf', fn () => response()->json(['message' => 'Not implemented.'], 501))
-                ->middleware('throttle:export')
-                ->name('pdf');
-            Route::get('/email-recipients', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('email-recipients');
-            Route::post('/send-emails', fn () => response()->json(['message' => 'Not implemented.'], 501))
-                ->middleware('throttle:email')
-                ->name('send-emails');
-        });
-
-        // ── Law School ledger ─────────────────────────────────────────────────
-        Route::prefix('law-ledger')->name('law-ledger.')->middleware('staff')->group(function () {
-            Route::get('/', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('index');
-            Route::post('/', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('store');
-            Route::get('/{id}/edit', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('edit');
-            Route::put('/{id}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('update');
-            Route::delete('/{id}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('destroy');
-            Route::post('/cohort-store', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('cohort-store');
-            Route::post('/{id}/apply-honor', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('apply-honor');
-            Route::get('/students/search', fn () => response()->json(['message' => 'Not implemented.'], 501))
-                ->middleware('throttle:search')
-                ->name('students.search');
-            Route::get('/students/{student}/balance', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('students.balance');
-            Route::delete('/students/{id}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('students.destroy');
-            Route::post('/import', fn () => response()->json(['message' => 'Not implemented.'], 501))
-                ->middleware('throttle:import')
-                ->name('import');
-            Route::get('/export', fn () => response()->json(['message' => 'Not implemented.'], 501))
-                ->middleware('throttle:export')
-                ->name('export');
-            Route::get('/pdf', fn () => response()->json(['message' => 'Not implemented.'], 501))
-                ->middleware('throttle:export')
-                ->name('pdf');
-            Route::get('/email-recipients', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('email-recipients');
-            Route::post('/send-emails', fn () => response()->json(['message' => 'Not implemented.'], 501))
-                ->middleware('throttle:email')
-                ->name('send-emails');
-        });
+        foreach (['graduate-ledger' => 'graduate', 'law-ledger' => 'law'] as $prefix => $ledger) {
+            Route::prefix($prefix)->name($ledger.'-ledger.')->middleware('staff')->group(function () use ($ledger) {
+                Route::get('/', [LedgerController::class, 'index'])->defaults('ledger', $ledger)->name('index');
+                Route::post('/', [LedgerController::class, 'store'])->defaults('ledger', $ledger)->name('store');
+                Route::post('/cohort-store', [LedgerController::class, 'cohortStore'])->defaults('ledger', $ledger)->name('cohort-store');
+                Route::get('/students/search', [LedgerController::class, 'searchStudents'])->defaults('ledger', $ledger)->middleware('throttle:search')->name('students.search');
+                Route::post('/import', [LedgerController::class, 'import'])->defaults('ledger', $ledger)->middleware('throttle:import')->name('import');
+                Route::get('/export', [LedgerController::class, 'export'])->defaults('ledger', $ledger)->middleware('throttle:export')->name('export');
+                Route::get('/pdf', [LedgerController::class, 'pdf'])->defaults('ledger', $ledger)->middleware('throttle:export')->name('pdf');
+                Route::get('/email-recipients', [LedgerController::class, 'emailRecipients'])->defaults('ledger', $ledger)->name('email-recipients');
+                Route::post('/send-emails', [LedgerController::class, 'sendEmails'])->defaults('ledger', $ledger)->middleware('throttle:email')->name('send-emails');
+                Route::put('/{id}', [LedgerController::class, 'update'])->defaults('ledger', $ledger)->name('update');
+                Route::delete('/{id}', [LedgerController::class, 'destroy'])->defaults('ledger', $ledger)->name('destroy');
+                Route::get('/students/{student}/balance', [LedgerController::class, 'balance'])->defaults('ledger', $ledger)->name('students.balance');
+            });
+        }
 
         // ── Assessments ───────────────────────────────────────────────────────
         Route::prefix('assessments')->name('assessments.')->middleware('staff')->group(function () {
-            Route::get('/', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('index');
-            Route::get('/dashboard', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('dashboard');
-            Route::get('/{assessment}/edit', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('edit');
-            Route::patch('/{assessment}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('update');
-            Route::get('/{assessment}/print-soa', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('print_soa');
-            Route::post('/{assessment}/email-soa', fn () => response()->json(['message' => 'Not implemented.'], 501))
-                ->middleware('throttle:email')
-                ->name('email_soa');
-            Route::delete('/{assessment}', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('destroy');
+            Route::get('/', [AssessmentController::class, 'index'])->name('index');
+            Route::get('/dashboard', [AssessmentController::class, 'dashboard'])->name('dashboard');
+            Route::get('/{assessment}/print-soa', [AssessmentController::class, 'print'])->name('print_soa');
+            Route::post('/{assessment}/email-soa', [AssessmentController::class, 'emailSoa'])->middleware('throttle:email')->name('email_soa');
+            Route::get('/{assessment}', [AssessmentController::class, 'show'])->name('show');
+            Route::patch('/{assessment}', [AssessmentController::class, 'update'])->name('update');
+            Route::delete('/{assessment}', [AssessmentController::class, 'destroy'])->name('destroy');
         });
 
         // ── Settings ──────────────────────────────────────────────────────────
         Route::prefix('settings')->name('settings.')->group(function () {
-            Route::patch('/profile', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('profile.update');
-            Route::put('/password', fn () => response()->json(['message' => 'Not implemented.'], 501))->name('password.update');
+            Route::patch('/profile', [SettingsController::class, 'profile'])->name('profile.update');
+            Route::put('/password', [SettingsController::class, 'password'])->name('password.update');
         });
     });
 });

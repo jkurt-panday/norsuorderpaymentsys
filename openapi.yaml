@@ -79,6 +79,33 @@ components:
         prev:
           type: string
           nullable: true
+    LedgerImportResult:
+      type: object
+      required: [message, imported, skipped, duplicates, warnings, detail_available]
+      properties:
+        message: {type: string}
+        imported: {type: integer, minimum: 0}
+        skipped: {type: integer, minimum: 0}
+        duplicates: {type: integer, minimum: 0}
+        warnings:
+          type: object
+          additionalProperties: {type: integer, minimum: 0}
+        detail_available: {type: boolean}
+    LedgerTransactionRequest:
+      type: object
+      required: [student_id, course_id, academic_term_id, entry_type, transaction_date, particulars, rate, amount]
+      properties:
+        student_id: {type: integer}
+        course_id: {type: integer}
+        academic_term_id: {type: integer}
+        entry_type: {type: string, enum: [ar, payment, adjustment]}
+        transaction_date: {type: string, format: date}
+        particulars: {type: string}
+        rate: {type: number, format: double}
+        amount: {type: number, format: double}
+        units: {type: number, format: double}
+        reference_number: {type: string}
+        status: {type: string}
     User:
       type: object
       properties:
@@ -608,48 +635,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ValidationError"
 
-  /graduate-ledger:
-    get:
-      tags: [Graduate Ledger]
-      summary: List graduate ledger entries
-      operationId: listGraduateLedger
-      parameters:
-        - name: page
-          in: query
-          schema:
-            type: integer
-        - name: per_page
-          in: query
-          schema:
-            type: integer
-            maximum: 100
-        - name: search
-          in: query
-          schema:
-            type: string
-        - name: term_id
-          in: query
-          schema:
-            type: integer
-        - name: course_id
-          in: query
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Paginated ledger entries
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      type: object
-                  meta:
-                    $ref: "#/components/schemas/PaginationMeta"
-
   /graduate-ledger/import:
     post:
       tags: [Graduate Ledger]
@@ -666,16 +651,17 @@ paths:
                 file:
                   type: string
                   format: binary
+                preset_course_id:
+                  type: integer
+                preset_academic_term_id:
+                  type: integer
       responses:
         "200":
           description: Import complete
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
+                $ref: "#/components/schemas/LedgerImportResult"
         "422":
           description: Validation error
           content:
@@ -697,39 +683,110 @@ paths:
                 type: string
                 format: binary
 
-  /law-ledger:
+  /graduate-ledger/pdf:
     get:
-      tags: [Law Ledger]
-      summary: List law school ledger entries
-      operationId: listLawLedger
+      tags: [Graduate Ledger]
+      summary: Download a student ledger statement PDF
+      operationId: exportGraduateLedgerPdf
       parameters:
-        - name: page
-          in: query
-          schema:
-            type: integer
-        - name: per_page
-          in: query
-          schema:
-            type: integer
-            maximum: 100
-        - name: search
-          in: query
-          schema:
-            type: string
+        - {name: student_id, in: query, required: true, schema: {type: integer}}
       responses:
         "200":
-          description: Paginated ledger entries
+          description: PDF statement
           content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      type: object
-                  meta:
-                    $ref: "#/components/schemas/PaginationMeta"
+            application/pdf: {schema: {type: string, format: binary}}
+  /graduate-ledger/email-recipients:
+    get:
+      tags: [Graduate Ledger]
+      summary: List students eligible for ledger email
+      operationId: listGraduateLedgerEmailRecipients
+      responses: {"200": {description: Recipient list}}
+  /graduate-ledger/send-emails:
+    post:
+      tags: [Graduate Ledger]
+      summary: Queue graduate ledger statement emails
+      operationId: sendGraduateLedgerEmails
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [student_ids]
+              properties:
+                student_ids: {type: array, minItems: 1, maxItems: 500, items: {type: integer}}
+                school_year: {type: string}
+                semester: {type: string}
+                subject: {type: string}
+                note: {type: string}
+      responses: {"200": {description: Emails queued}}
+
+  /law-ledger/import:
+    post:
+      tags: [Law Ledger]
+      summary: Import law ledger from Excel/CSV
+      operationId: importLawLedger
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: {type: string, format: binary}
+                preset_course_id: {type: integer}
+                preset_academic_term_id: {type: integer}
+      responses:
+        "200": {description: Import complete, content: {application/json: {schema: {$ref: "#/components/schemas/LedgerImportResult"}}}}
+        "422": {description: Validation error, content: {application/json: {schema: {$ref: "#/components/schemas/ValidationError"}}}}
+  /law-ledger/export:
+    get:
+      tags: [Law Ledger]
+      summary: Export law ledger as Excel
+      operationId: exportLawLedger
+      responses:
+        "200":
+          description: Excel file
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: {schema: {type: string, format: binary}}
+  /law-ledger/pdf:
+    get:
+      tags: [Law Ledger]
+      summary: Download a law student ledger statement PDF
+      operationId: exportLawLedgerPdf
+      parameters:
+        - {name: student_id, in: query, required: true, schema: {type: integer}}
+      responses:
+        "200":
+          description: PDF statement
+          content:
+            application/pdf: {schema: {type: string, format: binary}}
+  /law-ledger/email-recipients:
+    get:
+      tags: [Law Ledger]
+      summary: List students eligible for law ledger email
+      operationId: listLawLedgerEmailRecipients
+      responses: {"200": {description: Recipient list}}
+  /law-ledger/send-emails:
+    post:
+      tags: [Law Ledger]
+      summary: Queue law ledger statement emails
+      operationId: sendLawLedgerEmails
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [student_ids]
+              properties:
+                student_ids: {type: array, minItems: 1, maxItems: 500, items: {type: integer}}
+                school_year: {type: string}
+                semester: {type: string}
+                subject: {type: string}
+                note: {type: string}
+      responses: {"200": {description: Emails queued}}
 
   /settings/profile:
     patch:
@@ -764,6 +821,81 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ValidationError"
+
+  /graduate-ledger:
+    get:
+      tags: [Graduate Ledger]
+      summary: List graduate ledger entries
+      security: [{sanctumCookie: []}]
+      parameters:
+        - {name: page, in: query, schema: {type: integer, minimum: 1}}
+        - {name: per_page, in: query, schema: {type: integer, minimum: 1, maximum: 100}}
+        - {name: search, in: query, schema: {type: string}}
+        - {name: entry_type, in: query, schema: {type: string, enum: [ar, payment, adjustment]}}
+        - {name: date_from, in: query, schema: {type: string, format: date}}
+        - {name: date_to, in: query, schema: {type: string, format: date}}
+      responses:
+        "200": {description: Paginated graduate ledger entries}
+    post:
+      tags: [Graduate Ledger]
+      summary: Create a graduate ledger transaction
+      security: [{sanctumCookie: []}]
+      requestBody:
+        required: true
+        content:
+          application/json: {schema: {$ref: "#/components/schemas/LedgerTransactionRequest"}}
+      responses:
+        "201": {description: Transaction created}
+        "422": {description: Validation error, content: {application/json: {schema: {$ref: "#/components/schemas/ValidationError"}}}}
+
+  /graduate-ledger/students/{student}/balance:
+    get:
+      tags: [Graduate Ledger]
+      summary: Get graduate student balance
+      security: [{sanctumCookie: []}]
+      parameters: [{name: student, in: path, required: true, schema: {type: integer}}]
+      responses: {"200": {description: Student balance and transactions}}
+
+  /law-ledger:
+    get:
+      tags: [Law Ledger]
+      summary: List law ledger entries
+      security: [{sanctumCookie: []}]
+      parameters:
+        - {name: page, in: query, schema: {type: integer, minimum: 1}}
+        - {name: per_page, in: query, schema: {type: integer, minimum: 1, maximum: 100}}
+        - {name: search, in: query, schema: {type: string}}
+      responses: {"200": {description: Paginated law ledger entries}}
+    post:
+      tags: [Law Ledger]
+      summary: Create a law ledger transaction
+      security: [{sanctumCookie: []}]
+      requestBody:
+        required: true
+        content:
+          application/json: {schema: {$ref: "#/components/schemas/LedgerTransactionRequest"}}
+      responses: {"201": {description: Transaction created}}
+
+  /law-ledger/students/{student}/balance:
+    get:
+      tags: [Law Ledger]
+      summary: Get law student balance
+      security: [{sanctumCookie: []}]
+      parameters: [{name: student, in: path, required: true, schema: {type: integer}}]
+      responses: {"200": {description: Student balance and transactions}}
+
+  /assessments:
+    get:
+      tags: [Assessments]
+      summary: List assessments
+      security: [{sanctumCookie: []}]
+      responses: {"200": {description: Paginated assessments}}
+  /assessments/dashboard:
+    get:
+      tags: [Assessments]
+      summary: Get assessment statistics
+      security: [{sanctumCookie: []}]
+      responses: {"200": {description: Assessment dashboard data}}
 
   /settings/password:
     put:

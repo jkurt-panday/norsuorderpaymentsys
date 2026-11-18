@@ -2621,6 +2621,13 @@ class LawSchoolLedgerController extends Controller
             $parts[] = "{$duplicates} duplicates skipped";
         }
 
+        session()->put('ledger_import_result', [
+            'imported' => $imported,
+            'skipped' => $skipped,
+            'duplicates' => $duplicates,
+            'warnings' => $warnings,
+        ]);
+
         $summary = 'Import complete: '.implode(', ', $parts).'.';
         $details = [];
 
