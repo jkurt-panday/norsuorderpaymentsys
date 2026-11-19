@@ -59,13 +59,30 @@ class PublicOpFormController extends Controller
 
             $referenceNumber = $this->referenceNumberService->generate();
 
-            $studentId      = $this->resolveStudentId((string) ($validated['student_num'] ?? ''));
-            $academicTermId = $this->resolveAcademicTermId(
-                (string) ($validated['school_year'] ?? ''),
-                (string) ($validated['semester'] ?? ''),
-            );
+             $submittedStudentNumber = trim((string) ($validated['student_num'] ?? ''));
+             $studentId      = $this->resolveStudentId($submittedStudentNumber);
+             $academicTermId = $this->resolveAcademicTermId(
+                 (string) ($validated['school_year'] ?? ''),
+                 (string) ($validated['semester'] ?? ''),
+             );
 
-            $formInput = FormInput::create([
+             // Register new students with their submitted email without overwriting
+             // email/profile data for an existing student.
+             if ($studentId === null && $submittedStudentNumber !== '') {
+                 $student = Student::query()->firstOrCreate(
+                     ['student_number' => $submittedStudentNumber],
+                     [
+                         'email' => $validated['email'],
+                         'first_name' => $validated['firstname_or_office'],
+                         'middle_name' => $validated['middlename_or_project'] ?? null,
+                         'last_name' => $validated['lastname_or_agency'],
+                         'contact_num' => $validated['contact_num'],
+                     ],
+                 );
+                 $studentId = $student->id;
+             }
+
+             $formInput = FormInput::create([
                 'reference_number'          => $referenceNumber,
                 'email'                     => $validated['email'],
                 'contact_num'               => $validated['contact_num'],
