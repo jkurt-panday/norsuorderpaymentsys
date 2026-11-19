@@ -161,6 +161,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('/', [LedgerController::class, 'store'])->defaults('ledger', $ledger)->name('store');
                 Route::post('/cohort-store', [LedgerController::class, 'cohortStore'])->defaults('ledger', $ledger)->name('cohort-store');
                 Route::get('/students/search', [LedgerController::class, 'searchStudents'])->defaults('ledger', $ledger)->middleware('throttle:search')->name('students.search');
+                Route::get('/students/roster', [LedgerController::class, 'roster'])->defaults('ledger', $ledger)->name('students.roster');
                 Route::post('/import', [LedgerController::class, 'import'])->defaults('ledger', $ledger)->middleware('throttle:import')->name('import');
                 Route::get('/export', [LedgerController::class, 'export'])->defaults('ledger', $ledger)->middleware('throttle:export')->name('export');
                 Route::get('/pdf', [LedgerController::class, 'pdf'])->defaults('ledger', $ledger)->middleware('throttle:export')->name('pdf');
