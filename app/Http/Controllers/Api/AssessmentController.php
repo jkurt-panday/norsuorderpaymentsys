@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
+use Spatie\LaravelPdf\PdfBuilder;
 
 class AssessmentController extends Controller
 {
@@ -50,14 +51,14 @@ class AssessmentController extends Controller
         return response()->noContent();
     }
 
-    public function print(Request $request, AssessmentForm $assessment, ReceiptPDFService $service): Response
+    public function print(Request $request, AssessmentForm $assessment, ReceiptPDFService $service): PdfBuilder
     {
         return $service->soaPrint($request, $assessment)->inline();
     }
 
     public function emailSoa(Request $request, AssessmentForm $assessment, ReceiptPDFService $service): JsonResponse
     {
-        $data = $request->validate(['subject' => 'nullable|string|max:255', 'recipient_name' => 'nullable|string|max:255', 'note' => 'nullable|string|max:2000']);
+        $data = $request->validate(['subject' => 'nullable|string|max:255', 'recipient_name' => 'nullable|string|max:255', 'note' => 'nullable|string|max:2000', 'ledger_student' => 'nullable|string|max:255']);
         $pdf = $service->soaPrint($request, $assessment)->generatePdfContent();
         Mail::to($assessment->email)->send(new AssessmentSoaMail($assessment, $pdf, $data['subject'] ?? null, $data['recipient_name'] ?? null, $data['note'] ?? null));
         $assessment->update(['status' => 'mailed']);
