@@ -786,8 +786,23 @@ class LawSchoolLedgerController extends Controller
         $spreadsheet = $reader->load($path);
         $sheet = $spreadsheet->getActiveSheet();
         $highestRow = $sheet->getHighestRow();
-        $highestCol = $sheet->getHighestColumn();
-        $highestColIndex = Coordinate::columnIndexFromString($highestCol);
+        // Excel may report XFD as the highest column because of formatting,
+        // even though the actual ledger has only a small number of columns.
+        // Limit header discovery to a practical range to avoid scanning a
+        // 16,384-column phantom region.
+        $reportedHighestColIndex = Coordinate::columnIndexFromString($sheet->getHighestColumn());
+        $highestColIndex = 0;
+        for ($r = 1; $r <= min(10, $highestRow); $r++) {
+            for ($c = 1; $c <= min($reportedHighestColIndex, 200); $c++) {
+                $value = $sheet->getCell(Coordinate::stringFromColumnIndex($c).$r)->getValue();
+                if ($value !== null && trim((string) $value) !== '') {
+                    $highestColIndex = max($highestColIndex, $c);
+                }
+            }
+        }
+        if ($highestColIndex === 0) {
+            $highestColIndex = min($reportedHighestColIndex, 200);
+        }
 
         if ($highestRow <= 1) {
             $spreadsheet->disconnectWorksheets();
@@ -797,10 +812,37 @@ class LawSchoolLedgerController extends Controller
                 ->with('success', 'No rows found in the uploaded file.');
         }
 
+        // Some real-world workbooks use several header rows (for example,
+        // student ID/name on row 2, course and school year on row 3, and the
+        // transaction columns on row 4). Find the transaction header row and
+        // combine the preceding header rows so those columns are not lost.
+        $headerRowNumber = 1;
+        for ($candidateRow = 1; $candidateRow <= min(10, $highestRow); $candidateRow++) {
+            $candidateHeaders = [];
+            for ($c = 1; $c <= $highestColIndex; $c++) {
+                $colLetter = Coordinate::stringFromColumnIndex($c);
+                $candidateHeaders[] = Str::slug((string) $sheet->getCell($colLetter.$candidateRow)->getValue(), '_');
+            }
+
+            if ($this->headerIndex($candidateHeaders, ['transaction_date']) !== null
+                && $this->headerIndex($candidateHeaders, ['amount']) !== null) {
+                $headerRowNumber = $candidateRow;
+                break;
+            }
+        }
+
+        $headerStartRow = $headerRowNumber === 1 ? 1 : max(1, $headerRowNumber - 2);
         $headerRow = [];
         for ($c = 1; $c <= $highestColIndex; $c++) {
-            $colLetter = Coordinate::stringFromColumnIndex($c);
-            $headerRow[] = Str::slug((string) $sheet->getCell($colLetter.'1')->getValue(), '_');
+            $parts = [];
+            for ($headerRowIndex = $headerStartRow; $headerRowIndex <= $headerRowNumber; $headerRowIndex++) {
+                $colLetter = Coordinate::stringFromColumnIndex($c);
+                $value = trim((string) $sheet->getCell($colLetter.$headerRowIndex)->getValue());
+                if ($value !== '') {
+                    $parts[] = $value;
+                }
+            }
+            $headerRow[] = Str::slug(implode(' ', $parts), '_');
         }
 
         $courseIdx = $this->headerIndex($headerRow, ['course', 'program']);
@@ -813,12 +855,13 @@ class LawSchoolLedgerController extends Controller
         $miIdx = $this->headerIndex($headerRow, ['middle_initial', 'middle_name']);
         $nameIdx = $this->headerIndex($headerRow, ['name_last_name_first_name_m_i', 'name_last_name_first_name_mi', 'student_name', 'student', 'name', 'full_name']);
 
-        // ── Pass 1: collect distinct values (rows 2..highestRow) ───────────────
+        // ── Pass 1: collect distinct values (data rows after the header) ────────
+        $dataStartRow = $headerRowNumber + 1;
         $distinctCourses = [];
         $distinctTerms = [];
         $distinctStudents = [];
 
-        for ($r = 2; $r <= $highestRow; $r++) {
+        for ($r = $dataStartRow; $r <= $highestRow; $r++) {
             $code = $courseIdx ? trim((string) $sheet->getCell(Coordinate::stringFromColumnIndex($courseIdx).$r)->getValue()) : '';
             if ($code !== '') {
                 $distinctCourses[$code] = true;
@@ -878,7 +921,7 @@ class LawSchoolLedgerController extends Controller
         // ── Pass 2: stream rows, chunk-insert ──────────────────────────────────
         $insertData = [];
 
-        for ($r = 2; $r <= $highestRow; $r++) {
+        for ($r = $dataStartRow; $r <= $highestRow; $r++) {
             $rowData = [];
             for ($c = 1; $c <= $highestColIndex; $c++) {
                 $colLetter = Coordinate::stringFromColumnIndex($c);
@@ -2620,6 +2663,13 @@ class LawSchoolLedgerController extends Controller
         if ($duplicates > 0) {
             $parts[] = "{$duplicates} duplicates skipped";
         }
+
+        session()->put('ledger_import_result', [
+            'imported' => $imported,
+            'skipped' => $skipped,
+            'duplicates' => $duplicates,
+            'warnings' => $warnings,
+        ]);
 
         $summary = 'Import complete: '.implode(', ', $parts).'.';
         $details = [];

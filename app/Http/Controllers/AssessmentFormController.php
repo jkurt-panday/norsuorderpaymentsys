@@ -54,10 +54,23 @@ class AssessmentFormController extends Controller
         try {
             DB::beginTransaction();
 
-            $reference_number = $this->assessment_ref_num->assess_ref_gen();
+             $reference_number = $this->assessment_ref_num->assess_ref_gen();
 
-            // 1. Create the assessment record
-            $assessment = AssessmentForm::query()->create([
+             // Keep the canonical student record linked to the submitted student number.
+             // firstOrCreate avoids overwriting an existing student's profile data.
+             Student::query()->firstOrCreate(
+                 ['student_number' => $validated['student_id']],
+                 [
+                     'email' => $validated['email'],
+                     'first_name' => $validated['first_name'],
+                     'middle_name' => $validated['middle_name'] ?? null,
+                     'last_name' => $validated['last_name'],
+                     'contact_num' => $validated['contact_num'],
+                 ],
+             );
+
+             // 1. Create the assessment record
+             $assessment = AssessmentForm::query()->create([
                 'reference_number' => $reference_number,
                 'email' => $validated['email'],
                 'contact_num' => $validated['contact_num'],

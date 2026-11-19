@@ -2300,6 +2300,13 @@ class GraduateLedgerController extends Controller
 
     private function importSummary(int $imported, int $skipped): string
     {
+        session()->put('ledger_import_result', [
+            'imported' => $imported,
+            'skipped' => $skipped,
+            'duplicates' => 0,
+            'warnings' => [],
+        ]);
+
         return "Import complete: {$imported} records imported, {$skipped} blank rows skipped.";
     }
 

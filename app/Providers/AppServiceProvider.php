@@ -23,9 +23,12 @@ use App\Observers\ActivityLogObserver;
 use Carbon\CarbonImmutable;
 use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Notifications\Events\NotificationSent;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Throwable;
@@ -46,6 +49,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureRateLimiters();
 
         // Centralized audit trail: log all CRUD on staff/admin-managed
         // entities to activity_log (with the acting user's name + role).
@@ -123,5 +127,40 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+    /**
+     * Register API rate limiters.
+     * The 'login' limiter is owned by FortifyServiceProvider — not duplicated here.
+     */
+    private function configureRateLimiters(): void
+    {
+        RateLimiter::for('password-reset', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
+
+        RateLimiter::for('public-form', function (Request $request) {
+            return Limit::perMinute(20)->by($request->ip());
+        });
+
+        RateLimiter::for('upload', function (Request $request) {
+            return Limit::perMinute(30)->by(optional($request->user())->id ?: $request->ip());
+        });
+
+        RateLimiter::for('email', function (Request $request) {
+            return Limit::perMinute(10)->by(optional($request->user())->id ?: $request->ip());
+        });
+
+        RateLimiter::for('search', function (Request $request) {
+            return Limit::perMinute(60)->by(optional($request->user())->id ?: $request->ip());
+        });
+
+        RateLimiter::for('import', function (Request $request) {
+            return Limit::perMinute(5)->by(optional($request->user())->id ?: $request->ip());
+        });
+
+        RateLimiter::for('export', function (Request $request) {
+            return Limit::perMinute(10)->by(optional($request->user())->id ?: $request->ip());
+        });
     }
 }

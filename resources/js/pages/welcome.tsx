@@ -104,7 +104,7 @@ export default function Welcome() {
                 </a>
 
                 <header className="sticky top-0 z-40 border-b border-white/20 bg-[#064b9b]/75 shadow-[0_12px_35px_-22px_rgba(0,20,50,0.85)] backdrop-blur-xl backdrop-saturate-150">
-                    <div className="mx-auto flex max-w-[90rem] items-center justify-between gap-4 px-5 py-4 sm:px-8 lg:px-8">
+                    <div className="mx-auto flex max-w-360 items-center justify-between gap-4 px-5 py-4 sm:px-8 lg:px-8">
                         <Link
                             href={home()}
                             aria-label="NORSU Order of Payment System home"
@@ -171,19 +171,19 @@ export default function Welcome() {
                     </div>
                 </header>
 
-                <div className="relative isolate overflow-hidden lg:min-h-[650px]">
+                <div className="relative isolate overflow-hidden lg:min-h-162.5">
                     <img
                         src="/images/norsu-campus.jpg.webp"
                         alt=""
                         className="absolute inset-0 -z-30 size-full object-cover object-center"
                     />
                     <div className="absolute inset-0 -z-20 bg-[linear-gradient(110deg,rgba(4,24,50,0.98)_5%,rgba(5,57,117,0.88)_55%,rgba(1,32,72,0.74)_100%)]" />
-                    <div className="absolute -top-40 right-[8%] -z-10 size-[34rem] rounded-full bg-sky-300/20 blur-[110px]" />
+                    <div className="absolute -top-40 right-[8%] -z-10 size-136 rounded-full bg-sky-300/20 blur-[110px]" />
 
                     <main id="main-content">
                         <section
                             id="hero"
-                            className="mx-auto grid max-w-[90rem] scroll-mt-20 items-center gap-12 px-5 py-16 sm:px-8 lg:min-h-[650px] lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.78fr)] lg:px-8 lg:py-20"
+                            className="mx-auto grid max-w-360 scroll-mt-20 items-center gap-12 px-5 py-16 sm:px-8 lg:min-h-162.5 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.78fr)] lg:px-8 lg:py-20"
                         >
                             <div className="max-w-2xl">
                                 <h1 className="max-w-[16ch] font-heading text-4xl leading-[1.05] font-bold tracking-[-0.04em] text-balance sm:text-5xl lg:text-6xl">
@@ -266,7 +266,7 @@ export default function Welcome() {
                     aria-labelledby="features-heading"
                     className="scroll-mt-20 bg-white py-20 text-[#10233f] lg:py-24"
                 >
-                    <div className="mx-auto max-w-[90rem] px-5 sm:px-8 lg:px-8">
+                    <div className="mx-auto max-w-360 px-5 sm:px-8 lg:px-8">
                         <div>
                             <div className="max-w-4xl">
                                 <h2
@@ -347,9 +347,9 @@ export default function Welcome() {
                 <section
                     id="contact"
                     aria-labelledby="contact-heading"
-                    className="scroll-mt-20 bg-[#064b9b] py-20 text-white lg:flex lg:min-h-[650px] lg:items-center lg:py-20"
+                    className="scroll-mt-20 bg-[#064b9b] py-20 text-white lg:flex lg:min-h-162.5 lg:items-center lg:py-20"
                 >
-                    <div className="mx-auto grid max-w-[90rem] gap-10 px-5 sm:px-8 lg:grid-cols-[0.8fr_1fr] lg:items-center lg:gap-20 lg:px-8">
+                    <div className="mx-auto grid max-w-360 gap-10 px-5 sm:px-8 lg:grid-cols-[0.8fr_1fr] lg:items-center lg:gap-20 lg:px-8">
                         <div className="divide-y divide-white/20 border-y border-white/20">
                             <div className="flex items-start gap-4 py-7">
                                 <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-white text-[#064b9b]">
@@ -410,7 +410,7 @@ export default function Welcome() {
                     aria-labelledby="team-heading"
                     className="bg-white py-12 text-[#10233f] sm:py-14"
                 >
-                    <div className="mx-auto grid max-w-[90rem] items-center gap-8 px-5 sm:px-8 lg:grid-cols-[1fr_auto] lg:gap-16 lg:px-8">
+                    <div className="mx-auto grid max-w-360 items-center gap-8 px-5 sm:px-8 lg:grid-cols-[1fr_auto] lg:gap-16 lg:px-8">
                         <div className="max-w-3xl">
                             <h2
                                 id="team-heading"
@@ -458,7 +458,7 @@ export default function Welcome() {
                 </section>
 
                 <footer className="border-t border-white/10 bg-[#061b36] px-5 py-9 text-sm text-blue-200 sm:px-8 lg:px-12">
-                    <div className="mx-auto flex max-w-[90rem] flex-col justify-between gap-8 sm:flex-row sm:items-center">
+                    <div className="mx-auto flex max-w-360 flex-col justify-between gap-8 sm:flex-row sm:items-center">
                         <div className="flex items-center gap-4">
                             <img
                                 src="/norsu.png"

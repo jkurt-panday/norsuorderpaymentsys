@@ -17,6 +17,10 @@ class EnsureUserIsAdmin
             return $next($request);
         }
 
+        if ($request->is('api/*') || $request->expectsJson()) {
+            abort(403, 'Admin privileges required.');
+        }
+
         if (! $request->user()) {
             return redirect()->route('login')->with('error', 'Please log in to access this area.');
         }

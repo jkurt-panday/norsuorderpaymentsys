@@ -2,12 +2,22 @@
 
 namespace App\Http\Requests;
 
+use App\Models\FormInput;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StaffProcessingRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $formInput = $this->route('formInput');
+
+        if ($formInput instanceof FormInput) {
+            $this->merge(['form_input_id' => $formInput->id]);
+        }
+    }
+
     public function authorize(): bool
     {
         // Add your authorization logic here

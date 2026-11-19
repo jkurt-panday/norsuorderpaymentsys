@@ -177,7 +177,7 @@
         </tbody>
     </table>
 
-    <table class="w-full mt-20 text-lg">
+    <table class="w-full mt-20 text-[16px]">
         <tr>
             <td class="w-1/2 align-top px-2.5">
                 Prepared By

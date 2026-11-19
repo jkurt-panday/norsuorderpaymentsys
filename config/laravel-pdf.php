@@ -68,6 +68,9 @@ return [
          */
         'write_options_to_file' => env('LARAVEL_PDF_WRITE_OPTIONS_TO_FILE', true),
         'no_sandbox' => env('LARAVEL_PDF_NO_SANDBOX', false),
+         'timeout' => (int) env('LARAVEL_PDF_TIMEOUT', 300),
+         'protocol_timeout' => (int) env('LARAVEL_PDF_PROTOCOL_TIMEOUT', 300000),
+         'queue' => env('LARAVEL_PDF_QUEUE', 'pdf'),
     ],
 
     /*
