@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\AssessmentForm;
 use App\Models\Courses;
 use App\Services\ReferenceNumberService;
-use Carbon\Carbon;
 use Faker\Factory as FakerFactory;
 use Illuminate\Database\Seeder;
 use RuntimeException;
@@ -26,11 +25,19 @@ class AssessmentSeeder extends Seeder
 
         $faker = FakerFactory::create();
         $referenceNumbers = app(ReferenceNumberService::class);
-        $from = Carbon::create(2026, 11, 15)->startOfDay();
-        $to = Carbon::create(2026, 11, 20)->endOfDay();
+        $seedCount = 20;
+        $seedStart = now()->startOfMinute();
+        $submittedAt = $seedStart->copy();
 
-        for ($index = 0; $index < 20; $index++) {
-            $submittedAt = Carbon::instance($faker->dateTimeBetween($from, $to));
+        // Keep the generated records chronologically ordered while spreading
+        // them across today and future dates. Each record advances by a random
+        // one-to-three-day interval (for example: today, tomorrow, then three
+        // days later, then another day later). References are generated in the
+        // same loop order, keeping them aligned with created_at ordering.
+        for ($index = 0; $index < $seedCount; $index++) {
+            if ($index > 0) {
+                $submittedAt = $submittedAt->copy()->addDays(random_int(1, 3));
+            }
 
             AssessmentForm::query()->create([
                 'reference_number' => $referenceNumbers->assess_ref_gen(),
@@ -65,6 +72,10 @@ class AssessmentSeeder extends Seeder
             ]);
         }
 
-        $this->command?->info('Successfully seeded 20 pending assessments dated November 15–20, 2026.');
+        $this->command?->info(sprintf(
+            'Successfully seeded %d pending assessments starting %s.',
+            $seedCount,
+            $seedStart->toDateTimeString(),
+        ));
     }
 }
