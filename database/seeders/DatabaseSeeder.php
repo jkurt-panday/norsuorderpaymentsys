@@ -157,6 +157,7 @@ class DatabaseSeeder extends Seeder
             StudentSeeder::class,
             AcademicTermSeeder::class,
             CourseSeeder::class,
+            AssessmentSeeder::class,
         ]);
 
         $this->call(GraduateLedgerSeeder::class, false, [
