@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\UserRole;
+use App\Models\FormInput;
 use App\Models\StaffInput;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -59,7 +60,13 @@ class UpdateOpOrNumberRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
-            $staffInput = $this->route('staffInput');
+            $formInput = $this->route('formInput');
+
+            if (! $formInput instanceof \App\Models\FormInput) {
+                return;
+            }
+
+            $staffInput = $formInput->staffInput;
 
             if (! $staffInput instanceof StaffInput) {
                 return;

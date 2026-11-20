@@ -34,6 +34,7 @@ class FormInput extends Model
         'submitted_student_number',
         'course_id',
         'academic_term',
+        'created_at',
     ];
 
     protected $casts = [
