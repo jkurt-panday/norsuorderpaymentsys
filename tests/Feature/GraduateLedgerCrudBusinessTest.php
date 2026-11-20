@@ -127,7 +127,8 @@ class GraduateLedgerCrudBusinessTest extends TestCase
 
         $this->assertDatabaseHas('graduate_ledgers', ['id' => $record->id, 'reference_number' => 'UPDATED', 'amount' => '75.00']);
         $this->actingAs($staff)->delete(route('graduate-ledger.destroy', $record->id))->assertRedirect();
-        $this->assertDatabaseMissing('graduate_ledgers', ['id' => $record->id]);
+        $this->actingAs(User::factory()->admin()->create())->delete(route('graduate-ledger.destroy', $record->id))->assertRedirect();
+        $this->assertSoftDeleted('graduate_ledgers', ['id' => $record->id]);
     }
 
     public function test_balance_and_outstanding_filters_are_correct(): void

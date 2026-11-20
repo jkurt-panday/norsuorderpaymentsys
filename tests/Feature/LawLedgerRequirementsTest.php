@@ -48,7 +48,8 @@ class LawLedgerRequirementsTest extends TestCase
         $this->assertDatabaseHas('law_school_ledgers', ['id' => $created->id, 'entry_type' => 'adjustment']);
 
         $this->actingAs($staff)->delete(route('law-ledger.destroy', $created->id))->assertRedirect();
-        $this->assertDatabaseMissing('law_school_ledgers', ['id' => $created->id]);
+        $this->actingAs(User::factory()->admin()->create())->delete(route('law-ledger.destroy', $created->id))->assertRedirect();
+        $this->assertSoftDeleted('law_school_ledgers', ['id' => $created->id]);
     }
 
     public function test_student_course_term_and_entry_validation_is_enforced(): void
