@@ -181,7 +181,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/{assessment}/email-soa', [AssessmentController::class, 'emailSoa'])->middleware('throttle:email')->name('email_soa');
             Route::get('/{assessment}', [AssessmentController::class, 'show'])->name('show');
             Route::patch('/{assessment}', [AssessmentController::class, 'update'])->name('update');
-            Route::delete('/{assessment}', [AssessmentController::class, 'destroy'])->name('destroy');
+             Route::delete('/{assessment}', [AssessmentController::class, 'destroy'])->middleware('admin')->name('destroy');
         });
 
         // ── Settings ──────────────────────────────────────────────────────────
