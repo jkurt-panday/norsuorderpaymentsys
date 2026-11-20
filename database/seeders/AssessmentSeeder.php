@@ -25,19 +25,25 @@ class AssessmentSeeder extends Seeder
 
         $faker = FakerFactory::create();
         $referenceNumbers = app(ReferenceNumberService::class);
-        $seedCount = 20;
-        $seedStart = now()->startOfMinute();
-        $submittedAt = $seedStart->copy();
+        $requestsPerDay = 5;
+        $seedCount = 100;
+        $seedDays = intdiv($seedCount, $requestsPerDay);
+        // Spread exactly 100 requests across 20 complete days, ending
+        // yesterday. This gives an average of five requests per day while
+        // keeping the generated timestamps chronological.
+        $seedStart = now()->startOfDay()->subDays($seedDays);
 
-        // Keep the generated records chronologically ordered while spreading
-        // them across today and future dates. Each record advances by a random
-        // one-to-three-day interval (for example: today, tomorrow, then three
-        // days later, then another day later). References are generated in the
-        // same loop order, keeping them aligned with created_at ordering.
+        // Reference numbers are generated in this same chronological loop.
+        // Therefore, within this seeded batch, lower reference numbers always
+        // represent older submissions.
         for ($index = 0; $index < $seedCount; $index++) {
-            if ($index > 0) {
-                $submittedAt = $submittedAt->copy()->addDays(random_int(1, 3));
-            }
+            $dayOffset = intdiv($index, $requestsPerDay);
+            $positionInDay = $index % $requestsPerDay;
+            $minutesPerSlot = intdiv(1_440, $requestsPerDay);
+            $slotStart = $positionInDay * $minutesPerSlot;
+            $submittedAt = $seedStart->copy()
+                ->addDays($dayOffset)
+                ->addMinutes($slotStart + random_int(0, $minutesPerSlot - 1));
 
             AssessmentForm::query()->create([
                 'reference_number' => $referenceNumbers->assess_ref_gen(),
@@ -73,8 +79,9 @@ class AssessmentSeeder extends Seeder
         }
 
         $this->command?->info(sprintf(
-            'Successfully seeded %d pending assessments starting %s.',
+            'Successfully seeded %d pending assessments across %d days, starting %s.',
             $seedCount,
+            $seedDays,
             $seedStart->toDateTimeString(),
         ));
     }
