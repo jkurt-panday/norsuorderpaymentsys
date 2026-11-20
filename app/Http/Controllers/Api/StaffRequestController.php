@@ -15,7 +15,9 @@ use App\Mail\OrderOfPaymentMail;
 use App\Models\AcademicTerm;
 use App\Models\ActivityLog;
 use App\Models\BankAccountInfo;
+use App\Models\Course;
 use App\Models\FormInput;
+use App\Models\Membership;
 use App\Models\PaymentDetailOption;
 use App\Models\StaffInput;
 use App\Models\Student;
@@ -121,9 +123,11 @@ class StaffRequestController extends Controller
         return response()->json([
             'data' => $formInput,
             'bankAccounts' => BankAccountInfo::orderBy('bank_name')->get(),
-            'uacsList' => UACS::select(['id', 'uacs_object_code', 'account_title'])->orderBy('id')->get(),
+            'uacsList' => UACS::select(['id', 'uacs_object_code', 'uacs_sub_object_code', 'account_title'])->orderBy('id')->get(),
             'paymentOptions' => PaymentDetailOption::orderBy('payment_desc')->get(),
             'academicTerms' => AcademicTerm::orderByDesc('school_year')->orderBy('semester')->get(['id', 'school_year', 'semester']),
+            'courses' => Course::orderBy('course_code')->get(['id', 'course_code', 'course_desc', 'course_college']),
+            'memberships' => Membership::orderBy('member_code')->get(['id', 'member_code', 'member_desc']),
         ]);
     }
 
@@ -239,18 +243,20 @@ class StaffRequestController extends Controller
 
     public function updateOrNumber(
         UpdateOpOrNumberRequest $request,
-        StaffInput $staffInput,
+        FormInput $formInput,
         CashierLedgerPostingService $postingService,
     ): JsonResponse {
         $validated = $request->validated();
 
+        if (!$formInput->staffInput) {
+            return response()->json(['message' => 'No processing record found for this request.'], 404);
+        }
+
+        $staffInput = $formInput->staffInput;
+
         try {
             DB::transaction(function () use ($validated, $staffInput, $postingService): void {
                 $locked = StaffInput::lockForUpdate()->findOrFail($staffInput->id);
-
-                if (blank($locked->or_no)) {
-                    return;
-                }
 
                 $locked->update([
                     'or_no' => $validated['or_no'],
@@ -282,9 +288,17 @@ class StaffRequestController extends Controller
             'firstname_or_office' => 'required|string|max:100',
             'middlename_or_project' => 'nullable|string|max:100',
             'lastname_or_agency' => 'required|string|max:100',
-            'amount' => 'required|numeric|min:0',
+            'office_or_college' => 'nullable|string|max:100',
+            'position_or_designation' => 'nullable|string|max:100',
+            'email' => 'nullable|email|max:100',
+            'contact_num' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:255',
+            'amount' => 'nullable|numeric|min:0',
             'purpose' => 'nullable|string|max:350',
             'payment_detail_option_id' => ['nullable', 'exists:payment_detail_options,id'],
+            'course_id' => ['nullable', 'exists:courses,id'],
+            'membership_id' => ['nullable', 'exists:memberships,id'],
+            'submission_date' => ['nullable', 'date'],
             'new_payment_option' => 'nullable|string|max:255',
         ]);
 
@@ -303,7 +317,11 @@ class StaffRequestController extends Controller
             ]);
         }
 
-        unset($validated['new_payment_option']);
+        // Handle submission_date to update created_at
+        if (!empty($validated['submission_date'])) {
+            $validated['created_at'] = $validated['submission_date'] . ' 00:00:00';
+        }
+        unset($validated['submission_date'], $validated['new_payment_option']);
 
         try {
             DB::beginTransaction();

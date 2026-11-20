@@ -87,7 +87,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [GraduateLedgerController::class, 'index'])->name('index');
         Route::get('/{id}/edit', [GraduateLedgerController::class, 'edit'])->name('edit');
         Route::put('/{id}', [GraduateLedgerController::class, 'update'])->name('update');
-        Route::delete('/{id}', [GraduateLedgerController::class, 'destroy'])->name('destroy');
+        Route::delete('/{id}', [GraduateLedgerController::class, 'destroy'])->middleware('admin')->name('destroy');
     });
 
     // ── Law School Ledger ────────────────────────────────────────────────────
@@ -99,7 +99,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/send-emails', [LawSchoolLedgerController::class, 'sendBulkEmail'])->name('send-emails');
         Route::get('/students/search', [LawSchoolLedgerController::class, 'searchStudents'])->name('students.search');
         Route::get('/students/{student}/balance', [LawSchoolLedgerController::class, 'studentBalance'])->name('students.balance');
-        Route::delete('/students/{id}', [LawSchoolLedgerController::class, 'destroyStudent'])->name('students.destroy');
+        Route::delete('/students/{id}', [LawSchoolLedgerController::class, 'destroyStudent'])->middleware('admin')->name('students.destroy');
         Route::get('/add', [LawSchoolLedgerController::class, 'create'])->name('create');
         Route::get('/new-transaction', [LawSchoolLedgerController::class, 'create']);
         Route::post('/cohort-store', [LawSchoolLedgerController::class, 'cohortStore'])->name('cohort-store');
@@ -109,7 +109,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [LawSchoolLedgerController::class, 'index'])->name('index');
         Route::get('/{id}/edit', [LawSchoolLedgerController::class, 'edit'])->name('edit');
         Route::put('/{id}', [LawSchoolLedgerController::class, 'update'])->name('update');
-        Route::delete('/{id}', [LawSchoolLedgerController::class, 'destroy'])->name('destroy');
+        Route::delete('/{id}', [LawSchoolLedgerController::class, 'destroy'])->middleware('admin')->name('destroy');
     });
 
 });
@@ -186,25 +186,30 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
     // ── Master Data (Resource Routes) ───────────────────────────────────────
     Route::resource('memberships', MembershipController::class)
         ->except(['show'])
-        ->parameters(['memberships' => 'membership']);
+        ->parameters(['memberships' => 'membership'])
+        ->middlewareFor('destroy', 'admin');
 
     Route::resource('payment-options', PaymentDetailOptionController::class)
         ->except(['show'])
-        ->parameters(['payment-options' => 'paymentOption']);
+        ->parameters(['payment-options' => 'paymentOption'])
+        ->middlewareFor('destroy', 'admin');
 
     Route::resource('bank-accounts', BankAccountInfoController::class)
         ->except(['show'])
-        ->parameters(['bank-accounts' => 'bankAccount']);
+        ->parameters(['bank-accounts' => 'bankAccount'])
+        ->middlewareFor('destroy', 'admin');
 
     Route::get('/uacs/export', [UACSController::class, 'export'])->name('uacs.export');
     Route::post('/uacs/import', [UACSController::class, 'import'])->name('uacs.import');
     Route::resource('uacs', UACSController::class)
         ->except(['show'])
-        ->parameters(['uacs' => 'uacs']);
+        ->parameters(['uacs' => 'uacs'])
+        ->middlewareFor('destroy', 'admin');
 
     Route::resource('authorized-officials', AuthorizedOfficialController::class)
         ->except(['show'])
-        ->parameters(['authorized-officials' => 'authorizedOfficial']);
+        ->parameters(['authorized-officials' => 'authorizedOfficial'])
+        ->middlewareFor('destroy', 'admin');
 
     Route::put('/authorized-officials/{authorizedOfficial}/set-active', [AuthorizedOfficialController::class, 'setActive'])
         ->name('authorized-officials.set-active');
@@ -215,12 +220,13 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
         Route::post('/', [SupportingDocumentController::class, 'store'])->name('store');
         Route::get('/{supportingDocument}/view', [SupportingDocumentController::class, 'view'])->name('view');
         Route::get('/{supportingDocument}/download', [SupportingDocumentController::class, 'download'])->name('download');
-        Route::delete('/{supportingDocument}', [SupportingDocumentController::class, 'destroy'])->name('destroy');
+        Route::delete('/{supportingDocument}', [SupportingDocumentController::class, 'destroy'])->middleware('admin')->name('destroy');
     });
 
     // Courses
     Route::resource('courses', CoursesController::class)
-        ->parameters(['courses' => 'courses']);
+        ->parameters(['courses' => 'courses'])
+        ->middlewareFor('destroy', 'admin');
 
     // ── Assessment Requests ──────────────────────────────────────────────────
     Route::name('assessments.')->prefix('assessments')->group(function () {
@@ -230,7 +236,7 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
         Route::patch('/edit/{assessment}', [AssessmentController::class, 'update'])->name('assessments.update');
         Route::get('/print_soa/{assessment}', [AssessmentController::class, 'print'])->name('print_soa');
         Route::post('/email_soa/{assessment}', [AssessmentController::class, 'emailSoa'])->name('email_soa');
-        Route::delete('/delete/{assessment}', [AssessmentController::class, 'destroy'])->name('delete_assessment');
+        Route::delete('/delete/{assessment}', [AssessmentController::class, 'destroy'])->middleware('admin')->name('delete_assessment');
     });
 });
 

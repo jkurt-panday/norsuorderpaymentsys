@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * @property string|null $middle_name
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class LawStudent extends Model
 {
     /** @use HasFactory<Factory<LawStudent>> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'law_student';
 

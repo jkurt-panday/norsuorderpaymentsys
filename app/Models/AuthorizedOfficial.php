@@ -6,11 +6,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AuthorizedOfficial extends Model
 {
     /** @use HasFactory<Factory<AuthorizedOfficial>> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'authorized_officials';
 

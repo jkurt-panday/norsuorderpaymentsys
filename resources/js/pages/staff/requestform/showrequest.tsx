@@ -72,6 +72,7 @@ interface BankAccount {
 interface UacsProps {
     id: number;
     uacs_object_code: string;
+    uacs_sub_object_code: string | null;
     account_title: string;
 }
 
@@ -1692,10 +1693,8 @@ export default function ShowRequest() {
                                                     <Combobox
                                                         items={sortedUacsList}
                                                         filter={filterUacs}
-                                                        itemToStringLabel={(
-                                                            uacs,
-                                                        ) =>
-                                                            `${uacs.uacs_object_code} - ${uacs.account_title}`
+                                                        itemToStringLabel={(uacs) =>
+                                                            `${uacs.uacs_sub_object_code ? `${uacs.uacs_object_code}-${uacs.uacs_sub_object_code}` : uacs.uacs_object_code} - ${uacs.account_title}`
                                                         }
                                                         value={
                                                             sortedUacsList.find(
@@ -1743,7 +1742,7 @@ export default function ShowRequest() {
                                                                         }
                                                                     >
                                                                         {
-                                                                            uacs.uacs_object_code
+                                                                            uacs.uacs_sub_object_code ? `${uacs.uacs_object_code}-${uacs.uacs_sub_object_code}` : uacs.uacs_object_code
                                                                         }{' '}
                                                                         -{' '}
                                                                         {
@@ -1971,7 +1970,7 @@ export default function ShowRequest() {
                                                     value={
                                                         formInput.staff_input
                                                             .uacs
-                                                            ? `${formInput.staff_input.uacs.uacs_object_code} - ${formInput.staff_input.uacs.account_title}`
+                                                            ? `${formInput.staff_input.uacs.uacs_sub_object_code ? `${formInput.staff_input.uacs.uacs_object_code}-${formInput.staff_input.uacs.uacs_sub_object_code}` : formInput.staff_input.uacs.uacs_object_code} - ${formInput.staff_input.uacs.account_title}`
                                                             : 'N/A'
                                                     }
                                                     valueClass="text-black-400"
@@ -2215,7 +2214,7 @@ export default function ShowRequest() {
                                                 items={sortedUacsList}
                                                 filter={filterUacs}
                                                 itemToStringLabel={(uacs) =>
-                                                    `${uacs.uacs_object_code} - ${uacs.account_title}`
+                                                    `${uacs.uacs_sub_object_code ? `${uacs.uacs_object_code}-${uacs.uacs_sub_object_code}` : uacs.uacs_object_code} - ${uacs.account_title}`
                                                 }
                                                 value={
                                                     sortedUacsList.find(
@@ -2254,13 +2253,9 @@ export default function ShowRequest() {
                                                                 key={uacs.id}
                                                                 value={uacs}
                                                             >
-                                                                {
-                                                                    uacs.uacs_object_code
-                                                                }{' '}
+                                                                {uacs.uacs_sub_object_code ? `${uacs.uacs_object_code}-${uacs.uacs_sub_object_code}` : uacs.uacs_object_code}{' '}
                                                                 -{' '}
-                                                                {
-                                                                    uacs.account_title
-                                                                }
+                                                                {uacs.account_title}
                                                             </ComboboxItem>
                                                         )}
                                                     </ComboboxList>
