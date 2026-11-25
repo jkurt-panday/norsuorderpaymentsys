@@ -747,4 +747,19 @@ class StaffRequestController extends Controller
             true,
         );
     }
+
+    public function destroy(FormInput $formInput): JsonResponse
+    {
+        try {
+            $formInput->delete();
+
+            return response()->json(['message' => 'Request deleted successfully.']);
+        } catch (\Throwable $e) {
+            Log::error('Staff request deletion failed: '.$e->getMessage(), [
+                'form_input_id' => $formInput->id,
+            ]);
+
+            return response()->json(['message' => 'Failed to delete request. Please try again.'], 500);
+        }
+    }
 }

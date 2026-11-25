@@ -110,6 +110,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/{formInput}/student', [StaffRequestController::class, 'createAndLinkStudent'])->name('createAndLinkStudent');
             Route::put('/{formInput}/academic-term', [StaffRequestController::class, 'assignAcademicTerm'])->name('assignAcademicTerm');
             Route::put('/{staffInput}', [StaffRequestController::class, 'update'])->name('update');
+            Route::delete('/{formInput}', [StaffRequestController::class, 'destroy'])->name('destroy');
         });
 
         // ── Cashier requests ──────────────────────────────────────────────────
