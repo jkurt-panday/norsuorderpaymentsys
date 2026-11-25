@@ -27,6 +27,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -523,47 +524,20 @@ class StaffRequestController extends Controller
             'note' => 'nullable|string|max:2000',
         ]);
 
-        $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument']);
+        $actor = $request->user();
 
-        $copyLabels = StaffInputController::OP_COPY_LABELS;
-
-        $portraitPdf = Pdf::loadView('pdf.op-a6', compact('formInput', 'copyLabels'))->setPaper('a5', 'portrait');
-        $landscapePdf = Pdf::loadView('pdf.op-landscape', compact('formInput', 'copyLabels'))->setPaper('legal', 'landscape');
-
-        \Mail::to($formInput->email)->send(
-            new OrderOfPaymentMail(
-                $formInput,
-                $portraitPdf->output(),
-                $landscapePdf->output(),
-                $validated['subject'] ?? null,
-                $validated['recipient_name'] ?? null,
-                $validated['note'] ?? null,
-            )
+        // Dispatch to queue for async processing (avoids 15s timeout)
+        SendOrderOfPaymentEmail::dispatch(
+            $formInput->id,
+            $validated['subject'] ?? null,
+            $validated['recipient_name'] ?? null,
+            $validated['note'] ?? null,
+            $actor?->getAuthIdentifier(),
         );
 
-        $formInput->staffInput()->update(['emailed_at' => now(), 'email_status' => 'sent', 'email_error' => null]);
-
-        $actor = $request->user();
-        try {
-            ActivityLog::create([
-                'actor_id' => $actor?->getAuthIdentifier(),
-                'actor_name' => $actor?->name,
-                'actor_role' => $actor?->role,
-                'action' => 'email.sent',
-                'target_id' => null,
-                'subject_type' => null,
-                'subject_id' => null,
-                'description' => "Email sent to {$formInput->email} with subject \"".($validated['subject'] ?? "Order of Payment - {$formInput->reference_number}").'\".',
-                'meta' => [
-                    'to' => $formInput->email,
-                    'subject' => $validated['subject'] ?? "Order of Payment - {$formInput->reference_number}",
-                ],
-            ]);
-        } catch (\Throwable $e) {
-            Log::debug('Failed to log single OP email activity', ['error' => $e->getMessage()]);
-        }
-
-        return response()->json(['message' => 'Order of Payment emailed successfully.']);
+        return response()->json([
+            'message' => 'Order of Payment email queued for sending.',
+        ]);
     }
 
     // ── Bulk email ────────────────────────────────────────────────────────────
@@ -639,6 +613,27 @@ class StaffRequestController extends Controller
             'form_input_ids' => array_values($eligibleIds),
             'total' => count($eligibleIds),
         ]);
+    }
+
+    // ── PDF generation ──────────────────────────────────────────────────────────
+
+    public function pdf(Request $request, FormInput $formInput): Response
+    {
+        $format = $request->query('format', 'portrait');
+
+        $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument']);
+
+        $copyLabels = StaffInputController::OP_COPY_LABELS;
+
+        if ($format === 'landscape') {
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.op-landscape', compact('formInput', 'copyLabels'))
+                ->setPaper('legal', 'landscape');
+        } else {
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.op-a6', compact('formInput', 'copyLabels'))
+                ->setPaper('a5', 'portrait');
+        }
+
+        return $pdf->stream("OP-{$formInput->reference_number}.pdf");
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

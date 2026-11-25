@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\AssessmentForm;
 use App\Models\Courses;
+use App\Models\YearSequence;
 use App\Services\ReferenceNumberService;
 use Faker\Factory as FakerFactory;
 use Illuminate\Database\Seeder;
@@ -22,6 +23,16 @@ class AssessmentSeeder extends Seeder
         if ($courseIds === []) {
             throw new RuntimeException('Cannot seed assessments: no public courses exist. Run CourseSeeder first.');
         }
+
+        // Reset YearSequence for current year/month to avoid duplicate reference numbers
+        $now = now();
+        YearSequence::where('year', $now->year)->delete();
+        YearSequence::create([
+            'year' => $now->year,
+            'month' => $now->month,
+            'op_number' => 0,
+            'assessment_number' => 0,
+        ]);
 
         $faker = FakerFactory::create();
         $referenceNumbers = app(ReferenceNumberService::class);

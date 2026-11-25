@@ -104,6 +104,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 ->name('emailOp');
             Route::put('/{formInput}/details', [StaffRequestController::class, 'updateDetails'])->name('updateDetails');
             Route::put('/{formInput}/or', [StaffRequestController::class, 'updateOrNumber'])->name('updateOr');
+            Route::get('/{formInput}/pdf', [StaffRequestController::class, 'pdf'])->name('pdf');
             Route::put('/{formInput}/student', [StaffRequestController::class, 'linkStudent'])->name('linkStudent');
             Route::post('/{formInput}/student', [StaffRequestController::class, 'createAndLinkStudent'])->name('createAndLinkStudent');
             Route::put('/{formInput}/academic-term', [StaffRequestController::class, 'assignAcademicTerm'])->name('assignAcademicTerm');
