@@ -105,6 +105,96 @@ class StaffRequestController extends Controller
         ]);
     }
 
+    // ── Staff Dashboard ─────────────────────────────────────────────────────────
+
+    public function dashboard(Request $request): JsonResponse
+    {
+        $startDate = now()->subDays(29)->startOfDay();
+        $statusCounts = StaffInput::query()
+            ->selectRaw('status, count(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status');
+
+        $latestByStatus = StaffInput::query()
+            ->selectRaw('status, MAX(created_at) as latest')
+            ->groupBy('status')
+            ->pluck('latest', 'status');
+
+        $unprocessedStats = FormInput::query()
+            ->whereDoesntHave('staffInput')
+            ->selectRaw('count(*) as count, MAX(created_at) as latest')
+            ->first();
+        $unprocessedCount = $unprocessedStats->count ?? 0;
+        $unprocessedLastDate = $unprocessedStats->latest ?? null;
+
+        $totalRequestsLastDate = FormInput::max('created_at');
+        $requestsOverTime = FormInput::query()
+            ->where('created_at', '>=', $startDate)
+            ->get(['created_at'])
+            ->groupBy(fn (FormInput $formInput) => $formInput->created_at->toDateString())
+            ->map(fn ($requests, $date) => ['date' => $date, 'count' => $requests->count()]);
+
+        $requestsOverTime = collect(range(0, 29))
+            ->map(function (int $daysAgo) use ($requestsOverTime) {
+                $date = now()->subDays(29 - $daysAgo)->toDateString();
+
+                return $requestsOverTime->get($date, ['date' => $date, 'count' => 0]);
+            })
+            ->values();
+        $recentRequests = FormInput::with('staffInput')
+            ->latest()
+            ->take(8)
+            ->get();
+        $recentActivity = StaffInput::with('formInput')
+            ->latest()
+            ->take(8)
+            ->get()
+            ->map(fn (StaffInput $staffInput) => [
+                'id' => $staffInput->id,
+                'event' => 'processed',
+                'description' => "Request {$staffInput->formInput->reference_number} was processed as ".ucfirst($staffInput->status).'.',
+                'causerName' => null,
+                'createdAt' => $staffInput->created_at->toISOString(),
+            ]);
+
+        return response()->json([
+            'data' => [
+                'totalRequests' => FormInput::count(),
+                'unprocessedRequests' => $unprocessedCount,
+                'pendingRequests' => $statusCounts->get('pending', 0),
+                'processedRequests' => $statusCounts->get('processed', 0),
+                'paidRequests' => $statusCounts->get('paid', 0),
+                'cancelledRequests' => $statusCounts->get('cancelled', 0),
+                'totalRequestsLastDate' => $totalRequestsLastDate,
+                'unprocessedLastDate' => $unprocessedLastDate,
+                'pendingLastDate' => $latestByStatus->get('pending'),
+                'processedLastDate' => $latestByStatus->get('processed'),
+                'paidLastDate' => $latestByStatus->get('paid'),
+                'cancelledLastDate' => $latestByStatus->get('cancelled'),
+                'statusBreakdown' => collect([
+                    ['name' => 'Unprocessed', 'count' => $unprocessedCount],
+                ])
+                    ->concat(
+                        collect(['pending', 'processed', 'paid', 'cancelled'])
+                            ->map(fn (string $status) => [
+                                'name' => ucfirst($status),
+                                'count' => $statusCounts->get($status, 0),
+                            ])
+                    )
+                    ->values(),
+                'requestsOverTime' => $requestsOverTime,
+                'requestsByMembership' => FormInput::query()
+                    ->join('memberships', 'form_inputs.membership_id', '=', 'memberships.id')
+                    ->selectRaw('memberships.member_code as name, count(*) as count')
+                    ->groupBy('memberships.id', 'memberships.member_desc')
+                    ->orderBy('name')
+                    ->get(),
+                'recentRequests' => $recentRequests,
+                'recentActivity' => $recentActivity,
+            ],
+        ]);
+    }
+
     // ── Show ──────────────────────────────────────────────────────────────────
 
     public function show(FormInput $formInput): JsonResponse

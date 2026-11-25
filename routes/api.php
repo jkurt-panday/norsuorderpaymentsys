@@ -89,6 +89,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         // ── Staff requests ────────────────────────────────────────────────────
         Route::prefix('staff/requests')->name('staff.requests.')->middleware('staff')->group(function () {
             Route::get('/', [StaffRequestController::class, 'index'])->name('index');
+            Route::get('/dashboard', [StaffRequestController::class, 'dashboard'])->name('dashboard');
             Route::post('/process', [StaffRequestController::class, 'store'])->name('store');
             Route::get('/email-recipients', [StaffRequestController::class, 'emailRecipients'])->name('emailRecipients');
             Route::get('/student-search', [StaffRequestController::class, 'searchStudents'])
