@@ -31,10 +31,9 @@ class CashierRequestController extends Controller
             ->when($search !== '', function (Builder $query) use ($search): void {
                 $like = '%'.mb_strtolower($search).'%';
                 $query->where(function (Builder $query) use ($like): void {
-                    $query->whereRaw('LOWER(staff_inputs.or_no) LIKE ?', [$like])
+                        $query->whereRaw('LOWER(staff_inputs.or_no) LIKE ?', [$like])
                         ->orWhereHas('formInput', function (Builder $query) use ($like): void {
                             $query->whereRaw('LOWER(reference_number) LIKE ?', [$like])
-                                ->orWhereRaw('LOWER(email) LIKE ?', [$like])
                                 ->orWhereRaw('LOWER(firstname_or_office) LIKE ?', [$like])
                                 ->orWhereRaw('LOWER(lastname_or_agency) LIKE ?', [$like])
                                 ->orWhereRaw("LOWER(CONCAT_WS(' ', firstname_or_office, middlename_or_project, lastname_or_agency)) LIKE ?", [$like]);
@@ -62,8 +61,12 @@ class CashierRequestController extends Controller
         $perPage = max(1, min((int) $request->query('per_page', 10), 100));
         $paginator = $query->paginate($perPage)->withQueryString();
 
+        $items = collect($paginator->items())->each(function (StaffInput $item): void {
+            $item->formInput?->makeHidden('email');
+        });
+
         return response()->json([
-            'data' => $paginator->items(),
+            'data' => $items->values(),
             'meta' => [
                 'current_page' => $paginator->currentPage(),
                 'per_page' => $paginator->perPage(),
@@ -77,6 +80,7 @@ class CashierRequestController extends Controller
     public function show(StaffInput $staffInput): JsonResponse
     {
         $staffInput->load(['formInput.membership', 'formInput.paymentDetailOption']);
+        $staffInput->formInput?->makeHidden('email');
 
         return response()->json(['data' => $staffInput]);
     }
@@ -94,6 +98,14 @@ class CashierRequestController extends Controller
                 $locked = StaffInput::query()->lockForUpdate()->findOrFail($staffInput->id);
                 $formInput = $locked->formInput()->with('course')->first();
                 $targetStatus = $validated['status'];
+
+                // A completed payment is immutable for cashiers. Staff/admin have
+                // a separate OR-correction workflow when a correction is needed.
+                if ($locked->status === 'paid' && filled($locked->or_no)) {
+                    throw ValidationException::withMessages([
+                        'status' => ['This payment is already paid and locked. Cashiers cannot edit it further.'],
+                    ]);
+                }
 
                 if ($targetStatus === 'paid' && $locked->status === 'pending') {
                     throw ValidationException::withMessages(['status' => ['Cannot mark a pending request as paid. It must be processed first.']]);

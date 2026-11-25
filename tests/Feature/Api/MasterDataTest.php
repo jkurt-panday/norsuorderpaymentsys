@@ -14,6 +14,7 @@ class MasterDataTest extends TestCase
     public function test_staff_can_crud_master_data_resources(): void
     {
         $staff = User::factory()->create(['role' => 'staff']);
+        $admin = User::factory()->admin()->create();
         $payloads = [
             'memberships' => ['member_code' => 'M1', 'member_desc' => 'Student'],
             'payment-options' => ['payment_desc' => 'Tuition'],
@@ -31,7 +32,8 @@ class MasterDataTest extends TestCase
             $this->actingAs($staff)->getJson('/api/v1/'.$resource)->assertOk()->assertJsonPath('data.0.id', $id);
             $this->actingAs($staff)->putJson('/api/v1/'.$resource.'/'.$id, $payload)->assertOk();
             if ($resource !== 'authorized-officials') {
-                $this->actingAs($staff)->deleteJson('/api/v1/'.$resource.'/'.$id)->assertNoContent();
+                $this->actingAs($staff)->deleteJson('/api/v1/'.$resource.'/'.$id)->assertForbidden();
+                $this->actingAs($admin)->deleteJson('/api/v1/'.$resource.'/'.$id)->assertNoContent();
             }
         }
     }

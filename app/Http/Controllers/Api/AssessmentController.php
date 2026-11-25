@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\AssessmentSoaMail;
 use App\Models\AssessmentForm;
 use App\Services\AssessmentStatsService;
+use App\Services\LedgerMatchingService;
 use App\Services\ReceiptPDFService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,9 +32,14 @@ class AssessmentController extends Controller
         return response()->json(['data' => ['by_course' => $stats->countsByCourse(), 'by_semester' => $stats->countsBySemester(), 'by_enrolled_under' => $stats->countsByEnrolledUnder(), 'monthly_trend' => $stats->monthlyTrend(), 'daily_requests' => $daily, 'requests_trend' => $stats->requestsTrend($daily)]]);
     }
 
-    public function show(AssessmentForm $assessment): JsonResponse
+    public function show(AssessmentForm $assessment, LedgerMatchingService $ledgerMatcher): JsonResponse
     {
-        return response()->json(['data' => $assessment->load('course')]);
+        $assessment->load('course');
+
+        $data = $assessment->toArray();
+        $data['ledgerStatement'] = $ledgerMatcher->forAssessment($assessment);
+
+        return response()->json(['data' => $data]);
     }
 
     public function update(Request $request, AssessmentForm $assessment): JsonResponse

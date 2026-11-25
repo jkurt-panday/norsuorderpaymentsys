@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Course extends Model
 {
     /** @use HasFactory<Factory<Course>> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     public const GRADUATE_FALLBACK_CODE = 'UNASSIGNED_GRAD';
 

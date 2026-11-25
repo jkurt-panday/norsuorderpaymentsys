@@ -6,12 +6,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Http\Request;
 
 class AssessmentForm extends Model
 {
     /** @use HasFactory<\Illuminate\Database\Eloquent\Factories\Factory<AssessmentForm>> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'assessment_forms';
 

@@ -126,7 +126,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 ->name('store');
             Route::get('/{supportingDocument}/view', [SupportingDocumentController::class, 'view'])->name('view');
             Route::get('/{supportingDocument}/download', [SupportingDocumentController::class, 'download'])->name('download');
-            Route::delete('/{supportingDocument}', [SupportingDocumentController::class, 'destroy'])->name('destroy');
+            Route::delete('/{supportingDocument}', [SupportingDocumentController::class, 'destroy'])->middleware('admin')->name('destroy');
         });
 
         // ── Admin ─────────────────────────────────────────────────────────────
@@ -148,7 +148,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('/'.$resource, [MasterDataController::class, 'index'])->defaults('resource', $resource)->name($resource.'.index');
                 Route::post('/'.$resource, [MasterDataController::class, 'store'])->defaults('resource', $resource)->name($resource.'.store');
                 Route::put('/'.$resource.'/{id}', [MasterDataController::class, 'update'])->defaults('resource', $resource)->name($resource.'.update');
-                Route::delete('/'.$resource.'/{id}', [MasterDataController::class, 'destroy'])->defaults('resource', $resource)->name($resource.'.destroy');
+                Route::delete('/'.$resource.'/{id}', [MasterDataController::class, 'destroy'])->defaults('resource', $resource)->middleware('admin')->name($resource.'.destroy');
             }
             Route::put('/authorized-officials/{id}/set-active', [MasterDataController::class, 'setActive'])->name('authorized-officials.set-active');
             Route::get('/uacs/export', [MasterDataController::class, 'exportUacs'])->middleware('throttle:export')->name('uacs.export');
@@ -169,7 +169,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('/email-recipients', [LedgerController::class, 'emailRecipients'])->defaults('ledger', $ledger)->name('email-recipients');
                 Route::post('/send-emails', [LedgerController::class, 'sendEmails'])->defaults('ledger', $ledger)->middleware('throttle:email')->name('send-emails');
                 Route::put('/{id}', [LedgerController::class, 'update'])->defaults('ledger', $ledger)->name('update');
-                Route::delete('/{id}', [LedgerController::class, 'destroy'])->defaults('ledger', $ledger)->name('destroy');
+                Route::delete('/{id}', [LedgerController::class, 'destroy'])->defaults('ledger', $ledger)->middleware('admin')->name('destroy');
                 Route::get('/students/{student}/balance', [LedgerController::class, 'balance'])->defaults('ledger', $ledger)->name('students.balance');
             });
         }
@@ -182,7 +182,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/{assessment}/email-soa', [AssessmentController::class, 'emailSoa'])->middleware('throttle:email')->name('email_soa');
             Route::get('/{assessment}', [AssessmentController::class, 'show'])->name('show');
             Route::patch('/{assessment}', [AssessmentController::class, 'update'])->name('update');
-            Route::delete('/{assessment}', [AssessmentController::class, 'destroy'])->name('destroy');
+             Route::delete('/{assessment}', [AssessmentController::class, 'destroy'])->middleware('admin')->name('destroy');
         });
 
         // ── Settings ──────────────────────────────────────────────────────────
