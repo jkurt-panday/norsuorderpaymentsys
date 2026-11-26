@@ -61,14 +61,14 @@ export function StatCard({
     subtitle,
 }: StatCardProps) {
     return (
-        <div className={`rounded-3xl p-6 shadow-sm ${bgClass} ${textClass}`}>
+        <div className={`rounded-3xl p-5 shadow-sm ${bgClass} ${textClass}`}>
             <div className="flex items-start justify-between">
-                <p className="text-sm tracking-[0.2em] uppercase opacity-70">
+                <p className="text-xs tracking-[0.2em] uppercase opacity-70">
                     {label}
                 </p>
                 {icon && <span className="opacity-80">{icon}</span>}
             </div>
-            <p className="mt-4 text-3xl font-semibold">{value}</p>
+            <p className="mt-3 text-2xl font-semibold">{value}</p>
             {subtitle && <p className="mt-1 text-xs opacity-60">{subtitle}</p>}
         </div>
     );

@@ -86,6 +86,12 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     // ── Authenticated ─────────────────────────────────────────────────────────
     Route::middleware('auth:sanctum')->group(function () {
 
+        // ── Staff dashboard & activity log ────────────────────────────────────
+        Route::prefix('staff')->name('staff.')->middleware('staff')->group(function () {
+            Route::get('/dashboard', [StaffRequestController::class, 'dashboard'])->name('dashboard');
+            Route::get('/activity-log', [StaffRequestController::class, 'activityLog'])->name('activity-log');
+        });
+
         // ── Staff requests ────────────────────────────────────────────────────
         Route::prefix('staff/requests')->name('staff.requests.')->middleware('staff')->group(function () {
             Route::get('/', [StaffRequestController::class, 'index'])->name('index');
@@ -107,6 +113,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::put('/{formInput}/or', [StaffRequestController::class, 'updateOrNumber'])->name('updateOr');
             Route::get('/{formInput}/pdf', [StaffRequestController::class, 'pdf'])->name('pdf');
             Route::put('/{formInput}/student', [StaffRequestController::class, 'linkStudent'])->name('linkStudent');
+            Route::delete('/{formInput}/student', [StaffRequestController::class, 'unlinkStudent'])->name('unlinkStudent');
             Route::post('/{formInput}/student', [StaffRequestController::class, 'createAndLinkStudent'])->name('createAndLinkStudent');
             Route::put('/{formInput}/academic-term', [StaffRequestController::class, 'assignAcademicTerm'])->name('assignAcademicTerm');
             Route::put('/{staffInput}', [StaffRequestController::class, 'update'])->name('update');
@@ -164,14 +171,17 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('/', [LedgerController::class, 'store'])->defaults('ledger', $ledger)->name('store');
                 Route::post('/cohort-store', [LedgerController::class, 'cohortStore'])->defaults('ledger', $ledger)->name('cohort-store');
                 Route::get('/students/search', [LedgerController::class, 'searchStudents'])->defaults('ledger', $ledger)->middleware('throttle:search')->name('students.search');
-                Route::get('/students/roster', [LedgerController::class, 'roster'])->defaults('ledger', $ledger)->name('students.roster');
+                Route::get('/students/roster', [LedgerController::class, 'roster'])->defaults('ledger', $ledger)->middleware('throttle:search')->name('students.roster');
                 Route::post('/import', [LedgerController::class, 'import'])->defaults('ledger', $ledger)->middleware('throttle:import')->name('import');
                 Route::get('/export', [LedgerController::class, 'export'])->defaults('ledger', $ledger)->middleware('throttle:export')->name('export');
                 Route::get('/pdf', [LedgerController::class, 'pdf'])->defaults('ledger', $ledger)->middleware('throttle:export')->name('pdf');
                 Route::get('/email-recipients', [LedgerController::class, 'emailRecipients'])->defaults('ledger', $ledger)->name('email-recipients');
                 Route::post('/send-emails', [LedgerController::class, 'sendEmails'])->defaults('ledger', $ledger)->middleware('throttle:email')->name('send-emails');
+                Route::get('/{id}', [LedgerController::class, 'show'])->defaults('ledger', $ledger)->name('show');
                 Route::put('/{id}', [LedgerController::class, 'update'])->defaults('ledger', $ledger)->name('update');
-                Route::delete('/{id}', [LedgerController::class, 'destroy'])->defaults('ledger', $ledger)->middleware('admin')->name('destroy');
+                Route::delete('/{id}', [LedgerController::class, 'destroy'])->defaults('ledger', $ledger)->name('destroy');
+                Route::post('/{id}/apply-membership', [LedgerController::class, 'applyMembership'])->defaults('ledger', $ledger)->name('apply-membership');
+                Route::post('/{id}/apply-honor', [LedgerController::class, 'applyLatinHonor'])->defaults('ledger', $ledger)->name('apply-honor');
                 Route::get('/students/{student}/balance', [LedgerController::class, 'balance'])->defaults('ledger', $ledger)->name('students.balance');
             });
         }

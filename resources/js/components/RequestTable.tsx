@@ -8,7 +8,8 @@ import {
     ArrowUp,
     ArrowDown,
     ListFilter,
-    RefreshCw,
+    RotateCcw,
+    X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import * as React from 'react';
@@ -129,7 +130,7 @@ interface RequestTableProps<T> {
     dateTo: string;
     onDateToChange: (value: string) => void;
     onFilterSubmit: (e: React.SyntheticEvent) => void;
-    onFilterReset: () => void;
+    onFilterReset?: () => void;
     resourceKey?: string;
     highlightDuration?: number;
     /** Optional React node rendered beside the total in the table header. */
@@ -176,14 +177,67 @@ export default function RequestTable<T extends { id: number | string }>({
     highlightDuration = 2000,
     customToolbar,
 }: RequestTableProps<T>) {
+    // Whether any filter is currently applied. The X icon renders when this is
+    // true, so it's available as soon as you start filtering.
+    const hasActiveFilters = Boolean(
+        search.trim() ||
+            status ||
+            dateFrom ||
+            dateTo,
+    );
+
     const {
-        reload: handleTableReload,
-        isReloading: isTableReloading,
-        cooldown: reloadCooldown,
-        canReload,
+        reload: handleReset,
+        isReloading: isResetting,
+        cooldown: resetCooldown,
+        canReload: canReset,
     } = useReloadCooldown({
-        only: resourceKey ? [resourceKey] : ['requests'],
+        only: resourceKey ? [resourceKey, 'filters'] : ['requests', 'filters'],
+        perform: (finish) => {
+            onFilterReset?.();
+
+            const url = new URL(window.location.href);
+            url.search = '';
+
+            router.get(
+                url.pathname,
+                {},
+                {
+                    preserveScroll: true,
+                    replace: true,
+                    only: resourceKey ? [resourceKey, 'filters'] : ['requests', 'filters'],
+                    showProgress: false,
+                    onStart: () => {},
+                    onFinish: finish,
+                    onError: finish,
+                },
+            );
+        },
     });
+
+    // Clear filters without the 10s cooldown — the X icon only shows up
+    // when filters are actually applied, so it can't be spammed. This wipes
+    // both the local input state and the query string.
+    const handleClearFilters = () => {
+        onFilterReset?.();
+
+        const url = new URL(window.location.href);
+        url.search = '';
+
+        router.get(
+            url.pathname,
+            {},
+            {
+                preserveScroll: true,
+                replace: true,
+                only: resourceKey ? [resourceKey, 'filters'] : ['requests', 'filters'],
+                showProgress: false,
+                onStart: () => {},
+                onFinish: () => {},
+                onError: () => {},
+            },
+        );
+    };
 
     const rows = resource.data;
     const showPagination = rows.length > 0;
@@ -524,35 +578,41 @@ export default function RequestTable<T extends { id: number | string }>({
                                     <Filter className="h-4 w-4" />
                                     <span>Filter</span>
                                 </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="h-10 rounded-lg"
-                                    onClick={onFilterReset}
-                                >
-                                    Reset
-                                </Button>
+
+                                {hasActiveFilters && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        className="h-10 gap-1.5 rounded-lg"
+                                        onClick={handleClearFilters}
+                                        title="Clear filters"
+                                    >
+                                        <X className="h-4 w-4" />
+                                        <span>Clear</span>
+                                    </Button>
+                                )}
+
                                 <Button
                                     type="button"
                                     variant="outline"
                                     className="h-10 gap-1.5 rounded-lg"
-                                    onClick={handleTableReload}
-                                    disabled={!canReload}
+                                    onClick={handleReset}
+                                    disabled={!canReset}
                                     title={
-                                        reloadCooldown > 0
-                                            ? `Wait ${reloadCooldown}s to reload`
-                                            : 'Reload table data'
+                                        resetCooldown > 0
+                                            ? `Wait ${resetCooldown}s to reset`
+                                            : 'Reset search, filter and sorting'
                                     }
                                 >
-                                    <RefreshCw
-                                        className={`h-4 w-4 ${isTableReloading ? 'animate-spin' : ''}`}
+                                    <RotateCcw
+                                        className={`h-4 w-4 ${isResetting ? 'animate-spin' : ''}`}
                                     />
                                     <span>
-                                        {isTableReloading
-                                            ? 'Reloading...'
-                                            : reloadCooldown > 0
-                                              ? `Reload (${reloadCooldown}s)`
-                                              : 'Reload'}
+                                        {resetCooldown > 0
+                                            ? `Reset (${resetCooldown}s)`
+                                            : isResetting
+                                              ? 'Resetting...'
+                                              : 'Reset'}
                                     </span>
                                 </Button>
                             </div>

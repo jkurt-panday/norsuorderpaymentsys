@@ -1,5 +1,4 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { useState } from 'react';
 import {
     ArrowUpRight,
     ClipboardList,
@@ -14,6 +13,7 @@ import {
     UserRoundCog,
     Users,
 } from 'lucide-react';
+import { useState } from 'react';
 import { dashboard, home, login } from '@/routes';
 import { create as requestAssessment } from '@/routes/public/assessmentform';
 import { create as requestOrderOfPayment } from '@/routes/public/opform';
@@ -191,7 +191,7 @@ export default function Welcome() {
                                 </h1>
                                 <p className="mt-6 max-w-[62ch] text-lg leading-8 text-blue-100 sm:text-xl">
                                     Submit an Order of Payment or request a
-                                    student assessment online—no office visit
+                                    student assessment online no office visit
                                     needed to get started.
                                 </p>
                             </div>
@@ -365,7 +365,7 @@ export default function Welcome() {
                                     <p className="mt-2 leading-7 text-blue-100">
                                         Negros Oriental State University
                                         <br />
-                                        Main Campus
+                                        Main Campus I
                                     </p>
                                 </div>
                             </div>
@@ -466,8 +466,8 @@ export default function Welcome() {
                                 className="size-14 shrink-0 object-contain"
                             />
                             <p className="font-heading text-base leading-6 font-semibold text-white">
-                                <span className="block">Our Hope</span>
                                 <span className="block">Our Pride</span>
+                                <span className="block">Our Hope</span>
                                 <span className="block">Our Future</span>
                             </p>
                         </div>

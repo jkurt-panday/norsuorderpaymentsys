@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\FormInput;
 use App\Models\StaffInput;
 use App\Models\SupportingDocument;
-use App\Services\FileUploadService;
+use App\Services\GoogleDriveStorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -38,7 +38,7 @@ class SupportingDocumentController extends Controller
         ]);
     }
 
-    public function store(Request $request, FileUploadService $uploadService): JsonResponse
+    public function store(Request $request, GoogleDriveStorageService $uploadService): JsonResponse
     {
         $validated = $request->validate([
             'form_input_id' => ['required', 'integer', 'exists:form_inputs,id'],
@@ -56,17 +56,17 @@ class SupportingDocumentController extends Controller
         ], 201);
     }
 
-    public function view(SupportingDocument $supportingDocument, FileUploadService $uploadService): StreamedResponse
+    public function view(SupportingDocument $supportingDocument, GoogleDriveStorageService $uploadService): StreamedResponse
     {
-        return $uploadService->stream($supportingDocument);
+        return $uploadService->download($supportingDocument, true);
     }
 
-    public function download(SupportingDocument $supportingDocument, FileUploadService $uploadService): StreamedResponse
+    public function download(SupportingDocument $supportingDocument, GoogleDriveStorageService $uploadService): StreamedResponse
     {
         return $uploadService->download($supportingDocument);
     }
 
-    public function destroy(SupportingDocument $supportingDocument, FileUploadService $uploadService): Response|JsonResponse
+    public function destroy(SupportingDocument $supportingDocument, GoogleDriveStorageService $uploadService): Response|JsonResponse
     {
         try {
             DB::transaction(function () use ($supportingDocument): void {
@@ -74,7 +74,7 @@ class SupportingDocumentController extends Controller
                 $supportingDocument->delete();
             });
 
-            $uploadService->deleteFile($supportingDocument);
+            $uploadService->delete($supportingDocument);
         } catch (Throwable $exception) {
             Log::error('API supporting document deletion failed', [
                 'document_id' => $supportingDocument->id,

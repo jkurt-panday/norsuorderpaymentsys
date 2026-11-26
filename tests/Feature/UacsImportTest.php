@@ -18,7 +18,7 @@ class UacsImportTest extends TestCase
 
     public function test_csv_import_skips_headers_blank_rows_and_normalizes_trimmed_codes(): void
     {
-        $file = $this->csvFile("Title\nNORSU Object Code,NORSU Sub-Object Code,UACS Object Code,UACS Sub-Object Code,RCA Code,Account Title\n\n 000000000001 , 01 , 1234567890 , 02 , 12345678 , Tuition\n");
+        $file = $this->csvFile("NORSU Object Code,NORSU Sub-Object Code,UACS Object Code,UACS Sub-Object Code,RCA Code,Account Title\n\n 000000000001 , 01 , 1234567890 , 02 , 12345678 , Tuition\n");
 
         $count = app(UACSService::class)->import($file);
 

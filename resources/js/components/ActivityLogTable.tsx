@@ -9,10 +9,10 @@ import {
     ArrowUp,
     ArrowDown,
     ArrowUpDown,
-    RefreshCw,
     ChevronLeft,
     ChevronRight,
     RotateCcw,
+    X,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { DateRangeFilter } from '@/components/data-table/date-range-picker';
@@ -249,16 +249,84 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
     }
 
     const [isNavigating, setIsNavigating] = useState(false);
-    const [isResetting, setIsResetting] = useState(false);
+
+    // Whether any filter is currently applied. The X icon renders when this is
+    // true, so it's available as soon as you start filtering. It checks both
+    // the server-provided props (after a navigation) and the local input
+    // state (while you're still typing), so a single keystroke is enough.
+    const hasActiveFilters = Boolean(
+        search.trim() ||
+            (action && action !== 'All') ||
+            dateFrom ||
+            dateTo ||
+            sortKey ||
+            sortDir ||
+            filters?.activity_search ||
+            (filters?.activity_action && filters.activity_action !== 'All') ||
+            filters?.date_from ||
+            filters?.date_to ||
+            filters?.sort ||
+            filters?.direction,
+    );
 
     const {
-        reload: handleTableReload,
-        isReloading: isTableReloading,
-        cooldown: reloadCooldown,
-        canReload,
+        reload: handleReset,
+        isReloading: isResetting,
+        cooldown: resetCooldown,
+        canReload: canReset,
     } = useReloadCooldown({
-        only: ['activityLogs'],
+        only: ['activityLogs', 'activityFilters'],
+        // Reset reloads the table with a clean query string but keeps the
+        // typed/selected filter values in the inputs intact, so the user can
+        // re-apply them without retyping.
+        perform: (finish) => {
+            const url = new URL(window.location.href);
+            url.search = '';
+
+            router.get(
+                url.pathname,
+                {},
+                {
+                    preserveScroll: true,
+                    replace: true,
+                    only: ['activityLogs', 'activityFilters'],
+                    showProgress: false,
+                    onStart: () => {},
+                    onFinish: finish,
+                    onError: finish,
+                },
+            );
+        },
     });
+
+    // Clear filters without the 10s cooldown — the X icon only shows up
+    // when filters are actually applied, so it can't be spammed. This wipes
+    // both the local input state and the query string.
+    const handleClearFilters = () => {
+        setSearch('');
+        setAction('');
+        setDateFrom('');
+        setDateTo('');
+        setSortKey('');
+        setSortDir('');
+
+        const url = new URL(window.location.href);
+        url.search = '';
+
+        router.get(
+            url.pathname,
+            {},
+            {
+                preserveScroll: true,
+                replace: true,
+                only: ['activityLogs', 'activityFilters'],
+                showProgress: false,
+                onStart: () => {},
+                onFinish: () => {},
+                onError: () => {},
+            },
+        );
+    };
 
     const currentPage = logs?.meta?.current_page ?? logs?.current_page ?? 1;
     const lastPage = logs?.meta?.last_page ?? logs?.last_page ?? 1;
@@ -318,14 +386,6 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
         setAction(selected);
         setSortKey('');
         setSortDir('');
-        navigateWithParams({
-            activity_search: search.trim() || undefined,
-            activity_action: selected === 'All' ? undefined : selected,
-            date_from: dateFrom || undefined,
-            date_to: dateTo || undefined,
-            sort: undefined,
-            direction: undefined,
-        });
     };
 
     const handleDateRangeApply = ({
@@ -339,14 +399,6 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
         const toStr = toDateString(to);
         setDateFrom(fromStr);
         setDateTo(toStr);
-        navigateWithParams({
-            date_from: fromStr || undefined,
-            date_to: toStr || undefined,
-            activity_search: search.trim() || undefined,
-            activity_action: action === 'All' ? undefined : action || undefined,
-            sort: sortKey || undefined,
-            direction: sortDir || undefined,
-        });
     };
 
     // Clickable column header: cycles through deactivated -> asc -> desc -> deactivated
@@ -394,36 +446,6 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
         }
     };
 
-    const handleReset = () => {
-        setSearch('');
-        setAction('');
-        setDateFrom('');
-        setDateTo('');
-        setSortKey('');
-        setSortDir('');
-
-        stop();
-
-        const url = new URL(window.location.href);
-        url.search = '';
-
-        router.get(
-            url.pathname,
-            {},
-            {
-                preserveScroll: true,
-                replace: true,
-                only: ['activityLogs'],
-                showProgress: false,
-                onStart: () => setIsResetting(true),
-                onFinish: () => {
-                    setIsResetting(false);
-                    start();
-                },
-            },
-        );
-    };
-
     const [pageJumpOpen, setPageJumpOpen] = useState(false);
     const [pageJumpInput, setPageJumpInput] = useState('');
 
@@ -435,8 +457,6 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
         } else {
             url.searchParams.delete('page');
         }
-
-        stop();
 
         router.get(
             url.pathname + url.search,
@@ -450,13 +470,12 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                 onStart: () => setIsNavigating(true),
                 onFinish: () => {
                     setIsNavigating(false);
-                    start();
                 },
             },
         );
     };
 
-    const isBusy = isNavigating || isResetting;
+    const isBusy = isNavigating;
 
     return (
         <Card className="border border-border bg-card shadow-sm">
@@ -573,44 +592,43 @@ export function ActivityLogTable({ logs, filters }: ActivityLogTableProps) {
                         Search
                     </Button>
 
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-9 gap-1.5 text-xs"
-                        onClick={handleTableReload}
-                        disabled={!canReload}
-                        title={
-                            reloadCooldown > 0
-                                ? `Wait ${reloadCooldown}s to reload`
-                                : 'Reload table data'
-                        }
-                    >
-                        <RefreshCw
-                            className={`h-3.5 w-3.5 ${isTableReloading ? 'animate-spin' : ''}`}
-                        />
-                        <span>
-                            {isTableReloading
-                                ? 'Reloading...'
-                                : reloadCooldown > 0
-                                  ? `Reload (${reloadCooldown}s)`
-                                  : 'Reload'}
-                        </span>
-                    </Button>
+                    {hasActiveFilters && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 gap-1.5 text-xs"
+                            onClick={handleClearFilters}
+                            title="Clear filters"
+                        >
+                            <X className="mr-1.5 h-3.5 w-3.5" />
+                            Clear
+                        </Button>
+                    )}
 
                     <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-9 text-xs"
+                        className="h-9 gap-1.5 text-xs"
                         onClick={handleReset}
-                        disabled={isResetting}
-                        title="Reset search, filter and sorting"
+                        disabled={!canReset}
+                        title={
+                            resetCooldown > 0
+                                ? `Wait ${resetCooldown}s to reset`
+                                : 'Reset search, filter and sorting'
+                        }
                     >
-                        <RefreshCw
+                        <RotateCcw
                             className={`mr-1.5 h-3.5 w-3.5 ${isResetting ? 'animate-spin' : ''}`}
                         />
-                        Reset
+                        <span>
+                            {resetCooldown > 0
+                                ? `Reset (${resetCooldown}s)`
+                                : isResetting
+                                  ? 'Resetting...'
+                                  : 'Reset'}
+                        </span>
                     </Button>
                 </form>
             </CardHeader>

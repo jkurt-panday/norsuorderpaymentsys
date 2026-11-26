@@ -11,12 +11,14 @@ import {
     ArrowUp,
     ArrowDown,
     Check,
-    RefreshCw,
+    RotateCcw,
+    X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useConfirm } from '@/components/confirm-dialog';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CardTitle } from '@/components/ui/card';
 import {
@@ -125,13 +127,64 @@ export default function ResourceTable<T extends { id: number }>({
     const confirm = useConfirm();
 
     const {
-        reload: handleTableReload,
-        isReloading: isTableReloading,
-        cooldown: reloadCooldown,
-        canReload,
+        reload: handleReset,
+        isReloading: isResetting,
+        cooldown: resetCooldown,
+        canReload: canReset,
     } = useReloadCooldown({
         only: resourceKey ? [resourceKey] : undefined,
+        // Reset reloads the table with a clean query string but keeps the
+        // typed/selected filter values in the inputs intact, so the user can
+        // re-apply them without retyping.
+        perform: (finish) => {
+            const url = new URL(window.location.href);
+            url.search = '';
+
+            router.get(
+                url.pathname,
+                {},
+                {
+                    preserveScroll: true,
+                    replace: true,
+                    only: resourceKey ? [resourceKey] : undefined,
+                    showProgress: false,
+                    onStart: () => {},
+                    onFinish: finish,
+                    onError: finish,
+                },
+            );
+        },
     });
+
+    // Clear filters without the 10s cooldown — the X icon only shows up
+    // when filters are actually applied, so it can't be spammed. This wipes
+    // both the local input state and the query string.
+    const handleClearFilters = () => {
+        setInternalSearch('');
+
+        if (isControlledSearch) {
+            onSearchChange?.('');
+        }
+
+        setOptimisticSort(null);
+
+        const url = new URL(window.location.href);
+        url.search = '';
+
+        router.get(
+            url.pathname,
+            {},
+            {
+                preserveScroll: true,
+                replace: true,
+                only: resourceKey ? [resourceKey] : undefined,
+                showProgress: false,
+                onStart: () => {},
+                onFinish: () => {},
+                onError: () => {},
+            },
+        );
+    };
 
     const safeResource: PaginatedData<T> = useMemo(() => {
         if (Array.isArray(resource)) {
@@ -378,7 +431,15 @@ export default function ResourceTable<T extends { id: number }>({
             : new URLSearchParams();
     const currentSort = urlParams.get('sort') ?? '';
     const currentDirection =
-        (urlParams.get('direction') as 'asc' | 'desc') || 'asc';
+        currentSort ? ((urlParams.get('direction') as 'asc' | 'desc') || 'asc') : '';
+
+    // Whether any filter is currently applied. The X icon renders when this is
+    // true, so it's available as soon as you start filtering.
+    const hasActiveFilters = Boolean(
+        effectiveSearchValue ||
+            currentSort ||
+            currentDirection,
+    );
 
     const handleSortClick = (sortKey: string) => {
         const isActiveColumn = currentSort === sortKey;
@@ -406,39 +467,6 @@ export default function ResourceTable<T extends { id: number }>({
         optimisticallySort(sort, direction);
         navigateWithParams({ sort, direction });
     };
-    // ---- Full reset button --------------------------------------
-    // Unlike the plain reload above (same view, fresh data), this clears
-    // search, sort, and any query-string filters entirely and returns the
-    // table to its default unfiltered/unsorted state — a hard reset, not
-    // just a refetch. Deliberately NOT scoped via `only`/`preserveState`
-    // so the URL and every derived prop genuinely clear.
-
-    const [isResetting, setIsResetting] = useState(false);
-
-    const handleReloadAndReset = () => {
-        setInternalSearch('');
-
-        if (isControlledSearch) {
-            onSearchChange?.('');
-            onSearchSubmit?.('');
-        }
-
-        const url = new URL(window.location.href);
-        url.search = '';
-
-        router.get(
-            url.pathname,
-            {},
-            {
-                preserveScroll: true,
-                replace: true,
-                showProgress: false,
-                onStart: () => setIsResetting(true),
-                onFinish: () => setIsResetting(false),
-            },
-        );
-    };
-
     // ---- Page-jump dropdown (copied from RequestTable, unchanged) ----
     // Once there are more than 3 pages, the button row is replaced with
     // Prev / a searchable "Page X of Y" dropdown / Next. Deliberately a
@@ -498,7 +526,7 @@ export default function ResourceTable<T extends { id: number }>({
 
             <Card className="w-full gap-0 overflow-hidden rounded-2xl border-border bg-card py-0 text-card-foreground shadow-sm">
                 <div className="relative h-0.5 w-full overflow-hidden bg-transparent">
-                    {(isNavigating || isResetting) && (
+                    {isNavigating && (
                         <div className="absolute inset-0 animate-[table-loading-bar_1s_ease-in-out_infinite] bg-blue-500" />
                     )}
                 </div>
@@ -590,41 +618,42 @@ export default function ResourceTable<T extends { id: number }>({
                                 </PopoverContent>
                             </Popover>
                         )}
+                        {hasActiveFilters && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 gap-1.5 text-xs"
+                                onClick={handleClearFilters}
+                                title="Clear filters"
+                            >
+                                <X className="mr-1.5 h-3.5 w-3.5" />
+                                Clear
+                            </Button>
+                        )}
+
                         <button
                             type="button"
-                            onClick={handleTableReload}
-                            disabled={!canReload}
-                            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                            aria-label="Reload table"
+                            onClick={handleReset}
+                            disabled={!canReset}
+                            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                            aria-label="Reset table"
                             title={
-                                reloadCooldown > 0
-                                    ? `Wait ${reloadCooldown}s to reload`
-                                    : 'Reload table'
+                                resetCooldown > 0
+                                    ? `Wait ${resetCooldown}s to reset`
+                                    : 'Reset search, filter and sorting'
                             }
                         >
-                            <RefreshCw
-                                className={`h-4 w-4 ${isTableReloading ? 'animate-spin' : ''}`}
-                            />
-                            <span className="hidden text-xs sm:inline">
-                                {isTableReloading
-                                    ? 'Reloading...'
-                                    : reloadCooldown > 0
-                                      ? `Reload (${reloadCooldown}s)`
-                                      : 'Reload'}
-                            </span>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleReloadAndReset}
-                            disabled={isResetting}
-                            className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                            aria-label="Reset table"
-                            title="Reset table"
-                        >
-                            <span className="sr-only">Reset table</span>
-                            <RefreshCw
+                            <RotateCcw
                                 className={`h-4 w-4 ${isResetting ? 'animate-spin' : ''}`}
                             />
+                            <span className="hidden text-xs sm:inline">
+                                {resetCooldown > 0
+                                    ? `Reset (${resetCooldown}s)`
+                                    : isResetting
+                                      ? 'Resetting...'
+                                      : 'Reset'}
+                            </span>
                         </button>
                     </div>
                 </div>

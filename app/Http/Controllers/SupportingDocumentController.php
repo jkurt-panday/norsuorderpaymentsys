@@ -2,231 +2,73 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FormInput;
 use App\Models\StaffInput;
 use App\Models\SupportingDocument;
+use App\Services\GoogleDriveStorageService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SupportingDocumentController extends Controller
 {
-    // Supporting documents are stored in S3 under this folder.
-    protected string $disk = 's3';
+    private const FOLDER_NAME = 'supporting-documents';
 
-    protected string $folder = 'supporting-documents';
-
-    /**
-     * Display a listing of documents
-     */
     public function index(): View
     {
         $documents = SupportingDocument::with('formInput')
-            ->orderBy('created_at', 'desc')
+            ->orderByDesc('created_at')
             ->paginate(20);
 
         return view('staff.documents.index', compact('documents'));
     }
 
-    /**
-     * Store a newly created document in storage and database.
-     */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, GoogleDriveStorageService $storage): RedirectResponse
     {
-        // 1. Validate incoming file and related foreign key
-        $request->validate([
-            'form_input_id' => 'required|exists:form_inputs,id',
-            'document' => 'required|file|mimes:pdf,jpg,png,zip|max:10240', // Max 10MB
+        $validated = $request->validate([
+            'form_input_id' => ['required', 'exists:form_inputs,id'],
+            'document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:10240'],
         ]);
 
-        if ($request->hasFile('document')) {
-            $file = $request->file('document');
-
-            // 2. Gather metadata
-            $originalName = $file->getClientOriginalName();
-            $extension = $file->getClientOriginalExtension();
-            $mimeType = $file->getMimeType();
-            $fileSize = $file->getSize();
-
-            // 3. Generate a unique stored filename to prevent overwriting existing files
-            $storedFilename = Str::uuid().'.'.$extension;
-
-            // 4. Save file to storage/app/public/supporting-documents/
-            $file->storeAs($this->folder, $storedFilename, $this->disk);
-
-            // 5. Generate relative storage URL (e.g., /storage/supporting-documents/...)
-            $fileUrl = Storage::disk($this->disk)->url($this->folder.'/'.$storedFilename);
-
-            // 6. Save metadata record into database
-            SupportingDocument::create([
-                'form_input_id' => $request->form_input_id,
-                'original_filename' => $originalName,
-                'stored_filename' => $storedFilename,
-                'file_url' => $fileUrl,
-                'mime_type' => $mimeType,
-                'file_extension' => $extension,
-                'file_size' => $fileSize,
-                'uploaded_at' => now(),
-            ]);
-
-            return back()->with('success', 'Document uploaded successfully!');
-        }
-
-        return back()->with('error', 'No file was provided.');
-    }
-
-    /**
-     * Display (Stream/Download) the specified document
-     */
-    public function show(SupportingDocument $supportingDocument): StreamedResponse
-    {
-        $relativePath = $this->folder.'/'.$supportingDocument->stored_filename;
-
-        if (! Storage::disk($this->disk)->exists($relativePath)) {
-            abort(404, 'File not found on storage.');
-        }
-
-        // Use only the filename component in the response header; the stored
-        // original name is user-controlled and may contain path separators.
-        $downloadName = basename($supportingDocument->original_filename);
-
-        // Use standard Storage responses instead of hardcoding physical paths
-        return Storage::disk($this->disk)->download(
-            $relativePath,
-            $downloadName,
-            ['Content-Type' => $supportingDocument->mime_type]
+        $storage->uploadDocument(
+            $request->file('document'),
+            FormInput::findOrFail($validated['form_input_id']),
         );
+
+        return back()->with('success', 'Document uploaded successfully.');
     }
 
-    /**
-     * Remove the specified document safely
-     */
-    public function destroy(SupportingDocument $supportingDocument): RedirectResponse
+    public function view(SupportingDocument $supportingDocument, GoogleDriveStorageService $storage): StreamedResponse
+    {
+        return $storage->download($supportingDocument, true);
+    }
+
+    public function download(SupportingDocument $supportingDocument, GoogleDriveStorageService $storage): StreamedResponse
+    {
+        return $storage->download($supportingDocument);
+    }
+
+    public function destroy(SupportingDocument $supportingDocument, GoogleDriveStorageService $storage): RedirectResponse
     {
         try {
-            DB::beginTransaction();
-
-            // If this document is set as the reference document on any
-            // staff_input, clear that reference first so we don't leave
-            // a dangling ref_document_id after the document is gone.
-            StaffInput::query()->where('ref_document_id', $supportingDocument->id)
-                ->update(['ref_document_id' => null]);
-
-            // Delete database record
-            $supportingDocument->delete();
-
-            DB::commit();
-
-            // Only delete the physical file AFTER database transaction commits successfully.
-            $relativePath = $this->folder.'/'.$supportingDocument->stored_filename;
-            if (Storage::disk($this->disk)->exists($relativePath)) {
-                Storage::disk($this->disk)->delete($relativePath);
-            }
+            $storage->delete($supportingDocument);
+            DB::transaction(function () use ($supportingDocument): void {
+                StaffInput::query()->where('ref_document_id', $supportingDocument->id)->update(['ref_document_id' => null]);
+                $supportingDocument->delete();
+            });
 
             return back()->with('success', 'Document deleted successfully.');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error("Failed to delete document ID {$supportingDocument->id}: ".$e->getMessage());
+        } catch (\Throwable $exception) {
+            Log::error('Failed to delete supporting document.', [
+                'document_id' => $supportingDocument->id,
+                'error' => $exception->getMessage(),
+            ]);
 
             return back()->with('error', 'Failed to delete document. Please try again.');
         }
-    }
-
-    /**
-     * View the specified document inline in the browser when supported.
-     */
-    public function view(SupportingDocument $supportingDocument): SymfonyResponse
-    {
-        $headers = ['Content-Type' => $supportingDocument->mime_type];
-        $responseName = basename($supportingDocument->original_filename);
-
-        if ($relativePath = $this->storagePath($supportingDocument)) {
-            return Storage::disk($this->disk)->response(
-                $relativePath,
-                $responseName,
-                $headers
-            );
-        }
-
-        if ($absolutePath = $this->publicPath($supportingDocument)) {
-            return response()->file($absolutePath, $headers);
-        }
-
-        abort(404, 'File not found on storage.');
-    }
-
-    /**
-     * Download the specified document (Alias or Explicit Download)
-     */
-    public function download(SupportingDocument $supportingDocument): SymfonyResponse
-    {
-        $headers = ['Content-Type' => $supportingDocument->mime_type];
-        $downloadName = basename($supportingDocument->original_filename);
-
-        if ($relativePath = $this->storagePath($supportingDocument)) {
-            return Storage::disk($this->disk)->download(
-                $relativePath,
-                $downloadName,
-                $headers
-            );
-        }
-
-        if ($absolutePath = $this->publicPath($supportingDocument)) {
-            return response()->download(
-                $absolutePath,
-                $downloadName,
-                $headers
-            );
-        }
-
-        abort(404, 'File not found on storage.');
-    }
-
-    private function storagePath(SupportingDocument $supportingDocument): ?string
-    {
-        foreach ($this->pathCandidates($supportingDocument) as $path) {
-            if (Storage::disk($this->disk)->exists($path)) {
-                return $path;
-            }
-        }
-
-        return null;
-    }
-
-    private function publicPath(SupportingDocument $supportingDocument): ?string
-    {
-        foreach ($this->pathCandidates($supportingDocument) as $path) {
-            $absolutePath = public_path($path);
-
-            if (is_file($absolutePath)) {
-                return $absolutePath;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function pathCandidates(SupportingDocument $supportingDocument): array
-    {
-        $storedFilename = trim($supportingDocument->stored_filename ?? '');
-        $urlPath = ltrim(parse_url($supportingDocument->file_url ?? '', PHP_URL_PATH) ?: '', '/');
-        $publicStoragePath = preg_replace('#^storage/#', '', $urlPath);
-
-        return array_values(array_filter(array_unique([
-            $this->folder.'/'.$storedFilename,
-            $storedFilename,
-            $urlPath,
-            $publicStoragePath,
-            'storage/'.$this->folder.'/'.$storedFilename,
-        ])));
     }
 }

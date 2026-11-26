@@ -3,10 +3,11 @@ import {
     Plus,
     Pencil,
     Search,
-    RefreshCw,
+    RotateCcw,
     ChevronLeft,
     ChevronRight,
     Power,
+    X,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
@@ -47,6 +48,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useReloadCooldown } from '@/hooks/use-reload-cooldown';
 import {
     update as updateAdminUser,
     toggle as toggleAdminUser,
@@ -143,7 +145,6 @@ export default function AdminUserManagement() {
     const [sortKey, setSortKey] = useState(userFilters?.sort ?? '');
     const [sortDir, setSortDir] = useState(userFilters?.direction ?? '');
     const [isNavigating, setIsNavigating] = useState(false);
-    const [isResetting, setIsResetting] = useState(false);
     const [pageJumpOpen, setPageJumpOpen] = useState(false);
     const [pageJumpInput, setPageJumpInput] = useState('');
 
@@ -164,6 +165,76 @@ export default function AdminUserManagement() {
         password: '',
         role: 'staff',
     });
+
+    // Whether any filter is currently applied. The X icon renders when this is
+    // true, so it's available as soon as you start filtering.
+    const hasActiveFilters = Boolean(
+        search.trim() ||
+            roleFilter ||
+            sortKey ||
+            sortDir ||
+            userFilters?.search ||
+            (userFilters?.role && userFilters.role !== 'All') ||
+            userFilters?.sort ||
+            userFilters?.direction,
+    );
+
+    const {
+        reload: handleReset,
+        isReloading: isResetting,
+        cooldown: resetCooldown,
+        canReload: canReset,
+    } = useReloadCooldown({
+        only: ['users', 'userFilters'],
+        // Reset reloads the table with a clean query string but keeps the
+        // typed/selected filter values in the inputs intact, so the user can
+        // re-apply them without retyping.
+        perform: (finish) => {
+            const url = new URL(window.location.href);
+            url.search = '';
+
+            router.get(
+                url.pathname,
+                {},
+                {
+                    preserveScroll: true,
+                    replace: true,
+                    only: ['users', 'userFilters'],
+                    showProgress: false,
+                    onStart: () => {},
+                    onFinish: finish,
+                    onError: finish,
+                },
+            );
+        },
+    });
+
+    // Clear filters without the 10s cooldown — the X icon only shows up
+    // when filters are actually applied, so it can't be spammed. This wipes
+    // both the local input state and the query string.
+    const handleClearFilters = () => {
+        setSearch('');
+        setRoleFilter('');
+        setSortKey('');
+        setSortDir('');
+
+        const url = new URL(window.location.href);
+        url.search = '';
+
+        router.get(
+            url.pathname,
+            {},
+            {
+                preserveScroll: true,
+                replace: true,
+                only: ['users', 'userFilters'],
+                showProgress: false,
+                onStart: () => {},
+                onFinish: () => {},
+                onError: () => {},
+            },
+        );
+    };
 
     const currentPage = users?.meta?.current_page ?? users?.current_page ?? 1;
     const lastPage = users?.meta?.last_page ?? users?.last_page ?? 1;
@@ -261,29 +332,6 @@ export default function AdminUserManagement() {
         }
     };
 
-    const handleReset = () => {
-        setSearch('');
-        setRoleFilter('');
-        setSortKey('');
-        setSortDir('');
-
-        const url = new URL(window.location.href);
-        url.search = '';
-
-        router.get(
-            url.pathname,
-            {},
-            {
-                preserveScroll: true,
-                replace: true,
-                only: ['users'],
-                showProgress: false,
-                onStart: () => setIsResetting(true),
-                onFinish: () => setIsResetting(false),
-            },
-        );
-    };
-
     const navigateToPage = (page: number) => {
         const url = new URL(window.location.href);
 
@@ -308,7 +356,7 @@ export default function AdminUserManagement() {
         );
     };
 
-    const isBusy = isNavigating || isResetting;
+    const isBusy = isNavigating;
 
     const openCreateDialog = () => {
         setEditingUser(null);
@@ -488,19 +536,43 @@ export default function AdminUserManagement() {
                                 Search
                             </Button>
 
+                            {hasActiveFilters && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-9 gap-1.5 text-xs"
+                                    onClick={handleClearFilters}
+                                    title="Clear filters"
+                                >
+                                    <X className="mr-1.5 h-3.5 w-3.5" />
+                                    Clear
+                                </Button>
+                            )}
+
                             <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                className="h-9 text-xs"
+                                className="h-9 gap-1.5 text-xs"
                                 onClick={handleReset}
-                                disabled={isResetting}
-                                title="Reset search, filter and sorting"
+                                disabled={!canReset}
+                                title={
+                                    resetCooldown > 0
+                                        ? `Wait ${resetCooldown}s to reset`
+                                        : 'Reset search, filter and sorting'
+                                }
                             >
-                                <RefreshCw
+                                <RotateCcw
                                     className={`mr-1.5 h-3.5 w-3.5 ${isResetting ? 'animate-spin' : ''}`}
                                 />
-                                Reset
+                                <span>
+                                    {resetCooldown > 0
+                                        ? `Reset (${resetCooldown}s)`
+                                        : isResetting
+                                          ? 'Resetting...'
+                                          : 'Reset'}
+                                </span>
                             </Button>
                         </form>
                     </CardHeader>

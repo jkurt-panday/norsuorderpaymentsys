@@ -570,6 +570,20 @@ class StaffRequestController extends Controller
         ], 201);
     }
 
+    // ── Unlink student ────────────────────────────────────────────────────────
+
+    public function unlinkStudent(FormInput $formInput): JsonResponse
+    {
+        DB::transaction(function () use ($formInput): void {
+            FormInput::lockForUpdate()->findOrFail($formInput->id)->update(['student_num' => null]);
+        });
+
+        return response()->json([
+            'message' => 'Student unlinked from this Order of Payment.',
+            'data' => $formInput->refresh()->load('student'),
+        ]);
+    }
+
     // ── Assign academic term ──────────────────────────────────────────────────
 
     public function assignAcademicTerm(
@@ -748,6 +762,196 @@ class StaffRequestController extends Controller
         }
 
         return $pdf->stream("OP-{$formInput->reference_number}.pdf");
+    }
+
+    // ── Staff Dashboard ───────────────────────────────────────────────────────
+
+    public function dashboard(Request $request): JsonResponse
+    {
+        $startDate = now()->subDays(29)->startOfDay();
+        $statusCounts = StaffInput::query()
+            ->selectRaw('status, count(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status');
+
+        $latestByStatus = StaffInput::query()
+            ->selectRaw('status, MAX(created_at) as latest')
+            ->groupBy('status')
+            ->pluck('latest', 'status');
+
+        $unprocessedStats = FormInput::query()
+            ->whereDoesntHave('staffInput')
+            ->selectRaw('count(*) as count, MAX(created_at) as latest')
+            ->first();
+        $unprocessedCount = (int) ($unprocessedStats->count ?? 0);
+        $unprocessedLastDate = $unprocessedStats->latest ?? null;
+
+        $totalRequestsLastDate = FormInput::max('created_at');
+        $requestsOverTime = FormInput::query()
+            ->where('created_at', '>=', $startDate)
+            ->get(['created_at'])
+            ->groupBy(fn (FormInput $formInput) => $formInput->created_at->toDateString())
+            ->map(fn ($requests, $date) => ['date' => $date, 'count' => $requests->count()]);
+
+        $requestsOverTime = collect(range(0, 29))
+            ->map(function (int $daysAgo) use ($requestsOverTime) {
+                $date = now()->subDays(29 - $daysAgo)->toDateString();
+
+                return $requestsOverTime->get($date, ['date' => $date, 'count' => 0]);
+            })
+            ->values();
+
+        $recentRequests = FormInput::with(['staffInput', 'membership'])
+            ->latest()
+            ->take(8)
+            ->get()
+            ->map(fn (FormInput $f) => [
+                'id' => $f->id,
+                'reference_number' => $f->reference_number,
+                'full_name' => $f->full_name,
+                'created_at' => $f->created_at?->toISOString(),
+                'status' => $f->staffInput?->status ?? 'unprocessed',
+            ]);
+
+        $recentActivity = StaffInput::with('formInput')
+            ->latest()
+            ->take(8)
+            ->get()
+            ->map(fn (StaffInput $staffInput) => [
+                'id' => $staffInput->id,
+                'event' => 'processed',
+                'description' => "Request {$staffInput->formInput?->reference_number} was processed as ".ucfirst($staffInput->status).'.',
+                'causerName' => null,
+                'createdAt' => $staffInput->created_at?->toISOString(),
+            ]);
+
+        return response()->json([
+            'data' => [
+                'totalRequests' => FormInput::count(),
+                'unprocessedRequests' => $unprocessedCount,
+                'pendingRequests' => (int) $statusCounts->get('pending', 0),
+                'processedRequests' => (int) $statusCounts->get('processed', 0),
+                'paidRequests' => (int) $statusCounts->get('paid', 0),
+                'cancelledRequests' => (int) $statusCounts->get('cancelled', 0),
+                'totalRequestsLastDate' => $totalRequestsLastDate,
+                'unprocessedLastDate' => $unprocessedLastDate,
+                'pendingLastDate' => $latestByStatus->get('pending'),
+                'processedLastDate' => $latestByStatus->get('processed'),
+                'paidLastDate' => $latestByStatus->get('paid'),
+                'cancelledLastDate' => $latestByStatus->get('cancelled'),
+                'statusBreakdown' => collect([
+                    ['name' => 'Unprocessed', 'count' => $unprocessedCount],
+                ])
+                    ->concat(
+                        collect(['pending', 'processed', 'paid', 'cancelled'])
+                            ->map(fn (string $status) => [
+                                'name' => ucfirst($status),
+                                'count' => (int) $statusCounts->get($status, 0),
+                            ])
+                    )
+                    ->values(),
+                'requestsOverTime' => $requestsOverTime,
+                'requestsByMembership' => FormInput::query()
+                    ->join('memberships', 'form_inputs.membership_id', '=', 'memberships.id')
+                    ->selectRaw('memberships.member_code as name, count(*) as count')
+                    ->groupBy('memberships.id', 'memberships.member_desc', 'memberships.member_code')
+                    ->orderBy('name')
+                    ->get(),
+                'recentRequests' => $recentRequests,
+                'recentActivity' => $recentActivity,
+            ],
+        ]);
+    }
+
+    // ── Staff Activity Log ────────────────────────────────────────────────────
+
+    public function activityLog(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->query('activity_search', ''));
+        $action = (string) $request->query('activity_action', '');
+        $dateFrom = (string) $request->query('date_from', '');
+        $dateTo = (string) $request->query('date_to', '');
+
+        $query = ActivityLog::query();
+
+        if ($search !== '') {
+            $like = '%'.mb_strtolower($search).'%';
+            $query->where(function ($q) use ($like) {
+                $q->whereRaw('LOWER(description) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(actor_name) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(actor_role) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(action) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(subject_type) LIKE ?', [$like]);
+            });
+        }
+
+        if ($action !== '') {
+            if ($action === 'created') {
+                $query->whereIn('action', ['created', 'user.created']);
+            } else {
+                $query->where('action', $action);
+            }
+        }
+
+        $query->whereNotIn('action', ['user.created', 'user.deactivated', 'user.reactivated', 'user.updated']);
+
+        if ($dateFrom !== '') {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+
+        if ($dateTo !== '') {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+
+        $allowedSorts = ['created_at', 'action', 'actor_name', 'subject_type'];
+        $sort = (string) $request->query('sort', 'created_at');
+        $direction = $request->query('direction') === 'asc' ? 'asc' : 'desc';
+        if (! in_array($sort, $allowedSorts, true)) {
+            $sort = 'created_at';
+        }
+
+        if ($sort === 'actor_name') {
+            $query->orderByRaw('actor_name IS NULL ASC')
+                ->orderBy('actor_name', $direction)
+                ->orderBy('created_at', 'desc');
+        } elseif ($sort === 'subject_type') {
+            $query->orderByRaw('subject_type IS NULL ASC')
+                ->orderBy('subject_type', $direction)
+                ->orderBy('created_at', 'desc');
+        } elseif ($sort === 'action') {
+            $query->orderBy('action', $direction)
+                ->orderBy('created_at', 'desc');
+        } else {
+            $query->orderBy('created_at', $direction);
+        }
+
+        $paginator = $query->paginate(min(max($request->integer('per_page', 10), 1), 100))->withQueryString();
+
+        return response()->json([
+            'data' => $paginator->getCollection()->map(fn (ActivityLog $log): array => [
+                'id' => $log->id,
+                'action' => $log->action,
+                'event' => $log->eventCategory(),
+                'description' => $log->description,
+                'actor_name' => $log->actor_name,
+                'actor_role' => $log->actor_role,
+                'type' => $log->subjectTypeLabel(),
+                'created_at' => $log->created_at?->toISOString(),
+                'changes' => is_array($log->meta) && isset($log->meta['changes']) && is_array($log->meta['changes'])
+                    ? $log->meta['changes']
+                    : [],
+            ])->values(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+            ],
+            'links' => [
+                'next' => $paginator->nextPageUrl(),
+                'prev' => $paginator->previousPageUrl(),
+            ],
+        ]);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
