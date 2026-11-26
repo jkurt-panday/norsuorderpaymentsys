@@ -163,6 +163,9 @@ class LawSchoolLedgerController extends Controller
      */
     public function export(Request $request): BinaryFileResponse
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '512M');
+
         $query = $this->buildFilteredQuery($request);
 
         $filename = 'law_ledger_export_'.now()->format('Ymd_His').'.xlsx';
@@ -644,6 +647,10 @@ class LawSchoolLedgerController extends Controller
         $distinctStudents = [];
 
         while (($row = fgetcsv($handle)) !== false) {
+            if ($this->isEmptyImportRow($row)) {
+                continue;
+            }
+
             $rowData = [];
             foreach ($row as $index => $value) {
                 $key = $headers[$index] ?? 'column_'.$index;
@@ -726,6 +733,10 @@ class LawSchoolLedgerController extends Controller
         $insertData = [];
 
         while (($row = fgetcsv($handle)) !== false) {
+            if ($this->isEmptyImportRow($row)) {
+                continue;
+            }
+
             $rowData = [];
             foreach ($row as $index => $value) {
                 $key = $headers[$index] ?? 'column_'.$index;
@@ -819,6 +830,14 @@ class LawSchoolLedgerController extends Controller
         $distinctStudents = [];
 
         for ($r = 2; $r <= $highestRow; $r++) {
+            $rawRow = [];
+            for ($c = 1; $c <= $highestColIndex; $c++) {
+                $rawRow[] = $sheet->getCell(Coordinate::stringFromColumnIndex($c).$r)->getValue();
+            }
+            if ($this->isEmptyImportRow($rawRow)) {
+                continue;
+            }
+
             $code = $courseIdx ? trim((string) $sheet->getCell(Coordinate::stringFromColumnIndex($courseIdx).$r)->getValue()) : '';
             if ($code !== '') {
                 $distinctCourses[$code] = true;
@@ -879,6 +898,14 @@ class LawSchoolLedgerController extends Controller
         $insertData = [];
 
         for ($r = 2; $r <= $highestRow; $r++) {
+            $rawRow = [];
+            for ($c = 1; $c <= $highestColIndex; $c++) {
+                $rawRow[] = $sheet->getCell(Coordinate::stringFromColumnIndex($c).$r)->getValue();
+            }
+            if ($this->isEmptyImportRow($rawRow)) {
+                continue;
+            }
+
             $rowData = [];
             for ($c = 1; $c <= $highestColIndex; $c++) {
                 $colLetter = Coordinate::stringFromColumnIndex($c);
@@ -897,6 +924,10 @@ class LawSchoolLedgerController extends Controller
                 } else {
                     $rowData[$key] = $cell->getValue();
                 }
+            }
+
+            if ($this->isEmptyImportRow($rowData)) {
+                continue;
             }
 
             $data = $this->mapImportRow($rowData, $warnings);
@@ -1323,7 +1354,7 @@ class LawSchoolLedgerController extends Controller
      */
     public function generatePdf(Request $request): PdfBuilder
     {
-        set_time_limit(300);
+        set_time_limit(360); // Chrome is capped at 300s below; PHP must outlive it.
 
         $validated = $request->validate([
             'student' => ['required_without:student_id', 'string'],
@@ -2606,6 +2637,22 @@ class LawSchoolLedgerController extends Controller
             self::WARNING_NEGATIVE_LABELED_AR => 0,
             self::WARNING_PAYMENT_MISSING_PARENTHESES => 0,
         ];
+    }
+
+    /** @param array<int|string, mixed> $row */
+    private function isEmptyImportRow(array $row): bool
+    {
+        foreach ($row as $value) {
+            if (is_string($value) && str_starts_with(trim($value), '=')) {
+                continue;
+            }
+
+            if ($value !== null && (! is_string($value) || trim($value) !== '')) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /** @param  WarningCounts  $warnings */

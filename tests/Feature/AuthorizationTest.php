@@ -116,9 +116,43 @@ class AuthorizationTest extends TestCase
 
     public function test_no_api_endpoints_bypass_web_authorization(): void
     {
-        $apiRoutes = collect(app('router')->getRoutes()->getRoutes())
-            ->filter(fn (Route $route): bool => str_starts_with($route->uri(), 'api/'));
+        // api/v1/public/* routes are intentionally unauthenticated (throttle-only).
+        // Every other api/* route must carry auth:sanctum.
+        $unprotected = collect(app('router')->getRoutes()->getRoutes())
+            ->filter(fn (Route $route): bool =>
+                str_starts_with($route->uri(), 'api/')
+                && ! str_starts_with($route->uri(), 'api/v1/public/')
+            )
+            ->reject(fn (Route $route): bool =>
+                in_array('auth:sanctum', $route->gatherMiddleware(), strict: true)
+            );
 
-        $this->assertCount(0, $apiRoutes);
+        $this->assertCount(
+            0,
+            $unprotected,
+            'The following API routes are missing auth:sanctum: '
+                . $unprotected->pluck('uri')->join(', ')
+        );
+    }
+
+    public function test_protected_api_endpoints_return_401_for_guests(): void
+    {
+        $endpoints = [
+            ['GET',   '/api/v1/auth/user'],
+            ['GET',   '/api/v1/staff/requests'],
+            ['GET',   '/api/v1/cashier/requests'],
+            ['GET',   '/api/v1/admin/users'],
+            ['GET',   '/api/v1/memberships'],
+            ['GET',   '/api/v1/graduate-ledger'],
+            ['GET',   '/api/v1/law-ledger'],
+            ['GET',   '/api/v1/assessments'],
+            ['PATCH', '/api/v1/settings/profile'],
+        ];
+
+        foreach ($endpoints as [$method, $uri]) {
+            $this->json($method, $uri)
+                ->assertUnauthorized()
+                ->assertJsonStructure(['message']);
+        }
     }
 }

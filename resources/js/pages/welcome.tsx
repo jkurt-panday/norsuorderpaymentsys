@@ -468,8 +468,8 @@ export default function Welcome() {
                                 className="size-14 shrink-0 object-contain"
                             />
                             <p className="font-heading text-base leading-6 font-semibold text-white">
-                                <span className="block">Our Hope</span>
                                 <span className="block">Our Pride</span>
+                                <span className="block">Our Hope</span>
                                 <span className="block">Our Future</span>
                             </p>
                         </div>

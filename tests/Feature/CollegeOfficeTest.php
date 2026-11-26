@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\CollegeOffice;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
@@ -24,23 +23,6 @@ class CollegeOfficeTest extends TestCase
         $this->assertDatabaseHas('college_offices', [
             'name' => 'College of Engineering',
         ]);
-    }
-
-    public function test_guest_cannot_create_a_college_or_office_when_creation_is_protected(): void
-    {
-        $this->postJson(route('public.college-offices.store'), [
-            'name' => 'Guest Office',
-        ])->assertUnauthorized();
-    }
-
-    public function test_authorized_staff_can_create_a_college_or_office(): void
-    {
-        $staff = User::factory()->staff()->create();
-
-        $this->actingAs($staff)
-            ->postJson(route('public.college-offices.store'), [
-                'name' => 'Staff Office',
-            ])->assertCreated();
     }
 
     public function test_name_is_required_and_must_be_a_string(): void

@@ -471,6 +471,13 @@ paths:
       responses:
         "200": { description: Student matched }
         "422": { description: Validation or workflow error }
+    delete:
+      tags: [Staff]
+      summary: Unlink student from request
+      operationId: unlinkStaffRequestStudent
+      responses:
+        "200": { description: Student unlinked }
+        "404": { description: Request not found }
     post:
       tags: [Staff]
       summary: Create and match a student
@@ -704,7 +711,7 @@ paths:
   /graduate-ledger/send-emails:
     post:
       tags: [Graduate Ledger]
-      summary: Queue graduate ledger statement emails
+      summary: Send graduate ledger statement emails
       operationId: sendGraduateLedgerEmails
       requestBody:
         required: true
@@ -719,7 +726,18 @@ paths:
                 semester: {type: string}
                 subject: {type: string}
                 note: {type: string}
-      responses: {"200": {description: Emails queued}}
+      responses:
+        "200":
+          description: Emails sent synchronously
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: {type: string}
+                  queued_count: {type: integer, description: Successfully sent recipients (kept for SPA compatibility)}
+                  sent_count: {type: integer}
+                  failed_count: {type: integer}
 
   /law-ledger/import:
     post:
@@ -771,7 +789,7 @@ paths:
   /law-ledger/send-emails:
     post:
       tags: [Law Ledger]
-      summary: Queue law ledger statement emails
+      summary: Send law ledger statement emails
       operationId: sendLawLedgerEmails
       requestBody:
         required: true
@@ -786,7 +804,18 @@ paths:
                 semester: {type: string}
                 subject: {type: string}
                 note: {type: string}
-      responses: {"200": {description: Emails queued}}
+      responses:
+        "200":
+          description: Emails sent synchronously
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: {type: string}
+                  queued_count: {type: integer, description: Successfully sent recipients (kept for SPA compatibility)}
+                  sent_count: {type: integer}
+                  failed_count: {type: integer}
 
   /settings/profile:
     patch:
