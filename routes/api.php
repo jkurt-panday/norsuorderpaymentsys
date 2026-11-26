@@ -89,6 +89,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         // ── Staff requests ────────────────────────────────────────────────────
         Route::prefix('staff/requests')->name('staff.requests.')->middleware('staff')->group(function () {
             Route::get('/', [StaffRequestController::class, 'index'])->name('index');
+            Route::get('/dashboard', [StaffRequestController::class, 'dashboard'])->name('dashboard');
             Route::post('/process', [StaffRequestController::class, 'store'])->name('store');
             Route::get('/email-recipients', [StaffRequestController::class, 'emailRecipients'])->name('emailRecipients');
             Route::get('/student-search', [StaffRequestController::class, 'searchStudents'])
@@ -104,10 +105,12 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 ->name('emailOp');
             Route::put('/{formInput}/details', [StaffRequestController::class, 'updateDetails'])->name('updateDetails');
             Route::put('/{formInput}/or', [StaffRequestController::class, 'updateOrNumber'])->name('updateOr');
+            Route::get('/{formInput}/pdf', [StaffRequestController::class, 'pdf'])->name('pdf');
             Route::put('/{formInput}/student', [StaffRequestController::class, 'linkStudent'])->name('linkStudent');
             Route::post('/{formInput}/student', [StaffRequestController::class, 'createAndLinkStudent'])->name('createAndLinkStudent');
             Route::put('/{formInput}/academic-term', [StaffRequestController::class, 'assignAcademicTerm'])->name('assignAcademicTerm');
             Route::put('/{staffInput}', [StaffRequestController::class, 'update'])->name('update');
+            Route::delete('/{formInput}', [StaffRequestController::class, 'destroy'])->name('destroy');
         });
 
         // ── Cashier requests ──────────────────────────────────────────────────

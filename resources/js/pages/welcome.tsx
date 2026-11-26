@@ -297,8 +297,8 @@ export default function Welcome() {
                                                 setSelectedProcess(type)
                                             }
                                             className={`min-h-11 rounded-lg px-3 py-2 text-center text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0d51b5] focus-visible:ring-offset-2 sm:px-6 ${selectedProcess === type
-                                                ? 'bg-[#064b9b] text-white'
-                                                : 'text-[#294765] hover:bg-white'
+                                                    ? 'bg-[#064b9b] text-white'
+                                                    : 'text-[#294765] hover:bg-white'
                                                 }`}
                                         >
                                             {processes[type].label}
@@ -311,8 +311,8 @@ export default function Welcome() {
                                 aria-live="polite"
                                 aria-label={`${process.label} process`}
                                 className={`relative mt-12 grid gap-8 before:absolute before:top-8 before:bottom-8 before:left-8 before:w-px before:bg-[#9fc4ee] sm:mt-14 lg:gap-10 lg:before:top-8 lg:before:right-8 lg:before:bottom-auto lg:before:left-8 lg:before:h-px lg:before:w-auto ${selectedProcess === 'assessment'
-                                    ? 'lg:grid-cols-4'
-                                    : 'lg:grid-cols-3'
+                                        ? 'lg:grid-cols-4'
+                                        : 'lg:grid-cols-3'
                                     }`}
                             >
                                 {process.steps.map((step, index) => (

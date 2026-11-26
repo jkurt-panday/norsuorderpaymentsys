@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -39,15 +40,23 @@ return new class extends Migration
         }
 
         if (DB::connection()->getDriverName() !== 'sqlite') {
-            Schema::table($tableName, function (Blueprint $table) use ($column, $constraintName): void {
-                // Passing an array makes Laravel derive the conventional foreign-key
-                // name (for example, form_inputs_membership_id_foreign). Passing a
-                // bare column string makes MySQL try to drop a key named only after
-                // the column, which fails on existing schemas.
+            Schema::table($tableName, function (Blueprint $table) use ($column, $constraintName, $tableName): void {
                 if ($constraintName !== null) {
                     $table->dropForeign($constraintName);
                 } else {
-                    $table->dropForeign([$column]);
+                    // Check if foreign key exists before dropping
+                    $foreignKeyExists = DB::select(
+                        "SELECT COUNT(*) as count FROM information_schema.TABLE_CONSTRAINTS 
+                         WHERE CONSTRAINT_SCHEMA = DATABASE() 
+                         AND TABLE_NAME = ? 
+                         AND CONSTRAINT_NAME = ? 
+                         AND CONSTRAINT_TYPE = 'FOREIGN KEY'",
+                        [$tableName, $tableName . '_' . $column . '_foreign']
+                    );
+
+                    if ($foreignKeyExists[0]->count > 0) {
+                        $table->dropForeign([$column]);
+                    }
                 }
             });
         }

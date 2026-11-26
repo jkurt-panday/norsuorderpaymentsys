@@ -22,12 +22,12 @@ class TestGraduateStudentsSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Seed standard users for testing with password: "password"
+        // 1. Seed standard users for testing with password: "norsu123"
         $admin = User::updateOrCreate(
             ['email' => 'admin@norsu.edu.ph'],
             [
                 'name' => 'System Admin',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('norsu123'),
                 'role' => 'admin',
                 'email_verified_at' => now(),
             ]
@@ -37,7 +37,7 @@ class TestGraduateStudentsSeeder extends Seeder
             ['email' => 'staff@norsu.edu.ph'],
             [
                 'name' => 'Lead Staff',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('norsu123'),
                 'role' => 'staff',
                 'email_verified_at' => now(),
             ]
@@ -47,13 +47,13 @@ class TestGraduateStudentsSeeder extends Seeder
             ['email' => 'cashier@norsu.edu.ph'],
             [
                 'name' => 'Main Cashier',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('norsu123'),
                 'role' => 'cashier',
                 'email_verified_at' => now(),
             ]
         );
 
-        $this->command->info('Users seeded: admin@norsu.edu.ph, staff@norsu.edu.ph, cashier@norsu.edu.ph (password: password)');
+        $this->command->info('Users seeded: admin@norsu.edu.ph, staff@norsu.edu.ph, cashier@norsu.edu.ph (password: norsu123)');
 
         // 2. Memberships
         $studentMembership = Membership::updateOrCreate(
@@ -95,7 +95,7 @@ class TestGraduateStudentsSeeder extends Seeder
         );
 
         UACS::updateOrCreate(
-            ['object_code' => '4020101000'],
+            ['uacs_object_code' => '50', 'uacs_sub_object_code' => '01'],
             ['account_title' => 'Tuition Fees']
         );
 

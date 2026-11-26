@@ -180,8 +180,9 @@ Route::name('staff.')->prefix('staff')->middleware(['auth', 'staff'])->group(fun
         Route::post('/{formInput}/student', [StaffInputController::class, 'createAndLinkStudent'])->name('createAndLinkStudent');
         Route::put('/{formInput}/academic-term', [StaffInputController::class, 'assignAcademicTerm'])->name('assignAcademicTerm');
         Route::get('/{staffInput}/edit', [StaffInputController::class, 'edit'])->name('edit');
-        Route::put('/{staffInput}', [StaffInputController::class, 'update'])->name('update');
-    });
+Route::put('/{staffInput}', [StaffInputController::class, 'update'])->name('update');
+            Route::delete('/{formInput}', [StaffInputController::class, 'destroy'])->name('destroy')->middleware('admin');
+        });
 
     // ── Master Data (Resource Routes) ───────────────────────────────────────
     Route::resource('memberships', MembershipController::class)
