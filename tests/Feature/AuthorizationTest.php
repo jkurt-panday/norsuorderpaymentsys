@@ -107,14 +107,15 @@ class AuthorizationTest extends TestCase
 
     public function test_delete_routes_are_protected_from_guest_requests(): void
     {
-        foreach (['admin.users.destroy', 'staff.memberships.destroy', 'staff.bank-accounts.destroy', 'staff.payment-options.destroy', 'staff.authorized-officials.destroy', 'staff.uacs.destroy', 'graduate-ledger.destroy', 'law-ledger.destroy'] as $name) {
+        foreach (['admin.users.destroy', 'staff.memberships.destroy', 'staff.bank-accounts.destroy', 'staff.payment-options.destroy', 'staff.authorized-officials.destroy', 'staff.uacs.destroy', 'staff.courses.destroy', 'graduate-ledger.destroy', 'law-ledger.destroy'] as $name) {
             $route = app('router')->getRoutes()->getByName($name);
             $this->assertInstanceOf(Route::class, $route);
             $this->assertContains('auth', $route->gatherMiddleware());
+            $this->assertContains('admin', $route->gatherMiddleware());
         }
     }
 
-    public function test_no_api_endpoints_bypass_web_authorization(): void
+    public function test_api_delete_routes_are_admin_only(): void
     {
         // api/v1/public/* routes are intentionally unauthenticated (throttle-only).
         // Every other api/* route must carry auth:sanctum.

@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\BankAccountInfo;
 use App\Models\Membership;
-use App\Models\PaymentDetailOption;
+use App\Models\UACS;
 use App\Models\User;
 use App\Models\YearSequence;
 use Illuminate\Database\Seeder;
@@ -73,38 +73,27 @@ class DatabaseSeeder extends Seeder
 
         $this->command->info('Successfully seeded: Memberships');
 
-        /*
-        |--------------------------------------------------------------------------
-        | Payment Detail Options
-        |--------------------------------------------------------------------------
-        */
-
-        $paymentOptions = [
-            [
-                'payment_desc' => 'Comprehensive Exam - Doctorate',
-            ],
-            [
-                'payment_desc' => 'Comprehensive Exam - Masters',
-            ],
-            [
-                'payment_desc' => 'IGP FABLAB',
-            ],
-        ];
-
-        foreach ($paymentOptions as $option) {
-            PaymentDetailOption::updateOrCreate(
-                ['payment_desc' => $option['payment_desc']],
-                $option
-            );
-        }
-
-        $this->command->info(
-            'Successfully seeded: Payment Detail Options'
-        );
 
         $this->command->warn(
             'Seeded credentials must be rotated before production use.'
         );
+
+        // UACS seeding
+        $uacsData = [
+            ['norsu_object_code' => '5020', 'norsu_sub_object_code' => '01', 'uacs_object_code' => '50', 'uacs_sub_object_code' => '00', 'rca_code' => 'RCA-021', 'account_title' => 'Office Supplies'],
+            ['norsu_object_code' => '5020', 'norsu_sub_object_code' => '02', 'uacs_object_code' => '50', 'uacs_sub_object_code' => '00', 'rca_code' => 'RCA-022', 'account_title' => 'Accountable Forms'],
+            ['norsu_object_code' => '5020', 'norsu_sub_object_code' => '03', 'uacs_object_code' => '50', 'uacs_sub_object_code' => '00', 'rca_code' => 'RCA-023', 'account_title' => 'Non-Accountable Forms'],
+            ['norsu_object_code' => '5029', 'norsu_sub_object_code' => '01', 'uacs_object_code' => '50', 'uacs_sub_object_code' => '90', 'rca_code' => 'RCA-024', 'account_title' => 'Other Supplies'],
+        ];
+
+        foreach ($uacsData as $uacs) {
+            UACS::updateOrCreate(
+                ['uacs_object_code' => $uacs['uacs_object_code'], 'uacs_sub_object_code' => $uacs['uacs_sub_object_code']],
+                $uacs
+            );
+        }
+
+        $this->command->info('Successfully seeded: UACS');
 
         // $table->string('account_name', 255);
         // $table->string('fund_cluster', 50);
@@ -157,6 +146,8 @@ class DatabaseSeeder extends Seeder
             StudentSeeder::class,
             AcademicTermSeeder::class,
             CourseSeeder::class,
+            AssessmentSeeder::class,
+            TestGraduateStudentsSeeder::class,
         ]);
 
         $this->call(GraduateLedgerSeeder::class, false, [

@@ -15,7 +15,9 @@ use App\Mail\OrderOfPaymentMail;
 use App\Models\AcademicTerm;
 use App\Models\ActivityLog;
 use App\Models\BankAccountInfo;
+use App\Models\Course;
 use App\Models\FormInput;
+use App\Models\Membership;
 use App\Models\PaymentDetailOption;
 use App\Models\StaffInput;
 use App\Models\Student;
@@ -25,6 +27,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -102,6 +105,96 @@ class StaffRequestController extends Controller
         ]);
     }
 
+    // ── Staff Dashboard ─────────────────────────────────────────────────────────
+
+    public function dashboard(Request $request): JsonResponse
+    {
+        $startDate = now()->subDays(29)->startOfDay();
+        $statusCounts = StaffInput::query()
+            ->selectRaw('status, count(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status');
+
+        $latestByStatus = StaffInput::query()
+            ->selectRaw('status, MAX(created_at) as latest')
+            ->groupBy('status')
+            ->pluck('latest', 'status');
+
+        $unprocessedStats = FormInput::query()
+            ->whereDoesntHave('staffInput')
+            ->selectRaw('count(*) as count, MAX(created_at) as latest')
+            ->first();
+        $unprocessedCount = $unprocessedStats->count ?? 0;
+        $unprocessedLastDate = $unprocessedStats->latest ?? null;
+
+        $totalRequestsLastDate = FormInput::max('created_at');
+        $requestsOverTime = FormInput::query()
+            ->where('created_at', '>=', $startDate)
+            ->get(['created_at'])
+            ->groupBy(fn (FormInput $formInput) => $formInput->created_at->toDateString())
+            ->map(fn ($requests, $date) => ['date' => $date, 'count' => $requests->count()]);
+
+        $requestsOverTime = collect(range(0, 29))
+            ->map(function (int $daysAgo) use ($requestsOverTime) {
+                $date = now()->subDays(29 - $daysAgo)->toDateString();
+
+                return $requestsOverTime->get($date, ['date' => $date, 'count' => 0]);
+            })
+            ->values();
+        $recentRequests = FormInput::with('staffInput')
+            ->latest()
+            ->take(8)
+            ->get();
+        $recentActivity = StaffInput::with('formInput')
+            ->latest()
+            ->take(8)
+            ->get()
+            ->map(fn (StaffInput $staffInput) => [
+                'id' => $staffInput->id,
+                'event' => 'processed',
+                'description' => "Request {$staffInput->formInput->reference_number} was processed as ".ucfirst($staffInput->status).'.',
+                'causerName' => null,
+                'createdAt' => $staffInput->created_at->toISOString(),
+            ]);
+
+        return response()->json([
+            'data' => [
+                'totalRequests' => FormInput::count(),
+                'unprocessedRequests' => $unprocessedCount,
+                'pendingRequests' => $statusCounts->get('pending', 0),
+                'processedRequests' => $statusCounts->get('processed', 0),
+                'paidRequests' => $statusCounts->get('paid', 0),
+                'cancelledRequests' => $statusCounts->get('cancelled', 0),
+                'totalRequestsLastDate' => $totalRequestsLastDate,
+                'unprocessedLastDate' => $unprocessedLastDate,
+                'pendingLastDate' => $latestByStatus->get('pending'),
+                'processedLastDate' => $latestByStatus->get('processed'),
+                'paidLastDate' => $latestByStatus->get('paid'),
+                'cancelledLastDate' => $latestByStatus->get('cancelled'),
+                'statusBreakdown' => collect([
+                    ['name' => 'Unprocessed', 'count' => $unprocessedCount],
+                ])
+                    ->concat(
+                        collect(['pending', 'processed', 'paid', 'cancelled'])
+                            ->map(fn (string $status) => [
+                                'name' => ucfirst($status),
+                                'count' => $statusCounts->get($status, 0),
+                            ])
+                    )
+                    ->values(),
+                'requestsOverTime' => $requestsOverTime,
+                'requestsByMembership' => FormInput::query()
+                    ->join('memberships', 'form_inputs.membership_id', '=', 'memberships.id')
+                    ->selectRaw('memberships.member_code as name, count(*) as count')
+                    ->groupBy('memberships.id', 'memberships.member_desc')
+                    ->orderBy('name')
+                    ->get(),
+                'recentRequests' => $recentRequests,
+                'recentActivity' => $recentActivity,
+            ],
+        ]);
+    }
+
     // ── Show ──────────────────────────────────────────────────────────────────
 
     public function show(FormInput $formInput): JsonResponse
@@ -121,9 +214,11 @@ class StaffRequestController extends Controller
         return response()->json([
             'data' => $formInput,
             'bankAccounts' => BankAccountInfo::orderBy('bank_name')->get(),
-            'uacsList' => UACS::select(['id', 'uacs_object_code', 'account_title'])->orderBy('id')->get(),
+            'uacsList' => UACS::select(['id', 'uacs_object_code', 'uacs_sub_object_code', 'account_title'])->orderBy('id')->get(),
             'paymentOptions' => PaymentDetailOption::orderBy('payment_desc')->get(),
             'academicTerms' => AcademicTerm::orderByDesc('school_year')->orderBy('semester')->get(['id', 'school_year', 'semester']),
+            'courses' => Course::orderBy('course_code')->get(['id', 'course_code', 'course_desc', 'course_college']),
+            'memberships' => Membership::orderBy('member_code')->get(['id', 'member_code', 'member_desc']),
         ]);
     }
 
@@ -239,18 +334,20 @@ class StaffRequestController extends Controller
 
     public function updateOrNumber(
         UpdateOpOrNumberRequest $request,
-        StaffInput $staffInput,
+        FormInput $formInput,
         CashierLedgerPostingService $postingService,
     ): JsonResponse {
         $validated = $request->validated();
 
+        if (!$formInput->staffInput) {
+            return response()->json(['message' => 'No processing record found for this request.'], 404);
+        }
+
+        $staffInput = $formInput->staffInput;
+
         try {
             DB::transaction(function () use ($validated, $staffInput, $postingService): void {
                 $locked = StaffInput::lockForUpdate()->findOrFail($staffInput->id);
-
-                if (blank($locked->or_no)) {
-                    return;
-                }
 
                 $locked->update([
                     'or_no' => $validated['or_no'],
@@ -282,9 +379,17 @@ class StaffRequestController extends Controller
             'firstname_or_office' => 'required|string|max:100',
             'middlename_or_project' => 'nullable|string|max:100',
             'lastname_or_agency' => 'required|string|max:100',
-            'amount' => 'required|numeric|min:0',
+            'office_or_college' => 'nullable|string|max:100',
+            'position_or_designation' => 'nullable|string|max:100',
+            'email' => 'nullable|email|max:100',
+            'contact_num' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:255',
+            'amount' => 'nullable|numeric|min:0',
             'purpose' => 'nullable|string|max:350',
             'payment_detail_option_id' => ['nullable', 'exists:payment_detail_options,id'],
+            'course_id' => ['nullable', 'exists:courses,id'],
+            'membership_id' => ['nullable', 'exists:memberships,id'],
+            'submission_date' => ['nullable', 'date'],
             'new_payment_option' => 'nullable|string|max:255',
         ]);
 
@@ -303,7 +408,11 @@ class StaffRequestController extends Controller
             ]);
         }
 
-        unset($validated['new_payment_option']);
+        // Handle submission_date to update created_at
+        if (!empty($validated['submission_date'])) {
+            $validated['created_at'] = $validated['submission_date'] . ' 00:00:00';
+        }
+        unset($validated['submission_date'], $validated['new_payment_option']);
 
         try {
             DB::beginTransaction();
@@ -519,47 +628,20 @@ class StaffRequestController extends Controller
             'note' => 'nullable|string|max:2000',
         ]);
 
-        $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument']);
+        $actor = $request->user();
 
-        $copyLabels = StaffInputController::OP_COPY_LABELS;
-
-        $portraitPdf = Pdf::loadView('pdf.op-a6', compact('formInput', 'copyLabels'))->setPaper('a5', 'portrait');
-        $landscapePdf = Pdf::loadView('pdf.op-landscape', compact('formInput', 'copyLabels'))->setPaper('legal', 'landscape');
-
-        \Mail::to($formInput->email)->send(
-            new OrderOfPaymentMail(
-                $formInput,
-                $portraitPdf->output(),
-                $landscapePdf->output(),
-                $validated['subject'] ?? null,
-                $validated['recipient_name'] ?? null,
-                $validated['note'] ?? null,
-            )
+        // Dispatch to queue for async processing (avoids 15s timeout)
+        SendOrderOfPaymentEmail::dispatch(
+            $formInput->id,
+            $validated['subject'] ?? null,
+            $validated['recipient_name'] ?? null,
+            $validated['note'] ?? null,
+            $actor?->getAuthIdentifier(),
         );
 
-        $formInput->staffInput()->update(['emailed_at' => now(), 'email_status' => 'sent', 'email_error' => null]);
-
-        $actor = $request->user();
-        try {
-            ActivityLog::create([
-                'actor_id' => $actor?->getAuthIdentifier(),
-                'actor_name' => $actor?->name,
-                'actor_role' => $actor?->role,
-                'action' => 'email.sent',
-                'target_id' => null,
-                'subject_type' => null,
-                'subject_id' => null,
-                'description' => "Email sent to {$formInput->email} with subject \"".($validated['subject'] ?? "Order of Payment - {$formInput->reference_number}").'\".',
-                'meta' => [
-                    'to' => $formInput->email,
-                    'subject' => $validated['subject'] ?? "Order of Payment - {$formInput->reference_number}",
-                ],
-            ]);
-        } catch (\Throwable $e) {
-            Log::debug('Failed to log single OP email activity', ['error' => $e->getMessage()]);
-        }
-
-        return response()->json(['message' => 'Order of Payment emailed successfully.']);
+        return response()->json([
+            'message' => 'Order of Payment email queued for sending.',
+        ]);
     }
 
     // ── Bulk email ────────────────────────────────────────────────────────────
@@ -635,6 +717,27 @@ class StaffRequestController extends Controller
             'form_input_ids' => array_values($eligibleIds),
             'total' => count($eligibleIds),
         ]);
+    }
+
+    // ── PDF generation ──────────────────────────────────────────────────────────
+
+    public function pdf(Request $request, FormInput $formInput): Response
+    {
+        $format = $request->query('format', 'portrait');
+
+        $formInput->load(['staffInput.bankAccount', 'staffInput.uacs', 'staffInput.referenceDocument']);
+
+        $copyLabels = StaffInputController::OP_COPY_LABELS;
+
+        if ($format === 'landscape') {
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.op-landscape', compact('formInput', 'copyLabels'))
+                ->setPaper('legal', 'landscape');
+        } else {
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.op-a6', compact('formInput', 'copyLabels'))
+                ->setPaper('a5', 'portrait');
+        }
+
+        return $pdf->stream("OP-{$formInput->reference_number}.pdf");
     }
 
     // ── Staff Dashboard ───────────────────────────────────────────────────────
@@ -847,5 +950,20 @@ class StaffRequestController extends Controller
             ['Graduate School', 'School of Law'],
             true,
         );
+    }
+
+    public function destroy(FormInput $formInput): JsonResponse
+    {
+        try {
+            $formInput->delete();
+
+            return response()->json(['message' => 'Request deleted successfully.']);
+        } catch (\Throwable $e) {
+            Log::error('Staff request deletion failed: '.$e->getMessage(), [
+                'form_input_id' => $formInput->id,
+            ]);
+
+            return response()->json(['message' => 'Failed to delete request. Please try again.'], 500);
+        }
     }
 }

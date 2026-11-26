@@ -285,7 +285,7 @@ const ManageRequests: React.FC = () => {
     const [isPollingProgress, setIsPollingProgress] = useState(false);
     const isPollingRef = useRef(false); // Ref for immediate polling state
     const [showProgressModal, setShowProgressModal] = useState(false);
-    const [pollingStartTime] = useState<number | null>(        null,
+    const [pollingStartTime] = useState<number | null>(null,
     );
     // Polling bookkeeping lives in refs. The async poll chain used to
     // capture `pollTimeoutId` from the render it was created in, so the
@@ -728,24 +728,12 @@ const ManageRequests: React.FC = () => {
     };
 
     const handleReset = () => {
+        // RequestTable handles the query-string wipe + reload itself; this
+        // only clears the local filter state the parent owns.
         setSearch('');
         setStatus('');
         setDateFrom('');
         setDateTo('');
-        router.get(
-            staff.requests.index.url(),
-            {
-                search: undefined,
-                status: undefined,
-                date_from: undefined,
-                date_to: undefined,
-            },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            },
-        );
     };
 
     const handlePageChange = (url: string) => {
@@ -907,7 +895,7 @@ const ManageRequests: React.FC = () => {
 
             {/* ---- Bulk Email Modal ---- */}
             <Dialog open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen}>
-                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-5xl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Mail className="h-5 w-5 text-emerald-600" />
@@ -950,13 +938,13 @@ const ManageRequests: React.FC = () => {
                                 <Select
                                     value={emailTarget}
                                     onValueChange={(v) => {
-                                    if (
-                                        v === 'specific' ||
-                                        v === 'all_paid' ||
-                                        v === 'all_processed' ||
-                                        v === 'all_pending' ||
-                                        v === 'all_cancelled'
-                                    ) {
+                                        if (
+                                            v === 'specific' ||
+                                            v === 'all_paid' ||
+                                            v === 'all_processed' ||
+                                            v === 'all_pending' ||
+                                            v === 'all_cancelled'
+                                        ) {
                                             setEmailTarget(v);
                                         }
                                     }}
@@ -971,9 +959,9 @@ const ManageRequests: React.FC = () => {
                                         <SelectItem value="all_paid">
                                             All paid
                                         </SelectItem>
-                                    <SelectItem value="all_processed">
-                                        All processed
-                                    </SelectItem>
+                                        <SelectItem value="all_processed">
+                                            All processed
+                                        </SelectItem>
                                         <SelectItem value="all_pending">
                                             All pending
                                         </SelectItem>
@@ -1193,8 +1181,8 @@ const ManageRequests: React.FC = () => {
                                                             }
                                                         }}
                                                         className={`flex w-full items-start gap-2 border-b border-border px-3 py-2 text-left text-sm last:border-0 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset focus-visible:outline-none disabled:cursor-not-allowed ${eligible
-                                                                ? 'bg-card text-foreground hover:bg-muted/50'
-                                                                : 'bg-muted/40 opacity-60'
+                                                            ? 'bg-card text-foreground hover:bg-muted/50'
+                                                            : 'bg-muted/40 opacity-60'
                                                             }`}
                                                     >
                                                         <div className="mt-0.5 shrink-0">
@@ -1226,12 +1214,12 @@ const ManageRequests: React.FC = () => {
                                                                 </div>
                                                                 <span
                                                                     className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${row.staff_input
-                                                                            ? statusBadgeClass(
-                                                                                row
-                                                                                    .staff_input
-                                                                                    .status,
-                                                                            )
-                                                                            : 'bg-slate-100 text-slate-600'
+                                                                        ? statusBadgeClass(
+                                                                            row
+                                                                                .staff_input
+                                                                                .status,
+                                                                        )
+                                                                        : 'bg-slate-100 text-slate-600'
                                                                         }`}
                                                                 >
                                                                     {row.staff_input
@@ -1536,12 +1524,12 @@ const ManageRequests: React.FC = () => {
                                                                 </div>
                                                                 <span
                                                                     className={`inline shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${row.staff_input
-                                                                            ? statusBadgeClass(
-                                                                                row
-                                                                                    .staff_input
-                                                                                    .status,
-                                                                            )
-                                                                            : 'bg-slate-100 text-slate-600'
+                                                                        ? statusBadgeClass(
+                                                                            row
+                                                                                .staff_input
+                                                                                .status,
+                                                                        )
+                                                                        : 'bg-slate-100 text-slate-600'
                                                                         }`}
                                                                 >
                                                                     {row.staff_input
@@ -1784,12 +1772,12 @@ const ManageRequests: React.FC = () => {
                                 className="h-full bg-emerald-600 transition-all duration-300"
                                 style={{
                                     width: `${emailProgress.length > 0
-                                            ? (emailProgress.filter(
-                                                (p) => p.status === 'sent',
-                                            ).length /
-                                                emailProgress.length) *
-                                            100
-                                            : 0
+                                        ? (emailProgress.filter(
+                                            (p) => p.status === 'sent',
+                                        ).length /
+                                            emailProgress.length) *
+                                        100
+                                        : 0
                                         }%`,
                                 }}
                             />

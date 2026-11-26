@@ -66,8 +66,8 @@ class ReferenceNumberService
      */
     public function assess_ref_gen(): string
     {
-        return DB::transaction(function () {
-
+        // Generate reference number in a separate transaction to ensure sequence increments even if main transaction fails
+        $referenceNumber = DB::transaction(function () {
             $now = now();
 
             $year = $now->year;
@@ -96,6 +96,16 @@ class ReferenceNumberService
                 $sequence->assessment_number
             );
         });
+
+        // Ensure uniqueness by checking if reference already exists (shouldn't happen with proper locking, but safety check)
+        while (AssessmentForm::query()->where('reference_number', $referenceNumber)->exists()) {
+            // If somehow duplicate, generate a new one using the old method
+            $date = now()->format('Ymd');
+            $random = Str::upper(Str::random(5));
+            $referenceNumber = 'AF-' . $date . '-' . $random;
+        }
+
+        return $referenceNumber;
     }
 
     /**

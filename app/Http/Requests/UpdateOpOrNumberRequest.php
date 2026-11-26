@@ -3,18 +3,14 @@
 namespace App\Http\Requests;
 
 use App\Enums\UserRole;
+use App\Models\FormInput;
 use App\Models\StaffInput;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Lets staff and admin correct an OR number that a cashier already placed.
- *
- * This is deliberately NOT a way to place the first OR number — placing one
- * stays a cashier-only action on `cashier.requests.payment.update`, so the
- * cashier remains the only person who can issue a receipt. Staff/admin may only
- * fix a typo in an OR number that already exists, which covers the case where
- * the cashier is unavailable.
+ * Lets staff and admin correct an OR number that a cashier already placed,
+ * or issue the first OR number in emergency situations.
  */
 class UpdateOpOrNumberRequest extends FormRequest
 {
@@ -52,25 +48,11 @@ class UpdateOpOrNumberRequest extends FormRequest
     }
 
     /**
-     * Staff/admin may only correct an OR number that the cashier already
-     * placed. A blank `or_no` means no receipt was issued yet, so there is
-     * nothing to correct — that stays a cashier-only action.
+     * Removed validation that blocked creating first OR number.
+     * Staff/admin can now issue OR in emergency when cashier is unavailable.
      */
     public function withValidator(Validator $validator): void
     {
-        $validator->after(function (Validator $validator): void {
-            $staffInput = $this->route('staffInput');
-
-            if (! $staffInput instanceof StaffInput) {
-                return;
-            }
-
-            if (blank($staffInput->or_no)) {
-                $validator->errors()->add(
-                    'or_no',
-                    'No OR number has been placed yet, so there is nothing to correct. Only a cashier can issue an OR number.',
-                );
-            }
-        });
+        // No longer blocking on blank or_no - allow emergency creation
     }
 }

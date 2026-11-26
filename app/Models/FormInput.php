@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class FormInput extends Model
 {
     /** @use HasFactory<\Illuminate\Database\Eloquent\Factories\Factory<FormInput>> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $appends = ['full_name'];
 
@@ -34,6 +35,7 @@ class FormInput extends Model
         'submitted_student_number',
         'course_id',
         'academic_term',
+        'created_at',
     ];
 
     protected $casts = [

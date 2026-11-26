@@ -95,6 +95,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         // ── Staff requests ────────────────────────────────────────────────────
         Route::prefix('staff/requests')->name('staff.requests.')->middleware('staff')->group(function () {
             Route::get('/', [StaffRequestController::class, 'index'])->name('index');
+            Route::get('/dashboard', [StaffRequestController::class, 'dashboard'])->name('dashboard');
             Route::post('/process', [StaffRequestController::class, 'store'])->name('store');
             Route::get('/email-recipients', [StaffRequestController::class, 'emailRecipients'])->name('emailRecipients');
             Route::get('/student-search', [StaffRequestController::class, 'searchStudents'])
@@ -109,12 +110,14 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 ->middleware('throttle:email')
                 ->name('emailOp');
             Route::put('/{formInput}/details', [StaffRequestController::class, 'updateDetails'])->name('updateDetails');
-            Route::put('/{staffInput}/or', [StaffRequestController::class, 'updateOrNumber'])->name('updateOr');
+            Route::put('/{formInput}/or', [StaffRequestController::class, 'updateOrNumber'])->name('updateOr');
+            Route::get('/{formInput}/pdf', [StaffRequestController::class, 'pdf'])->name('pdf');
             Route::put('/{formInput}/student', [StaffRequestController::class, 'linkStudent'])->name('linkStudent');
             Route::delete('/{formInput}/student', [StaffRequestController::class, 'unlinkStudent'])->name('unlinkStudent');
             Route::post('/{formInput}/student', [StaffRequestController::class, 'createAndLinkStudent'])->name('createAndLinkStudent');
             Route::put('/{formInput}/academic-term', [StaffRequestController::class, 'assignAcademicTerm'])->name('assignAcademicTerm');
             Route::put('/{staffInput}', [StaffRequestController::class, 'update'])->name('update');
+            Route::delete('/{formInput}', [StaffRequestController::class, 'destroy'])->name('destroy');
         });
 
         // ── Cashier requests ──────────────────────────────────────────────────
@@ -132,7 +135,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 ->name('store');
             Route::get('/{supportingDocument}/view', [SupportingDocumentController::class, 'view'])->name('view');
             Route::get('/{supportingDocument}/download', [SupportingDocumentController::class, 'download'])->name('download');
-            Route::delete('/{supportingDocument}', [SupportingDocumentController::class, 'destroy'])->name('destroy');
+            Route::delete('/{supportingDocument}', [SupportingDocumentController::class, 'destroy'])->middleware('admin')->name('destroy');
         });
 
         // ── Admin ─────────────────────────────────────────────────────────────
@@ -154,7 +157,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('/'.$resource, [MasterDataController::class, 'index'])->defaults('resource', $resource)->name($resource.'.index');
                 Route::post('/'.$resource, [MasterDataController::class, 'store'])->defaults('resource', $resource)->name($resource.'.store');
                 Route::put('/'.$resource.'/{id}', [MasterDataController::class, 'update'])->defaults('resource', $resource)->name($resource.'.update');
-                Route::delete('/'.$resource.'/{id}', [MasterDataController::class, 'destroy'])->defaults('resource', $resource)->name($resource.'.destroy');
+                Route::delete('/'.$resource.'/{id}', [MasterDataController::class, 'destroy'])->defaults('resource', $resource)->middleware('admin')->name($resource.'.destroy');
             }
             Route::put('/authorized-officials/{id}/set-active', [MasterDataController::class, 'setActive'])->name('authorized-officials.set-active');
             Route::get('/uacs/export', [MasterDataController::class, 'exportUacs'])->middleware('throttle:export')->name('uacs.export');
@@ -191,7 +194,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/{assessment}/email-soa', [AssessmentController::class, 'emailSoa'])->middleware('throttle:email')->name('email_soa');
             Route::get('/{assessment}', [AssessmentController::class, 'show'])->name('show');
             Route::patch('/{assessment}', [AssessmentController::class, 'update'])->name('update');
-            Route::delete('/{assessment}', [AssessmentController::class, 'destroy'])->name('destroy');
+             Route::delete('/{assessment}', [AssessmentController::class, 'destroy'])->middleware('admin')->name('destroy');
         });
 
         // ── Settings ──────────────────────────────────────────────────────────

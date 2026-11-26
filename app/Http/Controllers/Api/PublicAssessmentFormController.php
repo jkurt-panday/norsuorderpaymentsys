@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AssessmentFormInfoRequest;
 use App\Models\AssessmentForm;
 use App\Models\Courses;
+use App\Models\Student;
 use App\Services\ReceiptPDFService;
 use App\Services\ReferenceNumberService;
 use Illuminate\Http\JsonResponse;
@@ -44,9 +45,21 @@ class PublicAssessmentFormController extends Controller
         try {
             DB::beginTransaction();
 
-            $referenceNumber = $this->referenceNumberService->assess_ref_gen();
+             $referenceNumber = $this->referenceNumberService->assess_ref_gen();
 
-            $assessment = AssessmentForm::query()->create([
+             // Preserve existing student profiles while registering new student email data.
+             Student::query()->firstOrCreate(
+                 ['student_number' => $validated['student_id']],
+                 [
+                     'email' => $validated['email'],
+                     'first_name' => $validated['first_name'],
+                     'middle_name' => $validated['middle_name'] ?? null,
+                     'last_name' => $validated['last_name'],
+                     'contact_num' => $validated['contact_num'],
+                 ],
+             );
+
+             $assessment = AssessmentForm::query()->create([
                 'reference_number' => $referenceNumber,
                 'email'            => $validated['email'],
                 'contact_num'      => $validated['contact_num'],
