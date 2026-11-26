@@ -1102,4 +1102,20 @@ class StaffInputController extends Controller
 
         return $stalled;
     }
+
+    public function destroy(FormInput $formInput): RedirectResponse
+    {
+        try {
+            $formInput->delete();
+
+            return redirect()->route('staff.requests.index')
+                ->with('success', 'Request deleted successfully.');
+        } catch (\Throwable $e) {
+            Log::error('Staff request deletion failed: '.$e->getMessage(), [
+                'form_input_id' => $formInput->id,
+            ]);
+
+            return back()->with('error', 'Failed to delete request. Please try again.');
+        }
+    }
 }

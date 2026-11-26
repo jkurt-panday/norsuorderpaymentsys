@@ -12,6 +12,7 @@
         "php": "^8.4",
         "barryvdh/laravel-dompdf": "*",
         "blade-ui-kit/blade-icons": "^1.10",
+        "google/apiclient": "^2.18",
         "inertiajs/inertia-laravel": "^3.0",
         "laravel/chisel": "^0.1.0",
         "laravel/fortify": "*",

@@ -18,6 +18,8 @@ class SupportingDocument extends Model
         'original_filename',
         'stored_filename',
         'file_url',
+        'storage_provider',
+        'google_drive_file_id',
         'mime_type',
         'file_extension',
         'file_size',

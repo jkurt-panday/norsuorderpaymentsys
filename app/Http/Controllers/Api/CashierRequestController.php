@@ -99,14 +99,6 @@ class CashierRequestController extends Controller
                 $formInput = $locked->formInput()->with('course')->first();
                 $targetStatus = $validated['status'];
 
-                // A completed payment is immutable for cashiers. Staff/admin have
-                // a separate OR-correction workflow when a correction is needed.
-                if ($locked->status === 'paid' && filled($locked->or_no)) {
-                    throw ValidationException::withMessages([
-                        'status' => ['This payment is already paid and locked. Cashiers cannot edit it further.'],
-                    ]);
-                }
-
                 if ($targetStatus === 'paid' && $locked->status === 'pending') {
                     throw ValidationException::withMessages(['status' => ['Cannot mark a pending request as paid. It must be processed first.']]);
                 }

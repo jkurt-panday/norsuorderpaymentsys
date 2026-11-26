@@ -5,279 +5,86 @@ namespace App\Services;
 use App\Models\FormInput;
 use App\Models\SupportingDocument;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
+/**
+ * Backwards-compatible document storage facade.
+ *
+ * Supporting documents are stored in Google Drive. The previous S3/MinIO
+ * implementation is intentionally no longer used; callers keep this service
+ * name so public submission flows do not need to know the provider.
+ */
 class FileUploadService
 {
-    /** The S3 disk is used for all supporting documents and images. */
-    protected string $disk = 's3';
-
-    protected string $directory = 'supporting-documents';
-
-    /** @var list<string> */
-    protected array $allowedTypes = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
-
-    protected int $maxFileSize = 10240; // 10MB in KB
-
     /**
-     * Upload a file and create SupportingDocument record
+     * Resolve Drive lazily. Public forms must be able to load without making
+     * an OAuth request; Drive is only needed when a file is actually uploaded.
      */
-    public function uploadDocument(UploadedFile $file, FormInput $formInput): SupportingDocument
+    private function drive(): GoogleDriveStorageService
     {
-        // Validate file
-        $this->validateFile($file);
-
-        // Generate filename
-        $storedFilename = $this->generateUniqueFilename($file);
-
-        // Store the file
-        $path = $file->storeAs(
-            $this->directory,
-            $storedFilename,
-            $this->disk
-        );
-
-        if (! $path) {
-            throw new \Exception('Failed to upload file: '.$file->getClientOriginalName());
-        }
-
-        // Generate URL
-        $fileUrl = Storage::disk($this->disk)->url($this->directory.'/'.$storedFilename);
-
-        try {
-            // Create database record
-            return SupportingDocument::create([
-                'form_input_id' => $formInput->id,
-                'original_filename' => $file->getClientOriginalName(),
-                'stored_filename' => $storedFilename,
-                'file_url' => $fileUrl,
-                'mime_type' => $file->getMimeType(),
-                'file_extension' => strtolower($file->getClientOriginalExtension()),
-                'file_size' => $file->getSize(),
-                'uploaded_at' => now(),
-            ]);
-        } catch (\Throwable $exception) {
-            // Storage is not part of the database transaction. Remove the object
-            // if its metadata cannot be persisted.
-            Storage::disk($this->disk)->delete($path);
-
-            throw $exception;
-        }
+        return app(GoogleDriveStorageService::class);
     }
 
-    /**
-     * Upload multiple documents
-     *
-     * @param  array<int, mixed>  $files
-     * @return list<SupportingDocument>
-     */
+    public function uploadDocument(UploadedFile $file, FormInput $formInput): SupportingDocument
+    {
+        return $this->drive()->uploadDocument($file, $formInput);
+    }
+
+    /** @param array<int, mixed> $files */
     public function uploadDocuments(array $files, FormInput $formInput): array
     {
-        $uploadedDocuments = [];
-
+        $uploaded = [];
         try {
             foreach ($files as $file) {
                 if ($file instanceof UploadedFile) {
-                    $uploadedDocuments[] = $this->uploadDocument($file, $formInput);
+                    $uploaded[] = $this->uploadDocument($file, $formInput);
                 }
             }
         } catch (\Throwable $exception) {
-            // A database transaction cannot roll back objects already written to
-            // S3. Remove all files uploaded during this batch before rethrowing.
-            $this->cleanupUploadedDocuments($uploadedDocuments);
-
+            $this->cleanupUploadedDocuments($uploaded);
             throw $exception;
         }
 
-        return $uploadedDocuments;
+        return $uploaded;
     }
 
-    /**
-     * Remove uploaded objects and their metadata after a failed batch.
-     *
-     * @param  list<SupportingDocument>  $documents
-     */
+    /** @param list<SupportingDocument> $documents */
     public function cleanupUploadedDocuments(array $documents): void
     {
         foreach ($documents as $document) {
             try {
                 $this->deleteFile($document);
                 $document->delete();
-            } catch (\Throwable $cleanupException) {
-                Log::error('Failed to clean up uploaded document', [
-                    'document_id' => $document->id,
-                    'stored_filename' => $document->stored_filename,
-                    'message' => $cleanupException->getMessage(),
-                ]);
+            } catch (\Throwable) {
+                // Cleanup must not hide the original transaction/upload error.
             }
         }
     }
 
-    /**
-     * Generate a unique filename with timestamp
-     */
-    protected function generateUniqueFilename(UploadedFile $file): string
-    {
-        $timestamp = now()->format('Ymd_His');
-        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $extension = $file->getClientOriginalExtension();
-
-        // Sanitize original filename
-        $safeOriginalName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $originalName);
-        $baseFilename = $timestamp.'_'.$safeOriginalName;
-
-        // Ensure unique filename
-        $filename = $baseFilename.'.'.$extension;
-        $counter = 1;
-
-        while (Storage::disk($this->disk)->exists($this->directory.'/'.$filename)) {
-            $filename = $baseFilename.'_'.$counter.'.'.$extension;
-            $counter++;
-        }
-
-        return $filename;
-    }
-
-    /**
-     * Validate file
-     */
-    protected function validateFile(UploadedFile $file): void
-    {
-        $extension = strtolower($file->getClientOriginalExtension());
-        $sizeInKB = $file->getSize() / 1024;
-
-        if (! in_array($extension, $this->allowedTypes)) {
-            throw new \Exception('File type not allowed. Allowed types: '.implode(', ', $this->allowedTypes));
-        }
-
-        if ($sizeInKB > $this->maxFileSize) {
-            throw new \Exception('File size exceeds limit. Maximum size: '.$this->maxFileSize.' KB');
-        }
-    }
-
-    /**
-     * Delete a file
-     */
     public function deleteFile(SupportingDocument $document): bool
     {
-        try {
-            $path = $this->directory.'/'.$document->stored_filename;
-
-            if (Storage::disk($this->disk)->exists($path)) {
-                return Storage::disk($this->disk)->delete($path);
-            }
-
-            return false;
-        } catch (\Exception $e) {
-            \Log::error('Failed to delete file: '.$e->getMessage());
-
-            return false;
-        }
+        $this->drive->delete($document);
+        return true;
     }
 
-    /**
-     * Get file size in human readable format
-     */
-    public function getHumanReadableSize(int $bytes): string
-    {
-        $units = ['B', 'KB', 'MB', 'GB'];
-        $i = 0;
-        while ($bytes >= 1024 && $i < count($units) - 1) {
-            $bytes /= 1024;
-            $i++;
-        }
-
-        return round($bytes, 2).' '.$units[$i];
-    }
-
-    /**
-     * Check if file exists
-     */
     public function fileExists(SupportingDocument $document): bool
     {
-        $path = $this->directory.'/'.$document->stored_filename;
-
-        return Storage::disk($this->disk)->exists($path);
+        return $document->storage_provider === 'google_drive'
+            && filled($document->google_drive_file_id);
     }
 
-    /**
-     * Download a file
-     */
     public function download(SupportingDocument $document, ?string $customFileName = null): StreamedResponse
     {
-        try {
-            $path = $this->directory.'/'.$document->stored_filename;
-
-            // Check if file exists
-            if (! Storage::disk($this->disk)->exists($path)) {
-                throw new \Exception('File not found on storage.');
-            }
-
-            // Response filenames are user-controlled; keep only the basename.
-            $downloadFileName = basename($customFileName ?? $document->original_filename);
-
-            // Return the download response
-            return Storage::disk($this->disk)->download(
-                $path,
-                $downloadFileName,
-                [
-                    'Content-Type' => $document->mime_type,
-                    'Content-Disposition' => 'attachment; filename="'.$downloadFileName.'"',
-                ]
-            );
-
-        } catch (\Exception $e) {
-            Log::error('Failed to download document: '.$e->getMessage());
-            throw $e;
-        }
+        return $this->drive->download($document);
     }
 
-    /**
-     * Stream a file for viewing (inline display) instead of downloading
-     */
     public function stream(SupportingDocument $document): StreamedResponse
     {
-        try {
-            $path = $this->directory.'/'.$document->stored_filename;
-
-            if (! Storage::disk($this->disk)->exists($path)) {
-                throw new \Exception('File not found on storage.');
-            }
-
-            // Response filenames are user-controlled; keep only the basename.
-            $responseFileName = basename($document->original_filename);
-
-            // Return the file for inline viewing
-            return Storage::disk($this->disk)->response(
-                $path,
-                $responseFileName,
-                [
-                    'Content-Type' => $document->mime_type,
-                    'Content-Disposition' => 'inline; filename="'.$responseFileName.'"',
-                ]
-            );
-
-        } catch (\Exception $e) {
-            Log::error('Failed to stream document: '.$e->getMessage());
-            throw $e;
-        }
+        return $this->drive->download($document, true);
     }
 
-    /**
-     * Get the full storage path of a document
-     */
-    public function getStoragePath(SupportingDocument $document): string
-    {
-        return Storage::disk($this->disk)->path($this->directory.'/'.$document->stored_filename);
-    }
-
-    /**
-     * Get the public URL of a document
-     */
     public function getPublicUrl(SupportingDocument $document): string
     {
-        return Storage::disk($this->disk)->url($this->directory.'/'.$document->stored_filename);
+        return route('documents.download', ['supportingDocument' => $document]);
     }
 }

@@ -160,18 +160,17 @@ export default function AdminDashboardPage() {
                                                     >
                                                         <td className="px-6 py-4 whitespace-nowrap">
                                                             <span
-                                                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                                                    log.event ===
+                                                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${log.event ===
                                                                     'created'
-                                                                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border dark:border-emerald-800/40'
+                                                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border dark:border-emerald-800/40'
+                                                                    : log.event ===
+                                                                        'updated'
+                                                                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:border dark:border-amber-800/40'
                                                                         : log.event ===
-                                                                            'updated'
-                                                                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:border dark:border-amber-800/40'
-                                                                          : log.event ===
-                                                                              'deleted'
+                                                                            'deleted'
                                                                             ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 dark:border dark:border-rose-800/40'
                                                                             : 'bg-blue-100 text-blue-800 dark:bg-sky-950/60 dark:text-sky-300 dark:border dark:border-sky-800/40'
-                                                                }`}
+                                                                    }`}
                                                             >
                                                                 {log.event
                                                                     .charAt(0)
@@ -216,7 +215,7 @@ export default function AdminDashboardPage() {
                                 </table>
                             </div>
                             {recentActivity.length > 0 && (
-                                <div className="mt-4 mr-4 text-right">
+                                <div className="mt-3 mr-4 text-right">
                                     <Button variant={'outline'}>
                                         <a
                                             href="/admin/activity-log"
