@@ -48,7 +48,7 @@ class StaffInputController extends Controller
      * would deliver the same email twice; once the window lapses the job
      * is considered stuck and may be queued again.
      */
-    public const EMAIL_QUEUE_WINDOW_MINUTES = 15;
+    public const EMAIL_QUEUE_WINDOW_MINUTES = 2;
 
     /**
      * How long a queued job may sit untouched before it is considered
@@ -847,6 +847,8 @@ class StaffInputController extends Controller
      */
     public function bulkEmailOp(Request $request): JsonResponse
     {
+        set_time_limit(300);
+        ini_set('max_execution_time', '300');
         $validated = $request->validate([
             'form_input_ids' => ['required', 'array', 'min:1'],
             'form_input_ids.*' => ['integer', 'exists:form_inputs,id'],
@@ -856,6 +858,28 @@ class StaffInputController extends Controller
         ]);
 
         $requestedIds = array_values(array_unique(array_map('intval', $validated['form_input_ids'])));
+
+        // Reset stuck pending emails (older than queue window) so they can be re-queued
+        StaffInput::whereIn('form_input_id', $requestedIds)
+            ->where('email_status', 'pending')
+            ->where('email_queued_at', '<', now()->subMinutes(self::EMAIL_QUEUE_WINDOW_MINUTES))
+            ->update(['email_status' => null, 'email_queued_at' => null, 'email_error' => null]);
+
+        // Prevent duplicate processing: skip IDs already sent within the last minute
+        $recentlySent = StaffInput::whereIn('form_input_id', $requestedIds)
+            ->where('email_status', 'sent')
+            ->where('updated_at', '>=', now()->subMinute())
+            ->pluck('form_input_id')
+            ->all();
+        $requestedIds = array_values(array_diff($requestedIds, $recentlySent));
+
+        if (empty($requestedIds)) {
+            return response()->json([
+                'message' => 'All selected emails were already sent recently.',
+                'form_input_ids' => [],
+                'total' => 0,
+            ]);
+        }
 
         $eligibleIds = FormInput::query()
             ->whereKey($requestedIds)
@@ -875,7 +899,7 @@ class StaffInputController extends Controller
             ->pluck('form_input_id')
             ->all();
 
-        $queueIds = array_values(array_diff($eligibleIds, $alreadyQueued));
+        $queueIds = array_values(array_unique(array_diff($eligibleIds, $alreadyQueued)));
 
         // Mark every eligible recipient as pending for *this* send so the
         // progress UI reflects the current attempt instead of a stale
