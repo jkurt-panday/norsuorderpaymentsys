@@ -54,3 +54,17 @@ UACS CODE ACCTG.xlsx
 /manual
 .snyk
 HANDOFF.md
+
+# AI assistant instruction files
+AGENTS.md
+Agents.md
+CLAUDE.md
+CODEX.md
+GEMINI.md
+.ai.md
+**/AGENTS.md
+**/Agents.md
+**/CLAUDE.md
+**/CODEX.md
+**/GEMINI.md
+**/.ai.md
