@@ -570,6 +570,20 @@ class StaffRequestController extends Controller
         ], 201);
     }
 
+    // ── Unlink student ────────────────────────────────────────────────────────
+
+    public function unlinkStudent(FormInput $formInput): JsonResponse
+    {
+        DB::transaction(function () use ($formInput): void {
+            FormInput::lockForUpdate()->findOrFail($formInput->id)->update(['student_num' => null]);
+        });
+
+        return response()->json([
+            'message' => 'Student unlinked from this Order of Payment.',
+            'data' => $formInput->refresh()->load('student'),
+        ]);
+    }
+
     // ── Assign academic term ──────────────────────────────────────────────────
 
     public function assignAcademicTerm(
@@ -634,6 +648,8 @@ class StaffRequestController extends Controller
 
     public function bulkEmailOp(Request $request): JsonResponse
     {
+        set_time_limit(300);
+        ini_set('max_execution_time', '300');
         $validated = $request->validate([
             'form_input_ids' => ['required', 'array', 'min:1'],
             'form_input_ids.*' => ['integer', 'exists:form_inputs,id'],
@@ -643,6 +659,28 @@ class StaffRequestController extends Controller
         ]);
 
         $requestedIds = array_values(array_unique(array_map('intval', $validated['form_input_ids'])));
+
+        // Reset stuck pending emails (older than queue window) so they can be re-queued
+        StaffInput::whereIn('form_input_id', $requestedIds)
+            ->where('email_status', 'pending')
+            ->where('email_queued_at', '<', now()->subMinutes(StaffInputController::EMAIL_QUEUE_WINDOW_MINUTES))
+            ->update(['email_status' => null, 'email_queued_at' => null, 'email_error' => null]);
+
+        // Prevent duplicate processing: skip IDs already sent within the last minute
+        $recentlySent = StaffInput::whereIn('form_input_id', $requestedIds)
+            ->where('email_status', 'sent')
+            ->where('updated_at', '>=', now()->subMinute())
+            ->pluck('form_input_id')
+            ->all();
+        $requestedIds = array_values(array_diff($requestedIds, $recentlySent));
+
+        if (empty($requestedIds)) {
+            return response()->json([
+                'message' => 'All selected emails were already sent recently.',
+                'form_input_ids' => [],
+                'total' => 0,
+            ]);
+        }
 
         $eligibleIds = FormInput::whereKey($requestedIds)
             ->whereNotNull('email')
@@ -658,7 +696,7 @@ class StaffRequestController extends Controller
             ->pluck('form_input_id')
             ->all();
 
-        $queueIds = array_values(array_diff($eligibleIds, $alreadyQueued));
+        $queueIds = array_values(array_unique(array_diff($eligibleIds, $alreadyQueued)));
 
         $now = now();
 
@@ -724,6 +762,97 @@ class StaffRequestController extends Controller
         }
 
         return $pdf->stream("OP-{$formInput->reference_number}.pdf");
+    }
+
+    // ── Staff Activity Log ────────────────────────────────────────────────────
+
+    public function activityLog(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->query('activity_search', ''));
+        $action = (string) $request->query('activity_action', '');
+        $dateFrom = (string) $request->query('date_from', '');
+        $dateTo = (string) $request->query('date_to', '');
+
+        $query = ActivityLog::query();
+
+        if ($search !== '') {
+            $like = '%'.mb_strtolower($search).'%';
+            $query->where(function ($q) use ($like) {
+                $q->whereRaw('LOWER(description) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(actor_name) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(actor_role) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(action) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(subject_type) LIKE ?', [$like]);
+            });
+        }
+
+        if ($action !== '') {
+            if ($action === 'created') {
+                $query->whereIn('action', ['created', 'user.created']);
+            } else {
+                $query->where('action', $action);
+            }
+        }
+
+        $query->whereNotIn('action', ['user.created', 'user.deactivated', 'user.reactivated', 'user.updated']);
+
+        if ($dateFrom !== '') {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+
+        if ($dateTo !== '') {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+
+        $allowedSorts = ['created_at', 'action', 'actor_name', 'subject_type'];
+        $sort = (string) $request->query('sort', 'created_at');
+        $direction = $request->query('direction') === 'asc' ? 'asc' : 'desc';
+        if (! in_array($sort, $allowedSorts, true)) {
+            $sort = 'created_at';
+        }
+
+        if ($sort === 'actor_name') {
+            $query->orderByRaw('actor_name IS NULL ASC')
+                ->orderBy('actor_name', $direction)
+                ->orderBy('created_at', 'desc');
+        } elseif ($sort === 'subject_type') {
+            $query->orderByRaw('subject_type IS NULL ASC')
+                ->orderBy('subject_type', $direction)
+                ->orderBy('created_at', 'desc');
+        } elseif ($sort === 'action') {
+            $query->orderBy('action', $direction)
+                ->orderBy('created_at', 'desc');
+        } else {
+            $query->orderBy('created_at', $direction);
+        }
+
+        $paginator = $query->paginate(min(max($request->integer('per_page', 10), 1), 100))->withQueryString();
+
+        return response()->json([
+            'data' => $paginator->getCollection()->map(fn (ActivityLog $log): array => [
+                'id' => $log->id,
+                'action' => $log->action,
+                'event' => $log->eventCategory(),
+                'description' => $log->description,
+                'actor_name' => $log->actor_name,
+                'actor_role' => $log->actor_role,
+                'type' => $log->subjectTypeLabel(),
+                'created_at' => $log->created_at?->toISOString(),
+                'changes' => is_array($log->meta) && isset($log->meta['changes']) && is_array($log->meta['changes'])
+                    ? $log->meta['changes']
+                    : [],
+            ])->values(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+            ],
+            'links' => [
+                'next' => $paginator->nextPageUrl(),
+                'prev' => $paginator->previousPageUrl(),
+            ],
+        ]);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

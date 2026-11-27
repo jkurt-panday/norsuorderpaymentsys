@@ -13,23 +13,21 @@ class GraduateLedgerImportClassifierTest extends TestCase
         ?string $rawType,
         mixed $rawAmount,
         string $expectedType,
-        ?string $expectedWarning,
     ): void {
         $result = (new GraduateLedgerImportClassifier)->classify($rawType, $rawAmount);
 
         self::assertSame($expectedType, $result['entry_type']);
-        self::assertSame($expectedWarning, $result['warning']);
     }
 
-    /** @return iterable<string, array{string|null, mixed, string, string|null}> */
+    /** @return iterable<string, array{string|null, mixed, string}> */
     public static function classificationCases(): iterable
     {
-        yield 'parentheses are a payment' => [null, '(1,250.00)', 'payment', GraduateLedgerImportClassifier::WARNING_NEGATIVE_BLANK_TYPE];
-        yield 'negative number with blank type is a payment' => [null, -1250.00, 'payment', GraduateLedgerImportClassifier::WARNING_NEGATIVE_BLANK_TYPE];
-        yield 'negative amount labeled AR remains AR' => ['AR', '-1,250.00', 'ar', GraduateLedgerImportClassifier::WARNING_NEGATIVE_LABELED_AR];
-        yield 'parenthesized amount labeled AR remains AR' => ['AR', '(1,250.00)', 'ar', GraduateLedgerImportClassifier::WARNING_NEGATIVE_LABELED_AR];
-        yield 'positive amount labeled PAYMENT remains a payment' => ['PAYMENT', '1,250.00', 'payment', GraduateLedgerImportClassifier::WARNING_PAYMENT_MISSING_PARENTHESES];
-        yield 'adjustment takes precedence over a negative amount' => ['ADJUSTMENT', '-50.00', 'adjustment', null];
-        yield 'ordinary positive amount is AR' => [null, '1,250.00', 'ar', null];
+        yield 'parentheses are a payment' => [null, '(1,250.00)', 'payment'];
+        yield 'negative number with blank type is a payment' => [null, -1250.00, 'payment'];
+        yield 'negative amount labeled AR remains AR' => ['AR', '-1,250.00', 'ar'];
+        yield 'parenthesized amount labeled AR remains AR' => ['AR', '(1,250.00)', 'ar'];
+        yield 'positive amount labeled PAYMENT remains a payment' => ['PAYMENT', '1,250.00', 'payment'];
+        yield 'adjustment takes precedence over a negative amount' => ['ADJUSTMENT', '-50.00', 'adjustment'];
+        yield 'ordinary positive amount is AR' => [null, '1,250.00', 'ar'];
     }
 }

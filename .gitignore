@@ -54,3 +54,18 @@ UACS CODE ACCTG.xlsx
 .docker-compose.yml
 /manual
 .snyk
+HANDOFF.md
+
+# AI assistant instruction files
+AGENTS.md
+Agents.md
+CLAUDE.md
+CODEX.md
+GEMINI.md
+.ai.md
+**/AGENTS.md
+**/Agents.md
+**/CLAUDE.md
+**/CODEX.md
+**/GEMINI.md
+**/.ai.md

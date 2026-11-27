@@ -376,6 +376,103 @@ class StaffRequestTest extends TestCase
         $this->assertDatabaseHas('form_inputs', ['id' => $formInput->id, 'student_num' => $student->id]);
     }
 
+    public function test_unlink_student_clears_student_association(): void
+    {
+        $student = Student::factory()->create();
+        $formInput = $this->makeFormInput(['student_num' => $student->id]);
+
+        $this->actingAs($this->staffUser())
+            ->deleteJson("/api/v1/staff/requests/{$formInput->id}/student")
+            ->assertOk()
+            ->assertJsonPath('message', 'Student unlinked from this Order of Payment.')
+            ->assertJsonPath('data.student', null);
+
+        $this->assertDatabaseHas('form_inputs', ['id' => $formInput->id, 'student_num' => null]);
+    }
+
+    // ── Create + link student ─────────────────────────────────────────────────
+
+    public function test_create_and_link_student_succeeds_for_ledger_course(): void
+    {
+        $course = $this->makeCourse('Graduate School');
+        $formInput = $this->makeFormInput(['course_id' => $course->id]);
+
+        $payload = [
+            'student_number' => '2024-12345',
+            'first_name' => 'Juan',
+            'middle_name' => 'Dela',
+            'last_name' => 'Cruz',
+            'email' => 'juan@example.com',
+            'contact_num' => '09123456789',
+        ];
+
+        $response = $this->actingAs($this->staffUser())
+            ->postJson("/api/v1/staff/requests/{$formInput->id}/student", $payload)
+            ->assertStatus(201)
+            ->assertJsonPath('message', 'Student created and matched to this Order of Payment.')
+            ->assertJsonPath('data.student.student_number', '202412345')
+            ->assertJsonPath('data.student.first_name', 'Juan')
+            ->assertJsonPath('data.student.last_name', 'Cruz');
+
+        $this->assertDatabaseHas('students', [
+            'student_number' => '202412345',
+            'first_name' => 'Juan',
+            'last_name' => 'Cruz',
+        ]);
+
+        $studentId = $response->json('data.student.id');
+        $this->assertDatabaseHas('form_inputs', [
+            'id' => $formInput->id,
+            'student_num' => $studentId,
+            'submitted_student_number' => '202412345',
+        ]);
+    }
+
+    public function test_create_and_link_student_reuses_existing_student_by_normalized_number(): void
+    {
+        $course = $this->makeCourse('Graduate School');
+        $formInput = $this->makeFormInput(['course_id' => $course->id]);
+        $existing = Student::factory()->create([
+            'student_number' => '202412345',
+            'first_name' => 'Existing',
+            'last_name' => 'Student',
+        ]);
+
+        $payload = [
+            'student_number' => '2024-12345',
+            'first_name' => 'Different',
+            'last_name' => 'Name',
+        ];
+
+        $this->actingAs($this->staffUser())
+            ->postJson("/api/v1/staff/requests/{$formInput->id}/student", $payload)
+            ->assertStatus(201)
+            ->assertJsonPath('data.student.id', $existing->id)
+            ->assertJsonPath('data.student.student_number', '202412345');
+
+        $this->assertDatabaseCount('students', 1);
+        $this->assertDatabaseHas('form_inputs', [
+            'id' => $formInput->id,
+            'student_num' => $existing->id,
+            'submitted_student_number' => '202412345',
+        ]);
+    }
+
+    public function test_create_and_link_student_fails_for_non_ledger_course(): void
+    {
+        $formInput = $this->makeFormInput(['course_id' => null]);
+
+        $payload = [
+            'student_number' => '2024-12345',
+            'first_name' => 'Juan',
+            'last_name' => 'Cruz',
+        ];
+
+        $this->actingAs($this->staffUser())
+            ->postJson("/api/v1/staff/requests/{$formInput->id}/student", $payload)
+            ->assertStatus(422);
+    }
+
     // ── Assign academic term ──────────────────────────────────────────────────
 
     public function test_assign_academic_term_succeeds_for_ledger_course(): void

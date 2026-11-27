@@ -709,6 +709,7 @@ class GraduateLedgerController extends Controller
         $distinctStudents = [];
         $distinctCourses = [];
         $distinctTerms = [];
+        $importContext = null;
 
         $getPass1 = function (array $r, string $key, int $legacyIdx) use ($columnMap): mixed {
             if ($columnMap !== null) {
@@ -719,6 +720,11 @@ class GraduateLedgerController extends Controller
         };
 
         while (($row = fgetcsv($handle)) !== false) {
+            $row = $this->prepareImportRow($row, $columnMap, $importContext);
+            if ($row === null) {
+                continue;
+            }
+
             $studentInfo = $this->extractStudentIdentity($row, $columnMap);
             if ($studentInfo !== null) {
                 $key = $studentInfo['student_number'] ?? $studentInfo['raw_name'];
@@ -766,8 +772,14 @@ class GraduateLedgerController extends Controller
             $presetCourseId, $presetTermId, &$skipped, &$imported, $now, $columnMap
         ): void {
             $insertData = [];
+            $importContext = null;
 
             while (($row = fgetcsv($handle)) !== false) {
+                $row = $this->prepareImportRow($row, $columnMap, $importContext);
+                if ($row === null) {
+                    continue;
+                }
+
                 $data = $this->mapImportRowNormalized(
                     $row,
                     $studentMap,
@@ -860,6 +872,7 @@ class GraduateLedgerController extends Controller
         $distinctStudents = [];
         $distinctCourses = [];
         $distinctTerms = [];
+        $importContext = null;
 
         $getExcelRow = function (int $r) use ($sheet, $columnMap, $highestColIndex): array {
             if ($columnMap !== null) {
@@ -895,6 +908,15 @@ class GraduateLedgerController extends Controller
             ];
         };
 
+        $isEmptyExcelRow = function (int $r) use ($sheet, $highestColIndex): bool {
+            $row = [];
+            for ($c = 1; $c <= $highestColIndex; $c++) {
+                $row[] = $sheet->getCell(Coordinate::stringFromColumnIndex($c).$r)->getValue();
+            }
+
+            return $this->isEmptyImportRow($row);
+        };
+
         $getPass1 = function (array $r, string $key, int $legacyIdx) use ($columnMap): mixed {
             if ($columnMap !== null) {
                 return isset($columnMap[$key]) ? ($r[$columnMap[$key]] ?? null) : null;
@@ -905,7 +927,16 @@ class GraduateLedgerController extends Controller
 
         // Pass 1: Collect distinct values (rows 2 to highestRow)
         for ($r = 2; $r <= $highestRow; $r++) {
+            if ($isEmptyExcelRow($r)) {
+                continue;
+            }
+
             $rawRow = $getExcelRow($r);
+            $rawRow = $this->prepareImportRow($rawRow, $columnMap, $importContext);
+            if ($rawRow === null) {
+                continue;
+            }
+
             $studentInfo = $this->extractStudentIdentity($rawRow, $columnMap);
             if ($studentInfo !== null) {
                 $key = $studentInfo['student_number'] ?? $studentInfo['raw_name'];
@@ -941,12 +972,22 @@ class GraduateLedgerController extends Controller
         // Pass 2: single transaction wrapping all chunk inserts
         DB::transaction(function () use (
             $getExcelRow, $highestRow, $studentMap, $courseMap, $termMap,
-            &$warnings, $presetCourseId, $presetTermId, &$skipped, &$imported, $now, $columnMap
+            &$warnings, $presetCourseId, $presetTermId, &$skipped, &$imported, $now, $columnMap,
+            $isEmptyExcelRow
         ): void {
             $insertData = [];
+            $importContext = null;
 
             for ($r = 2; $r <= $highestRow; $r++) {
+                if ($isEmptyExcelRow($r)) {
+                    continue;
+                }
+
                 $row = $getExcelRow($r);
+                $row = $this->prepareImportRow($row, $columnMap, $importContext);
+                if ($row === null) {
+                    continue;
+                }
 
                 $data = $this->mapImportRowNormalized(
                     $row,
@@ -1062,6 +1103,8 @@ class GraduateLedgerController extends Controller
      */
     public function generatePdf(Request $request): PdfBuilder
     {
+        set_time_limit(360); // Chrome is capped at 300s below; PHP must outlive it.
+
         $validated = $request->validate([
             'student' => ['nullable', 'string'],
             'student_id' => ['nullable', 'integer', 'exists:students,id'],
@@ -2296,6 +2339,93 @@ class GraduateLedgerController extends Controller
     private function emptyImportWarnings(): array
     {
         return [];
+    }
+
+    /** @param array<int|string, mixed> $row */
+    private function isEmptyImportRow(array $row): bool
+    {
+        foreach ($row as $value) {
+            if (is_string($value) && str_starts_with(trim($value), '=')) {
+                continue;
+            }
+
+            if ($value !== null && (! is_string($value) || trim($value) !== '')) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Ignore rows containing only spreadsheet metadata, and carry the preceding
+     * student context into transaction continuation rows used by legacy ledgers.
+     *
+     * @param  array<int, mixed>  $row
+     * @param  array<string, int>|null  $columnMap
+     * @param  array<int, mixed>|null  $context
+     * @return array<int, mixed>|null
+     */
+    private function prepareImportRow(array $row, ?array $columnMap, ?array &$context): ?array
+    {
+        $indices = $columnMap ?? [
+            'name' => 0,
+            'course' => 1,
+            'school_year' => 2,
+            'semester_short' => 3,
+            'semester' => 4,
+            'units' => 5,
+            'date' => 6,
+            'reference' => 7,
+            'particulars' => 8,
+            'rate' => 9,
+            'entry_type' => 10,
+            'amount' => 11,
+        ];
+        $dataKeys = ['student_number', 'last_name', 'first_name', 'middle_name', 'name', 'email', 'course', 'school_year', 'semester_short', 'semester', 'units', 'date', 'reference', 'particulars', 'rate', 'entry_type', 'amount'];
+        $hasData = false;
+        foreach ($dataKeys as $key) {
+            if (! isset($indices[$key])) {
+                continue;
+            }
+            $value = $row[$indices[$key]] ?? null;
+            if ($value !== null && trim((string) $value) !== '' && ! str_starts_with(trim((string) $value), '=')) {
+                $hasData = true;
+                break;
+            }
+        }
+        if (! $hasData) {
+            return null;
+        }
+
+        $identityKeys = ['student_number', 'last_name', 'first_name', 'name'];
+        $hasIdentity = collect($identityKeys)->contains(function (string $key) use ($indices, $row): bool {
+            return isset($indices[$key]) && trim((string) ($row[$indices[$key]] ?? '')) !== '';
+        });
+        $contextKeys = ['student_number', 'last_name', 'first_name', 'middle_name', 'name', 'email', 'course', 'school_year', 'semester_short', 'semester', 'units', 'date'];
+
+        if ($hasIdentity) {
+            $context = $row;
+
+            return $row;
+        }
+
+        $hasExplicitContext = collect($contextKeys)
+            ->reject(fn (string $key): bool => in_array($key, $identityKeys, true))
+            ->contains(function (string $key) use ($indices, $row): bool {
+                return isset($indices[$key]) && trim((string) ($row[$indices[$key]] ?? '')) !== '';
+            });
+        if ($context === null || $hasExplicitContext) {
+            return $row;
+        }
+
+        foreach ($contextKeys as $key) {
+            if (isset($indices[$key]) && trim((string) ($row[$indices[$key]] ?? '')) === '') {
+                $row[$indices[$key]] = $context[$indices[$key]] ?? null;
+            }
+        }
+
+        return $row;
     }
 
     private function importSummary(int $imported, int $skipped): string

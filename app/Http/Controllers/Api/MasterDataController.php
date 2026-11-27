@@ -52,6 +52,9 @@ class MasterDataController extends Controller
         if ($resource === 'authorized-officials' && $request->has('active')) {
             $query->where('is_active', $request->boolean('active'));
         }
+        if ($resource === 'courses' && $request->filled('college')) {
+            $query->where('course_college', (string) $request->query('college'));
+        }
         $sort = (string) $request->query('sort', 'id');
         $direction = $request->query('direction') === 'desc' ? 'desc' : 'asc';
         $query->orderBy(in_array($sort, $this->sortableColumns($resource), true) ? $sort : 'id', $direction);
@@ -163,7 +166,7 @@ class MasterDataController extends Controller
             'payment-options' => ['payment_desc' => ['required', 'string', 'max:255', ...$unique('payment_detail_options', 'payment_desc')]],
             'bank-accounts' => ['account_name' => ['required', 'string', 'max:255'], 'bank_name' => ['required', 'string', 'max:255'], 'account_num' => ['required', 'string', 'max:100'], 'fund_cluster' => ['required', 'string', 'max:100']],
             'uacs' => ['norsu_object_code' => ['nullable', 'string', 'max:100'], 'norsu_sub_object_code' => ['nullable', 'string', 'max:100'], 'uacs_object_code' => ['nullable', 'string', 'max:100'], 'uacs_sub_object_code' => ['nullable', 'string', 'max:100'], 'rca_code' => ['nullable', 'string', 'max:100'], 'account_title' => ['nullable', 'string', 'max:255']],
-            'authorized-officials' => ['name' => ['required', 'string', 'max:255'], 'position' => ['required', 'string', 'max:255'], 'course' => ['required', 'string', 'max:255']],
+            'authorized-officials' => ['name' => ['required', 'string', 'max:255'], 'position' => ['required', 'string', 'max:255'], 'course' => ['nullable', 'string', 'max:255']],
             'courses' => ['course_code' => ['required', 'string', 'max:20', ...$unique('courses', 'course_code')], 'course_desc' => ['required', 'string', 'max:255'], 'course_college' => ['required', Rule::in(['Graduate School', 'School of Law'])]],
             'academic-terms' => ['school_year' => ['required', 'string', 'max:20'], 'semester' => ['required', Rule::in(['First Semester', 'Second Semester', 'Summer'])]],
             'college-offices' => ['name' => ['required', 'string', 'max:255', ...$unique('college_offices', 'name')]],
@@ -174,13 +177,27 @@ class MasterDataController extends Controller
     private function searchColumns(string $resource): array
     {
         return match ($resource) {
-            'memberships' => ['member_code', 'member_desc'], 'payment-options' => ['payment_desc'], 'bank-accounts' => ['account_name', 'bank_name', 'account_num', 'fund_cluster'], 'uacs' => ['uacs_object_code', 'account_title', 'rca_code'], 'authorized-officials' => ['name', 'position', 'course'], 'courses' => ['course_code', 'course_desc', 'course_college'], 'academic-terms' => ['school_year', 'semester'], 'college-offices' => ['name'], default => [],
+            'memberships' => ['member_code', 'member_desc'],
+            'payment-options' => ['payment_desc'],
+            'bank-accounts' => ['account_name', 'bank_name', 'account_num', 'fund_cluster'],
+            'uacs' => ['norsu_object_code', 'norsu_sub_object_code', 'uacs_object_code', 'uacs_sub_object_code', 'rca_code', 'account_title'],
+            'authorized-officials' => ['name', 'position', 'course'],
+            'courses' => ['course_code', 'course_desc', 'course_college'],
+            'academic-terms' => ['school_year', 'semester'],
+            'college-offices' => ['name'],
+            default => [],
         };
     }
 
     /** @return list<string> */
     private function sortableColumns(string $resource): array
     {
-        return array_values(array_unique(array_merge(['id', 'created_at', 'updated_at'], $this->searchColumns($resource))));
+        $extra = match ($resource) {
+            'authorized-officials' => ['is_active'],
+            'uacs' => ['norsu_object_code', 'norsu_sub_object_code', 'uacs_object_code', 'uacs_sub_object_code', 'rca_code', 'account_title'],
+            default => [],
+        };
+
+        return array_values(array_unique(array_merge(['id', 'created_at', 'updated_at'], $this->searchColumns($resource), $extra)));
     }
 }

@@ -27,7 +27,17 @@ class CollegeOfficeController extends Controller
     {
         try {
             $validated = $request->validate([
-                'name' => ['required', 'string', 'max:255', 'unique:college_offices,name'],
+                'name' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    function (string $attribute, mixed $value, \Closure $fail): void {
+                        $exists = \App\Models\CollegeOffice::whereRaw('LOWER(name) = ?', [strtolower((string) $value)])->exists();
+                        if ($exists) {
+                            $fail('The '.$attribute.' has already been taken.');
+                        }
+                    },
+                ],
             ]);
 
             $collegeOffice = CollegeOffice::create($validated);

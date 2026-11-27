@@ -23,7 +23,15 @@ class SendGraduateLedgerStatementEmail implements ShouldQueue
 
     public array $backoff = [30, 120, 300];
 
-    public function __construct(public int $studentId, public ?string $schoolYear = null, public ?string $semester = null, public ?string $subject = null, public ?string $note = null) {}
+    public function __construct(
+        public int $studentId,
+        public ?string $schoolYear = null,
+        public ?string $semester = null,
+        public ?string $subject = null,
+        public ?string $note = null,
+        public ?string $examPeriod = null,
+        public ?string $examDeadline = null,
+    ) {}
 
     public function handle(): void
     {
@@ -46,7 +54,14 @@ class SendGraduateLedgerStatementEmail implements ShouldQueue
                 ->driver('browsershot')
                 ->withBrowsershot(fn (Browsershot $b) => $b->newHeadless()->timeout(300)->setOption('protocolTimeout', 300_000))
                 ->format('a4')->generatePdfContent();
-            Mail::to($student->email)->send(new GraduateLedgerStatementMail($student, $pdf, $this->subject, $this->note));
+            Mail::to($student->email)->send(new GraduateLedgerStatementMail(
+                $student,
+                $pdf,
+                $this->subject,
+                $this->note,
+                $this->examPeriod,
+                $this->examDeadline,
+            ));
             Log::info('Graduate Ledger statement email sent', ['student_id' => $student->id, 'record_count' => $records->count(), 'duration_ms' => (int) ((microtime(true) - $startedAt) * 1000)]);
         } catch (Throwable $exception) {
             Log::error('Graduate Ledger statement email failed', ['student_id' => $student->id, 'record_count' => $records->count(), 'duration_ms' => (int) ((microtime(true) - $startedAt) * 1000), 'exception' => $exception::class, 'message' => $exception->getMessage()]);
