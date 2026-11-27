@@ -430,27 +430,6 @@ class LedgerController extends Controller
         return response()->json(['data' => $students]);
     }
 
-    public function roster(Request $request): JsonResponse
-    {
-        $ledger = (string) $request->route('ledger');
-        $relationship = $ledger === 'graduate' ? 'graduateLedgers' : 'lawSchoolLedgers';
-
-        $students = Student::query()
-            ->whereHas($relationship)
-            ->orderBy('last_name')
-            ->orderBy('first_name')
-            ->get(['id', 'student_number', 'email', 'first_name', 'middle_name', 'last_name']);
-
-        return response()->json([
-            'data' => $students->map(fn (Student $student) => [
-                'id' => $student->id,
-                'student_number' => $student->student_number,
-                'name' => $student->full_name,
-                'email' => $student->email,
-            ])->values(),
-        ]);
-    }
-
     public function import(Request $request): JsonResponse
     {
         $ledger = (string) $request->route('ledger');
