@@ -56,6 +56,12 @@ UACS CODE ACCTG.xlsx
 .snyk
 HANDOFF.md
 
+# Agent metadata and instruction files
+.agent/
+.agents/
+**/.agent/
+**/.agents/
+
 # AI assistant instruction files
 AGENTS.md
 Agents.md
