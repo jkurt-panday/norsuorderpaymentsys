@@ -48,6 +48,7 @@ UACS-List-of-Sub-Object-Code-2016.xlsx
 UACS CODE - ACCTG.xlsx
 UACS CODE ACCTG.xlsx
 .env
+.env.bak
 .vite.config.ts
 *.md
 .docker-compose.yml
