@@ -38,6 +38,7 @@ class SendOrderOfPaymentEmail implements ShouldQueue
 
     public function handle(): void
     {
+        \Log::info('SendOrderOfPaymentEmail handle called', ['formInputId' => $this->formInputId]);
         $actor = null;
 
         if ($this->actorId) {
@@ -97,8 +98,15 @@ class SendOrderOfPaymentEmail implements ShouldQueue
 
         $subjectText = $this->subject ?? "Order of Payment - {$formInput->reference_number}";
 
-        try {
-            Cache::put(
+        // Prevent duplicate activity log entries
+        $existingLog = ActivityLog::where('action', 'email.sent')
+            ->where('description', "Email sent to {$formInput->email} with subject \"{$subjectText}\".")
+            ->where('created_at', '>=', now()->subMinute())
+            ->exists();
+
+        if (! $existingLog) {
+            try {
+                Cache::put(
                 'email_actor:'.md5((string) $formInput->email.'|'.$subjectText),
                 [
                     'id' => $actor?->getAuthIdentifier(),
@@ -138,8 +146,9 @@ class SendOrderOfPaymentEmail implements ShouldQueue
         } catch (Throwable $e) {
             Log::debug('Failed to log OP email activity in job', ['error' => $e->getMessage()]);
         }
+    }
 
-        $formInput->staffInput()->update([
+    $formInput->staffInput()->update([
             'emailed_at' => now(),
             'email_status' => 'sent',
             'email_error' => null,
